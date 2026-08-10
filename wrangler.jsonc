@@ -1,8 +1,10 @@
 {
+  "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "hegeva-ai-v3",
   "compatibility_date": "2026-08-10",
 
   "assets": {
-    "directory": "./public"
+    "directory": "./public",
+    "html_handling": "auto-trailing-slash"
   }
 }
