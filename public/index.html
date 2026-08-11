@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V4.1 — honest, multilingual business workspace." />
-  <title>Hegeva AI V4.1</title>
+  <meta name="description" content="Hegeva AI V4.2 — honest, multilingual business workspace." />
+  <title>Hegeva AI V4.2</title>
 
   <style>
     :root {
@@ -870,7 +870,18 @@
       .command-grid,.metric-strip {grid-template-columns:1fr}
     }
 
-  </style>
+  
+    .chat-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .mini-action{padding:7px 10px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;font-size:12px}
+    .mini-action:hover{border-color:rgba(246,196,83,.45)}
+    .prompt-library{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+    .prompt-card{padding:13px;border:1px solid var(--border);border-radius:13px;background:rgba(255,255,255,.035);cursor:pointer}
+    .prompt-card:hover{border-color:rgba(55,200,255,.38)}
+    .filter-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .filter-row select,.filter-row input{flex:1;min-width:160px}
+    @media(max-width:650px){.prompt-library{grid-template-columns:1fr}.chat-actions{gap:6px}.mini-action{flex:1}}
+
+</style>
 </head>
 
 <body>
@@ -880,7 +891,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name">Hegeva AI</div>
-          <div class="brand-subtitle">V4.1 BUSINESS COMMAND CENTER</div>
+          <div class="brand-subtitle">V4.2 PRODUCTIVITY UPGRADE</div>
         </div>
       </div>
 
@@ -956,7 +967,7 @@
     <main class="main">
       <section id="home" class="page active">
         <section class="hero">
-          <div class="badge" data-i18n="home.badge">HEGEVA AI V4.1</div>
+          <div class="badge" data-i18n="home.badge">HEGEVA AI V4.2</div>
 
           <h2>
             <span data-i18n="home.title1">Save time. Work smarter.</span>
@@ -1055,7 +1066,7 @@
         </div>
 
         <div class="footer-note" data-i18n="home.footer">
-          Hegeva AI V4.1 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
+          Hegeva AI V4.2 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
         </div>
       </section>
 
@@ -1081,6 +1092,11 @@
         <div class="chat-shell">
           <aside class="chat-sidebar">
             <button class="primary-button" id="createNewSavedChat" type="button" style="width:100%" data-i18n="ai41.newChat">＋ New chat</button>
+            <div class="chat-actions">
+              <button class="mini-action" id="renameCurrentChat" type="button" data-i18n="v42.rename">Rename</button>
+              <button class="mini-action" id="deleteCurrentChat" type="button" data-i18n="v42.delete">Delete</button>
+              <button class="mini-action" id="exportCurrentChat" type="button" data-i18n="v42.export">Export</button>
+            </div>
             <div style="margin:14px 0 8px;color:var(--muted);font-size:12px" data-i18n="ai41.savedChats">SAVED CHATS</div>
             <div id="savedChatsList"></div>
           </aside>
@@ -1113,6 +1129,16 @@
               <button class="secondary-button ai-quick" type="button" data-prompt-key="week" data-i18n="ai41.quickWeek">📋 Plan my week</button>
               <button class="secondary-button ai-quick" type="button" data-prompt-key="decision" data-i18n="ai41.quickDecision">⚖️ Compare a decision</button>
             </div>
+            <div class="card" style="margin:0 0 14px;padding:14px">
+              <strong data-i18n="v42.promptsTitle">⭐ Favorite Prompts</strong>
+              <div class="prompt-library">
+                <button class="prompt-card favorite-prompt" type="button" data-prompt-key="customer" data-i18n="v42.promptCustomer">Write a professional customer follow-up</button>
+                <button class="prompt-card favorite-prompt" type="button" data-prompt-key="day" data-i18n="v42.promptDay">Organise my business day</button>
+                <button class="prompt-card favorite-prompt" type="button" data-prompt-key="costs" data-i18n="v42.promptCosts">Review where I could check costs</button>
+                <button class="prompt-card favorite-prompt" type="button" data-prompt-key="goal" data-i18n="v42.promptGoal">Turn a goal into practical steps</button>
+              </div>
+            </div>
+
 
             <div class="form-group">
               <label for="aiChatInput" data-i18n="ai41.message">Your message</label>
@@ -1332,7 +1358,14 @@
           <div class="card">
             <h3 data-i18n="vault.docsTitle">🧾 Saved documents</h3>
             <p data-i18n="vault.docsText">Invoices and quotes you saved locally appear here.</p>
-            <input id="vaultSearch" class="vault-search" data-i18n-placeholder="vault41.search" placeholder="Search saved documents...">
+            <div class="filter-row">
+              <input id="vaultSearch" class="vault-search" data-i18n-placeholder="vault41.search" placeholder="Search saved documents...">
+              <select id="vaultTypeFilter">
+                <option value="" data-i18n="v42.allDocs">All documents</option>
+                <option value="invoice" data-i18n="v42.invoices">Invoices</option>
+                <option value="quote" data-i18n="v42.quotes">Quotes</option>
+              </select>
+            </div>
             <div id="vaultDocuments" class="coming-list" style="margin-top:14px"></div>
           </div>
 
@@ -1536,7 +1569,7 @@
         "nav.expenses": "Expenses",
         "nav.reports": "Reports",
         "nav.settings": "Settings",
-        "home.badge": "HEGEVA AI V4.1",
+        "home.badge": "HEGEVA AI V4.2",
         "home.title1": "Build your business workspace",
         "home.title2": "without fake promises.",
         "home.subtitle": "Hegeva AI is a human-first business workspace designed to reduce admin, organize everyday work and give you more time to focus. Only working features are marked as available.",
@@ -1551,7 +1584,7 @@
         "cards.aiText": "The secure AI backend is not connected yet. This feature is clearly marked as Coming Soon until it is real.",
         "status.live": "● Working",
         "status.soon": "Coming Soon",
-        "home.footer": "Hegeva AI V4.1 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
+        "home.footer": "Hegeva AI V4.2 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
         "ai.title": "🤖 AI Assistant",
         "ai.subtitle": "Secure AI integration is the next development stage.",
         "ai.comingTitle": "Hegeva AI Assistant — Coming Soon",
@@ -1734,6 +1767,17 @@
         "health.calculate": "Show my organisation check",
         "health.askAi": "Ask HEGEVA for next steps",
         "vault41.search": "Search saved documents...",
+        "v42.promptsTitle": "⭐ Favorite Prompts",
+        "v42.promptCustomer": "Write a professional customer follow-up",
+        "v42.promptDay": "Organise my business day",
+        "v42.promptCosts": "Review where I could check costs",
+        "v42.promptGoal": "Turn a goal into practical steps",
+        "v42.rename": "Rename",
+        "v42.delete": "Delete",
+        "v42.export": "Export",
+        "v42.allDocs": "All documents",
+        "v42.invoices": "Invoices",
+        "v42.quotes": "Quotes",
         "toast.saved": "Settings saved in this browser.",
         "toast.language": "Language changed."
       },
@@ -1745,7 +1789,7 @@
         "nav.expenses": "Kiadások",
         "nav.reports": "Riportok",
         "nav.settings": "Beállítások",
-        "home.badge": "HEGEVA AI V4.1",
+        "home.badge": "HEGEVA AI V4.2",
         "home.title1": "Építsd fel az üzleti munkateredet",
         "home.title2": "kamu ígéretek nélkül.",
         "home.subtitle": "A Hegeva AI lépésről lépésre épül. Csak a valóban működő funkciókat jelöljük elérhetőnek; ami még nincs kész, az egyértelműen Coming Soon.",
@@ -1760,7 +1804,7 @@
         "cards.aiText": "A biztonságos AI backend még nincs csatlakoztatva. Addig ez a funkció egyértelműen Coming Soon.",
         "status.live": "● Működik",
         "status.soon": "Hamarosan",
-        "home.footer": "A Hegeva AI V4.1 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
+        "home.footer": "A Hegeva AI V4.2 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
         "ai.title": "🤖 AI Asszisztens",
         "ai.subtitle": "A biztonságos AI-integráció a következő fejlesztési szakasz.",
         "ai.comingTitle": "Hegeva AI Asszisztens — Hamarosan",
@@ -1943,6 +1987,17 @@
         "health.calculate": "Rendszerezettség megmutatása",
         "health.askAi": "Következő lépések kérése a HEGEVA-tól",
         "vault41.search": "Keresés a mentett dokumentumok között...",
+        "v42.promptsTitle": "⭐ Kedvenc promptok",
+        "v42.promptCustomer": "Professzionális ügyfél utánkövetés írása",
+        "v42.promptDay": "Üzleti napom megszervezése",
+        "v42.promptCosts": "Hol érdemes átnéznem a költségeket?",
+        "v42.promptGoal": "Cél lebontása gyakorlati lépésekre",
+        "v42.rename": "Átnevezés",
+        "v42.delete": "Törlés",
+        "v42.export": "Export",
+        "v42.allDocs": "Minden dokumentum",
+        "v42.invoices": "Számlák",
+        "v42.quotes": "Árajánlatok",
         "toast.saved": "A beállításokat elmentettük ebben a böngészőben.",
         "toast.language": "Nyelv átállítva."
       },
@@ -1954,7 +2009,7 @@
         "nav.expenses": "Ausgaben",
         "nav.reports": "Berichte",
         "nav.settings": "Einstellungen",
-        "home.badge": "HEGEVA AI V4.1",
+        "home.badge": "HEGEVA AI V4.2",
         "home.title1": "Baue deinen Business-Arbeitsbereich",
         "home.title2": "ohne falsche Versprechen.",
         "home.subtitle": "Hegeva AI wird Schritt für Schritt entwickelt. Nur funktionierende Funktionen werden als verfügbar angezeigt; unfertige Werkzeuge sind klar als Coming Soon markiert.",
@@ -1969,7 +2024,7 @@
         "cards.aiText": "Das sichere KI-Backend ist noch nicht verbunden. Bis dahin ist diese Funktion klar als Coming Soon markiert.",
         "status.live": "● Funktioniert",
         "status.soon": "Demnächst",
-        "home.footer": "Hegeva AI V4.1 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
+        "home.footer": "Hegeva AI V4.2 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
         "ai.title": "🤖 KI-Assistent",
         "ai.subtitle": "Die sichere KI-Integration ist die nächste Entwicklungsstufe.",
         "ai.comingTitle": "Hegeva AI Assistent — Demnächst",
@@ -2152,6 +2207,17 @@
         "health.calculate": "Organisations-Check anzeigen",
         "health.askAi": "HEGEVA nach nächsten Schritten fragen",
         "vault41.search": "Gespeicherte Dokumente suchen...",
+        "v42.promptsTitle": "⭐ Lieblings-Prompts",
+        "v42.promptCustomer": "Professionelles Kunden-Follow-up schreiben",
+        "v42.promptDay": "Meinen Geschäftstag organisieren",
+        "v42.promptCosts": "Prüfen, wo ich Kosten kontrollieren könnte",
+        "v42.promptGoal": "Ein Ziel in praktische Schritte zerlegen",
+        "v42.rename": "Umbenennen",
+        "v42.delete": "Löschen",
+        "v42.export": "Exportieren",
+        "v42.allDocs": "Alle Dokumente",
+        "v42.invoices": "Rechnungen",
+        "v42.quotes": "Angebote",
         "toast.saved": "Einstellungen wurden in diesem Browser gespeichert.",
         "toast.language": "Sprache geändert."
       },
@@ -2163,7 +2229,7 @@
         "nav.expenses": "Dépenses",
         "nav.reports": "Rapports",
         "nav.settings": "Paramètres",
-        "home.badge": "HEGEVA AI V4.1",
+        "home.badge": "HEGEVA AI V4.2",
         "home.title1": "Construisez votre espace professionnel",
         "home.title2": "sans fausses promesses.",
         "home.subtitle": "Hegeva AI est développé étape par étape. Seules les fonctions réellement opérationnelles sont indiquées comme disponibles ; les outils non terminés sont clairement marqués Coming Soon.",
@@ -2178,7 +2244,7 @@
         "cards.aiText": "Le backend IA sécurisé n'est pas encore connecté. Cette fonction reste clairement marquée Coming Soon jusqu'à ce qu'elle soit réelle.",
         "status.live": "● Fonctionnel",
         "status.soon": "Bientôt",
-        "home.footer": "Hegeva AI V4.1 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
+        "home.footer": "Hegeva AI V4.2 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
         "ai.title": "🤖 Assistant IA",
         "ai.subtitle": "L'intégration sécurisée de l'IA est la prochaine étape.",
         "ai.comingTitle": "Assistant Hegeva AI — Bientôt",
@@ -2361,6 +2427,17 @@
         "health.calculate": "Afficher mon bilan",
         "health.askAi": "Demander les prochaines étapes à HEGEVA",
         "vault41.search": "Rechercher des documents...",
+        "v42.promptsTitle": "⭐ Prompts favoris",
+        "v42.promptCustomer": "Rédiger un suivi client professionnel",
+        "v42.promptDay": "Organiser ma journée professionnelle",
+        "v42.promptCosts": "Voir où vérifier mes coûts",
+        "v42.promptGoal": "Transformer un objectif en étapes pratiques",
+        "v42.rename": "Renommer",
+        "v42.delete": "Supprimer",
+        "v42.export": "Exporter",
+        "v42.allDocs": "Tous les documents",
+        "v42.invoices": "Factures",
+        "v42.quotes": "Devis",
         "toast.saved": "Paramètres enregistrés dans ce navigateur.",
         "toast.language": "Langue modifiée."
       },
@@ -2372,7 +2449,7 @@
         "nav.expenses": "Gastos",
         "nav.reports": "Informes",
         "nav.settings": "Ajustes",
-        "home.badge": "HEGEVA AI V4.1",
+        "home.badge": "HEGEVA AI V4.2",
         "home.title1": "Construye tu espacio de negocio",
         "home.title2": "sin promesas falsas.",
         "home.subtitle": "Hegeva AI se está construyendo paso a paso. Solo las funciones que realmente funcionan se marcan como disponibles; las herramientas sin terminar se indican claramente como Coming Soon.",
@@ -2387,7 +2464,7 @@
         "cards.aiText": "El backend seguro de IA todavía no está conectado. Esta función se marca claramente como Coming Soon hasta que sea real.",
         "status.live": "● Funciona",
         "status.soon": "Próximamente",
-        "home.footer": "Hegeva AI V4.1 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
+        "home.footer": "Hegeva AI V4.2 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
         "ai.title": "🤖 Asistente IA",
         "ai.subtitle": "La integración segura de IA es la siguiente fase de desarrollo.",
         "ai.comingTitle": "Asistente Hegeva AI — Próximamente",
@@ -2570,6 +2647,17 @@
         "health.calculate": "Mostrar mi chequeo",
         "health.askAi": "Pedir próximos pasos a HEGEVA",
         "vault41.search": "Buscar documentos guardados...",
+        "v42.promptsTitle": "⭐ Prompts favoritos",
+        "v42.promptCustomer": "Escribir un seguimiento profesional al cliente",
+        "v42.promptDay": "Organizar mi día de trabajo",
+        "v42.promptCosts": "Revisar dónde podría controlar costes",
+        "v42.promptGoal": "Convertir un objetivo en pasos prácticos",
+        "v42.rename": "Renombrar",
+        "v42.delete": "Eliminar",
+        "v42.export": "Exportar",
+        "v42.allDocs": "Todos los documentos",
+        "v42.invoices": "Facturas",
+        "v42.quotes": "Presupuestos",
         "toast.saved": "Ajustes guardados en este navegador.",
         "toast.language": "Idioma cambiado."
       }
@@ -3413,6 +3501,99 @@
     renderSavedChats();
     renderCurrentChat();
     refreshCommandMetrics();
+
+
+    function v42Prompt(key) {
+      const p = {
+        en:{customer:"Write a professional customer follow-up message. Ask me for missing facts instead of inventing them.",day:"Help me organise today's business tasks by priority and urgency.",costs:"Help me identify categories of business costs I should review. Do not assume any figures.",goal:"Help me turn one business goal into practical, realistic next steps."},
+        hu:{customer:"Írj professzionális ügyfél utánkövető üzenetet. Ha adat hiányzik, kérdezz rá, ne találj ki semmit.",day:"Segíts a mai üzleti feladataimat prioritás és sürgősség szerint megszervezni.",costs:"Segíts azonosítani, milyen üzleti költségkategóriákat érdemes átnéznem. Ne feltételezz számadatokat.",goal:"Segíts egy üzleti célt gyakorlati és reális következő lépésekre bontani."},
+        de:{customer:"Schreibe eine professionelle Kunden-Follow-up-Nachricht. Frage nach fehlenden Fakten statt sie zu erfinden.",day:"Hilf mir, meine heutigen Geschäftsaufgaben nach Priorität und Dringlichkeit zu organisieren.",costs:"Hilf mir, Kategorien von Geschäftskosten zu identifizieren, die ich prüfen sollte. Keine Zahlen annehmen.",goal:"Hilf mir, ein Geschäftsziel in praktische realistische Schritte zu zerlegen."},
+        fr:{customer:"Rédige un message professionnel de suivi client. Demande les faits manquants au lieu de les inventer.",day:"Aide-moi à organiser les tâches professionnelles d'aujourd'hui par priorité et urgence.",costs:"Aide-moi à identifier les catégories de coûts professionnels à examiner, sans supposer de chiffres.",goal:"Aide-moi à transformer un objectif professionnel en prochaines étapes pratiques et réalistes."},
+        es:{customer:"Escribe un mensaje profesional de seguimiento al cliente. Pregunta por los datos que falten en vez de inventarlos.",day:"Ayúdame a organizar las tareas de hoy por prioridad y urgencia.",costs:"Ayúdame a identificar categorías de costes del negocio que debería revisar, sin asumir cifras.",goal:"Ayúdame a convertir un objetivo de negocio en pasos siguientes prácticos y realistas."}
+      };
+      return (p[currentLanguage()] || p.en)[key] || "";
+    }
+
+    document.querySelectorAll(".favorite-prompt").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.getElementById("aiChatInput").value = v42Prompt(btn.dataset.promptKey);
+        document.getElementById("aiChatInput").focus();
+      });
+    });
+
+    document.getElementById("renameCurrentChat")?.addEventListener("click", () => {
+      const chat = ensureActiveChat();
+      const name = prompt(localeText({en:"New chat name:",hu:"Új chat neve:",de:"Neuer Chatname:",fr:"Nouveau nom du chat :",es:"Nuevo nombre del chat:"}), chat.title);
+      if (!name || !name.trim()) return;
+      chat.title = name.trim().slice(0,60);
+      updateChat(chat);
+      renderSavedChats();
+    });
+
+    document.getElementById("deleteCurrentChat")?.addEventListener("click", () => {
+      const ok = confirm(localeText({en:"Delete this saved chat?",hu:"Törlöd ezt a mentett chatet?",de:"Diesen gespeicherten Chat löschen?",fr:"Supprimer ce chat enregistré ?",es:"¿Eliminar este chat guardado?"}));
+      if (!ok) return;
+      const id = activeChatId();
+      let chats = getSavedChats().filter(c => c.id !== id);
+      saveChats(chats);
+      localStorage.removeItem(ACTIVE_CHAT_KEY);
+      ensureActiveChat();
+      renderSavedChats();
+      renderCurrentChat();
+      refreshCommandMetrics();
+    });
+
+    document.getElementById("exportCurrentChat")?.addEventListener("click", () => {
+      const chat = ensureActiveChat();
+      const text = chat.messages.map(m => `${m.role === "assistant" ? "HEGEVA AI" : "User"}:\n${m.content}`).join("\n\n");
+      const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = (chat.title || "hegeva-chat").replace(/[^\w\- ]+/g,"").slice(0,50) + ".txt";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // Add Copy buttons to rendered assistant messages.
+    const originalAddBubbleV42 = addBubble;
+    addBubble = function(role, text, persist = true) {
+      originalAddBubbleV42(role, text, persist);
+      if (role !== "assistant") return;
+      const wrap = document.getElementById("aiChatMessages");
+      const box = wrap?.lastElementChild;
+      if (!box || box.querySelector(".v42-copy")) return;
+      const actions = document.createElement("div");
+      actions.className = "chat-actions";
+      const copy = document.createElement("button");
+      copy.type = "button";
+      copy.className = "mini-action v42-copy";
+      copy.textContent = localeText({en:"Copy",hu:"Másolás",de:"Kopieren",fr:"Copier",es:"Copiar"});
+      copy.addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText(text); }
+        catch {
+          const ta=document.createElement("textarea"); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove();
+        }
+      });
+      actions.appendChild(copy);
+      box.appendChild(actions);
+    };
+
+    const oldVaultSearchV42 = applyVaultSearch;
+    applyVaultSearch = function() {
+      oldVaultSearchV42();
+      const q = (document.getElementById("vaultSearch")?.value || "").trim().toLowerCase();
+      const type = document.getElementById("vaultTypeFilter")?.value || "";
+      const container = document.getElementById("vaultDocuments");
+      if (!container) return;
+      Array.from(container.children).forEach(item => {
+        const text = item.textContent.toLowerCase();
+        const searchOk = !q || text.includes(q);
+        const typeOk = !type || text.includes(type);
+        item.style.display = searchOk && typeOk ? "" : "none";
+      });
+    };
+    document.getElementById("vaultTypeFilter")?.addEventListener("change", applyVaultSearch);
 
     const savedLanguage = localStorage.getItem("hegeva_language");
     if (savedLanguage && savedLanguage in translations) {
