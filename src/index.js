@@ -109,10 +109,7 @@ export default {
           const content =
             item.content.slice(0, 1200);
 
-          if (
-            totalChars + content.length >
-            7000
-          ) {
+          if (totalChars + content.length > 7000) {
             break;
           }
 
@@ -180,13 +177,12 @@ Latest message:
 ${message}
         `.trim();
 
-        const result =
-          await env.AI.run(
-            "@cf/meta/llama-3.1-8b-instruct-fast",
-            {
-              prompt
-            }
-          );
+        const result = await env.AI.run(
+          "@cf/meta/llama-3.1-8b-instruct-fast",
+          {
+            prompt
+          }
+        );
 
         return Response.json({
           response:
