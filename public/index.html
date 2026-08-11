@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V4.2 — honest, multilingual business workspace." />
-  <title>Hegeva AI V4.2</title>
+  <meta name="description" content="Hegeva AI V4.3 — honest, multilingual business workspace." />
+  <title>Hegeva AI V4.3</title>
 
   <style>
     :root {
@@ -881,6 +881,149 @@
     .filter-row select,.filter-row input{flex:1;min-width:160px}
     @media(max-width:650px){.prompt-library{grid-template-columns:1fr}.chat-actions{gap:6px}.mini-action{flex:1}}
 
+
+    .v43-vision {
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr);
+      gap: 24px;
+      align-items: center;
+      padding: 34px;
+      margin-bottom: 22px;
+      border-radius: 28px;
+      border: 1px solid rgba(246,196,83,.26);
+      background:
+        radial-gradient(circle at 86% 16%, rgba(55,200,255,.20), transparent 25%),
+        radial-gradient(circle at 72% 70%, rgba(155,108,255,.22), transparent 32%),
+        linear-gradient(135deg, rgba(246,196,83,.16), rgba(17,22,42,.92) 48%, rgba(6,12,27,.98));
+      box-shadow: 0 28px 80px rgba(0,0,0,.28);
+    }
+
+    .v43-copy { position: relative; z-index: 2; }
+
+    .v43-kicker {
+      display: inline-flex;
+      padding: 7px 11px;
+      margin-bottom: 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(246,196,83,.30);
+      background: rgba(246,196,83,.08);
+      color: #ffe7a3;
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .5px;
+    }
+
+    .v43-copy h1 {
+      margin: 0 0 14px;
+      font-size: clamp(36px, 5vw, 64px);
+      line-height: .98;
+      letter-spacing: -2px;
+    }
+
+    .v43-copy p {
+      max-width: 720px;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 16px;
+    }
+
+    .v43-orb {
+      position: relative;
+      min-height: 290px;
+      display: grid;
+      place-items: center;
+    }
+
+    .v43-orb-ring {
+      position: absolute;
+      width: 270px;
+      height: 270px;
+      border-radius: 50%;
+      border: 1px solid rgba(55,200,255,.32);
+      box-shadow:
+        inset 0 0 55px rgba(55,200,255,.08),
+        0 0 70px rgba(155,108,255,.15);
+      animation: v43spin 18s linear infinite;
+    }
+
+    .v43-orb-core {
+      width: 178px;
+      height: 178px;
+      border-radius: 52px;
+      display: grid;
+      place-items: center;
+      font-size: 82px;
+      font-weight: 950;
+      color: #06070b;
+      background: linear-gradient(145deg, #fff5c9, #f6c453 52%, #9b6cff);
+      box-shadow:
+        0 0 70px rgba(246,196,83,.34),
+        0 0 120px rgba(155,108,255,.22),
+        inset 0 0 30px rgba(255,255,255,.32);
+      border: 1px solid rgba(255,255,255,.32);
+      transform: rotate(-4deg);
+    }
+
+    .v43-chip {
+      position: absolute;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(7,12,26,.80);
+      color: white;
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: .8px;
+      backdrop-filter: blur(10px);
+    }
+
+    .v43-chip.a { top: 40px; left: 6%; }
+    .v43-chip.b { right: 3%; top: 100px; }
+    .v43-chip.c { left: 15%; bottom: 40px; }
+
+    .v43-real-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 14px;
+      margin: 18px 0 22px;
+    }
+
+    .v43-real-card {
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: linear-gradient(145deg, rgba(55,200,255,.08), rgba(155,108,255,.08), rgba(246,196,83,.05));
+    }
+
+    .v43-real-card span { color: var(--muted); font-size: 12px; }
+    .v43-real-card strong { display: block; margin-top: 6px; font-size: 22px; }
+
+    .v43-progress {
+      height: 8px;
+      margin-top: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,.07);
+    }
+
+    .v43-progress > div {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #37c8ff, #9b6cff, #f6c453);
+      transition: width .25s ease;
+    }
+
+    @keyframes v43spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 900px) {
+      .v43-vision { grid-template-columns: 1fr; }
+      .v43-orb { min-height: 230px; }
+      .v43-real-metrics { grid-template-columns: 1fr; }
+    }
+
 </style>
 </head>
 
@@ -891,7 +1034,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name">Hegeva AI</div>
-          <div class="brand-subtitle">V4.2 PRODUCTIVITY UPGRADE</div>
+          <div class="brand-subtitle">V4.3 FIXED VISION</div>
         </div>
       </div>
 
@@ -966,8 +1109,52 @@
 
     <main class="main">
       <section id="home" class="page active">
+        <section class="v43-vision">
+          <div class="v43-copy">
+            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.3 • HUMAN-FIRST BUSINESS AI</div>
+            <h1>
+              <span data-i18n="v43.hero1">Save time.</span>
+              <span class="gradient-text" data-i18n="v43.hero2"> Work smarter.</span>
+              <span data-i18n="v43.hero3"> Stay in control.</span>
+            </h1>
+            <p data-i18n="v43.heroText">A practical business workspace for planning, documents, customer communication and live AI assistance — without fake results or invented business data.</p>
+            <div class="hero-buttons">
+              <button class="primary-button" type="button" data-go="command" data-i18n="v43.openCommand">Open Command Center</button>
+              <button class="secondary-button" type="button" data-go="assistant" data-i18n="v43.askHegeva">Ask HEGEVA AI</button>
+            </div>
+          </div>
+
+          <div class="v43-orb" aria-hidden="true">
+            <div class="v43-orb-ring"></div>
+            <div class="v43-orb-core">H</div>
+            <div class="v43-chip a">AI</div>
+            <div class="v43-chip b">TIME</div>
+            <div class="v43-chip c">WORK</div>
+          </div>
+        </section>
+
+        <div class="notice" data-i18n="v43.realData">
+          These dashboard counts come only from data stored in this browser. HEGEVA does not invent customers, revenue, profit or completed work.
+        </div>
+
+        <div class="v43-real-metrics">
+          <div class="v43-real-card">
+            <span data-i18n="v43.openTasks">Open planner tasks</span>
+            <strong id="v43OpenTasks">0</strong>
+          </div>
+          <div class="v43-real-card">
+            <span data-i18n="v43.savedDocs">Saved documents</span>
+            <strong id="v43SavedDocs">0</strong>
+          </div>
+          <div class="v43-real-card">
+            <span data-i18n="v43.setup">Workspace setup</span>
+            <strong id="v43SetupText">0%</strong>
+            <div class="v43-progress"><div id="v43SetupBar"></div></div>
+          </div>
+        </div>
+
         <section class="hero">
-          <div class="badge" data-i18n="home.badge">HEGEVA AI V4.2</div>
+          <div class="badge" data-i18n="home.badge">HEGEVA AI V4.3</div>
 
           <h2>
             <span data-i18n="home.title1">Save time. Work smarter.</span>
@@ -1066,7 +1253,7 @@
         </div>
 
         <div class="footer-note" data-i18n="home.footer">
-          Hegeva AI V4.2 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
+          Hegeva AI V4.3 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
         </div>
       </section>
 
@@ -1569,7 +1756,7 @@
         "nav.expenses": "Expenses",
         "nav.reports": "Reports",
         "nav.settings": "Settings",
-        "home.badge": "HEGEVA AI V4.2",
+        "home.badge": "HEGEVA AI V4.3",
         "home.title1": "Build your business workspace",
         "home.title2": "without fake promises.",
         "home.subtitle": "Hegeva AI is a human-first business workspace designed to reduce admin, organize everyday work and give you more time to focus. Only working features are marked as available.",
@@ -1584,7 +1771,7 @@
         "cards.aiText": "The secure AI backend is not connected yet. This feature is clearly marked as Coming Soon until it is real.",
         "status.live": "● Working",
         "status.soon": "Coming Soon",
-        "home.footer": "Hegeva AI V4.2 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
+        "home.footer": "Hegeva AI V4.3 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
         "ai.title": "🤖 AI Assistant",
         "ai.subtitle": "Secure AI integration is the next development stage.",
         "ai.comingTitle": "Hegeva AI Assistant — Coming Soon",
@@ -1778,6 +1965,17 @@
         "v42.allDocs": "All documents",
         "v42.invoices": "Invoices",
         "v42.quotes": "Quotes",
+        "v43.eyebrow": "HEGEVA AI V4.3 • HUMAN-FIRST BUSINESS AI",
+        "v43.hero1": "Save time.",
+        "v43.hero2": " Work smarter.",
+        "v43.hero3": " Stay in control.",
+        "v43.heroText": "A practical business workspace for planning, documents, customer communication and live AI assistance — without fake results or invented business data.",
+        "v43.openCommand": "Open Command Center",
+        "v43.askHegeva": "Ask HEGEVA AI",
+        "v43.realData": "These dashboard counts come only from data stored in this browser. HEGEVA does not invent customers, revenue, profit or completed work.",
+        "v43.openTasks": "Open planner tasks",
+        "v43.savedDocs": "Saved documents",
+        "v43.setup": "Workspace setup",
         "toast.saved": "Settings saved in this browser.",
         "toast.language": "Language changed."
       },
@@ -1789,7 +1987,7 @@
         "nav.expenses": "Kiadások",
         "nav.reports": "Riportok",
         "nav.settings": "Beállítások",
-        "home.badge": "HEGEVA AI V4.2",
+        "home.badge": "HEGEVA AI V4.3",
         "home.title1": "Építsd fel az üzleti munkateredet",
         "home.title2": "kamu ígéretek nélkül.",
         "home.subtitle": "A Hegeva AI lépésről lépésre épül. Csak a valóban működő funkciókat jelöljük elérhetőnek; ami még nincs kész, az egyértelműen Coming Soon.",
@@ -1804,7 +2002,7 @@
         "cards.aiText": "A biztonságos AI backend még nincs csatlakoztatva. Addig ez a funkció egyértelműen Coming Soon.",
         "status.live": "● Működik",
         "status.soon": "Hamarosan",
-        "home.footer": "A Hegeva AI V4.2 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
+        "home.footer": "A Hegeva AI V4.3 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
         "ai.title": "🤖 AI Asszisztens",
         "ai.subtitle": "A biztonságos AI-integráció a következő fejlesztési szakasz.",
         "ai.comingTitle": "Hegeva AI Asszisztens — Hamarosan",
@@ -1998,6 +2196,17 @@
         "v42.allDocs": "Minden dokumentum",
         "v42.invoices": "Számlák",
         "v42.quotes": "Árajánlatok",
+        "v43.eyebrow": "HEGEVA AI V4.3 • EMBERKÖZPONTÚ ÜZLETI AI",
+        "v43.hero1": "Spórolj időt.",
+        "v43.hero2": " Dolgozz okosabban.",
+        "v43.hero3": " Maradj irányításban.",
+        "v43.heroText": "Gyakorlati üzleti munkatér tervezéshez, dokumentumokhoz, ügyfélkommunikációhoz és élő AI segítséghez — kamu eredmények és kitalált üzleti adatok nélkül.",
+        "v43.openCommand": "Irányítóközpont megnyitása",
+        "v43.askHegeva": "Kérdezd a HEGEVA AI-t",
+        "v43.realData": "Ezek a dashboard-számok kizárólag ebben a böngészőben tárolt adatokból származnak. A HEGEVA nem talál ki ügyfeleket, bevételt, profitot vagy elvégzett munkát.",
+        "v43.openTasks": "Nyitott tervező feladatok",
+        "v43.savedDocs": "Mentett dokumentumok",
+        "v43.setup": "Munkatér beállítása",
         "toast.saved": "A beállításokat elmentettük ebben a böngészőben.",
         "toast.language": "Nyelv átállítva."
       },
@@ -2009,7 +2218,7 @@
         "nav.expenses": "Ausgaben",
         "nav.reports": "Berichte",
         "nav.settings": "Einstellungen",
-        "home.badge": "HEGEVA AI V4.2",
+        "home.badge": "HEGEVA AI V4.3",
         "home.title1": "Baue deinen Business-Arbeitsbereich",
         "home.title2": "ohne falsche Versprechen.",
         "home.subtitle": "Hegeva AI wird Schritt für Schritt entwickelt. Nur funktionierende Funktionen werden als verfügbar angezeigt; unfertige Werkzeuge sind klar als Coming Soon markiert.",
@@ -2024,7 +2233,7 @@
         "cards.aiText": "Das sichere KI-Backend ist noch nicht verbunden. Bis dahin ist diese Funktion klar als Coming Soon markiert.",
         "status.live": "● Funktioniert",
         "status.soon": "Demnächst",
-        "home.footer": "Hegeva AI V4.2 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
+        "home.footer": "Hegeva AI V4.3 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
         "ai.title": "🤖 KI-Assistent",
         "ai.subtitle": "Die sichere KI-Integration ist die nächste Entwicklungsstufe.",
         "ai.comingTitle": "Hegeva AI Assistent — Demnächst",
@@ -2218,6 +2427,17 @@
         "v42.allDocs": "Alle Dokumente",
         "v42.invoices": "Rechnungen",
         "v42.quotes": "Angebote",
+        "v43.eyebrow": "HEGEVA AI V4.3 • MENSCHENZENTRIERTE BUSINESS-KI",
+        "v43.hero1": "Zeit sparen.",
+        "v43.hero2": " Smarter arbeiten.",
+        "v43.hero3": " Die Kontrolle behalten.",
+        "v43.heroText": "Praktischer Business-Workspace für Planung, Dokumente, Kundenkommunikation und Live-KI — ohne erfundene Ergebnisse oder Geschäftsdaten.",
+        "v43.openCommand": "Command Center öffnen",
+        "v43.askHegeva": "HEGEVA AI fragen",
+        "v43.realData": "Diese Dashboard-Zahlen stammen nur aus Daten in diesem Browser. HEGEVA erfindet keine Kunden, Umsätze, Gewinne oder erledigte Arbeit.",
+        "v43.openTasks": "Offene Planer-Aufgaben",
+        "v43.savedDocs": "Gespeicherte Dokumente",
+        "v43.setup": "Workspace-Einrichtung",
         "toast.saved": "Einstellungen wurden in diesem Browser gespeichert.",
         "toast.language": "Sprache geändert."
       },
@@ -2229,7 +2449,7 @@
         "nav.expenses": "Dépenses",
         "nav.reports": "Rapports",
         "nav.settings": "Paramètres",
-        "home.badge": "HEGEVA AI V4.2",
+        "home.badge": "HEGEVA AI V4.3",
         "home.title1": "Construisez votre espace professionnel",
         "home.title2": "sans fausses promesses.",
         "home.subtitle": "Hegeva AI est développé étape par étape. Seules les fonctions réellement opérationnelles sont indiquées comme disponibles ; les outils non terminés sont clairement marqués Coming Soon.",
@@ -2244,7 +2464,7 @@
         "cards.aiText": "Le backend IA sécurisé n'est pas encore connecté. Cette fonction reste clairement marquée Coming Soon jusqu'à ce qu'elle soit réelle.",
         "status.live": "● Fonctionnel",
         "status.soon": "Bientôt",
-        "home.footer": "Hegeva AI V4.2 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
+        "home.footer": "Hegeva AI V4.3 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
         "ai.title": "🤖 Assistant IA",
         "ai.subtitle": "L'intégration sécurisée de l'IA est la prochaine étape.",
         "ai.comingTitle": "Assistant Hegeva AI — Bientôt",
@@ -2438,6 +2658,17 @@
         "v42.allDocs": "Tous les documents",
         "v42.invoices": "Factures",
         "v42.quotes": "Devis",
+        "v43.eyebrow": "HEGEVA AI V4.3 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
+        "v43.hero1": "Gagnez du temps.",
+        "v43.hero2": " Travaillez plus intelligemment.",
+        "v43.hero3": " Gardez le contrôle.",
+        "v43.heroText": "Un espace professionnel pratique pour la planification, les documents, la communication client et l'IA en direct — sans résultats ni données commerciales inventés.",
+        "v43.openCommand": "Ouvrir le centre de commande",
+        "v43.askHegeva": "Demander à HEGEVA AI",
+        "v43.realData": "Ces chiffres proviennent uniquement des données enregistrées dans ce navigateur. HEGEVA n'invente pas de clients, revenus, bénéfices ou travail accompli.",
+        "v43.openTasks": "Tâches ouvertes",
+        "v43.savedDocs": "Documents enregistrés",
+        "v43.setup": "Configuration de l'espace",
         "toast.saved": "Paramètres enregistrés dans ce navigateur.",
         "toast.language": "Langue modifiée."
       },
@@ -2449,7 +2680,7 @@
         "nav.expenses": "Gastos",
         "nav.reports": "Informes",
         "nav.settings": "Ajustes",
-        "home.badge": "HEGEVA AI V4.2",
+        "home.badge": "HEGEVA AI V4.3",
         "home.title1": "Construye tu espacio de negocio",
         "home.title2": "sin promesas falsas.",
         "home.subtitle": "Hegeva AI se está construyendo paso a paso. Solo las funciones que realmente funcionan se marcan como disponibles; las herramientas sin terminar se indican claramente como Coming Soon.",
@@ -2464,7 +2695,7 @@
         "cards.aiText": "El backend seguro de IA todavía no está conectado. Esta función se marca claramente como Coming Soon hasta que sea real.",
         "status.live": "● Funciona",
         "status.soon": "Próximamente",
-        "home.footer": "Hegeva AI V4.2 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
+        "home.footer": "Hegeva AI V4.3 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
         "ai.title": "🤖 Asistente IA",
         "ai.subtitle": "La integración segura de IA es la siguiente fase de desarrollo.",
         "ai.comingTitle": "Asistente Hegeva AI — Próximamente",
@@ -2658,6 +2889,17 @@
         "v42.allDocs": "Todos los documentos",
         "v42.invoices": "Facturas",
         "v42.quotes": "Presupuestos",
+        "v43.eyebrow": "HEGEVA AI V4.3 • IA EMPRESARIAL CENTRADA EN PERSONAS",
+        "v43.hero1": "Ahorra tiempo.",
+        "v43.hero2": " Trabaja de forma más inteligente.",
+        "v43.hero3": " Mantén el control.",
+        "v43.heroText": "Un espacio práctico para planificación, documentos, comunicación con clientes e IA en directo — sin resultados ni datos empresariales inventados.",
+        "v43.openCommand": "Abrir Centro de Control",
+        "v43.askHegeva": "Preguntar a HEGEVA AI",
+        "v43.realData": "Estas cifras proceden únicamente de datos guardados en este navegador. HEGEVA no inventa clientes, ingresos, beneficios ni trabajo completado.",
+        "v43.openTasks": "Tareas abiertas",
+        "v43.savedDocs": "Documentos guardados",
+        "v43.setup": "Configuración del espacio",
         "toast.saved": "Ajustes guardados en este navegador.",
         "toast.language": "Idioma cambiado."
       }
@@ -3595,6 +3837,33 @@
     };
     document.getElementById("vaultTypeFilter")?.addEventListener("change", applyVaultSearch);
 
+
+    function refreshV43VisionMetrics() {
+      let tasks = [];
+      let docs = [];
+      let settings = {};
+
+      try { tasks = JSON.parse(localStorage.getItem("hegeva_planner_tasks") || "[]"); } catch {}
+      try { docs = JSON.parse(localStorage.getItem("hegeva_documents") || "[]"); } catch {}
+      try { settings = JSON.parse(localStorage.getItem("hegeva_settings") || "{}"); } catch {}
+
+      const openTasks = tasks.filter(task => !task.done).length;
+      const profileFields = ["businessName", "businessEmail", "country", "address"];
+      const completeFields = profileFields.filter(key => String(settings[key] || "").trim()).length;
+      const setupPercent = Math.round((completeFields / profileFields.length) * 100);
+
+      const openEl = document.getElementById("v43OpenTasks");
+      const docsEl = document.getElementById("v43SavedDocs");
+      const setupEl = document.getElementById("v43SetupText");
+      const barEl = document.getElementById("v43SetupBar");
+
+      if (openEl) openEl.textContent = openTasks;
+      if (docsEl) docsEl.textContent = docs.length;
+      if (setupEl) setupEl.textContent = `${setupPercent}%`;
+      if (barEl) barEl.style.width = `${setupPercent}%`;
+    }
+
+    refreshV43VisionMetrics();
     const savedLanguage = localStorage.getItem("hegeva_language");
     if (savedLanguage && savedLanguage in translations) {
       languageSelect.value = savedLanguage;
