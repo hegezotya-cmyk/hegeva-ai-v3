@@ -33,8 +33,7 @@ export default {
         }
 
         const modeInstructions = {
-          general:
-            "Give practical general business help.",
+          general: "Give practical general business help.",
 
           time:
             "Focus on repetitive work, admin bottlenecks and realistic ways to save time.",
@@ -84,9 +83,7 @@ export default {
 
         const businessContext =
           typeof body.businessContext === "string"
-            ? body.businessContext
-                .slice(0, 500)
-                .trim()
+            ? body.businessContext.slice(0, 500).trim()
             : "";
 
         const rawHistory =
@@ -106,13 +103,9 @@ export default {
             continue;
           }
 
-          const content =
-            item.content.slice(0, 1200);
+          const content = item.content.slice(0, 1200);
 
-          if (
-            totalChars + content.length >
-            7000
-          ) {
+          if (totalChars + content.length > 7000) {
             break;
           }
 
@@ -124,17 +117,16 @@ export default {
           });
         }
 
-        const transcript =
-          safeHistory
-            .map(
-              (item) =>
-                `${
-                  item.role === "assistant"
-                    ? "HEGEVA AI"
-                    : "User"
-                }: ${item.content}`
-            )
-            .join("\n\n");
+        const transcript = safeHistory
+          .map(
+            (item) =>
+              `${
+                item.role === "assistant"
+                  ? "HEGEVA AI"
+                  : "User"
+              }: ${item.content}`
+          )
+          .join("\n\n");
 
         const prompt = `
 You are HEGEVA AI, a practical business companion.
@@ -154,39 +146,28 @@ Optional business context:
 ${businessContext || "(none provided)"}
 
 Rules:
-
 - Never promise guaranteed income, profit, growth, customers, savings or results.
-
 - Never invent the user's business figures, customers, documents or completed actions.
-
 - Separate facts supplied by the user from suggestions or assumptions.
-
 - For legal, tax, accounting, medical or regulated matters, provide general information only and say when professional advice may be appropriate.
-
 - Do not request passwords, card details, private keys or highly sensitive information.
-
 - For customer messages and document wording, produce editable drafts and do not claim legal validity.
-
 - For decisions, explain trade-offs instead of telling the user there is a guaranteed best choice.
-
 - Keep answers practical, clear and reasonably concise.
 
 Recent conversation:
-
 ${transcript || "(no recent messages)"}
 
 Latest message:
-
 ${message}
         `.trim();
 
-        const result =
-          await env.AI.run(
-            "@cf/meta/llama-3.1-8b-instruct-fast",
-            {
-              prompt
-            }
-          );
+        const result = await env.AI.run(
+          "@cf/meta/llama-3.1-8b-instruct-fast",
+          {
+            prompt
+          }
+        );
 
         return Response.json({
           response:
