@@ -9,6 +9,14 @@
     "binding": "AI"
   },
 
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "hegeva-ai-db",
+      "database_id": "1aa89d03-3f5c-4505-814a-5c379148f22d"
+    }
+  ],
+
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
