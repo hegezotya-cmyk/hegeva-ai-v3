@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V3.3 — honest, multilingual business workspace." />
-  <title>Hegeva AI V3.3</title>
+  <meta name="description" content="Hegeva AI V3.4 — honest, multilingual business workspace." />
+  <title>Hegeva AI V3.4</title>
 
   <style>
     :root {
@@ -691,6 +691,54 @@
         max-width: 145px;
       }
     }
+  
+    @media print {
+      header,
+      .sidebar,
+      #documents .page-heading,
+      #documents .notice,
+      #documents > .card:first-of-type,
+      .footer-note {
+        display: none !important;
+      }
+
+      body,
+      .app-layout,
+      .main {
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        color: black !important;
+      }
+
+      .page {
+        display: none !important;
+      }
+
+      #documents {
+        display: block !important;
+      }
+
+      #documentPreview {
+        display: block !important;
+        background: white !important;
+        color: black !important;
+        border: 0 !important;
+        box-shadow: none !important;
+      }
+
+      #documentPreview p {
+        color: #444 !important;
+      }
+
+      #documentPreview .badge {
+        color: black !important;
+        border-color: #bbb !important;
+        background: #eee !important;
+      }
+    }
+
   </style>
 </head>
 
@@ -701,7 +749,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name">Hegeva AI</div>
-          <div class="brand-subtitle">V3.3 VISION UI</div>
+          <div class="brand-subtitle">V3.4 DOCUMENT BUILDER</div>
         </div>
       </div>
 
@@ -757,7 +805,7 @@
     <main class="main">
       <section id="home" class="page active">
         <section class="hero">
-          <div class="badge" data-i18n="home.badge">HEGEVA AI V3.3</div>
+          <div class="badge" data-i18n="home.badge">HEGEVA AI V3.4</div>
 
           <h2>
             <span data-i18n="home.title1">Save time. Work smarter.</span>
@@ -856,7 +904,7 @@
         </div>
 
         <div class="footer-note" data-i18n="home.footer">
-          Hegeva AI V3.3 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
+          Hegeva AI V3.4 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
         </div>
       </section>
 
@@ -886,17 +934,126 @@
       <section id="documents" class="page">
         <div class="page-heading">
           <div>
-            <h1 data-i18n="documents.title">🧾 Documents</h1>
-            <p data-i18n="documents.subtitle">Document creation will be released only when it really generates usable files.</p>
+            <h1 data-i18n="documents.title">🧾 Invoice & Quote Builder</h1>
+            <p data-i18n="documents.subtitle">Create a real invoice or quote using only the information you enter.</p>
           </div>
         </div>
 
-        <div class="card empty-state">
-          <div class="empty-icon">🧾</div>
-          <h2 data-i18n="documents.comingTitle">Invoice, Quote & Receipt Builder — Coming Soon</h2>
-          <p data-i18n="documents.comingText">
-            No fake invoice history or customer records are displayed. The builder will be added as a real working feature in a later step.
-          </p>
+        <div class="notice" data-i18n="documents.notice">
+          This tool works locally in your browser. Check your legal, tax and payment details before sending a document to a customer.
+        </div>
+
+        <div class="card">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="docType" data-i18n="documents.type">Document type</label>
+              <select id="docType">
+                <option value="Invoice" data-i18n="documents.invoice">Invoice</option>
+                <option value="Quote" data-i18n="documents.quote">Quote</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="docNumber" data-i18n="documents.number">Document number</label>
+              <input id="docNumber" placeholder="INV-001">
+            </div>
+
+            <div class="form-group">
+              <label for="docDate" data-i18n="documents.date">Date</label>
+              <input id="docDate" type="date">
+            </div>
+
+            <div class="form-group">
+              <label for="docDue" data-i18n="documents.due">Due / valid until</label>
+              <input id="docDue" type="date">
+            </div>
+
+            <div class="form-group">
+              <label for="docCustomer" data-i18n="documents.customer">Customer name</label>
+              <input id="docCustomer" data-i18n-placeholder="documents.customerPlaceholder" placeholder="Customer">
+            </div>
+
+            <div class="form-group">
+              <label for="docCustomerEmail" data-i18n="documents.customerEmail">Customer email</label>
+              <input id="docCustomerEmail" type="email" placeholder="customer@example.com">
+            </div>
+
+            <div class="form-group full">
+              <label for="docCustomerAddress" data-i18n="documents.customerAddress">Customer address</label>
+              <textarea id="docCustomerAddress"></textarea>
+            </div>
+          </div>
+
+          <h3 style="margin-top:22px" data-i18n="documents.item">Item / service</h3>
+
+          <div class="form-grid" style="margin-top:12px">
+            <div class="form-group full">
+              <label for="docDescription" data-i18n="documents.description">Description</label>
+              <input id="docDescription" data-i18n-placeholder="documents.descriptionPlaceholder" placeholder="Service or product">
+            </div>
+
+            <div class="form-group">
+              <label for="docQty" data-i18n="documents.quantity">Quantity</label>
+              <input id="docQty" type="number" min="0" step="1" value="1">
+            </div>
+
+            <div class="form-group">
+              <label for="docPrice" data-i18n="documents.price">Unit price</label>
+              <input id="docPrice" type="number" min="0" step="0.01" value="0">
+            </div>
+          </div>
+
+          <div class="hero-buttons">
+            <button class="primary-button" id="createDocument" type="button" data-i18n="documents.create">Create preview</button>
+            <button class="secondary-button" id="saveDocument" type="button" data-i18n="documents.save">Save locally</button>
+            <button class="secondary-button" id="printDocument" type="button" data-i18n="documents.print">Print</button>
+          </div>
+        </div>
+
+        <div id="documentPreview" class="card" style="display:none;margin-top:18px">
+          <div style="display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap">
+            <div>
+              <div class="badge" id="previewType">INVOICE</div>
+              <h2 id="previewBusiness">Your business</h2>
+              <p id="previewBusinessDetails"></p>
+            </div>
+
+            <div style="text-align:right">
+              <strong id="previewNumber"></strong>
+              <p id="previewDates"></p>
+            </div>
+          </div>
+
+          <hr style="border:0;border-top:1px solid var(--border);margin:20px 0">
+
+          <h3 data-i18n="documents.billTo">Customer</h3>
+          <p id="previewCustomer" style="margin-top:8px"></p>
+
+          <div style="overflow:auto;margin-top:20px">
+            <table style="width:100%;border-collapse:collapse">
+              <thead>
+                <tr style="text-align:left;border-bottom:1px solid var(--border)">
+                  <th style="padding:10px" data-i18n="documents.description">Description</th>
+                  <th style="padding:10px" data-i18n="documents.quantity">Quantity</th>
+                  <th style="padding:10px" data-i18n="documents.price">Unit price</th>
+                  <th style="padding:10px" data-i18n="documents.total">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td id="previewDescription" style="padding:10px"></td>
+                  <td id="previewQty" style="padding:10px"></td>
+                  <td id="previewPrice" style="padding:10px"></td>
+                  <td id="previewLineTotal" style="padding:10px"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="text-align:right;margin-top:20px">
+            <div style="color:var(--muted)" data-i18n="documents.grandTotal">Total</div>
+            <div id="previewTotal" style="font-size:30px;font-weight:900;color:var(--primary-2)"></div>
+          </div>
         </div>
       </section>
 
@@ -998,7 +1155,7 @@
         "nav.expenses": "Expenses",
         "nav.reports": "Reports",
         "nav.settings": "Settings",
-        "home.badge": "HEGEVA AI V3.3",
+        "home.badge": "HEGEVA AI V3.4",
         "home.title1": "Build your business workspace",
         "home.title2": "without fake promises.",
         "home.subtitle": "Hegeva AI is a human-first business workspace designed to reduce admin, organize everyday work and give you more time to focus. Only working features are marked as available.",
@@ -1013,7 +1170,7 @@
         "cards.aiText": "The secure AI backend is not connected yet. This feature is clearly marked as Coming Soon until it is real.",
         "status.live": "● Working",
         "status.soon": "Coming Soon",
-        "home.footer": "Hegeva AI V3.3 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
+        "home.footer": "Hegeva AI V3.4 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
         "ai.title": "🤖 AI Assistant",
         "ai.subtitle": "Secure AI integration is the next development stage.",
         "ai.comingTitle": "Hegeva AI Assistant — Coming Soon",
@@ -1062,6 +1219,31 @@
         "template.hello": "Hello",
         "template.follow": "I am following up regarding",
         "template.close": "Kind regards",
+        "documents.title": "🧾 Invoice & Quote Builder",
+        "documents.subtitle": "Create a real invoice or quote using only the information you enter.",
+        "documents.notice": "This tool works locally in your browser. Check your legal, tax and payment details before sending a document to a customer.",
+        "documents.type": "Document type",
+        "documents.invoice": "Invoice",
+        "documents.quote": "Quote",
+        "documents.number": "Document number",
+        "documents.date": "Date",
+        "documents.due": "Due / valid until",
+        "documents.customer": "Customer name",
+        "documents.customerPlaceholder": "Customer",
+        "documents.customerEmail": "Customer email",
+        "documents.customerAddress": "Customer address",
+        "documents.item": "Item / service",
+        "documents.description": "Description",
+        "documents.descriptionPlaceholder": "Service or product",
+        "documents.quantity": "Quantity",
+        "documents.price": "Unit price",
+        "documents.create": "Create preview",
+        "documents.save": "Save locally",
+        "documents.print": "Print",
+        "documents.billTo": "Customer",
+        "documents.total": "Total",
+        "documents.grandTotal": "Total",
+        "documents.savedToast": "Document saved locally.",
         "toast.saved": "Settings saved in this browser.",
         "toast.language": "Language changed."
       },
@@ -1073,7 +1255,7 @@
         "nav.expenses": "Kiadások",
         "nav.reports": "Riportok",
         "nav.settings": "Beállítások",
-        "home.badge": "HEGEVA AI V3.3",
+        "home.badge": "HEGEVA AI V3.4",
         "home.title1": "Építsd fel az üzleti munkateredet",
         "home.title2": "kamu ígéretek nélkül.",
         "home.subtitle": "A Hegeva AI lépésről lépésre épül. Csak a valóban működő funkciókat jelöljük elérhetőnek; ami még nincs kész, az egyértelműen Coming Soon.",
@@ -1088,7 +1270,7 @@
         "cards.aiText": "A biztonságos AI backend még nincs csatlakoztatva. Addig ez a funkció egyértelműen Coming Soon.",
         "status.live": "● Működik",
         "status.soon": "Hamarosan",
-        "home.footer": "A Hegeva AI V3.3 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
+        "home.footer": "A Hegeva AI V3.4 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
         "ai.title": "🤖 AI Asszisztens",
         "ai.subtitle": "A biztonságos AI-integráció a következő fejlesztési szakasz.",
         "ai.comingTitle": "Hegeva AI Asszisztens — Hamarosan",
@@ -1137,6 +1319,31 @@
         "template.hello": "Kedves",
         "template.follow": "Azért írok, hogy visszatérjek erre",
         "template.close": "Üdvözlettel",
+        "documents.title": "🧾 Számla- és árajánlat-készítő",
+        "documents.subtitle": "Készíts valódi számlát vagy árajánlatot kizárólag az általad megadott adatokból.",
+        "documents.notice": "Ez az eszköz helyben, a böngésződben működik. Küldés előtt ellenőrizd a jogi, adózási és fizetési adatokat.",
+        "documents.type": "Dokumentum típusa",
+        "documents.invoice": "Számla",
+        "documents.quote": "Árajánlat",
+        "documents.number": "Dokumentum száma",
+        "documents.date": "Dátum",
+        "documents.due": "Fizetési határidő / érvényesség",
+        "documents.customer": "Ügyfél neve",
+        "documents.customerPlaceholder": "Ügyfél",
+        "documents.customerEmail": "Ügyfél e-mail",
+        "documents.customerAddress": "Ügyfél címe",
+        "documents.item": "Tétel / szolgáltatás",
+        "documents.description": "Leírás",
+        "documents.descriptionPlaceholder": "Szolgáltatás vagy termék",
+        "documents.quantity": "Mennyiség",
+        "documents.price": "Egységár",
+        "documents.create": "Előnézet készítése",
+        "documents.save": "Mentés helyben",
+        "documents.print": "Nyomtatás",
+        "documents.billTo": "Ügyfél",
+        "documents.total": "Összesen",
+        "documents.grandTotal": "Végösszeg",
+        "documents.savedToast": "Dokumentum helyben elmentve.",
         "toast.saved": "A beállításokat elmentettük ebben a böngészőben.",
         "toast.language": "Nyelv átállítva."
       },
@@ -1148,7 +1355,7 @@
         "nav.expenses": "Ausgaben",
         "nav.reports": "Berichte",
         "nav.settings": "Einstellungen",
-        "home.badge": "HEGEVA AI V3.3",
+        "home.badge": "HEGEVA AI V3.4",
         "home.title1": "Baue deinen Business-Arbeitsbereich",
         "home.title2": "ohne falsche Versprechen.",
         "home.subtitle": "Hegeva AI wird Schritt für Schritt entwickelt. Nur funktionierende Funktionen werden als verfügbar angezeigt; unfertige Werkzeuge sind klar als Coming Soon markiert.",
@@ -1163,7 +1370,7 @@
         "cards.aiText": "Das sichere KI-Backend ist noch nicht verbunden. Bis dahin ist diese Funktion klar als Coming Soon markiert.",
         "status.live": "● Funktioniert",
         "status.soon": "Demnächst",
-        "home.footer": "Hegeva AI V3.3 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
+        "home.footer": "Hegeva AI V3.4 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
         "ai.title": "🤖 KI-Assistent",
         "ai.subtitle": "Die sichere KI-Integration ist die nächste Entwicklungsstufe.",
         "ai.comingTitle": "Hegeva AI Assistent — Demnächst",
@@ -1212,6 +1419,31 @@
         "template.hello": "Hallo",
         "template.follow": "Ich melde mich bezüglich",
         "template.close": "Freundliche Grüße",
+        "documents.title": "🧾 Rechnungs- & Angebotseditor",
+        "documents.subtitle": "Erstelle eine echte Rechnung oder ein Angebot nur aus den von dir eingegebenen Daten.",
+        "documents.notice": "Dieses Werkzeug funktioniert lokal im Browser. Prüfe rechtliche, steuerliche und Zahlungsangaben vor dem Versand.",
+        "documents.type": "Dokumenttyp",
+        "documents.invoice": "Rechnung",
+        "documents.quote": "Angebot",
+        "documents.number": "Dokumentnummer",
+        "documents.date": "Datum",
+        "documents.due": "Fällig / gültig bis",
+        "documents.customer": "Kundenname",
+        "documents.customerPlaceholder": "Kunde",
+        "documents.customerEmail": "Kunden-E-Mail",
+        "documents.customerAddress": "Kundenadresse",
+        "documents.item": "Artikel / Leistung",
+        "documents.description": "Beschreibung",
+        "documents.descriptionPlaceholder": "Dienstleistung oder Produkt",
+        "documents.quantity": "Menge",
+        "documents.price": "Einzelpreis",
+        "documents.create": "Vorschau erstellen",
+        "documents.save": "Lokal speichern",
+        "documents.print": "Drucken",
+        "documents.billTo": "Kunde",
+        "documents.total": "Gesamt",
+        "documents.grandTotal": "Gesamtsumme",
+        "documents.savedToast": "Dokument lokal gespeichert.",
         "toast.saved": "Einstellungen wurden in diesem Browser gespeichert.",
         "toast.language": "Sprache geändert."
       },
@@ -1223,7 +1455,7 @@
         "nav.expenses": "Dépenses",
         "nav.reports": "Rapports",
         "nav.settings": "Paramètres",
-        "home.badge": "HEGEVA AI V3.3",
+        "home.badge": "HEGEVA AI V3.4",
         "home.title1": "Construisez votre espace professionnel",
         "home.title2": "sans fausses promesses.",
         "home.subtitle": "Hegeva AI est développé étape par étape. Seules les fonctions réellement opérationnelles sont indiquées comme disponibles ; les outils non terminés sont clairement marqués Coming Soon.",
@@ -1238,7 +1470,7 @@
         "cards.aiText": "Le backend IA sécurisé n'est pas encore connecté. Cette fonction reste clairement marquée Coming Soon jusqu'à ce qu'elle soit réelle.",
         "status.live": "● Fonctionnel",
         "status.soon": "Bientôt",
-        "home.footer": "Hegeva AI V3.3 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
+        "home.footer": "Hegeva AI V3.4 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
         "ai.title": "🤖 Assistant IA",
         "ai.subtitle": "L'intégration sécurisée de l'IA est la prochaine étape.",
         "ai.comingTitle": "Assistant Hegeva AI — Bientôt",
@@ -1287,6 +1519,31 @@
         "template.hello": "Bonjour",
         "template.follow": "Je vous contacte au sujet de",
         "template.close": "Cordialement",
+        "documents.title": "🧾 Créateur de facture et devis",
+        "documents.subtitle": "Créez une vraie facture ou un devis uniquement avec les informations que vous saisissez.",
+        "documents.notice": "Cet outil fonctionne localement dans votre navigateur. Vérifiez les informations juridiques, fiscales et de paiement avant l'envoi.",
+        "documents.type": "Type de document",
+        "documents.invoice": "Facture",
+        "documents.quote": "Devis",
+        "documents.number": "Numéro du document",
+        "documents.date": "Date",
+        "documents.due": "Échéance / valable jusqu'au",
+        "documents.customer": "Nom du client",
+        "documents.customerPlaceholder": "Client",
+        "documents.customerEmail": "E-mail du client",
+        "documents.customerAddress": "Adresse du client",
+        "documents.item": "Article / service",
+        "documents.description": "Description",
+        "documents.descriptionPlaceholder": "Service ou produit",
+        "documents.quantity": "Quantité",
+        "documents.price": "Prix unitaire",
+        "documents.create": "Créer l'aperçu",
+        "documents.save": "Enregistrer localement",
+        "documents.print": "Imprimer",
+        "documents.billTo": "Client",
+        "documents.total": "Total",
+        "documents.grandTotal": "Total",
+        "documents.savedToast": "Document enregistré localement.",
         "toast.saved": "Paramètres enregistrés dans ce navigateur.",
         "toast.language": "Langue modifiée."
       },
@@ -1298,7 +1555,7 @@
         "nav.expenses": "Gastos",
         "nav.reports": "Informes",
         "nav.settings": "Ajustes",
-        "home.badge": "HEGEVA AI V3.3",
+        "home.badge": "HEGEVA AI V3.4",
         "home.title1": "Construye tu espacio de negocio",
         "home.title2": "sin promesas falsas.",
         "home.subtitle": "Hegeva AI se está construyendo paso a paso. Solo las funciones que realmente funcionan se marcan como disponibles; las herramientas sin terminar se indican claramente como Coming Soon.",
@@ -1313,7 +1570,7 @@
         "cards.aiText": "El backend seguro de IA todavía no está conectado. Esta función se marca claramente como Coming Soon hasta que sea real.",
         "status.live": "● Funciona",
         "status.soon": "Próximamente",
-        "home.footer": "Hegeva AI V3.3 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
+        "home.footer": "Hegeva AI V3.4 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
         "ai.title": "🤖 Asistente IA",
         "ai.subtitle": "La integración segura de IA es la siguiente fase de desarrollo.",
         "ai.comingTitle": "Asistente Hegeva AI — Próximamente",
@@ -1362,6 +1619,31 @@
         "template.hello": "Hola",
         "template.follow": "Me pongo en contacto en relación con",
         "template.close": "Un saludo",
+        "documents.title": "🧾 Creador de facturas y presupuestos",
+        "documents.subtitle": "Crea una factura o presupuesto real usando únicamente la información que introduces.",
+        "documents.notice": "Esta herramienta funciona localmente en tu navegador. Comprueba los datos legales, fiscales y de pago antes de enviarla.",
+        "documents.type": "Tipo de documento",
+        "documents.invoice": "Factura",
+        "documents.quote": "Presupuesto",
+        "documents.number": "Número de documento",
+        "documents.date": "Fecha",
+        "documents.due": "Vencimiento / válido hasta",
+        "documents.customer": "Nombre del cliente",
+        "documents.customerPlaceholder": "Cliente",
+        "documents.customerEmail": "Correo del cliente",
+        "documents.customerAddress": "Dirección del cliente",
+        "documents.item": "Artículo / servicio",
+        "documents.description": "Descripción",
+        "documents.descriptionPlaceholder": "Servicio o producto",
+        "documents.quantity": "Cantidad",
+        "documents.price": "Precio unitario",
+        "documents.create": "Crear vista previa",
+        "documents.save": "Guardar localmente",
+        "documents.print": "Imprimir",
+        "documents.billTo": "Cliente",
+        "documents.total": "Total",
+        "documents.grandTotal": "Total",
+        "documents.savedToast": "Documento guardado localmente.",
         "toast.saved": "Ajustes guardados en este navegador.",
         "toast.language": "Idioma cambiado."
       }
@@ -1583,6 +1865,95 @@
     });
 
     renderTasks();
+
+
+    function formatDocumentMoney(value) {
+      const currency = settingsFields.currency.value || "GBP";
+
+      try {
+        return new Intl.NumberFormat(getLanguage(), {
+          style: "currency",
+          currency
+        }).format(value);
+      } catch {
+        return `${Number(value).toFixed(2)} ${currency}`;
+      }
+    }
+
+    function buildDocumentPreview() {
+      const type = document.getElementById("docType").value;
+      const number = document.getElementById("docNumber").value.trim() || "—";
+      const date = document.getElementById("docDate").value || "—";
+      const due = document.getElementById("docDue").value || "—";
+      const customer = document.getElementById("docCustomer").value.trim() || "—";
+      const customerEmail = document.getElementById("docCustomerEmail").value.trim();
+      const customerAddress = document.getElementById("docCustomerAddress").value.trim();
+      const description = document.getElementById("docDescription").value.trim() || "—";
+      const qty = Math.max(0, Number(document.getElementById("docQty").value || 0));
+      const price = Math.max(0, Number(document.getElementById("docPrice").value || 0));
+      const total = qty * price;
+
+      const saved = (() => {
+        try {
+          return JSON.parse(localStorage.getItem("hegeva_settings") || "{}");
+        } catch {
+          return {};
+        }
+      })();
+
+      document.getElementById("previewType").textContent = type.toUpperCase();
+      document.getElementById("previewNumber").textContent = number;
+      document.getElementById("previewDates").textContent = `${date} • ${due}`;
+      document.getElementById("previewBusiness").textContent = saved.businessName || "Hegeva Workspace";
+      document.getElementById("previewBusinessDetails").textContent =
+        [saved.businessEmail, saved.address, saved.country].filter(Boolean).join(" • ");
+
+      document.getElementById("previewCustomer").textContent =
+        [customer, customerEmail, customerAddress].filter(Boolean).join(" • ");
+
+      document.getElementById("previewDescription").textContent = description;
+      document.getElementById("previewQty").textContent = qty;
+      document.getElementById("previewPrice").textContent = formatDocumentMoney(price);
+      document.getElementById("previewLineTotal").textContent = formatDocumentMoney(total);
+      document.getElementById("previewTotal").textContent = formatDocumentMoney(total);
+      document.getElementById("documentPreview").style.display = "block";
+
+      return {
+        type, number, date, due,
+        customer, customerEmail, customerAddress,
+        description, qty, price, total
+      };
+    }
+
+    document.getElementById("createDocument").addEventListener("click", () => {
+      buildDocumentPreview();
+    });
+
+    document.getElementById("saveDocument").addEventListener("click", () => {
+      const documentData = buildDocumentPreview();
+
+      let savedDocuments = [];
+      try {
+        savedDocuments = JSON.parse(localStorage.getItem("hegeva_documents") || "[]");
+      } catch {
+        savedDocuments = [];
+      }
+
+      savedDocuments.push({
+        ...documentData,
+        savedAt: new Date().toISOString()
+      });
+
+      localStorage.setItem("hegeva_documents", JSON.stringify(savedDocuments));
+      showToast(translations[getLanguage()]["documents.savedToast"]);
+    });
+
+    document.getElementById("printDocument").addEventListener("click", () => {
+      buildDocumentPreview();
+      window.print();
+    });
+
+    document.getElementById("docDate").value = new Date().toISOString().slice(0, 10);
 
     const savedLanguage = localStorage.getItem("hegeva_language");
     if (savedLanguage && savedLanguage in translations) {
