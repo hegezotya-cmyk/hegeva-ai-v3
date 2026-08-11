@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V4.3 — honest, multilingual business workspace." />
-  <title>Hegeva AI V4.3</title>
+  <meta name="description" content="Hegeva AI V4.4 — honest, multilingual business workspace." />
+  <title>Hegeva AI V4.4</title>
 
   <style>
     :root {
@@ -1034,7 +1034,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name">Hegeva AI</div>
-          <div class="brand-subtitle">V4.3 FIXED VISION</div>
+          <div class="brand-subtitle">V4.4 BUSINESS TOOLS</div>
         </div>
       </div>
 
@@ -1100,6 +1100,7 @@
           <span class="nav-icon">🩺</span>
           <span class="nav-text" data-i18n="nav.health">Business Check</span>
         </button>
+        <button class="nav-button" data-page="businessTools44" type="button">🧰 Business Tools</button>
         <button class="nav-button" data-page="settings" type="button">
           <span class="nav-icon">⚙️</span>
           <span class="nav-text" data-i18n="nav.settings">Settings</span>
@@ -1111,7 +1112,7 @@
       <section id="home" class="page active">
         <section class="v43-vision">
           <div class="v43-copy">
-            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.3 • HUMAN-FIRST BUSINESS AI</div>
+            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.4 • HUMAN-FIRST BUSINESS AI</div>
             <h1>
               <span data-i18n="v43.hero1">Save time.</span>
               <span class="gradient-text" data-i18n="v43.hero2"> Work smarter.</span>
@@ -1154,7 +1155,7 @@
         </div>
 
         <section class="hero">
-          <div class="badge" data-i18n="home.badge">HEGEVA AI V4.3</div>
+          <div class="badge" data-i18n="home.badge">HEGEVA AI V4.4</div>
 
           <h2>
             <span data-i18n="home.title1">Save time. Work smarter.</span>
@@ -1253,7 +1254,7 @@
         </div>
 
         <div class="footer-note" data-i18n="home.footer">
-          Hegeva AI V4.3 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
+          Hegeva AI V4.4 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
         </div>
       </section>
 
@@ -1692,6 +1693,62 @@
         </div>
       </section>
 
+      
+      <section id="businessTools44" class="page">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">V4.4</span>
+            <h1>Business Tools</h1>
+            <p>Practical local tools. Values are calculated only from information you enter.</p>
+          </div>
+        </div>
+
+        <div class="command-grid">
+          <div class="card">
+            <h3>🧾 Invoice / Quote Builder</h3>
+            <div class="form-grid">
+              <div class="form-group"><label>Document type</label><select id="btDocType"><option value="Invoice">Invoice</option><option value="Quote">Quote</option></select></div>
+              <div class="form-group"><label>Document number</label><input id="btDocNumber" readonly></div>
+              <div class="form-group"><label>Customer name</label><input id="btCustomer" placeholder="Customer / company"></div>
+              <div class="form-group"><label>Description</label><input id="btDescription" placeholder="Product or service"></div>
+              <div class="form-group"><label>Quantity</label><input id="btQty" type="number" min="0" step="1" value="1"></div>
+              <div class="form-group"><label>Unit price (£)</label><input id="btPrice" type="number" min="0" step="0.01" value="0"></div>
+              <div class="form-group"><label>VAT %</label><input id="btVat" type="number" min="0" step="0.01" value="0"></div>
+            </div>
+            <div class="tool-row" style="margin-top:12px">
+              <button class="primary-button" id="btPreview" type="button">Preview</button>
+              <button class="secondary-button" id="btSaveDoc" type="button">Save locally</button>
+              <button class="secondary-button" id="btPrint" type="button">Print / Save PDF</button>
+            </div>
+            <div id="btDocPreview" class="notice" style="display:none;margin-top:14px"></div>
+          </div>
+
+          <div class="card">
+            <h3>💷 Cost & Profit Tracker</h3>
+            <p style="color:var(--muted)">No estimates are invented. HEGEVA uses only the numbers below.</p>
+            <div class="form-grid" style="margin-top:12px">
+              <div class="form-group"><label>Revenue (£)</label><input id="btRevenue" type="number" min="0" step="0.01" value="0"></div>
+              <div class="form-group"><label>Materials / stock (£)</label><input id="btStock" type="number" min="0" step="0.01" value="0"></div>
+              <div class="form-group"><label>Operating costs (£)</label><input id="btOperating" type="number" min="0" step="0.01" value="0"></div>
+              <div class="form-group"><label>Other costs (£)</label><input id="btOther" type="number" min="0" step="0.01" value="0"></div>
+            </div>
+            <button class="primary-button" id="btCalculate" type="button" style="margin-top:12px">Calculate</button>
+            <div id="btProfitResult" class="notice" style="display:none;margin-top:14px"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <h3>👥 Local Customer List</h3>
+          <p style="color:var(--muted)">Saved only in this browser in V4.4. Cloud sync comes later.</p>
+          <div class="form-grid" style="margin-top:12px">
+            <div class="form-group"><label>Name</label><input id="btClientName" placeholder="Customer name"></div>
+            <div class="form-group"><label>Email</label><input id="btClientEmail" type="email" placeholder="name@example.com"></div>
+          </div>
+          <button class="primary-button" id="btAddClient" type="button" style="margin-top:12px">Add customer</button>
+          <div id="btClientList" class="coming-list" style="margin-top:14px"></div>
+        </div>
+      </section>
+
       <section id="settings" class="page">
         <div class="page-heading">
           <div>
@@ -1756,7 +1813,7 @@
         "nav.expenses": "Expenses",
         "nav.reports": "Reports",
         "nav.settings": "Settings",
-        "home.badge": "HEGEVA AI V4.3",
+        "home.badge": "HEGEVA AI V4.4",
         "home.title1": "Build your business workspace",
         "home.title2": "without fake promises.",
         "home.subtitle": "Hegeva AI is a human-first business workspace designed to reduce admin, organize everyday work and give you more time to focus. Only working features are marked as available.",
@@ -1771,7 +1828,7 @@
         "cards.aiText": "The secure AI backend is not connected yet. This feature is clearly marked as Coming Soon until it is real.",
         "status.live": "● Working",
         "status.soon": "Coming Soon",
-        "home.footer": "Hegeva AI V4.3 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
+        "home.footer": "Hegeva AI V4.4 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
         "ai.title": "🤖 AI Assistant",
         "ai.subtitle": "Secure AI integration is the next development stage.",
         "ai.comingTitle": "Hegeva AI Assistant — Coming Soon",
@@ -1965,7 +2022,7 @@
         "v42.allDocs": "All documents",
         "v42.invoices": "Invoices",
         "v42.quotes": "Quotes",
-        "v43.eyebrow": "HEGEVA AI V4.3 • HUMAN-FIRST BUSINESS AI",
+        "v43.eyebrow": "HEGEVA AI V4.4 • HUMAN-FIRST BUSINESS AI",
         "v43.hero1": "Save time.",
         "v43.hero2": " Work smarter.",
         "v43.hero3": " Stay in control.",
@@ -1987,7 +2044,7 @@
         "nav.expenses": "Kiadások",
         "nav.reports": "Riportok",
         "nav.settings": "Beállítások",
-        "home.badge": "HEGEVA AI V4.3",
+        "home.badge": "HEGEVA AI V4.4",
         "home.title1": "Építsd fel az üzleti munkateredet",
         "home.title2": "kamu ígéretek nélkül.",
         "home.subtitle": "A Hegeva AI lépésről lépésre épül. Csak a valóban működő funkciókat jelöljük elérhetőnek; ami még nincs kész, az egyértelműen Coming Soon.",
@@ -2002,7 +2059,7 @@
         "cards.aiText": "A biztonságos AI backend még nincs csatlakoztatva. Addig ez a funkció egyértelműen Coming Soon.",
         "status.live": "● Működik",
         "status.soon": "Hamarosan",
-        "home.footer": "A Hegeva AI V4.3 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
+        "home.footer": "A Hegeva AI V4.4 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
         "ai.title": "🤖 AI Asszisztens",
         "ai.subtitle": "A biztonságos AI-integráció a következő fejlesztési szakasz.",
         "ai.comingTitle": "Hegeva AI Asszisztens — Hamarosan",
@@ -2196,7 +2253,7 @@
         "v42.allDocs": "Minden dokumentum",
         "v42.invoices": "Számlák",
         "v42.quotes": "Árajánlatok",
-        "v43.eyebrow": "HEGEVA AI V4.3 • EMBERKÖZPONTÚ ÜZLETI AI",
+        "v43.eyebrow": "HEGEVA AI V4.4 • EMBERKÖZPONTÚ ÜZLETI AI",
         "v43.hero1": "Spórolj időt.",
         "v43.hero2": " Dolgozz okosabban.",
         "v43.hero3": " Maradj irányításban.",
@@ -2218,7 +2275,7 @@
         "nav.expenses": "Ausgaben",
         "nav.reports": "Berichte",
         "nav.settings": "Einstellungen",
-        "home.badge": "HEGEVA AI V4.3",
+        "home.badge": "HEGEVA AI V4.4",
         "home.title1": "Baue deinen Business-Arbeitsbereich",
         "home.title2": "ohne falsche Versprechen.",
         "home.subtitle": "Hegeva AI wird Schritt für Schritt entwickelt. Nur funktionierende Funktionen werden als verfügbar angezeigt; unfertige Werkzeuge sind klar als Coming Soon markiert.",
@@ -2233,7 +2290,7 @@
         "cards.aiText": "Das sichere KI-Backend ist noch nicht verbunden. Bis dahin ist diese Funktion klar als Coming Soon markiert.",
         "status.live": "● Funktioniert",
         "status.soon": "Demnächst",
-        "home.footer": "Hegeva AI V4.3 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
+        "home.footer": "Hegeva AI V4.4 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
         "ai.title": "🤖 KI-Assistent",
         "ai.subtitle": "Die sichere KI-Integration ist die nächste Entwicklungsstufe.",
         "ai.comingTitle": "Hegeva AI Assistent — Demnächst",
@@ -2427,7 +2484,7 @@
         "v42.allDocs": "Alle Dokumente",
         "v42.invoices": "Rechnungen",
         "v42.quotes": "Angebote",
-        "v43.eyebrow": "HEGEVA AI V4.3 • MENSCHENZENTRIERTE BUSINESS-KI",
+        "v43.eyebrow": "HEGEVA AI V4.4 • MENSCHENZENTRIERTE BUSINESS-KI",
         "v43.hero1": "Zeit sparen.",
         "v43.hero2": " Smarter arbeiten.",
         "v43.hero3": " Die Kontrolle behalten.",
@@ -2449,7 +2506,7 @@
         "nav.expenses": "Dépenses",
         "nav.reports": "Rapports",
         "nav.settings": "Paramètres",
-        "home.badge": "HEGEVA AI V4.3",
+        "home.badge": "HEGEVA AI V4.4",
         "home.title1": "Construisez votre espace professionnel",
         "home.title2": "sans fausses promesses.",
         "home.subtitle": "Hegeva AI est développé étape par étape. Seules les fonctions réellement opérationnelles sont indiquées comme disponibles ; les outils non terminés sont clairement marqués Coming Soon.",
@@ -2464,7 +2521,7 @@
         "cards.aiText": "Le backend IA sécurisé n'est pas encore connecté. Cette fonction reste clairement marquée Coming Soon jusqu'à ce qu'elle soit réelle.",
         "status.live": "● Fonctionnel",
         "status.soon": "Bientôt",
-        "home.footer": "Hegeva AI V4.3 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
+        "home.footer": "Hegeva AI V4.4 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
         "ai.title": "🤖 Assistant IA",
         "ai.subtitle": "L'intégration sécurisée de l'IA est la prochaine étape.",
         "ai.comingTitle": "Assistant Hegeva AI — Bientôt",
@@ -2658,7 +2715,7 @@
         "v42.allDocs": "Tous les documents",
         "v42.invoices": "Factures",
         "v42.quotes": "Devis",
-        "v43.eyebrow": "HEGEVA AI V4.3 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
+        "v43.eyebrow": "HEGEVA AI V4.4 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
         "v43.hero1": "Gagnez du temps.",
         "v43.hero2": " Travaillez plus intelligemment.",
         "v43.hero3": " Gardez le contrôle.",
@@ -2680,7 +2737,7 @@
         "nav.expenses": "Gastos",
         "nav.reports": "Informes",
         "nav.settings": "Ajustes",
-        "home.badge": "HEGEVA AI V4.3",
+        "home.badge": "HEGEVA AI V4.4",
         "home.title1": "Construye tu espacio de negocio",
         "home.title2": "sin promesas falsas.",
         "home.subtitle": "Hegeva AI se está construyendo paso a paso. Solo las funciones que realmente funcionan se marcan como disponibles; las herramientas sin terminar se indican claramente como Coming Soon.",
@@ -2695,7 +2752,7 @@
         "cards.aiText": "El backend seguro de IA todavía no está conectado. Esta función se marca claramente como Coming Soon hasta que sea real.",
         "status.live": "● Funciona",
         "status.soon": "Próximamente",
-        "home.footer": "Hegeva AI V4.3 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
+        "home.footer": "Hegeva AI V4.4 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
         "ai.title": "🤖 Asistente IA",
         "ai.subtitle": "La integración segura de IA es la siguiente fase de desarrollo.",
         "ai.comingTitle": "Asistente Hegeva AI — Próximamente",
@@ -2889,7 +2946,7 @@
         "v42.allDocs": "Todos los documentos",
         "v42.invoices": "Facturas",
         "v42.quotes": "Presupuestos",
-        "v43.eyebrow": "HEGEVA AI V4.3 • IA EMPRESARIAL CENTRADA EN PERSONAS",
+        "v43.eyebrow": "HEGEVA AI V4.4 • IA EMPRESARIAL CENTRADA EN PERSONAS",
         "v43.hero1": "Ahorra tiempo.",
         "v43.hero2": " Trabaja de forma más inteligente.",
         "v43.hero3": " Mantén el control.",
@@ -3864,6 +3921,132 @@
     }
 
     refreshV43VisionMetrics();
+
+    const BT44_DOC_KEY = "hegeva_v44_documents";
+    const BT44_CLIENT_KEY = "hegeva_v44_clients";
+    const BT44_COUNTER_KEY = "hegeva_v44_doc_counter";
+
+    function bt44Money(n) {
+      return new Intl.NumberFormat("en-GB", {style:"currency", currency:"GBP"}).format(Number(n) || 0);
+    }
+
+    function bt44NextNumber(type) {
+      const current = Number(localStorage.getItem(BT44_COUNTER_KEY) || "0") + 1;
+      return `${type === "Quote" ? "QUO" : "INV"}-${String(current).padStart(5,"0")}`;
+    }
+
+    function bt44RefreshNumber() {
+      const type = document.getElementById("btDocType")?.value || "Invoice";
+      const el = document.getElementById("btDocNumber");
+      if (el) el.value = bt44NextNumber(type);
+    }
+
+    function bt44DocumentData() {
+      const qty = Math.max(0, Number(document.getElementById("btQty")?.value || 0));
+      const price = Math.max(0, Number(document.getElementById("btPrice")?.value || 0));
+      const vatRate = Math.max(0, Number(document.getElementById("btVat")?.value || 0));
+      const subtotal = qty * price;
+      const vat = subtotal * vatRate / 100;
+      return {
+        type: document.getElementById("btDocType")?.value || "Invoice",
+        number: document.getElementById("btDocNumber")?.value || "",
+        customer: (document.getElementById("btCustomer")?.value || "").trim(),
+        description: (document.getElementById("btDescription")?.value || "").trim(),
+        qty, price, vatRate, subtotal, vat, total: subtotal + vat,
+        createdAt: new Date().toISOString()
+      };
+    }
+
+    function bt44RenderPreview() {
+      const d = bt44DocumentData();
+      const box = document.getElementById("btDocPreview");
+      if (!box) return;
+      box.style.display = "block";
+      box.innerHTML = `<strong>${d.type} ${d.number}</strong><br>
+        Customer: ${escapeHtml(d.customer || "—")}<br>
+        Description: ${escapeHtml(d.description || "—")}<br>
+        ${d.qty} × ${bt44Money(d.price)} = ${bt44Money(d.subtotal)}<br>
+        VAT (${d.vatRate}%): ${bt44Money(d.vat)}<br>
+        <strong>Total: ${bt44Money(d.total)}</strong>`;
+    }
+
+    document.getElementById("btDocType")?.addEventListener("change", bt44RefreshNumber);
+    document.getElementById("btPreview")?.addEventListener("click", bt44RenderPreview);
+
+    document.getElementById("btSaveDoc")?.addEventListener("click", () => {
+      const d = bt44DocumentData();
+      if (!d.customer || !d.description) {
+        alert("Please enter the customer and description first.");
+        return;
+      }
+      let docs = [];
+      try { docs = JSON.parse(localStorage.getItem(BT44_DOC_KEY) || "[]"); } catch {}
+      docs.unshift(d);
+      localStorage.setItem(BT44_DOC_KEY, JSON.stringify(docs.slice(0,100)));
+      const counter = Number(localStorage.getItem(BT44_COUNTER_KEY) || "0") + 1;
+      localStorage.setItem(BT44_COUNTER_KEY, String(counter));
+      bt44RefreshNumber();
+      bt44RenderPreview();
+    });
+
+    document.getElementById("btPrint")?.addEventListener("click", () => {
+      bt44RenderPreview();
+      window.print();
+    });
+
+    document.getElementById("btCalculate")?.addEventListener("click", () => {
+      const revenue = Math.max(0, Number(document.getElementById("btRevenue")?.value || 0));
+      const stock = Math.max(0, Number(document.getElementById("btStock")?.value || 0));
+      const operating = Math.max(0, Number(document.getElementById("btOperating")?.value || 0));
+      const other = Math.max(0, Number(document.getElementById("btOther")?.value || 0));
+      const costs = stock + operating + other;
+      const profit = revenue - costs;
+      const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+      const box = document.getElementById("btProfitResult");
+      if (box) {
+        box.style.display = "block";
+        box.innerHTML = `Revenue: <strong>${bt44Money(revenue)}</strong><br>
+          Total costs: <strong>${bt44Money(costs)}</strong><br>
+          Profit / loss: <strong>${bt44Money(profit)}</strong><br>
+          Margin: <strong>${margin.toFixed(1)}%</strong>`;
+      }
+    });
+
+    function bt44RenderClients() {
+      let clients = [];
+      try { clients = JSON.parse(localStorage.getItem(BT44_CLIENT_KEY) || "[]"); } catch {}
+      const box = document.getElementById("btClientList");
+      if (!box) return;
+      box.innerHTML = clients.length ? clients.map((c,i) =>
+        `<div class="coming-item"><div><strong>${escapeHtml(c.name)}</strong><br><small>${escapeHtml(c.email || "")}</small></div>
+        <button class="mini-action" type="button" onclick="bt44DeleteClient(${i})">Delete</button></div>`
+      ).join("") : `<div class="coming-item">No customers saved yet.</div>`;
+    }
+
+    window.bt44DeleteClient = function(index) {
+      let clients = [];
+      try { clients = JSON.parse(localStorage.getItem(BT44_CLIENT_KEY) || "[]"); } catch {}
+      clients.splice(index,1);
+      localStorage.setItem(BT44_CLIENT_KEY, JSON.stringify(clients));
+      bt44RenderClients();
+    };
+
+    document.getElementById("btAddClient")?.addEventListener("click", () => {
+      const name = (document.getElementById("btClientName")?.value || "").trim();
+      const email = (document.getElementById("btClientEmail")?.value || "").trim();
+      if (!name) { alert("Please enter a customer name."); return; }
+      let clients = [];
+      try { clients = JSON.parse(localStorage.getItem(BT44_CLIENT_KEY) || "[]"); } catch {}
+      clients.unshift({name,email});
+      localStorage.setItem(BT44_CLIENT_KEY, JSON.stringify(clients.slice(0,100)));
+      document.getElementById("btClientName").value = "";
+      document.getElementById("btClientEmail").value = "";
+      bt44RenderClients();
+    });
+
+    bt44RefreshNumber();
+    bt44RenderClients();
+
     const savedLanguage = localStorage.getItem("hegeva_language");
     if (savedLanguage && savedLanguage in translations) {
       languageSelect.value = savedLanguage;
