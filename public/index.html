@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V3.7 — honest, multilingual business workspace." />
-  <title>Hegeva AI V3.7</title>
+  <meta name="description" content="Hegeva AI V4 — honest, multilingual business workspace." />
+  <title>Hegeva AI V4</title>
 
   <style>
     :root {
@@ -739,6 +739,11 @@
       }
     }
 
+  
+    .ai-quick { border-color: rgba(155,108,255,.24); }
+    #aiChatMessages .coming-item {
+      background: linear-gradient(145deg, rgba(155,108,255,.10), rgba(55,200,255,.05));
+    }
   </style>
 </head>
 
@@ -749,7 +754,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name">Hegeva AI</div>
-          <div class="brand-subtitle">V3.7 REAL AI</div>
+          <div class="brand-subtitle">V4 BUSINESS INTELLIGENCE</div>
         </div>
       </div>
 
@@ -813,7 +818,7 @@
     <main class="main">
       <section id="home" class="page active">
         <section class="hero">
-          <div class="badge" data-i18n="home.badge">HEGEVA AI V3.7</div>
+          <div class="badge" data-i18n="home.badge">HEGEVA AI V4</div>
 
           <h2>
             <span data-i18n="home.title1">Save time. Work smarter.</span>
@@ -912,21 +917,92 @@
         </div>
 
         <div class="footer-note" data-i18n="home.footer">
-          Hegeva AI V3.7 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
+          Hegeva AI V4 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
         </div>
       </section>
 
       <section id="assistant" class="page">
-<div class="page-heading"><div><h1>🤖 HEGEVA AI Assistant</h1><p>Live AI test through the HEGEVA backend.</p></div></div>
-<div class="notice">Live AI test. Do not enter passwords, card details or other sensitive information.</div>
-<div class="card">
-<div id="aiChatMessages" style="min-height:280px;max-height:480px;overflow:auto"><div class="coming-item"><strong>HEGEVA AI</strong><div style="margin-top:7px">Hello. Ask me a practical business question.</div></div></div>
-<div class="form-group"><label>Your message</label><textarea id="aiChatInput" placeholder="e.g. Give me 3 ways to organise my customer follow-ups"></textarea></div>
-<div class="hero-buttons"><button class="primary-button" id="sendAiChat" type="button">Send to HEGEVA AI</button><button class="secondary-button" id="clearAiChat" type="button">Clear chat</button></div>
-<div id="aiChatStatus" style="margin-top:12px;color:var(--muted);font-size:13px"></div>
-</div>
-</section>
-<section id="documents" class="page">
+        <div class="page-heading">
+          <div>
+            <h1>🤖 HEGEVA AI Workspace</h1>
+            <p>Planning, time-saving, ideas, documents and everyday business admin in one place.</p>
+          </div>
+        </div>
+
+        <div class="notice">
+          Live AI. Do not enter passwords, bank-card details, private keys or other sensitive information.
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <h3>🎛️ Assistant mode</h3>
+            <div class="form-group" style="margin-top:12px">
+              <select id="aiMode">
+                <option value="general">General business help</option>
+                <option value="time">Time Saver</option>
+                <option value="planner">Business Planner</option>
+                <option value="documents">Document Helper</option>
+                <option value="ideas">Business Idea Partner</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>🧠 Conversation memory</h3>
+            <p>Recent messages are kept in this browser and sent as context for the current conversation.</p>
+            <div class="status live">● Active</div>
+          </div>
+
+          <div class="card">
+            <h3>🛡️ Usage safeguards</h3>
+            <p>Message size, context size and rapid repeat requests are limited to protect AI usage.</p>
+            <div class="status live">● Working</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div id="aiChatMessages" style="min-height:320px;max-height:520px;overflow:auto;padding:6px 2px 18px"></div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px">
+            <button class="secondary-button ai-quick" type="button" data-prompt="Help me find 3 repetitive tasks I could simplify.">⏳ Save time</button>
+            <button class="secondary-button ai-quick" type="button" data-prompt="Help me plan my 3 most important business priorities for this week.">📋 Plan my week</button>
+            <button class="secondary-button ai-quick" type="button" data-prompt="Help me improve the wording of a professional customer follow-up message.">✉️ Customer message</button>
+            <button class="secondary-button ai-quick" type="button" data-prompt="Give me 3 practical business improvement ideas without promising results.">💡 Improvement ideas</button>
+          </div>
+
+          <div class="form-group">
+            <label for="aiChatInput">Your message</label>
+            <textarea id="aiChatInput" maxlength="2500" placeholder="Ask HEGEVA something about your business..."></textarea>
+          </div>
+
+          <div class="hero-buttons">
+            <button class="primary-button" id="sendAiChat" type="button">Send to HEGEVA AI</button>
+            <button class="secondary-button" id="newAiChat" type="button">New chat</button>
+          </div>
+
+          <div id="aiChatStatus" style="margin-top:12px;color:var(--muted);font-size:13px"></div>
+        </div>
+
+        <div class="grid" style="margin-top:18px">
+          <div class="card">
+            <h3>⏳ Time Saver</h3>
+            <p>Describe repeated work. HEGEVA can suggest practical ways to organise or simplify it.</p>
+            <div class="status live">● Working</div>
+          </div>
+          <div class="card">
+            <h3>🧾 Document Helper</h3>
+            <p>Ask for clearer wording, email drafts or document structure. Review everything before sending.</p>
+            <div class="status live">● Working</div>
+          </div>
+          <div class="card">
+            <h3>🏢 Team & Enterprise</h3>
+            <p>Shared workspaces, company knowledge and team controls are planned for a later version.</p>
+            <div class="status soon">Coming Soon</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="documents" class="page">
         <div class="page-heading">
           <div>
             <h1 data-i18n="documents.title">🧾 Invoice & Quote Builder</h1>
@@ -1239,7 +1315,7 @@
         "nav.expenses": "Expenses",
         "nav.reports": "Reports",
         "nav.settings": "Settings",
-        "home.badge": "HEGEVA AI V3.7",
+        "home.badge": "HEGEVA AI V4",
         "home.title1": "Build your business workspace",
         "home.title2": "without fake promises.",
         "home.subtitle": "Hegeva AI is a human-first business workspace designed to reduce admin, organize everyday work and give you more time to focus. Only working features are marked as available.",
@@ -1254,7 +1330,7 @@
         "cards.aiText": "The secure AI backend is not connected yet. This feature is clearly marked as Coming Soon until it is real.",
         "status.live": "● Working",
         "status.soon": "Coming Soon",
-        "home.footer": "Hegeva AI V3.7 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
+        "home.footer": "Hegeva AI V4 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
         "ai.title": "🤖 AI Assistant",
         "ai.subtitle": "Secure AI integration is the next development stage.",
         "ai.comingTitle": "Hegeva AI Assistant — Coming Soon",
@@ -1365,7 +1441,7 @@
         "nav.expenses": "Kiadások",
         "nav.reports": "Riportok",
         "nav.settings": "Beállítások",
-        "home.badge": "HEGEVA AI V3.7",
+        "home.badge": "HEGEVA AI V4",
         "home.title1": "Építsd fel az üzleti munkateredet",
         "home.title2": "kamu ígéretek nélkül.",
         "home.subtitle": "A Hegeva AI lépésről lépésre épül. Csak a valóban működő funkciókat jelöljük elérhetőnek; ami még nincs kész, az egyértelműen Coming Soon.",
@@ -1380,7 +1456,7 @@
         "cards.aiText": "A biztonságos AI backend még nincs csatlakoztatva. Addig ez a funkció egyértelműen Coming Soon.",
         "status.live": "● Működik",
         "status.soon": "Hamarosan",
-        "home.footer": "A Hegeva AI V3.7 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
+        "home.footer": "A Hegeva AI V4 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
         "ai.title": "🤖 AI Asszisztens",
         "ai.subtitle": "A biztonságos AI-integráció a következő fejlesztési szakasz.",
         "ai.comingTitle": "Hegeva AI Asszisztens — Hamarosan",
@@ -1491,7 +1567,7 @@
         "nav.expenses": "Ausgaben",
         "nav.reports": "Berichte",
         "nav.settings": "Einstellungen",
-        "home.badge": "HEGEVA AI V3.7",
+        "home.badge": "HEGEVA AI V4",
         "home.title1": "Baue deinen Business-Arbeitsbereich",
         "home.title2": "ohne falsche Versprechen.",
         "home.subtitle": "Hegeva AI wird Schritt für Schritt entwickelt. Nur funktionierende Funktionen werden als verfügbar angezeigt; unfertige Werkzeuge sind klar als Coming Soon markiert.",
@@ -1506,7 +1582,7 @@
         "cards.aiText": "Das sichere KI-Backend ist noch nicht verbunden. Bis dahin ist diese Funktion klar als Coming Soon markiert.",
         "status.live": "● Funktioniert",
         "status.soon": "Demnächst",
-        "home.footer": "Hegeva AI V3.7 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
+        "home.footer": "Hegeva AI V4 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
         "ai.title": "🤖 KI-Assistent",
         "ai.subtitle": "Die sichere KI-Integration ist die nächste Entwicklungsstufe.",
         "ai.comingTitle": "Hegeva AI Assistent — Demnächst",
@@ -1617,7 +1693,7 @@
         "nav.expenses": "Dépenses",
         "nav.reports": "Rapports",
         "nav.settings": "Paramètres",
-        "home.badge": "HEGEVA AI V3.7",
+        "home.badge": "HEGEVA AI V4",
         "home.title1": "Construisez votre espace professionnel",
         "home.title2": "sans fausses promesses.",
         "home.subtitle": "Hegeva AI est développé étape par étape. Seules les fonctions réellement opérationnelles sont indiquées comme disponibles ; les outils non terminés sont clairement marqués Coming Soon.",
@@ -1632,7 +1708,7 @@
         "cards.aiText": "Le backend IA sécurisé n'est pas encore connecté. Cette fonction reste clairement marquée Coming Soon jusqu'à ce qu'elle soit réelle.",
         "status.live": "● Fonctionnel",
         "status.soon": "Bientôt",
-        "home.footer": "Hegeva AI V3.7 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
+        "home.footer": "Hegeva AI V4 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
         "ai.title": "🤖 Assistant IA",
         "ai.subtitle": "L'intégration sécurisée de l'IA est la prochaine étape.",
         "ai.comingTitle": "Assistant Hegeva AI — Bientôt",
@@ -1743,7 +1819,7 @@
         "nav.expenses": "Gastos",
         "nav.reports": "Informes",
         "nav.settings": "Ajustes",
-        "home.badge": "HEGEVA AI V3.7",
+        "home.badge": "HEGEVA AI V4",
         "home.title1": "Construye tu espacio de negocio",
         "home.title2": "sin promesas falsas.",
         "home.subtitle": "Hegeva AI se está construyendo paso a paso. Solo las funciones que realmente funcionan se marcan como disponibles; las herramientas sin terminar se indican claramente como Coming Soon.",
@@ -1758,7 +1834,7 @@
         "cards.aiText": "El backend seguro de IA todavía no está conectado. Esta función se marca claramente como Coming Soon hasta que sea real.",
         "status.live": "● Funciona",
         "status.soon": "Próximamente",
-        "home.footer": "Hegeva AI V3.7 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
+        "home.footer": "Hegeva AI V4 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
         "ai.title": "🤖 Asistente IA",
         "ai.subtitle": "La integración segura de IA es la siguiente fase de desarrollo.",
         "ai.comingTitle": "Asistente Hegeva AI — Próximamente",
@@ -2325,28 +2401,151 @@
     renderVaultDocuments();
 
 
-    function addChat(sender,text){
-      const m=document.getElementById("aiChatMessages"),b=document.createElement("div");
-      b.className="coming-item";b.style.marginTop="10px";
-      const s=document.createElement("strong");s.textContent=sender;
-      const t=document.createElement("div");t.style.cssText="margin-top:7px;white-space:pre-wrap";t.textContent=text;
-      b.append(s,t);m.appendChild(b);m.scrollTop=m.scrollHeight;
+
+    const AI_HISTORY_KEY = "hegeva_v4_chat_history";
+    let aiBusy = false;
+    let lastAiRequestAt = 0;
+
+    function getAiHistory() {
+      try {
+        const items = JSON.parse(localStorage.getItem(AI_HISTORY_KEY) || "[]");
+        return Array.isArray(items) ? items.slice(-12) : [];
+      } catch {
+        return [];
+      }
     }
-    async function sendChat(){
-      const i=document.getElementById("aiChatInput"),btn=document.getElementById("sendAiChat"),st=document.getElementById("aiChatStatus"),msg=i.value.trim();
-      if(!msg)return;
-      addChat("You",msg);i.value="";btn.disabled=true;st.textContent="HEGEVA AI is thinking...";
-      try{
-        const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})});
-        let d={};try{d=await r.json()}catch{throw new Error("HTTP "+r.status)}
-        if(!r.ok)throw new Error(d.error||("HTTP "+r.status));
-        addChat("HEGEVA AI",d.response||"No usable response returned.");st.textContent="Ready";
-      }catch(e){addChat("HEGEVA AI","Connection error: "+e.message);st.textContent="AI connection failed";}
-      finally{btn.disabled=false}
+
+    function saveAiHistory(items) {
+      localStorage.setItem(AI_HISTORY_KEY, JSON.stringify(items.slice(-12)));
     }
-    document.getElementById("sendAiChat").onclick=sendChat;
-    document.getElementById("aiChatInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChat()}});
-    document.getElementById("clearAiChat").onclick=()=>{document.getElementById("aiChatMessages").innerHTML="";addChat("HEGEVA AI","Hello. Ask me a practical business question.");document.getElementById("aiChatStatus").textContent=""};
+
+    function addAiBubble(role, text, persist = true) {
+      const messages = document.getElementById("aiChatMessages");
+      const box = document.createElement("div");
+      box.className = "coming-item";
+      box.style.marginTop = "10px";
+
+      const title = document.createElement("strong");
+      title.textContent = role === "assistant" ? "HEGEVA AI" : "You";
+
+      const body = document.createElement("div");
+      body.style.cssText = "margin-top:7px;white-space:pre-wrap;line-height:1.6";
+      body.textContent = text;
+
+      box.append(title, body);
+      messages.appendChild(box);
+      messages.scrollTop = messages.scrollHeight;
+
+      if (persist) {
+        const history = getAiHistory();
+        history.push({ role, content: text });
+        saveAiHistory(history);
+      }
+    }
+
+    function renderAiHistory() {
+      const messages = document.getElementById("aiChatMessages");
+      messages.innerHTML = "";
+      const history = getAiHistory();
+
+      if (!history.length) {
+        addAiBubble("assistant", "Hello. I’m HEGEVA AI. What would you like to improve or organise today?", false);
+        return;
+      }
+
+      history.forEach(item => addAiBubble(item.role, item.content, false));
+    }
+
+    function modeInstruction(mode) {
+      const modes = {
+        general: "Give practical general business help.",
+        time: "Focus on repeated work, admin bottlenecks and realistic ways to save time.",
+        planner: "Help prioritise tasks and create a realistic short action plan.",
+        documents: "Help improve wording, structure, emails and business documents. Do not invent legal validity.",
+        ideas: "Act as a business idea partner. Give options and trade-offs without promising results."
+      };
+      return modes[mode] || modes.general;
+    }
+
+    async function sendV4AiMessage() {
+      if (aiBusy) return;
+
+      const input = document.getElementById("aiChatInput");
+      const button = document.getElementById("sendAiChat");
+      const status = document.getElementById("aiChatStatus");
+      const message = input.value.trim();
+
+      if (!message) return;
+
+      const now = Date.now();
+      if (now - lastAiRequestAt < 1800) {
+        status.textContent = "Please wait a moment before sending another message.";
+        return;
+      }
+
+      lastAiRequestAt = now;
+      aiBusy = true;
+      button.disabled = true;
+      addAiBubble("user", message, true);
+      input.value = "";
+      status.textContent = "HEGEVA AI is thinking...";
+
+      try {
+        const history = getAiHistory().slice(-10);
+        const mode = document.getElementById("aiMode").value;
+
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message,
+            mode,
+            modeInstruction: modeInstruction(mode),
+            history
+          })
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+
+        const answer = typeof data.response === "string" && data.response.trim()
+          ? data.response.trim()
+          : "No usable response returned.";
+
+        addAiBubble("assistant", answer, true);
+        status.textContent = "Ready";
+      } catch (error) {
+        addAiBubble("assistant", `Connection error: ${error.message}`, false);
+        status.textContent = "AI connection failed.";
+      } finally {
+        aiBusy = false;
+        button.disabled = false;
+      }
+    }
+
+    document.getElementById("sendAiChat").addEventListener("click", sendV4AiMessage);
+
+    document.getElementById("aiChatInput").addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendV4AiMessage();
+      }
+    });
+
+    document.querySelectorAll(".ai-quick").forEach(button => {
+      button.addEventListener("click", () => {
+        document.getElementById("aiChatInput").value = button.dataset.prompt || "";
+        document.getElementById("aiChatInput").focus();
+      });
+    });
+
+    document.getElementById("newAiChat").addEventListener("click", () => {
+      localStorage.removeItem(AI_HISTORY_KEY);
+      renderAiHistory();
+      document.getElementById("aiChatStatus").textContent = "";
+    });
+
+    renderAiHistory();
 
     const savedLanguage = localStorage.getItem("hegeva_language");
     if (savedLanguage && savedLanguage in translations) {
