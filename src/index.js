@@ -25,36 +25,89 @@ export default {
           );
         }
 
-        if (message.length > 4000) {
+        if (message.length > 2500) {
           return Response.json(
             { error: "Message is too long." },
             { status: 400 }
           );
         }
 
+        const allowedModes = new Set([
+          "general",
+          "time",
+          "planner",
+          "documents",
+          "ideas"
+        ]);
+
+        const mode =
+          allowedModes.has(body.mode)
+            ? body.mode
+            : "general";
+
+        const modeInstruction =
+          typeof body.modeInstruction === "string"
+            ? body.modeInstruction.slice(0, 500)
+            : "";
+
+        const history =
+          Array.isArray(body.history)
+            ? body.history.slice(-10)
+            : [];
+
+        const transcript = history
+          .filter(
+            (item) =>
+              item &&
+              (item.role === "user" ||
+                item.role === "assistant") &&
+              typeof item.content === "string"
+          )
+          .map(
+            (item) =>
+              `${
+                item.role === "assistant"
+                  ? "HEGEVA AI"
+                  : "User"
+              }: ${item.content.slice(0, 1500)}`
+          )
+          .join("\n\n");
+
+        const prompt = `
+You are HEGEVA AI, a practical business companion.
+
+Purpose:
+- Organise business work.
+- Reduce unnecessary admin.
+- Improve productivity.
+- Plan practical next steps.
+- Help with business wording and documents.
+- Explain general business concepts.
+- Act as a business idea partner.
+
+Current mode: ${mode}
+Mode instruction: ${modeInstruction}
+
+Rules:
+- Never promise guaranteed income, profit, growth, customers or results.
+- Never invent the user's business data.
+- Never claim work was completed unless the user confirms it.
+- For legal, tax or financial topics, give general information only and say when a qualified professional may be needed.
+- Do not request passwords, card details, private keys or highly sensitive information.
+- Keep advice practical and clear.
+- Reply in the same language as the user's latest message whenever possible.
+
+Recent conversation:
+${transcript || "(no previous messages)"}
+
+Latest user message:
+${message}
+        `.trim();
+
         const result = await env.AI.run(
           "@cf/meta/llama-3.1-8b-instruct-fast",
           {
-            prompt: `
-You are HEGEVA AI, a practical business assistant.
-
-Help with:
-- business organisation
-- productivity
-- planning
-- document wording
-- everyday business admin
-
-Rules:
-- Never promise guaranteed profit, income or growth.
-- Never invent business data.
-- For legal, tax or financial topics, give general information only.
-- Be practical and clear.
-- Reply in the same language as the user whenever possible.
-
-User:
-${message}
-            `.trim()
+            prompt
           }
         );
 
@@ -63,11 +116,11 @@ ${message}
             result?.response ||
             "HEGEVA AI could not generate a response."
         });
-
       } catch (error) {
         return Response.json(
           {
-            error: "Hegeva AI is temporarily unavailable."
+            error:
+              "HEGEVA AI is temporarily unavailable."
           },
           {
             status: 500
