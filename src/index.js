@@ -1,12 +1,79 @@
+import { betterAuth } from "better-auth";
+
+function createAuth(env, request) {
+  const origin = new URL(request.url).origin;
+
+  return betterAuth({
+    database: env.DB,
+
+    secret: env.BETTER_AUTH_SECRET,
+
+    baseURL: origin,
+
+    emailAndPassword: {
+      enabled: true,
+      minPasswordLength: 8,
+      maxPasswordLength: 128,
+      autoSignIn: true
+    },
+
+    user: {
+      modelName: "user"
+    },
+
+    session: {
+      modelName: "session"
+    },
+
+    account: {
+      modelName: "account"
+    },
+
+    verification: {
+      modelName: "verification"
+    }
+  });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    // =========================================
+    // HEGEVA AI V4.5 AUTH
+    // =========================================
+
+    if (url.pathname.startsWith("/api/auth/")) {
+      try {
+        const auth = createAuth(env, request);
+        return await auth.handler(request);
+      } catch (error) {
+        console.error("HEGEVA Auth error:", error);
+
+        return Response.json(
+          {
+            error: "Authentication service temporarily unavailable."
+          },
+          {
+            status: 500
+          }
+        );
+      }
+    }
+
+    // =========================================
+    // HEGEVA AI CHAT
+    // =========================================
+
     if (url.pathname === "/api/chat") {
       if (request.method !== "POST") {
         return Response.json(
-          { error: "Method not allowed" },
-          { status: 405 }
+          {
+            error: "Method not allowed"
+          },
+          {
+            status: 405
+          }
         );
       }
 
@@ -20,15 +87,23 @@ export default {
 
         if (!message) {
           return Response.json(
-            { error: "Please enter a message." },
-            { status: 400 }
+            {
+              error: "Please enter a message."
+            },
+            {
+              status: 400
+            }
           );
         }
 
         if (message.length > 2500) {
           return Response.json(
-            { error: "Message is too long." },
-            { status: 400 }
+            {
+              error: "Message is too long."
+            },
+            {
+              status: 400
+            }
           );
         }
 
@@ -191,7 +266,7 @@ ${message}
         });
       } catch (error) {
         console.error(
-          "HEGEVA AI chat error",
+          "HEGEVA AI chat error:",
           error
         );
 
@@ -206,6 +281,10 @@ ${message}
         );
       }
     }
+
+    // =========================================
+    // STATIC HEGEVA WEBSITE
+    // =========================================
 
     return env.ASSETS.fetch(request);
   }
