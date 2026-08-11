@@ -2,21 +2,11 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // -----------------------------
-    // HEGEVA AI CHAT API
-    // -----------------------------
     if (url.pathname === "/api/chat") {
       if (request.method !== "POST") {
-        return new Response(
-          JSON.stringify({
-            error: "Method not allowed"
-          }),
-          {
-            status: 405,
-            headers: {
-              "Content-Type": "application/json"
-            }
-          }
+        return Response.json(
+          { error: "Method not allowed" },
+          { status: 405 }
         );
       }
 
@@ -29,98 +19,61 @@ export default {
             : "";
 
         if (!message) {
-          return new Response(
-            JSON.stringify({
-              error: "Please enter a message."
-            }),
-            {
-              status: 400,
-              headers: {
-                "Content-Type": "application/json"
-              }
-            }
+          return Response.json(
+            { error: "Please enter a message." },
+            { status: 400 }
           );
         }
 
-        // Keep requests reasonably small.
         if (message.length > 4000) {
-          return new Response(
-            JSON.stringify({
-              error: "Message is too long."
-            }),
-            {
-              status: 400,
-              headers: {
-                "Content-Type": "application/json"
-              }
-            }
+          return Response.json(
+            { error: "Message is too long." },
+            { status: 400 }
           );
         }
 
         const result = await env.AI.run(
-         "@cf/meta/llama-3.1-8b-instruct-fast"
+          "@cf/meta/llama-3.1-8b-instruct-fast",
           {
             prompt: `
-You are Hegeva AI, a practical business assistant.
+You are HEGEVA AI, a practical business assistant.
 
-Help freelancers and small businesses with:
-- organisation
+Help with:
+- business organisation
 - productivity
-- business planning
+- planning
 - document wording
-- explaining basic business concepts
-- saving time on everyday admin
+- everyday business admin
 
 Rules:
-- Do not promise guaranteed income, profit, growth or results.
-- Do not invent business data.
-- If the user asks for legal, tax or financial advice, explain that your response is general information and they may need a qualified professional.
-- Keep answers clear, practical and friendly.
+- Never promise guaranteed profit, income or growth.
+- Never invent business data.
+- For legal, tax or financial topics, give general information only.
+- Be practical and clear.
 - Reply in the same language as the user whenever possible.
 
-User message:
+User:
 ${message}
             `.trim()
           }
         );
 
-        return new Response(
-          JSON.stringify({
-            response:
-              result?.response ||
-              "Hegeva AI could not generate a response."
-          }),
-          {
-            headers: {
-              "Content-Type": "application/json"
-            }
-          }
-        );
+        return Response.json({
+          response:
+            result?.response ||
+            "HEGEVA AI could not generate a response."
+        });
+
       } catch (error) {
-        return new Response(
-          JSON.stringify({
-            error: "Hegeva AI is temporarily unavailable."
-          }),
+        return Response.json(
           {
-            status: 500,
-            headers: {
-              "Content-Type": "application/json"
-            }
+            error: "Hegeva AI is temporarily unavailable."
+          },
+          {
+            status: 500
           }
         );
       }
-    }
-
-    // -----------------------------
-    // STATIC WEBSITE
-    // -----------------------------
-    if (url.pathname === "/") {
-      return env.ASSETS.fetch(
-        new Request(
-          new URL("/index.html", request.url),
-          request
-        )
-      );
     }
 
     return env.ASSETS.fetch(request);
