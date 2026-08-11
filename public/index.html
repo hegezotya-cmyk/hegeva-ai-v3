@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V3.4 — honest, multilingual business workspace." />
-  <title>Hegeva AI V3.4</title>
+  <meta name="description" content="Hegeva AI V3.5 — honest, multilingual business workspace." />
+  <title>Hegeva AI V3.5</title>
 
   <style>
     :root {
@@ -749,7 +749,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name">Hegeva AI</div>
-          <div class="brand-subtitle">V3.4 DOCUMENT BUILDER</div>
+          <div class="brand-subtitle">V3.5 TIME SAVER</div>
         </div>
       </div>
 
@@ -795,6 +795,10 @@
           <span class="nav-text" data-i18n="nav.reports">Reports</span>
         </button>
 
+        <button class="nav-button" data-page="planner" type="button">
+          <span class="nav-icon">⏳</span>
+          <span class="nav-text">Time Saver</span>
+        </button>
         <button class="nav-button" data-page="settings" type="button">
           <span class="nav-icon">⚙️</span>
           <span class="nav-text" data-i18n="nav.settings">Settings</span>
@@ -805,7 +809,7 @@
     <main class="main">
       <section id="home" class="page active">
         <section class="hero">
-          <div class="badge" data-i18n="home.badge">HEGEVA AI V3.4</div>
+          <div class="badge" data-i18n="home.badge">HEGEVA AI V3.5</div>
 
           <h2>
             <span data-i18n="home.title1">Save time. Work smarter.</span>
@@ -904,7 +908,7 @@
         </div>
 
         <div class="footer-note" data-i18n="home.footer">
-          Hegeva AI V3.4 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
+          Hegeva AI V3.5 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
         </div>
       </section>
 
@@ -1091,6 +1095,33 @@
         </div>
       </section>
 
+      <section id="planner" class="page">
+        <div class="page-heading"><div><h1>⏳ Time Saver & Business Planner</h1>
+        <p>Plan what matters, set priorities and keep recurring work visible.</p></div></div>
+        <div class="notice">Your planner is stored locally in this browser. HEGEVA only marks work complete when you do.</div>
+        <div class="grid">
+          <div class="card"><h3>🎯 Add a priority</h3>
+            <div class="form-group"><label>Task</label><input id="plannerTask" placeholder="e.g. Follow up unpaid invoice"></div>
+            <div class="form-grid"><div class="form-group"><label>Priority</label><select id="plannerPriority"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
+            <div class="form-group"><label>Target date</label><input id="plannerDate" type="date"></div></div>
+            <button class="primary-button" id="plannerAdd" type="button">Add to planner</button>
+          </div>
+          <div class="card"><h3>🌱 Business goal</h3><p>Keep one clear goal visible while you work.</p>
+            <div class="form-group"><input id="businessGoal" placeholder="e.g. Organise this month's invoices"></div>
+            <button class="secondary-button" id="saveGoal" type="button">Save goal</button>
+            <div id="goalDisplay" class="status live" style="display:none;margin-top:14px"></div>
+          </div>
+          <div class="card"><h3>🔄 Repetitive work note</h3><p>Record work you repeat often so you can spot what may be simplified later.</p>
+            <div class="form-group"><textarea id="repeatWork" placeholder="e.g. I send the same reminder every Friday"></textarea></div>
+            <button class="secondary-button" id="saveRepeatWork" type="button">Save note</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:18px">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h3>📋 My priorities</h3><p>These are tasks you entered yourself.</p></div><div id="plannerProgress" class="badge">0 / 0 complete</div></div>
+          <div id="plannerList" class="coming-list" style="margin-top:16px"></div>
+        </div>
+      </section>
+
       <section id="settings" class="page">
         <div class="page-heading">
           <div>
@@ -1155,7 +1186,7 @@
         "nav.expenses": "Expenses",
         "nav.reports": "Reports",
         "nav.settings": "Settings",
-        "home.badge": "HEGEVA AI V3.4",
+        "home.badge": "HEGEVA AI V3.5",
         "home.title1": "Build your business workspace",
         "home.title2": "without fake promises.",
         "home.subtitle": "Hegeva AI is a human-first business workspace designed to reduce admin, organize everyday work and give you more time to focus. Only working features are marked as available.",
@@ -1170,7 +1201,7 @@
         "cards.aiText": "The secure AI backend is not connected yet. This feature is clearly marked as Coming Soon until it is real.",
         "status.live": "● Working",
         "status.soon": "Coming Soon",
-        "home.footer": "Hegeva AI V3.4 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
+        "home.footer": "Hegeva AI V3.5 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
         "ai.title": "🤖 AI Assistant",
         "ai.subtitle": "Secure AI integration is the next development stage.",
         "ai.comingTitle": "Hegeva AI Assistant — Coming Soon",
@@ -1255,7 +1286,7 @@
         "nav.expenses": "Kiadások",
         "nav.reports": "Riportok",
         "nav.settings": "Beállítások",
-        "home.badge": "HEGEVA AI V3.4",
+        "home.badge": "HEGEVA AI V3.5",
         "home.title1": "Építsd fel az üzleti munkateredet",
         "home.title2": "kamu ígéretek nélkül.",
         "home.subtitle": "A Hegeva AI lépésről lépésre épül. Csak a valóban működő funkciókat jelöljük elérhetőnek; ami még nincs kész, az egyértelműen Coming Soon.",
@@ -1270,7 +1301,7 @@
         "cards.aiText": "A biztonságos AI backend még nincs csatlakoztatva. Addig ez a funkció egyértelműen Coming Soon.",
         "status.live": "● Működik",
         "status.soon": "Hamarosan",
-        "home.footer": "A Hegeva AI V3.4 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
+        "home.footer": "A Hegeva AI V3.5 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
         "ai.title": "🤖 AI Asszisztens",
         "ai.subtitle": "A biztonságos AI-integráció a következő fejlesztési szakasz.",
         "ai.comingTitle": "Hegeva AI Asszisztens — Hamarosan",
@@ -1355,7 +1386,7 @@
         "nav.expenses": "Ausgaben",
         "nav.reports": "Berichte",
         "nav.settings": "Einstellungen",
-        "home.badge": "HEGEVA AI V3.4",
+        "home.badge": "HEGEVA AI V3.5",
         "home.title1": "Baue deinen Business-Arbeitsbereich",
         "home.title2": "ohne falsche Versprechen.",
         "home.subtitle": "Hegeva AI wird Schritt für Schritt entwickelt. Nur funktionierende Funktionen werden als verfügbar angezeigt; unfertige Werkzeuge sind klar als Coming Soon markiert.",
@@ -1370,7 +1401,7 @@
         "cards.aiText": "Das sichere KI-Backend ist noch nicht verbunden. Bis dahin ist diese Funktion klar als Coming Soon markiert.",
         "status.live": "● Funktioniert",
         "status.soon": "Demnächst",
-        "home.footer": "Hegeva AI V3.4 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
+        "home.footer": "Hegeva AI V3.5 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
         "ai.title": "🤖 KI-Assistent",
         "ai.subtitle": "Die sichere KI-Integration ist die nächste Entwicklungsstufe.",
         "ai.comingTitle": "Hegeva AI Assistent — Demnächst",
@@ -1455,7 +1486,7 @@
         "nav.expenses": "Dépenses",
         "nav.reports": "Rapports",
         "nav.settings": "Paramètres",
-        "home.badge": "HEGEVA AI V3.4",
+        "home.badge": "HEGEVA AI V3.5",
         "home.title1": "Construisez votre espace professionnel",
         "home.title2": "sans fausses promesses.",
         "home.subtitle": "Hegeva AI est développé étape par étape. Seules les fonctions réellement opérationnelles sont indiquées comme disponibles ; les outils non terminés sont clairement marqués Coming Soon.",
@@ -1470,7 +1501,7 @@
         "cards.aiText": "Le backend IA sécurisé n'est pas encore connecté. Cette fonction reste clairement marquée Coming Soon jusqu'à ce qu'elle soit réelle.",
         "status.live": "● Fonctionnel",
         "status.soon": "Bientôt",
-        "home.footer": "Hegeva AI V3.4 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
+        "home.footer": "Hegeva AI V3.5 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
         "ai.title": "🤖 Assistant IA",
         "ai.subtitle": "L'intégration sécurisée de l'IA est la prochaine étape.",
         "ai.comingTitle": "Assistant Hegeva AI — Bientôt",
@@ -1555,7 +1586,7 @@
         "nav.expenses": "Gastos",
         "nav.reports": "Informes",
         "nav.settings": "Ajustes",
-        "home.badge": "HEGEVA AI V3.4",
+        "home.badge": "HEGEVA AI V3.5",
         "home.title1": "Construye tu espacio de negocio",
         "home.title2": "sin promesas falsas.",
         "home.subtitle": "Hegeva AI se está construyendo paso a paso. Solo las funciones que realmente funcionan se marcan como disponibles; las herramientas sin terminar se indican claramente como Coming Soon.",
@@ -1570,7 +1601,7 @@
         "cards.aiText": "El backend seguro de IA todavía no está conectado. Esta función se marca claramente como Coming Soon hasta que sea real.",
         "status.live": "● Funciona",
         "status.soon": "Próximamente",
-        "home.footer": "Hegeva AI V3.4 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
+        "home.footer": "Hegeva AI V3.5 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
         "ai.title": "🤖 Asistente IA",
         "ai.subtitle": "La integración segura de IA es la siguiente fase de desarrollo.",
         "ai.comingTitle": "Asistente Hegeva AI — Próximamente",
@@ -1954,6 +1985,42 @@
     });
 
     document.getElementById("docDate").value = new Date().toISOString().slice(0, 10);
+
+
+    function readPlannerTasks(){try{return JSON.parse(localStorage.getItem("hegeva_planner_tasks")||"[]")}catch{return[]}}
+    function writePlannerTasks(tasks){localStorage.setItem("hegeva_planner_tasks",JSON.stringify(tasks))}
+    function renderPlanner(){
+      const list=document.getElementById("plannerList"),tasks=readPlannerTasks();
+      const done=tasks.filter(t=>t.done).length;
+      document.getElementById("plannerProgress").textContent=`${done} / ${tasks.length} complete`;
+      list.innerHTML="";
+      if(!tasks.length){const e=document.createElement("div");e.className="coming-item";e.textContent="No priorities added yet.";list.appendChild(e);return}
+      const rank={High:0,Medium:1,Low:2};
+      tasks.map((t,i)=>({...t,i})).sort((a,b)=>rank[a.priority]-rank[b.priority]).forEach(t=>{
+        const row=document.createElement("div");row.className="coming-item";row.style.cssText="display:flex;justify-content:space-between;align-items:center;gap:12px";
+        const label=document.createElement("label");label.style.cssText="display:flex;align-items:center;gap:10px;flex:1";
+        const c=document.createElement("input");c.type="checkbox";c.checked=!!t.done;c.onchange=()=>{const x=readPlannerTasks();x[t.i].done=c.checked;writePlannerTasks(x);renderPlanner()};
+        const s=document.createElement("span");s.textContent=`${t.text} • ${t.priority}${t.date?" • "+t.date:""}`;if(t.done)s.style.textDecoration="line-through";
+        const b=document.createElement("button");b.type="button";b.className="secondary-button";b.textContent="×";b.style.padding="5px 10px";b.onclick=()=>{const x=readPlannerTasks();x.splice(t.i,1);writePlannerTasks(x);renderPlanner()};
+        label.append(c,s);row.append(label,b);list.appendChild(row);
+      });
+    }
+    document.getElementById("plannerAdd").onclick=()=>{
+      const i=document.getElementById("plannerTask"),v=i.value.trim();if(!v)return;
+      const t=readPlannerTasks();t.push({text:v,priority:document.getElementById("plannerPriority").value,date:document.getElementById("plannerDate").value,done:false});writePlannerTasks(t);i.value="";renderPlanner();
+    };
+    document.getElementById("saveGoal").onclick=()=>{
+      const v=document.getElementById("businessGoal").value.trim();localStorage.setItem("hegeva_business_goal",v);
+      const d=document.getElementById("goalDisplay");d.textContent=v||"No goal saved.";d.style.display="inline-flex";
+    };
+    document.getElementById("saveRepeatWork").onclick=()=>{
+      const v=document.getElementById("repeatWork").value.trim();localStorage.setItem("hegeva_repeat_work",v);showToast(v?"Note saved locally.":"Note cleared.");
+    };
+    const savedGoal=localStorage.getItem("hegeva_business_goal")||"";
+    document.getElementById("businessGoal").value=savedGoal;
+    if(savedGoal){document.getElementById("goalDisplay").textContent=savedGoal;document.getElementById("goalDisplay").style.display="inline-flex"}
+    document.getElementById("repeatWork").value=localStorage.getItem("hegeva_repeat_work")||"";
+    renderPlanner();
 
     const savedLanguage = localStorage.getItem("hegeva_language");
     if (savedLanguage && savedLanguage in translations) {
