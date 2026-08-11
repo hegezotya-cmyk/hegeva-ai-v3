@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V4 — honest, multilingual business workspace." />
-  <title>Hegeva AI V4</title>
+  <meta name="description" content="Hegeva AI V4.1 — honest, multilingual business workspace." />
+  <title>Hegeva AI V4.1</title>
 
   <style>
     :root {
@@ -744,6 +744,132 @@
     #aiChatMessages .coming-item {
       background: linear-gradient(145deg, rgba(155,108,255,.10), rgba(55,200,255,.05));
     }
+  
+    .command-grid {
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:14px;
+      margin-bottom:18px;
+    }
+    .command-card {
+      position:relative;
+      overflow:hidden;
+      min-height:170px;
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:20px;
+      padding:20px;
+      background:
+        radial-gradient(circle at 90% 10%, rgba(55,200,255,.14), transparent 34%),
+        linear-gradient(145deg, rgba(155,108,255,.13), rgba(246,196,83,.07), rgba(255,255,255,.035));
+      box-shadow:0 18px 45px rgba(0,0,0,.16);
+      transition:.22s ease;
+    }
+    .command-card:hover {
+      transform:translateY(-4px);
+      border-color:rgba(246,196,83,.38);
+      box-shadow:0 20px 55px rgba(155,108,255,.18);
+    }
+    .command-card .command-icon {font-size:31px;margin-bottom:12px}
+    .command-card h3 {margin-bottom:8px}
+    .command-card p {color:var(--muted);line-height:1.5;font-size:14px}
+    .command-card button {margin-top:15px}
+    .metric-strip {
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin:16px 0 22px;
+    }
+    .metric-mini {
+      padding:16px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      background:linear-gradient(145deg,rgba(55,200,255,.08),rgba(155,108,255,.06));
+    }
+    .metric-mini strong {display:block;font-size:22px;margin-top:6px}
+    .chat-shell {
+      display:grid;
+      grid-template-columns:240px minmax(0,1fr);
+      gap:16px;
+    }
+    .chat-sidebar {
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:14px;
+      background:var(--card);
+      min-height:500px;
+    }
+    .saved-chat {
+      width:100%;
+      text-align:left;
+      padding:10px 11px;
+      margin-bottom:8px;
+      border-radius:11px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+    }
+    .saved-chat.active {border-color:rgba(246,196,83,.45);background:rgba(246,196,83,.08)}
+    .chat-main {
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:16px;
+      background:var(--card);
+    }
+    .tool-row {
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:12px;
+    }
+    .check-option {
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      padding:13px;
+      border:1px solid var(--border);
+      border-radius:13px;
+      background:rgba(255,255,255,.035);
+    }
+    .check-option input {margin-top:3px}
+    .health-result {
+      padding:18px;
+      border-radius:16px;
+      border:1px solid rgba(53,213,138,.22);
+      background:rgba(53,213,138,.07);
+      display:none;
+      margin-top:16px;
+    }
+    .vault-search {
+      width:100%;
+      padding:11px 12px;
+      border:1px solid var(--border);
+      border-radius:11px;
+      background:var(--card);
+      color:var(--text);
+      margin-bottom:12px;
+    }
+    .ai-output {
+      width:100%;
+      min-height:220px;
+      margin-top:14px;
+      padding:14px;
+      border:1px solid var(--border);
+      border-radius:13px;
+      background:rgba(0,0,0,.12);
+      color:var(--text);
+      white-space:pre-wrap;
+      line-height:1.6;
+      overflow:auto;
+    }
+    @media (max-width:1100px) {
+      .command-grid,.metric-strip {grid-template-columns:repeat(2,minmax(0,1fr))}
+      .tool-row {grid-template-columns:1fr}
+    }
+    @media (max-width:760px) {
+      .chat-shell {grid-template-columns:1fr}
+      .chat-sidebar {min-height:auto}
+      .command-grid,.metric-strip {grid-template-columns:1fr}
+    }
+
   </style>
 </head>
 
@@ -754,7 +880,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name">Hegeva AI</div>
-          <div class="brand-subtitle">V4 BUSINESS INTELLIGENCE</div>
+          <div class="brand-subtitle">V4.1 BUSINESS COMMAND CENTER</div>
         </div>
       </div>
 
@@ -808,6 +934,18 @@
           <span class="nav-icon">🗂️</span>
           <span class="nav-text" data-i18n="nav.vault">Vault & Templates</span>
         </button>
+        <button class="nav-button" data-page="command" type="button">
+          <span class="nav-icon">🧭</span>
+          <span class="nav-text" data-i18n="nav.command">Command Center</span>
+        </button>
+        <button class="nav-button" data-page="studio" type="button">
+          <span class="nav-icon">✉️</span>
+          <span class="nav-text" data-i18n="nav.studio">Message Studio</span>
+        </button>
+        <button class="nav-button" data-page="health" type="button">
+          <span class="nav-icon">🩺</span>
+          <span class="nav-text" data-i18n="nav.health">Business Check</span>
+        </button>
         <button class="nav-button" data-page="settings" type="button">
           <span class="nav-icon">⚙️</span>
           <span class="nav-text" data-i18n="nav.settings">Settings</span>
@@ -818,7 +956,7 @@
     <main class="main">
       <section id="home" class="page active">
         <section class="hero">
-          <div class="badge" data-i18n="home.badge">HEGEVA AI V4</div>
+          <div class="badge" data-i18n="home.badge">HEGEVA AI V4.1</div>
 
           <h2>
             <span data-i18n="home.title1">Save time. Work smarter.</span>
@@ -917,87 +1055,75 @@
         </div>
 
         <div class="footer-note" data-i18n="home.footer">
-          Hegeva AI V4 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
+          Hegeva AI V4.1 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
         </div>
       </section>
 
       <section id="assistant" class="page">
         <div class="page-heading">
           <div>
-            <h1>🤖 HEGEVA AI Workspace</h1>
-            <p>Planning, time-saving, ideas, documents and everyday business admin in one place.</p>
+            <h1 data-i18n="ai41.title">🤖 HEGEVA AI Workspace</h1>
+            <p data-i18n="ai41.subtitle">A multilingual business companion with modes, recent-context memory and saved local chats.</p>
           </div>
         </div>
 
-        <div class="notice">
-          Live AI. Do not enter passwords, bank-card details, private keys or other sensitive information.
+        <div class="notice" data-i18n="ai41.notice">
+          Live AI. Messages are sent to the HEGEVA backend. Do not enter passwords, card details, private keys or other sensitive information.
         </div>
 
-        <div class="grid">
-          <div class="card">
-            <h3>🎛️ Assistant mode</h3>
-            <div class="form-group" style="margin-top:12px">
-              <select id="aiMode">
-                <option value="general">General business help</option>
-                <option value="time">Time Saver</option>
-                <option value="planner">Business Planner</option>
-                <option value="documents">Document Helper</option>
-                <option value="ideas">Business Idea Partner</option>
-              </select>
+        <div class="metric-strip">
+          <div class="metric-mini"><span data-i18n="ai41.language">Language</span><strong id="aiLanguageBadge">EN</strong></div>
+          <div class="metric-mini"><span data-i18n="ai41.mode">Mode</span><strong id="aiModeBadge">General</strong></div>
+          <div class="metric-mini"><span data-i18n="ai41.context">Context messages</span><strong id="aiContextCount">0</strong></div>
+          <div class="metric-mini"><span data-i18n="ai41.status">Status</span><strong id="aiTopStatus">Ready</strong></div>
+        </div>
+
+        <div class="chat-shell">
+          <aside class="chat-sidebar">
+            <button class="primary-button" id="createNewSavedChat" type="button" style="width:100%" data-i18n="ai41.newChat">＋ New chat</button>
+            <div style="margin:14px 0 8px;color:var(--muted);font-size:12px" data-i18n="ai41.savedChats">SAVED CHATS</div>
+            <div id="savedChatsList"></div>
+          </aside>
+
+          <div class="chat-main">
+            <div class="form-grid" style="margin-bottom:14px">
+              <div class="form-group">
+                <label for="aiMode" data-i18n="ai41.assistantMode">Assistant mode</label>
+                <select id="aiMode">
+                  <option value="general" data-i18n="ai41.general">General Business</option>
+                  <option value="time" data-i18n="ai41.time">Time Saver</option>
+                  <option value="planner" data-i18n="ai41.planner">Business Planner</option>
+                  <option value="documents" data-i18n="ai41.documents">Document Helper</option>
+                  <option value="ideas" data-i18n="ai41.ideas">Idea Partner</option>
+                  <option value="decision" data-i18n="ai41.decision">Decision Helper</option>
+                  <option value="meeting" data-i18n="ai41.meeting">Meeting Assistant</option>
+                  <option value="thirty" data-i18n="ai41.thirty">30-Day Plan</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="aiBusinessContext" data-i18n="ai41.contextLabel">Optional business context</label>
+                <input id="aiBusinessContext" maxlength="500" data-i18n-placeholder="ai41.contextPlaceholder" placeholder="e.g. small retail shop in the UK">
+              </div>
             </div>
-          </div>
 
-          <div class="card">
-            <h3>🧠 Conversation memory</h3>
-            <p>Recent messages are kept in this browser and sent as context for the current conversation.</p>
-            <div class="status live">● Active</div>
-          </div>
+            <div id="aiChatMessages" style="min-height:330px;max-height:520px;overflow:auto;padding:4px 2px 16px"></div>
 
-          <div class="card">
-            <h3>🛡️ Usage safeguards</h3>
-            <p>Message size, context size and rapid repeat requests are limited to protect AI usage.</p>
-            <div class="status live">● Working</div>
-          </div>
-        </div>
+            <div class="tool-row" style="margin:8px 0 14px">
+              <button class="secondary-button ai-quick" type="button" data-prompt-key="time" data-i18n="ai41.quickTime">⏳ Find time-wasters</button>
+              <button class="secondary-button ai-quick" type="button" data-prompt-key="week" data-i18n="ai41.quickWeek">📋 Plan my week</button>
+              <button class="secondary-button ai-quick" type="button" data-prompt-key="decision" data-i18n="ai41.quickDecision">⚖️ Compare a decision</button>
+            </div>
 
-        <div class="card">
-          <div id="aiChatMessages" style="min-height:320px;max-height:520px;overflow:auto;padding:6px 2px 18px"></div>
+            <div class="form-group">
+              <label for="aiChatInput" data-i18n="ai41.message">Your message</label>
+              <textarea id="aiChatInput" maxlength="2500" data-i18n-placeholder="ai41.placeholder" placeholder="Ask HEGEVA something about your business..."></textarea>
+            </div>
 
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px">
-            <button class="secondary-button ai-quick" type="button" data-prompt="Help me find 3 repetitive tasks I could simplify.">⏳ Save time</button>
-            <button class="secondary-button ai-quick" type="button" data-prompt="Help me plan my 3 most important business priorities for this week.">📋 Plan my week</button>
-            <button class="secondary-button ai-quick" type="button" data-prompt="Help me improve the wording of a professional customer follow-up message.">✉️ Customer message</button>
-            <button class="secondary-button ai-quick" type="button" data-prompt="Give me 3 practical business improvement ideas without promising results.">💡 Improvement ideas</button>
-          </div>
-
-          <div class="form-group">
-            <label for="aiChatInput">Your message</label>
-            <textarea id="aiChatInput" maxlength="2500" placeholder="Ask HEGEVA something about your business..."></textarea>
-          </div>
-
-          <div class="hero-buttons">
-            <button class="primary-button" id="sendAiChat" type="button">Send to HEGEVA AI</button>
-            <button class="secondary-button" id="newAiChat" type="button">New chat</button>
-          </div>
-
-          <div id="aiChatStatus" style="margin-top:12px;color:var(--muted);font-size:13px"></div>
-        </div>
-
-        <div class="grid" style="margin-top:18px">
-          <div class="card">
-            <h3>⏳ Time Saver</h3>
-            <p>Describe repeated work. HEGEVA can suggest practical ways to organise or simplify it.</p>
-            <div class="status live">● Working</div>
-          </div>
-          <div class="card">
-            <h3>🧾 Document Helper</h3>
-            <p>Ask for clearer wording, email drafts or document structure. Review everything before sending.</p>
-            <div class="status live">● Working</div>
-          </div>
-          <div class="card">
-            <h3>🏢 Team & Enterprise</h3>
-            <p>Shared workspaces, company knowledge and team controls are planned for a later version.</p>
-            <div class="status soon">Coming Soon</div>
+            <div class="hero-buttons">
+              <button class="primary-button" id="sendAiChat" type="button" data-i18n="ai41.send">Send to HEGEVA AI</button>
+              <button class="secondary-button" id="clearCurrentChat" type="button" data-i18n="ai41.clear">Clear current chat</button>
+            </div>
+            <div id="aiChatStatus" style="margin-top:12px;color:var(--muted);font-size:13px"></div>
           </div>
         </div>
       </section>
@@ -1206,6 +1332,7 @@
           <div class="card">
             <h3 data-i18n="vault.docsTitle">🧾 Saved documents</h3>
             <p data-i18n="vault.docsText">Invoices and quotes you saved locally appear here.</p>
+            <input id="vaultSearch" class="vault-search" data-i18n-placeholder="vault41.search" placeholder="Search saved documents...">
             <div id="vaultDocuments" class="coming-list" style="margin-top:14px"></div>
           </div>
 
@@ -1248,6 +1375,100 @@
             <button class="secondary-button" id="copyVaultTemplate" type="button" data-i18n="vault.copy">Copy text</button>
           </div>
           <textarea id="vaultTemplateOutput" style="width:100%;min-height:230px;margin-top:14px;padding:14px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--text);resize:vertical"></textarea>
+        </div>
+      </section>
+
+      
+      <section id="command" class="page">
+        <div class="page-heading">
+          <div>
+            <h1 data-i18n="command.title">🧭 Business Command Center</h1>
+            <p data-i18n="command.subtitle">One place to choose the next useful action without fake performance numbers.</p>
+          </div>
+        </div>
+
+        <div class="metric-strip">
+          <div class="metric-mini"><span data-i18n="command.tasks">Open planner tasks</span><strong id="commandTaskCount">0</strong></div>
+          <div class="metric-mini"><span data-i18n="command.docs">Saved documents</span><strong id="commandDocCount">0</strong></div>
+          <div class="metric-mini"><span data-i18n="command.chats">Saved AI chats</span><strong id="commandChatCount">0</strong></div>
+          <div class="metric-mini"><span data-i18n="command.setup">Profile setup</span><strong id="commandSetup">0%</strong></div>
+        </div>
+
+        <div class="command-grid">
+          <div class="command-card"><div class="command-icon">🤖</div><h3 data-i18n="command.aiTitle">Ask HEGEVA</h3><p data-i18n="command.aiText">Use the live assistant for planning, wording, ideas or decisions.</p><button class="primary-button" type="button" data-go="assistant" data-i18n="command.open">Open</button></div>
+          <div class="command-card"><div class="command-icon">🧾</div><h3 data-i18n="command.docTitle">Create a document</h3><p data-i18n="command.docText">Build an invoice or quote from information you enter.</p><button class="primary-button" type="button" data-go="documents" data-i18n="command.open">Open</button></div>
+          <div class="command-card"><div class="command-icon">⏳</div><h3 data-i18n="command.planTitle">Plan priorities</h3><p data-i18n="command.planText">Use the local planner and keep your important work visible.</p><button class="primary-button" type="button" data-go="planner" data-i18n="command.open">Open</button></div>
+          <div class="command-card"><div class="command-icon">✉️</div><h3 data-i18n="command.msgTitle">Write a customer message</h3><p data-i18n="command.msgText">Create an editable message with or without AI assistance.</p><button class="primary-button" type="button" data-go="studio" data-i18n="command.open">Open</button></div>
+          <div class="command-card"><div class="command-icon">🩺</div><h3 data-i18n="command.healthTitle">Business organisation check</h3><p data-i18n="command.healthText">Answer simple questions based on your own setup and receive practical next steps.</p><button class="primary-button" type="button" data-go="health" data-i18n="command.open">Open</button></div>
+          <div class="command-card"><div class="command-icon">🗂️</div><h3 data-i18n="command.vaultTitle">Search the Vault</h3><p data-i18n="command.vaultText">Find locally saved invoices, quotes and notes faster.</p><button class="primary-button" type="button" data-go="vault" data-i18n="command.open">Open</button></div>
+          <div class="command-card"><div class="command-icon">📈</div><h3 data-i18n="command.enterpriseTitle">Team & Enterprise</h3><p data-i18n="command.enterpriseText">Shared workspaces and company knowledge require a later secure cloud version.</p><div class="status soon" data-i18n="status.soon">Coming Soon</div></div>
+          <div class="command-card"><div class="command-icon">🔐</div><h3 data-i18n="command.privacyTitle">Privacy clarity</h3><p data-i18n="command.privacyText">Current local tools store data in this browser. Live AI messages go to the HEGEVA backend.</p><div class="status live" data-i18n="status.live">● Working</div></div>
+        </div>
+      </section>
+
+      <section id="studio" class="page">
+        <div class="page-heading">
+          <div>
+            <h1 data-i18n="studio.title">✉️ Customer Message Studio</h1>
+            <p data-i18n="studio.subtitle">Create editable professional messages. Use a local template or ask HEGEVA AI to improve it.</p>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <div class="form-group">
+              <label for="studioType" data-i18n="studio.type">Message type</label>
+              <select id="studioType">
+                <option value="followup" data-i18n="studio.followup">Customer follow-up</option>
+                <option value="payment" data-i18n="studio.payment">Payment reminder</option>
+                <option value="quote" data-i18n="studio.quote">Quote follow-up</option>
+                <option value="thanks" data-i18n="studio.thanks">Thank-you message</option>
+                <option value="complaint" data-i18n="studio.complaint">Complaint response draft</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-top:12px">
+              <label for="studioName" data-i18n="studio.name">Customer name</label>
+              <input id="studioName" placeholder="Customer">
+            </div>
+            <div class="form-group" style="margin-top:12px">
+              <label for="studioDetails" data-i18n="studio.details">Key details</label>
+              <textarea id="studioDetails" data-i18n-placeholder="studio.detailsPlaceholder" placeholder="What should the message mention?"></textarea>
+            </div>
+            <div class="hero-buttons">
+              <button class="secondary-button" id="studioLocal" type="button" data-i18n="studio.local">Create local template</button>
+              <button class="primary-button" id="studioAi" type="button" data-i18n="studio.ai">Improve with HEGEVA AI</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 data-i18n="studio.output">Message output</h3>
+            <textarea id="studioOutput" class="ai-output"></textarea>
+            <button class="secondary-button" id="studioCopy" type="button" style="margin-top:10px" data-i18n="studio.copy">Copy text</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="health" class="page">
+        <div class="page-heading">
+          <div>
+            <h1 data-i18n="health.title">🩺 Business Organisation Check</h1>
+            <p data-i18n="health.subtitle">A transparent self-check based only on the answers you select. It is not a credit score or success prediction.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="check-option"><input type="checkbox" class="healthCheck"><div><strong data-i18n="health.q1">I track important business tasks.</strong><p data-i18n="health.q1s">For example with a planner or checklist.</p></div></div>
+          <div class="check-option" style="margin-top:10px"><input type="checkbox" class="healthCheck"><div><strong data-i18n="health.q2">I keep invoices and quotes organised.</strong><p data-i18n="health.q2s">You know where recent documents are stored.</p></div></div>
+          <div class="check-option" style="margin-top:10px"><input type="checkbox" class="healthCheck"><div><strong data-i18n="health.q3">I review business expenses.</strong><p data-i18n="health.q3s">You periodically look at the costs you entered or recorded.</p></div></div>
+          <div class="check-option" style="margin-top:10px"><input type="checkbox" class="healthCheck"><div><strong data-i18n="health.q4">I have a current business goal.</strong><p data-i18n="health.q4s">There is at least one clear next objective.</p></div></div>
+          <div class="check-option" style="margin-top:10px"><input type="checkbox" class="healthCheck"><div><strong data-i18n="health.q5">I know which repetitive work wastes time.</strong><p data-i18n="health.q5s">You have identified at least one recurring admin burden.</p></div></div>
+          <button class="primary-button" id="healthCalculate" type="button" style="margin-top:16px" data-i18n="health.calculate">Show my organisation check</button>
+
+          <div id="healthResult" class="health-result">
+            <h3 id="healthScore"></h3>
+            <p id="healthAdvice" style="margin-top:8px"></p>
+            <button class="secondary-button" id="healthAskAi" type="button" style="margin-top:12px" data-i18n="health.askAi">Ask HEGEVA for next steps</button>
+          </div>
         </div>
       </section>
 
@@ -1315,7 +1536,7 @@
         "nav.expenses": "Expenses",
         "nav.reports": "Reports",
         "nav.settings": "Settings",
-        "home.badge": "HEGEVA AI V4",
+        "home.badge": "HEGEVA AI V4.1",
         "home.title1": "Build your business workspace",
         "home.title2": "without fake promises.",
         "home.subtitle": "Hegeva AI is a human-first business workspace designed to reduce admin, organize everyday work and give you more time to focus. Only working features are marked as available.",
@@ -1330,7 +1551,7 @@
         "cards.aiText": "The secure AI backend is not connected yet. This feature is clearly marked as Coming Soon until it is real.",
         "status.live": "● Working",
         "status.soon": "Coming Soon",
-        "home.footer": "Hegeva AI V4 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
+        "home.footer": "Hegeva AI V4.1 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
         "ai.title": "🤖 AI Assistant",
         "ai.subtitle": "Secure AI integration is the next development stage.",
         "ai.comingTitle": "Hegeva AI Assistant — Coming Soon",
@@ -1430,6 +1651,89 @@
         "vault.noteSaved": "Note saved locally.",
         "vault.copied": "Template copied.",
         "vault.noDocs": "No locally saved invoices or quotes yet.",
+        "nav.command": "Command Center",
+        "nav.studio": "Message Studio",
+        "nav.health": "Business Check",
+        "ai41.title": "🤖 HEGEVA AI Workspace",
+        "ai41.subtitle": "A multilingual business companion with modes, recent-context memory and saved local chats.",
+        "ai41.notice": "Live AI. Messages are sent to the HEGEVA backend. Do not enter passwords, card details, private keys or other sensitive information.",
+        "ai41.language": "Language",
+        "ai41.mode": "Mode",
+        "ai41.context": "Context messages",
+        "ai41.status": "Status",
+        "ai41.newChat": "＋ New chat",
+        "ai41.savedChats": "SAVED CHATS",
+        "ai41.assistantMode": "Assistant mode",
+        "ai41.general": "General Business",
+        "ai41.time": "Time Saver",
+        "ai41.planner": "Business Planner",
+        "ai41.documents": "Document Helper",
+        "ai41.ideas": "Idea Partner",
+        "ai41.decision": "Decision Helper",
+        "ai41.meeting": "Meeting Assistant",
+        "ai41.thirty": "30-Day Plan",
+        "ai41.contextLabel": "Optional business context",
+        "ai41.contextPlaceholder": "e.g. small retail shop in the UK",
+        "ai41.quickTime": "⏳ Find time-wasters",
+        "ai41.quickWeek": "📋 Plan my week",
+        "ai41.quickDecision": "⚖️ Compare a decision",
+        "ai41.message": "Your message",
+        "ai41.placeholder": "Ask HEGEVA something about your business...",
+        "ai41.send": "Send to HEGEVA AI",
+        "ai41.clear": "Clear current chat",
+        "command.title": "🧭 Business Command Center",
+        "command.subtitle": "One place to choose the next useful action without fake performance numbers.",
+        "command.tasks": "Open planner tasks",
+        "command.docs": "Saved documents",
+        "command.chats": "Saved AI chats",
+        "command.setup": "Profile setup",
+        "command.aiTitle": "Ask HEGEVA",
+        "command.aiText": "Use the live assistant for planning, wording, ideas or decisions.",
+        "command.docTitle": "Create a document",
+        "command.docText": "Build an invoice or quote from information you enter.",
+        "command.planTitle": "Plan priorities",
+        "command.planText": "Use the local planner and keep your important work visible.",
+        "command.msgTitle": "Write a customer message",
+        "command.msgText": "Create an editable message with or without AI assistance.",
+        "command.healthTitle": "Business organisation check",
+        "command.healthText": "Answer simple questions based on your own setup and receive practical next steps.",
+        "command.vaultTitle": "Search the Vault",
+        "command.vaultText": "Find locally saved invoices, quotes and notes faster.",
+        "command.enterpriseTitle": "Team & Enterprise",
+        "command.enterpriseText": "Shared workspaces and company knowledge require a later secure cloud version.",
+        "command.privacyTitle": "Privacy clarity",
+        "command.privacyText": "Current local tools store data in this browser. Live AI messages go to the HEGEVA backend.",
+        "command.open": "Open",
+        "studio.title": "✉️ Customer Message Studio",
+        "studio.subtitle": "Create editable professional messages. Use a local template or ask HEGEVA AI to improve it.",
+        "studio.type": "Message type",
+        "studio.followup": "Customer follow-up",
+        "studio.payment": "Payment reminder",
+        "studio.quote": "Quote follow-up",
+        "studio.thanks": "Thank-you message",
+        "studio.complaint": "Complaint response draft",
+        "studio.name": "Customer name",
+        "studio.details": "Key details",
+        "studio.detailsPlaceholder": "What should the message mention?",
+        "studio.local": "Create local template",
+        "studio.ai": "Improve with HEGEVA AI",
+        "studio.output": "Message output",
+        "studio.copy": "Copy text",
+        "health.title": "🩺 Business Organisation Check",
+        "health.subtitle": "A transparent self-check based only on the answers you select. It is not a credit score or success prediction.",
+        "health.q1": "I track important business tasks.",
+        "health.q1s": "For example with a planner or checklist.",
+        "health.q2": "I keep invoices and quotes organised.",
+        "health.q2s": "You know where recent documents are stored.",
+        "health.q3": "I review business expenses.",
+        "health.q3s": "You periodically look at the costs you entered or recorded.",
+        "health.q4": "I have a current business goal.",
+        "health.q4s": "There is at least one clear next objective.",
+        "health.q5": "I know which repetitive work wastes time.",
+        "health.q5s": "You have identified at least one recurring admin burden.",
+        "health.calculate": "Show my organisation check",
+        "health.askAi": "Ask HEGEVA for next steps",
+        "vault41.search": "Search saved documents...",
         "toast.saved": "Settings saved in this browser.",
         "toast.language": "Language changed."
       },
@@ -1441,7 +1745,7 @@
         "nav.expenses": "Kiadások",
         "nav.reports": "Riportok",
         "nav.settings": "Beállítások",
-        "home.badge": "HEGEVA AI V4",
+        "home.badge": "HEGEVA AI V4.1",
         "home.title1": "Építsd fel az üzleti munkateredet",
         "home.title2": "kamu ígéretek nélkül.",
         "home.subtitle": "A Hegeva AI lépésről lépésre épül. Csak a valóban működő funkciókat jelöljük elérhetőnek; ami még nincs kész, az egyértelműen Coming Soon.",
@@ -1456,7 +1760,7 @@
         "cards.aiText": "A biztonságos AI backend még nincs csatlakoztatva. Addig ez a funkció egyértelműen Coming Soon.",
         "status.live": "● Működik",
         "status.soon": "Hamarosan",
-        "home.footer": "A Hegeva AI V4 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
+        "home.footer": "A Hegeva AI V4.1 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
         "ai.title": "🤖 AI Asszisztens",
         "ai.subtitle": "A biztonságos AI-integráció a következő fejlesztési szakasz.",
         "ai.comingTitle": "Hegeva AI Asszisztens — Hamarosan",
@@ -1556,6 +1860,89 @@
         "vault.noteSaved": "Jegyzet helyben elmentve.",
         "vault.copied": "Sablon kimásolva.",
         "vault.noDocs": "Még nincs helyben mentett számla vagy árajánlat.",
+        "nav.command": "Irányítóközpont",
+        "nav.studio": "Üzenet Stúdió",
+        "nav.health": "Üzleti ellenőrzés",
+        "ai41.title": "🤖 HEGEVA AI Munkatér",
+        "ai41.subtitle": "Többnyelvű üzleti társ módokkal, beszélgetési kontextussal és helyben mentett chatekkel.",
+        "ai41.notice": "Élő AI. Az üzenetek a HEGEVA backendhez kerülnek. Ne írj be jelszót, bankkártyaadatot, privát kulcsot vagy más érzékeny információt.",
+        "ai41.language": "Nyelv",
+        "ai41.mode": "Mód",
+        "ai41.context": "Kontextus üzenetek",
+        "ai41.status": "Állapot",
+        "ai41.newChat": "＋ Új chat",
+        "ai41.savedChats": "MENTETT CHATEK",
+        "ai41.assistantMode": "Asszisztens mód",
+        "ai41.general": "Általános üzleti segítség",
+        "ai41.time": "Time Saver",
+        "ai41.planner": "Üzleti tervező",
+        "ai41.documents": "Dokumentumsegítő",
+        "ai41.ideas": "Ötletpartner",
+        "ai41.decision": "Döntési segítő",
+        "ai41.meeting": "Meeting asszisztens",
+        "ai41.thirty": "30 napos terv",
+        "ai41.contextLabel": "Opcionális üzleti háttér",
+        "ai41.contextPlaceholder": "pl. kis kiskereskedelmi üzlet az Egyesült Királyságban",
+        "ai41.quickTime": "⏳ Időrablók keresése",
+        "ai41.quickWeek": "📋 Hetem megtervezése",
+        "ai41.quickDecision": "⚖️ Döntés összehasonlítása",
+        "ai41.message": "Üzeneted",
+        "ai41.placeholder": "Kérdezz a HEGEVA-tól a vállalkozásodról...",
+        "ai41.send": "Küldés a HEGEVA AI-nak",
+        "ai41.clear": "Aktuális chat törlése",
+        "command.title": "🧭 Üzleti Irányítóközpont",
+        "command.subtitle": "Egy hely, ahol kamu teljesítményszámok nélkül választhatod ki a következő hasznos lépést.",
+        "command.tasks": "Nyitott tervező feladatok",
+        "command.docs": "Mentett dokumentumok",
+        "command.chats": "Mentett AI chatek",
+        "command.setup": "Profil beállítva",
+        "command.aiTitle": "Kérdezd a HEGEVA-t",
+        "command.aiText": "Használd az élő asszisztenst tervezéshez, szövegezéshez, ötletekhez vagy döntésekhez.",
+        "command.docTitle": "Dokumentum készítése",
+        "command.docText": "Készíts számlát vagy árajánlatot a saját adataidból.",
+        "command.planTitle": "Prioritások tervezése",
+        "command.planText": "Használd a helyi tervezőt, és tartsd szem előtt a fontos feladatokat.",
+        "command.msgTitle": "Ügyfélüzenet írása",
+        "command.msgText": "Készíts szerkeszthető üzenetet AI-val vagy nélküle.",
+        "command.healthTitle": "Üzleti rendszerezettségi ellenőrzés",
+        "command.healthText": "Válaszolj egyszerű kérdésekre a saját működésedről, és kapj gyakorlati következő lépéseket.",
+        "command.vaultTitle": "Keresés a Széfben",
+        "command.vaultText": "Találd meg gyorsabban a helyben mentett számlákat, árajánlatokat és jegyzeteket.",
+        "command.enterpriseTitle": "Team & Enterprise",
+        "command.enterpriseText": "A közös munkatérhez és céges tudáshoz későbbi biztonságos felhőverzió kell.",
+        "command.privacyTitle": "Átlátható adatkezelés",
+        "command.privacyText": "A helyi eszközök ebben a böngészőben tárolnak. Az élő AI üzenetek a HEGEVA backendhez mennek.",
+        "command.open": "Megnyitás",
+        "studio.title": "✉️ Ügyfélüzenet Stúdió",
+        "studio.subtitle": "Készíts szerkeszthető professzionális üzeneteket. Használj helyi sablont vagy kérd a HEGEVA AI segítségét.",
+        "studio.type": "Üzenet típusa",
+        "studio.followup": "Ügyfél utánkövetés",
+        "studio.payment": "Fizetési emlékeztető",
+        "studio.quote": "Árajánlat utánkövetés",
+        "studio.thanks": "Köszönő üzenet",
+        "studio.complaint": "Panaszválasz tervezet",
+        "studio.name": "Ügyfél neve",
+        "studio.details": "Fontos részletek",
+        "studio.detailsPlaceholder": "Mit említsen az üzenet?",
+        "studio.local": "Helyi sablon készítése",
+        "studio.ai": "Javítás HEGEVA AI-jal",
+        "studio.output": "Üzenet eredménye",
+        "studio.copy": "Szöveg másolása",
+        "health.title": "🩺 Üzleti Rendszerezettségi Ellenőrzés",
+        "health.subtitle": "Átlátható önellenőrzés kizárólag a kiválasztott válaszaid alapján. Nem hitelpontszám és nem sikerjóslás.",
+        "health.q1": "Követem a fontos üzleti feladatokat.",
+        "health.q1s": "Például tervezővel vagy checklisttel.",
+        "health.q2": "Rendszerezetten tartom a számlákat és árajánlatokat.",
+        "health.q2s": "Tudod, hol vannak a friss dokumentumok.",
+        "health.q3": "Átnézem az üzleti kiadásokat.",
+        "health.q3s": "Időnként áttekinted a rögzített költségeket.",
+        "health.q4": "Van aktuális üzleti célom.",
+        "health.q4s": "Legalább egy világos következő cél meg van határozva.",
+        "health.q5": "Tudom, mely ismétlődő feladatok viszik az időmet.",
+        "health.q5s": "Legalább egy visszatérő adminisztratív terhet már azonosítottál.",
+        "health.calculate": "Rendszerezettség megmutatása",
+        "health.askAi": "Következő lépések kérése a HEGEVA-tól",
+        "vault41.search": "Keresés a mentett dokumentumok között...",
         "toast.saved": "A beállításokat elmentettük ebben a böngészőben.",
         "toast.language": "Nyelv átállítva."
       },
@@ -1567,7 +1954,7 @@
         "nav.expenses": "Ausgaben",
         "nav.reports": "Berichte",
         "nav.settings": "Einstellungen",
-        "home.badge": "HEGEVA AI V4",
+        "home.badge": "HEGEVA AI V4.1",
         "home.title1": "Baue deinen Business-Arbeitsbereich",
         "home.title2": "ohne falsche Versprechen.",
         "home.subtitle": "Hegeva AI wird Schritt für Schritt entwickelt. Nur funktionierende Funktionen werden als verfügbar angezeigt; unfertige Werkzeuge sind klar als Coming Soon markiert.",
@@ -1582,7 +1969,7 @@
         "cards.aiText": "Das sichere KI-Backend ist noch nicht verbunden. Bis dahin ist diese Funktion klar als Coming Soon markiert.",
         "status.live": "● Funktioniert",
         "status.soon": "Demnächst",
-        "home.footer": "Hegeva AI V4 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
+        "home.footer": "Hegeva AI V4.1 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
         "ai.title": "🤖 KI-Assistent",
         "ai.subtitle": "Die sichere KI-Integration ist die nächste Entwicklungsstufe.",
         "ai.comingTitle": "Hegeva AI Assistent — Demnächst",
@@ -1682,6 +2069,89 @@
         "vault.noteSaved": "Notiz lokal gespeichert.",
         "vault.copied": "Vorlage kopiert.",
         "vault.noDocs": "Noch keine lokal gespeicherten Rechnungen oder Angebote.",
+        "nav.command": "Command Center",
+        "nav.studio": "Nachrichten-Studio",
+        "nav.health": "Business-Check",
+        "ai41.title": "🤖 HEGEVA AI Workspace",
+        "ai41.subtitle": "Mehrsprachiger Business-Begleiter mit Modi, Gesprächskontext und lokal gespeicherten Chats.",
+        "ai41.notice": "Live-KI. Nachrichten werden an das HEGEVA-Backend gesendet. Keine Passwörter, Kartendaten, privaten Schlüssel oder andere sensible Informationen eingeben.",
+        "ai41.language": "Sprache",
+        "ai41.mode": "Modus",
+        "ai41.context": "Kontextnachrichten",
+        "ai41.status": "Status",
+        "ai41.newChat": "＋ Neuer Chat",
+        "ai41.savedChats": "GESPEICHERTE CHATS",
+        "ai41.assistantMode": "Assistentenmodus",
+        "ai41.general": "Allgemeine Geschäftshilfe",
+        "ai41.time": "Time Saver",
+        "ai41.planner": "Business Planner",
+        "ai41.documents": "Dokument-Helfer",
+        "ai41.ideas": "Ideenpartner",
+        "ai41.decision": "Entscheidungshilfe",
+        "ai41.meeting": "Meeting-Assistent",
+        "ai41.thirty": "30-Tage-Plan",
+        "ai41.contextLabel": "Optionaler Geschäftskontext",
+        "ai41.contextPlaceholder": "z. B. kleines Einzelhandelsgeschäft in Großbritannien",
+        "ai41.quickTime": "⏳ Zeitfresser finden",
+        "ai41.quickWeek": "📋 Woche planen",
+        "ai41.quickDecision": "⚖️ Entscheidung vergleichen",
+        "ai41.message": "Deine Nachricht",
+        "ai41.placeholder": "Frage HEGEVA etwas über dein Unternehmen...",
+        "ai41.send": "An HEGEVA AI senden",
+        "ai41.clear": "Aktuellen Chat löschen",
+        "command.title": "🧭 Business Command Center",
+        "command.subtitle": "Ein Ort für den nächsten sinnvollen Schritt ohne erfundene Leistungszahlen.",
+        "command.tasks": "Offene Planer-Aufgaben",
+        "command.docs": "Gespeicherte Dokumente",
+        "command.chats": "Gespeicherte KI-Chats",
+        "command.setup": "Profil eingerichtet",
+        "command.aiTitle": "HEGEVA fragen",
+        "command.aiText": "Nutze den Live-Assistenten für Planung, Texte, Ideen oder Entscheidungen.",
+        "command.docTitle": "Dokument erstellen",
+        "command.docText": "Erstelle Rechnung oder Angebot aus deinen Angaben.",
+        "command.planTitle": "Prioritäten planen",
+        "command.planText": "Nutze den lokalen Planer für wichtige Aufgaben.",
+        "command.msgTitle": "Kundennachricht schreiben",
+        "command.msgText": "Erstelle bearbeitbare Nachrichten mit oder ohne KI.",
+        "command.healthTitle": "Organisations-Check",
+        "command.healthText": "Beantworte einfache Fragen und erhalte praktische nächste Schritte.",
+        "command.vaultTitle": "Vault durchsuchen",
+        "command.vaultText": "Finde lokal gespeicherte Rechnungen, Angebote und Notizen schneller.",
+        "command.enterpriseTitle": "Team & Enterprise",
+        "command.enterpriseText": "Gemeinsame Workspaces und Firmenwissen brauchen später eine sichere Cloud-Version.",
+        "command.privacyTitle": "Klare Privatsphäre",
+        "command.privacyText": "Lokale Werkzeuge speichern in diesem Browser. Live-KI-Nachrichten gehen an das HEGEVA-Backend.",
+        "command.open": "Öffnen",
+        "studio.title": "✉️ Kunden-Nachrichten-Studio",
+        "studio.subtitle": "Erstelle bearbeitbare professionelle Nachrichten lokal oder mit HEGEVA AI.",
+        "studio.type": "Nachrichtentyp",
+        "studio.followup": "Kunden-Follow-up",
+        "studio.payment": "Zahlungserinnerung",
+        "studio.quote": "Angebots-Follow-up",
+        "studio.thanks": "Dankesnachricht",
+        "studio.complaint": "Beschwerdeantwort",
+        "studio.name": "Kundenname",
+        "studio.details": "Wichtige Details",
+        "studio.detailsPlaceholder": "Was soll erwähnt werden?",
+        "studio.local": "Lokale Vorlage erstellen",
+        "studio.ai": "Mit HEGEVA AI verbessern",
+        "studio.output": "Nachricht",
+        "studio.copy": "Text kopieren",
+        "health.title": "🩺 Business-Organisations-Check",
+        "health.subtitle": "Transparenter Selbstcheck nur anhand deiner Antworten. Kein Kredit- oder Erfolgs-Score.",
+        "health.q1": "Ich verfolge wichtige Geschäftsaufgaben.",
+        "health.q1s": "Zum Beispiel mit Planer oder Checkliste.",
+        "health.q2": "Ich halte Rechnungen und Angebote organisiert.",
+        "health.q2s": "Du weißt, wo aktuelle Dokumente liegen.",
+        "health.q3": "Ich prüfe Geschäftsausgaben.",
+        "health.q3s": "Du schaust regelmäßig auf erfasste Kosten.",
+        "health.q4": "Ich habe ein aktuelles Geschäftsziel.",
+        "health.q4s": "Mindestens ein klares nächstes Ziel ist definiert.",
+        "health.q5": "Ich kenne wiederkehrende Zeitfresser.",
+        "health.q5s": "Mindestens eine wiederkehrende Admin-Belastung ist erkannt.",
+        "health.calculate": "Organisations-Check anzeigen",
+        "health.askAi": "HEGEVA nach nächsten Schritten fragen",
+        "vault41.search": "Gespeicherte Dokumente suchen...",
         "toast.saved": "Einstellungen wurden in diesem Browser gespeichert.",
         "toast.language": "Sprache geändert."
       },
@@ -1693,7 +2163,7 @@
         "nav.expenses": "Dépenses",
         "nav.reports": "Rapports",
         "nav.settings": "Paramètres",
-        "home.badge": "HEGEVA AI V4",
+        "home.badge": "HEGEVA AI V4.1",
         "home.title1": "Construisez votre espace professionnel",
         "home.title2": "sans fausses promesses.",
         "home.subtitle": "Hegeva AI est développé étape par étape. Seules les fonctions réellement opérationnelles sont indiquées comme disponibles ; les outils non terminés sont clairement marqués Coming Soon.",
@@ -1708,7 +2178,7 @@
         "cards.aiText": "Le backend IA sécurisé n'est pas encore connecté. Cette fonction reste clairement marquée Coming Soon jusqu'à ce qu'elle soit réelle.",
         "status.live": "● Fonctionnel",
         "status.soon": "Bientôt",
-        "home.footer": "Hegeva AI V4 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
+        "home.footer": "Hegeva AI V4.1 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
         "ai.title": "🤖 Assistant IA",
         "ai.subtitle": "L'intégration sécurisée de l'IA est la prochaine étape.",
         "ai.comingTitle": "Assistant Hegeva AI — Bientôt",
@@ -1808,6 +2278,89 @@
         "vault.noteSaved": "Note enregistrée localement.",
         "vault.copied": "Modèle copié.",
         "vault.noDocs": "Aucune facture ou devis enregistré localement pour le moment.",
+        "nav.command": "Centre de commande",
+        "nav.studio": "Studio de messages",
+        "nav.health": "Bilan d'organisation",
+        "ai41.title": "🤖 Espace HEGEVA AI",
+        "ai41.subtitle": "Compagnon professionnel multilingue avec modes, contexte récent et chats sauvegardés localement.",
+        "ai41.notice": "IA en direct. Les messages sont envoyés au backend HEGEVA. Ne saisissez pas de mots de passe, données de carte, clés privées ou autres informations sensibles.",
+        "ai41.language": "Langue",
+        "ai41.mode": "Mode",
+        "ai41.context": "Messages de contexte",
+        "ai41.status": "Statut",
+        "ai41.newChat": "＋ Nouveau chat",
+        "ai41.savedChats": "CHATS ENREGISTRÉS",
+        "ai41.assistantMode": "Mode assistant",
+        "ai41.general": "Aide générale",
+        "ai41.time": "Gain de temps",
+        "ai41.planner": "Planificateur",
+        "ai41.documents": "Aide aux documents",
+        "ai41.ideas": "Partenaire d'idées",
+        "ai41.decision": "Aide à la décision",
+        "ai41.meeting": "Assistant de réunion",
+        "ai41.thirty": "Plan 30 jours",
+        "ai41.contextLabel": "Contexte professionnel optionnel",
+        "ai41.contextPlaceholder": "ex. petit commerce au Royaume-Uni",
+        "ai41.quickTime": "⏳ Trouver les pertes de temps",
+        "ai41.quickWeek": "📋 Planifier ma semaine",
+        "ai41.quickDecision": "⚖️ Comparer une décision",
+        "ai41.message": "Votre message",
+        "ai41.placeholder": "Posez une question à HEGEVA sur votre activité...",
+        "ai41.send": "Envoyer à HEGEVA AI",
+        "ai41.clear": "Effacer le chat actuel",
+        "command.title": "🧭 Centre de commande professionnel",
+        "command.subtitle": "Un endroit pour choisir la prochaine action utile sans chiffres de performance inventés.",
+        "command.tasks": "Tâches ouvertes",
+        "command.docs": "Documents enregistrés",
+        "command.chats": "Chats IA enregistrés",
+        "command.setup": "Profil configuré",
+        "command.aiTitle": "Demander à HEGEVA",
+        "command.aiText": "Utilisez l'assistant pour planifier, rédiger, trouver des idées ou comparer des décisions.",
+        "command.docTitle": "Créer un document",
+        "command.docText": "Créez facture ou devis à partir de vos informations.",
+        "command.planTitle": "Planifier les priorités",
+        "command.planText": "Utilisez le planificateur local pour garder les tâches importantes visibles.",
+        "command.msgTitle": "Écrire un message client",
+        "command.msgText": "Créez un message modifiable avec ou sans IA.",
+        "command.healthTitle": "Bilan d'organisation",
+        "command.healthText": "Répondez à des questions simples et obtenez des prochaines étapes pratiques.",
+        "command.vaultTitle": "Rechercher dans le coffre",
+        "command.vaultText": "Retrouvez plus vite factures, devis et notes enregistrés localement.",
+        "command.enterpriseTitle": "Team & Enterprise",
+        "command.enterpriseText": "Les espaces partagés et connaissances d'entreprise nécessitent une future version cloud sécurisée.",
+        "command.privacyTitle": "Confidentialité claire",
+        "command.privacyText": "Les outils locaux stockent dans ce navigateur. Les messages IA sont envoyés au backend HEGEVA.",
+        "command.open": "Ouvrir",
+        "studio.title": "✉️ Studio de messages clients",
+        "studio.subtitle": "Créez des messages professionnels modifiables localement ou avec HEGEVA AI.",
+        "studio.type": "Type de message",
+        "studio.followup": "Suivi client",
+        "studio.payment": "Rappel de paiement",
+        "studio.quote": "Suivi de devis",
+        "studio.thanks": "Remerciement",
+        "studio.complaint": "Réponse à une réclamation",
+        "studio.name": "Nom du client",
+        "studio.details": "Détails importants",
+        "studio.detailsPlaceholder": "Que doit mentionner le message ?",
+        "studio.local": "Créer un modèle local",
+        "studio.ai": "Améliorer avec HEGEVA AI",
+        "studio.output": "Résultat",
+        "studio.copy": "Copier le texte",
+        "health.title": "🩺 Bilan d'organisation de l'entreprise",
+        "health.subtitle": "Auto-évaluation transparente basée uniquement sur vos réponses. Ce n'est ni un score de crédit ni une prédiction de réussite.",
+        "health.q1": "Je suis les tâches importantes.",
+        "health.q1s": "Par exemple avec un planificateur ou une checklist.",
+        "health.q2": "Je garde factures et devis organisés.",
+        "health.q2s": "Vous savez où trouver les documents récents.",
+        "health.q3": "Je révise les dépenses professionnelles.",
+        "health.q3s": "Vous examinez périodiquement les coûts enregistrés.",
+        "health.q4": "J'ai un objectif professionnel actuel.",
+        "health.q4s": "Au moins un prochain objectif clair est défini.",
+        "health.q5": "Je connais les tâches répétitives qui prennent du temps.",
+        "health.q5s": "Au moins une charge administrative récurrente est identifiée.",
+        "health.calculate": "Afficher mon bilan",
+        "health.askAi": "Demander les prochaines étapes à HEGEVA",
+        "vault41.search": "Rechercher des documents...",
         "toast.saved": "Paramètres enregistrés dans ce navigateur.",
         "toast.language": "Langue modifiée."
       },
@@ -1819,7 +2372,7 @@
         "nav.expenses": "Gastos",
         "nav.reports": "Informes",
         "nav.settings": "Ajustes",
-        "home.badge": "HEGEVA AI V4",
+        "home.badge": "HEGEVA AI V4.1",
         "home.title1": "Construye tu espacio de negocio",
         "home.title2": "sin promesas falsas.",
         "home.subtitle": "Hegeva AI se está construyendo paso a paso. Solo las funciones que realmente funcionan se marcan como disponibles; las herramientas sin terminar se indican claramente como Coming Soon.",
@@ -1834,7 +2387,7 @@
         "cards.aiText": "El backend seguro de IA todavía no está conectado. Esta función se marca claramente como Coming Soon hasta que sea real.",
         "status.live": "● Funciona",
         "status.soon": "Próximamente",
-        "home.footer": "Hegeva AI V4 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
+        "home.footer": "Hegeva AI V4.1 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
         "ai.title": "🤖 Asistente IA",
         "ai.subtitle": "La integración segura de IA es la siguiente fase de desarrollo.",
         "ai.comingTitle": "Asistente Hegeva AI — Próximamente",
@@ -1934,6 +2487,89 @@
         "vault.noteSaved": "Nota guardada localmente.",
         "vault.copied": "Plantilla copiada.",
         "vault.noDocs": "Todavía no hay facturas o presupuestos guardados localmente.",
+        "nav.command": "Centro de control",
+        "nav.studio": "Estudio de mensajes",
+        "nav.health": "Chequeo de negocio",
+        "ai41.title": "🤖 Espacio HEGEVA AI",
+        "ai41.subtitle": "Compañero empresarial multilingüe con modos, contexto reciente y chats guardados localmente.",
+        "ai41.notice": "IA en directo. Los mensajes se envían al backend de HEGEVA. No introduzcas contraseñas, datos de tarjetas, claves privadas ni otra información sensible.",
+        "ai41.language": "Idioma",
+        "ai41.mode": "Modo",
+        "ai41.context": "Mensajes de contexto",
+        "ai41.status": "Estado",
+        "ai41.newChat": "＋ Nuevo chat",
+        "ai41.savedChats": "CHATS GUARDADOS",
+        "ai41.assistantMode": "Modo del asistente",
+        "ai41.general": "Ayuda empresarial general",
+        "ai41.time": "Ahorro de tiempo",
+        "ai41.planner": "Planificador",
+        "ai41.documents": "Ayuda con documentos",
+        "ai41.ideas": "Socio de ideas",
+        "ai41.decision": "Ayuda para decidir",
+        "ai41.meeting": "Asistente de reuniones",
+        "ai41.thirty": "Plan de 30 días",
+        "ai41.contextLabel": "Contexto opcional del negocio",
+        "ai41.contextPlaceholder": "p. ej. pequeña tienda en Reino Unido",
+        "ai41.quickTime": "⏳ Encontrar pérdidas de tiempo",
+        "ai41.quickWeek": "📋 Planificar mi semana",
+        "ai41.quickDecision": "⚖️ Comparar una decisión",
+        "ai41.message": "Tu mensaje",
+        "ai41.placeholder": "Pregunta a HEGEVA algo sobre tu negocio...",
+        "ai41.send": "Enviar a HEGEVA AI",
+        "ai41.clear": "Borrar chat actual",
+        "command.title": "🧭 Centro de Control Empresarial",
+        "command.subtitle": "Un lugar para elegir la siguiente acción útil sin cifras de rendimiento inventadas.",
+        "command.tasks": "Tareas abiertas",
+        "command.docs": "Documentos guardados",
+        "command.chats": "Chats IA guardados",
+        "command.setup": "Perfil configurado",
+        "command.aiTitle": "Preguntar a HEGEVA",
+        "command.aiText": "Usa el asistente para planificar, redactar, idear o comparar decisiones.",
+        "command.docTitle": "Crear documento",
+        "command.docText": "Crea factura o presupuesto con tus propios datos.",
+        "command.planTitle": "Planificar prioridades",
+        "command.planText": "Usa el planificador local para mantener visibles las tareas importantes.",
+        "command.msgTitle": "Escribir mensaje a cliente",
+        "command.msgText": "Crea un mensaje editable con o sin IA.",
+        "command.healthTitle": "Chequeo de organización",
+        "command.healthText": "Responde preguntas simples y recibe próximos pasos prácticos.",
+        "command.vaultTitle": "Buscar en el archivo",
+        "command.vaultText": "Encuentra más rápido facturas, presupuestos y notas guardados localmente.",
+        "command.enterpriseTitle": "Team & Enterprise",
+        "command.enterpriseText": "Los espacios compartidos y conocimiento de empresa requieren una futura versión cloud segura.",
+        "command.privacyTitle": "Privacidad clara",
+        "command.privacyText": "Las herramientas locales guardan en este navegador. Los mensajes IA van al backend de HEGEVA.",
+        "command.open": "Abrir",
+        "studio.title": "✉️ Estudio de Mensajes a Clientes",
+        "studio.subtitle": "Crea mensajes profesionales editables localmente o con HEGEVA AI.",
+        "studio.type": "Tipo de mensaje",
+        "studio.followup": "Seguimiento de cliente",
+        "studio.payment": "Recordatorio de pago",
+        "studio.quote": "Seguimiento de presupuesto",
+        "studio.thanks": "Mensaje de agradecimiento",
+        "studio.complaint": "Borrador de respuesta a queja",
+        "studio.name": "Nombre del cliente",
+        "studio.details": "Detalles clave",
+        "studio.detailsPlaceholder": "¿Qué debe mencionar el mensaje?",
+        "studio.local": "Crear plantilla local",
+        "studio.ai": "Mejorar con HEGEVA AI",
+        "studio.output": "Resultado",
+        "studio.copy": "Copiar texto",
+        "health.title": "🩺 Chequeo de Organización del Negocio",
+        "health.subtitle": "Autoevaluación transparente basada solo en tus respuestas. No es una puntuación de crédito ni una predicción de éxito.",
+        "health.q1": "Hago seguimiento de tareas importantes.",
+        "health.q1s": "Por ejemplo con planificador o checklist.",
+        "health.q2": "Mantengo organizadas facturas y presupuestos.",
+        "health.q2s": "Sabes dónde están los documentos recientes.",
+        "health.q3": "Reviso los gastos del negocio.",
+        "health.q3s": "Revisas periódicamente los costes registrados.",
+        "health.q4": "Tengo un objetivo de negocio actual.",
+        "health.q4s": "Hay al menos un próximo objetivo claro.",
+        "health.q5": "Sé qué tareas repetitivas consumen tiempo.",
+        "health.q5s": "Has identificado al menos una carga administrativa recurrente.",
+        "health.calculate": "Mostrar mi chequeo",
+        "health.askAi": "Pedir próximos pasos a HEGEVA",
+        "vault41.search": "Buscar documentos guardados...",
         "toast.saved": "Ajustes guardados en este navegador.",
         "toast.language": "Idioma cambiado."
       }
@@ -2000,6 +2636,10 @@
     languageSelect.addEventListener("change", () => {
       const language = getLanguage();
       translatePage(language);
+      renderSavedChats();
+      renderCurrentChat();
+      updateAiMetrics();
+      refreshCommandMetrics();
       showToast(translations[language]["toast.language"]);
     });
 
@@ -2402,150 +3042,377 @@
 
 
 
-    const AI_HISTORY_KEY = "hegeva_v4_chat_history";
+
+    const CHAT_STORE_KEY = "hegeva_v41_saved_chats";
+    const ACTIVE_CHAT_KEY = "hegeva_v41_active_chat";
     let aiBusy = false;
     let lastAiRequestAt = 0;
 
-    function getAiHistory() {
+    function currentLanguage() {
+      return getLanguage();
+    }
+
+    function localeText(map) {
+      return map[currentLanguage()] || map.en;
+    }
+
+    function getSavedChats() {
       try {
-        const items = JSON.parse(localStorage.getItem(AI_HISTORY_KEY) || "[]");
-        return Array.isArray(items) ? items.slice(-12) : [];
+        const data = JSON.parse(localStorage.getItem(CHAT_STORE_KEY) || "[]");
+        return Array.isArray(data) ? data : [];
       } catch {
         return [];
       }
     }
 
-    function saveAiHistory(items) {
-      localStorage.setItem(AI_HISTORY_KEY, JSON.stringify(items.slice(-12)));
+    function saveChats(chats) {
+      localStorage.setItem(CHAT_STORE_KEY, JSON.stringify(chats.slice(0, 20)));
     }
 
-    function addAiBubble(role, text, persist = true) {
-      const messages = document.getElementById("aiChatMessages");
+    function makeChat() {
+      return {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        title: localeText({en:"New chat",hu:"Új chat",de:"Neuer Chat",fr:"Nouveau chat",es:"Nuevo chat"}),
+        messages: [],
+        createdAt: Date.now()
+      };
+    }
+
+    function activeChatId() {
+      return localStorage.getItem(ACTIVE_CHAT_KEY);
+    }
+
+    function ensureActiveChat() {
+      let chats = getSavedChats();
+      let id = activeChatId();
+      let chat = chats.find(c => c.id === id);
+
+      if (!chat) {
+        chat = makeChat();
+        chats.unshift(chat);
+        saveChats(chats);
+        localStorage.setItem(ACTIVE_CHAT_KEY, chat.id);
+      }
+      return chat;
+    }
+
+    function updateChat(updated) {
+      const chats = getSavedChats();
+      const index = chats.findIndex(c => c.id === updated.id);
+      if (index >= 0) chats[index] = updated;
+      else chats.unshift(updated);
+      saveChats(chats);
+    }
+
+    function addBubble(role, text, persist = true) {
+      const wrap = document.getElementById("aiChatMessages");
+      if (!wrap) return;
+
       const box = document.createElement("div");
       box.className = "coming-item";
       box.style.marginTop = "10px";
+      box.style.borderColor = role === "assistant" ? "rgba(246,196,83,.30)" : "rgba(55,200,255,.26)";
 
       const title = document.createElement("strong");
-      title.textContent = role === "assistant" ? "HEGEVA AI" : "You";
+      title.textContent = role === "assistant" ? "HEGEVA AI" : localeText({en:"You",hu:"Te",de:"Du",fr:"Vous",es:"Tú"});
 
       const body = document.createElement("div");
       body.style.cssText = "margin-top:7px;white-space:pre-wrap;line-height:1.6";
       body.textContent = text;
 
       box.append(title, body);
-      messages.appendChild(box);
-      messages.scrollTop = messages.scrollHeight;
+      wrap.appendChild(box);
+      wrap.scrollTop = wrap.scrollHeight;
 
       if (persist) {
-        const history = getAiHistory();
-        history.push({ role, content: text });
-        saveAiHistory(history);
+        const chat = ensureActiveChat();
+        chat.messages.push({role, content:text});
+        chat.messages = chat.messages.slice(-14);
+        if (role === "user" && chat.messages.filter(m => m.role === "user").length === 1) {
+          chat.title = text.slice(0, 42);
+        }
+        updateChat(chat);
+        renderSavedChats();
+        updateAiMetrics();
       }
     }
 
-    function renderAiHistory() {
-      const messages = document.getElementById("aiChatMessages");
-      messages.innerHTML = "";
-      const history = getAiHistory();
+    function renderCurrentChat() {
+      const wrap = document.getElementById("aiChatMessages");
+      if (!wrap) return;
+      wrap.innerHTML = "";
+      const chat = ensureActiveChat();
 
-      if (!history.length) {
-        addAiBubble("assistant", "Hello. I’m HEGEVA AI. What would you like to improve or organise today?", false);
-        return;
+      if (!chat.messages.length) {
+        addBubble("assistant", localeText({
+          en:"Hello. I’m HEGEVA AI. What would you like to improve or organise today?",
+          hu:"Szia! HEGEVA AI vagyok. Mit szeretnél ma egyszerűbbé vagy rendezettebbé tenni?",
+          de:"Hallo. Ich bin HEGEVA AI. Was möchtest du heute verbessern oder organisieren?",
+          fr:"Bonjour. Je suis HEGEVA AI. Que souhaitez-vous améliorer ou organiser aujourd'hui ?",
+          es:"Hola. Soy HEGEVA AI. ¿Qué quieres mejorar u organizar hoy?"
+        }), false);
+      } else {
+        chat.messages.forEach(m => addBubble(m.role, m.content, false));
       }
-
-      history.forEach(item => addAiBubble(item.role, item.content, false));
+      updateAiMetrics();
     }
 
-    function modeInstruction(mode) {
-      const modes = {
-        general: "Give practical general business help.",
-        time: "Focus on repeated work, admin bottlenecks and realistic ways to save time.",
-        planner: "Help prioritise tasks and create a realistic short action plan.",
-        documents: "Help improve wording, structure, emails and business documents. Do not invent legal validity.",
-        ideas: "Act as a business idea partner. Give options and trade-offs without promising results."
+    function renderSavedChats() {
+      const list = document.getElementById("savedChatsList");
+      if (!list) return;
+      list.innerHTML = "";
+      const chats = getSavedChats();
+      const active = activeChatId();
+
+      chats.forEach(chat => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "saved-chat" + (chat.id === active ? " active" : "");
+        btn.textContent = chat.title || "Chat";
+        btn.addEventListener("click", () => {
+          localStorage.setItem(ACTIVE_CHAT_KEY, chat.id);
+          renderSavedChats();
+          renderCurrentChat();
+        });
+        list.appendChild(btn);
+      });
+    }
+
+    function createSavedChat() {
+      const chats = getSavedChats();
+      const chat = makeChat();
+      chats.unshift(chat);
+      saveChats(chats);
+      localStorage.setItem(ACTIVE_CHAT_KEY, chat.id);
+      renderSavedChats();
+      renderCurrentChat();
+    }
+
+    function clearCurrentChat() {
+      const chat = ensureActiveChat();
+      chat.messages = [];
+      chat.title = localeText({en:"New chat",hu:"Új chat",de:"Neuer Chat",fr:"Nouveau chat",es:"Nuevo chat"});
+      updateChat(chat);
+      renderCurrentChat();
+      renderSavedChats();
+    }
+
+    function quickPrompt(key) {
+      const prompts = {
+        en:{time:"Help me identify 3 repetitive tasks that may be simplified.",week:"Help me plan my 3 most important business priorities for this week.",decision:"Help me compare two business options with benefits, drawbacks and questions I should check."},
+        hu:{time:"Segíts azonosítani 3 ismétlődő feladatot, amit egyszerűsíteni lehetne.",week:"Segíts megtervezni a hét 3 legfontosabb üzleti prioritását.",decision:"Segíts összehasonlítani két üzleti lehetőséget előnyökkel, hátrányokkal és ellenőrzendő kérdésekkel."},
+        de:{time:"Hilf mir, 3 wiederkehrende Aufgaben zu erkennen, die vereinfacht werden könnten.",week:"Hilf mir, meine 3 wichtigsten Geschäftsprioritäten für diese Woche zu planen.",decision:"Hilf mir, zwei Geschäftsoptionen mit Vorteilen, Nachteilen und Prüffragen zu vergleichen."},
+        fr:{time:"Aidez-moi à identifier 3 tâches répétitives qui pourraient être simplifiées.",week:"Aidez-moi à planifier mes 3 priorités professionnelles les plus importantes cette semaine.",decision:"Aidez-moi à comparer deux options professionnelles avec avantages, inconvénients et points à vérifier."},
+        es:{time:"Ayúdame a identificar 3 tareas repetitivas que podrían simplificarse.",week:"Ayúdame a planificar mis 3 prioridades de negocio más importantes para esta semana.",decision:"Ayúdame a comparar dos opciones de negocio con ventajas, desventajas y preguntas que debo comprobar."}
       };
-      return modes[mode] || modes.general;
+      return (prompts[currentLanguage()] || prompts.en)[key] || "";
     }
 
-    async function sendV4AiMessage() {
-      if (aiBusy) return;
+    async function callHegeva(message, mode = "general", history = null) {
+      const chatHistory = history || ensureActiveChat().messages.slice(-10);
+      const businessContext = (document.getElementById("aiBusinessContext")?.value || "").trim();
 
+      const response = await fetch("/api/chat", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          message,
+          mode,
+          language: currentLanguage(),
+          businessContext,
+          history: chatHistory
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+      return typeof data.response === "string" ? data.response.trim() : "";
+    }
+
+    async function sendAiMessage() {
+      if (aiBusy) return;
       const input = document.getElementById("aiChatInput");
       const button = document.getElementById("sendAiChat");
       const status = document.getElementById("aiChatStatus");
-      const message = input.value.trim();
-
-      if (!message) return;
+      const msg = input.value.trim();
+      if (!msg) return;
 
       const now = Date.now();
       if (now - lastAiRequestAt < 1800) {
-        status.textContent = "Please wait a moment before sending another message.";
+        status.textContent = localeText({en:"Please wait a moment before sending again.",hu:"Várj egy pillanatot az újabb küldés előtt.",de:"Bitte kurz warten.",fr:"Veuillez patienter un instant.",es:"Espera un momento antes de enviar de nuevo."});
         return;
       }
 
       lastAiRequestAt = now;
       aiBusy = true;
       button.disabled = true;
-      addAiBubble("user", message, true);
+      addBubble("user", msg, true);
       input.value = "";
-      status.textContent = "HEGEVA AI is thinking...";
+      status.textContent = localeText({en:"HEGEVA AI is thinking...",hu:"A HEGEVA AI gondolkodik...",de:"HEGEVA AI denkt nach...",fr:"HEGEVA AI réfléchit...",es:"HEGEVA AI está pensando..."});
+      document.getElementById("aiTopStatus").textContent = "…";
 
       try {
-        const history = getAiHistory().slice(-10);
-        const mode = document.getElementById("aiMode").value;
-
-        const response = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message,
-            mode,
-            modeInstruction: modeInstruction(mode),
-            history
-          })
-        });
-
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
-
-        const answer = typeof data.response === "string" && data.response.trim()
-          ? data.response.trim()
-          : "No usable response returned.";
-
-        addAiBubble("assistant", answer, true);
-        status.textContent = "Ready";
-      } catch (error) {
-        addAiBubble("assistant", `Connection error: ${error.message}`, false);
-        status.textContent = "AI connection failed.";
+        const answer = await callHegeva(msg, document.getElementById("aiMode").value);
+        addBubble("assistant", answer || "No usable response.", true);
+        status.textContent = localeText({en:"Ready",hu:"Kész",de:"Bereit",fr:"Prêt",es:"Listo"});
+      } catch (e) {
+        addBubble("assistant", `${localeText({en:"Connection error",hu:"Kapcsolati hiba",de:"Verbindungsfehler",fr:"Erreur de connexion",es:"Error de conexión"})}: ${e.message}`, false);
+        status.textContent = localeText({en:"AI connection failed.",hu:"Az AI kapcsolat nem működik.",de:"KI-Verbindung fehlgeschlagen.",fr:"La connexion IA a échoué.",es:"La conexión con la IA ha fallado."});
       } finally {
         aiBusy = false;
         button.disabled = false;
+        updateAiMetrics();
       }
     }
 
-    document.getElementById("sendAiChat").addEventListener("click", sendV4AiMessage);
+    function updateAiMetrics() {
+      const chat = ensureActiveChat();
+      const mode = document.getElementById("aiMode")?.value || "general";
+      const labels = {
+        general:"General",time:"Time",planner:"Planner",documents:"Docs",ideas:"Ideas",decision:"Decision",meeting:"Meeting",thirty:"30-Day"
+      };
+      if (document.getElementById("aiLanguageBadge")) document.getElementById("aiLanguageBadge").textContent = currentLanguage().toUpperCase();
+      if (document.getElementById("aiModeBadge")) document.getElementById("aiModeBadge").textContent = labels[mode] || mode;
+      if (document.getElementById("aiContextCount")) document.getElementById("aiContextCount").textContent = chat.messages.length;
+      if (document.getElementById("aiTopStatus")) document.getElementById("aiTopStatus").textContent = aiBusy ? "…" : "✓";
+    }
 
-    document.getElementById("aiChatInput").addEventListener("keydown", (event) => {
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        sendV4AiMessage();
+    // Message Studio
+    function localStudioTemplate() {
+      const type = document.getElementById("studioType").value;
+      const name = document.getElementById("studioName").value.trim() || localeText({en:"Customer",hu:"Ügyfél",de:"Kunde",fr:"Client",es:"Cliente"});
+      const details = document.getElementById("studioDetails").value.trim();
+      const templates = {
+        en:{
+          followup:`Hello ${name},\n\nI’m following up regarding ${details || "our recent conversation"}. Please let me know if you have any questions or would like to continue with the next step.\n\nKind regards`,
+          payment:`Hello ${name},\n\nThis is a friendly reminder regarding ${details || "the outstanding payment"}. Please let me know if you need the invoice or payment details again.\n\nKind regards`,
+          quote:`Hello ${name},\n\nI’m following up regarding ${details || "the quote I sent"}. Please let me know if you have any questions or would like any changes.\n\nKind regards`,
+          thanks:`Hello ${name},\n\nThank you for ${details || "your business"}. I appreciate your time and look forward to working with you again.\n\nKind regards`,
+          complaint:`Hello ${name},\n\nThank you for letting us know about ${details || "your concern"}. I’m sorry for the inconvenience. I would like to understand the issue clearly and work toward an appropriate next step.\n\nKind regards`
+        },
+        hu:{
+          followup:`Kedves ${name}!\n\nSzeretnék visszatérni ${details || "a legutóbbi egyeztetésünkre"}. Kérlek jelezd, ha kérdésed van, vagy folytathatjuk a következő lépéssel.\n\nÜdvözlettel`,
+          payment:`Kedves ${name}!\n\nEz egy barátságos emlékeztető ${details || "a fennálló fizetéssel"} kapcsolatban. Kérlek jelezd, ha újra el kell küldenem a számlát vagy a fizetési adatokat.\n\nÜdvözlettel`,
+          quote:`Kedves ${name}!\n\nSzeretnék visszatérni ${details || "a korábban küldött árajánlatra"}. Kérlek jelezd, ha kérdésed vagy módosítási kérésed van.\n\nÜdvözlettel`,
+          thanks:`Kedves ${name}!\n\nKöszönöm ${details || "az együttműködést"}. Nagyra értékelem az idődet, és örömmel dolgozom veled a jövőben is.\n\nÜdvözlettel`,
+          complaint:`Kedves ${name}!\n\nKöszönöm, hogy jelezted ${details || "a problémát"}. Sajnálom a kellemetlenséget. Szeretném pontosan megérteni a helyzetet, és megfelelő következő lépést találni.\n\nÜdvözlettel`
+        }
+      };
+      const dict = templates[currentLanguage()] || templates.en;
+      document.getElementById("studioOutput").value = dict[type] || "";
+    }
+
+    async function aiStudioImprove() {
+      localStudioTemplate();
+      const out = document.getElementById("studioOutput");
+      const draft = out.value.trim();
+      if (!draft) return;
+      out.value = localeText({en:"HEGEVA AI is improving the message...",hu:"A HEGEVA AI javítja az üzenetet...",de:"HEGEVA AI verbessert die Nachricht...",fr:"HEGEVA AI améliore le message...",es:"HEGEVA AI está mejorando el mensaje..."});
+      try {
+        const answer = await callHegeva(
+          `Improve this customer message. Keep it professional, clear and concise. Do not invent facts.\n\n${draft}`,
+          "documents",
+          []
+        );
+        out.value = answer || draft;
+      } catch (e) {
+        out.value = draft + `\n\n[${e.message}]`;
       }
-    });
+    }
 
-    document.querySelectorAll(".ai-quick").forEach(button => {
-      button.addEventListener("click", () => {
-        document.getElementById("aiChatInput").value = button.dataset.prompt || "";
-        document.getElementById("aiChatInput").focus();
+    // Business organisation check
+    let latestHealth = {checked:0,total:5};
+    function calculateHealth() {
+      const boxes = Array.from(document.querySelectorAll(".healthCheck"));
+      const checked = boxes.filter(b => b.checked).length;
+      latestHealth = {checked,total:boxes.length};
+      const pct = Math.round((checked / boxes.length) * 100);
+      const result = document.getElementById("healthResult");
+      result.style.display = "block";
+      document.getElementById("healthScore").textContent =
+        localeText({
+          en:`Organisation check: ${checked}/${boxes.length}`,
+          hu:`Rendszerezettségi ellenőrzés: ${checked}/${boxes.length}`,
+          de:`Organisations-Check: ${checked}/${boxes.length}`,
+          fr:`Bilan d'organisation : ${checked}/${boxes.length}`,
+          es:`Chequeo de organización: ${checked}/${boxes.length}`
+        });
+      document.getElementById("healthAdvice").textContent =
+        pct === 100
+        ? localeText({en:"You marked all five areas as currently organised. Review them periodically as your business changes.",hu:"Mind az öt területet rendezettnek jelölted. A vállalkozás változásával időnként nézd át őket újra.",de:"Alle fünf Bereiche wurden als organisiert markiert. Regelmäßig erneut prüfen.",fr:"Les cinq domaines sont marqués comme organisés. Réévaluez-les régulièrement.",es:"Marcaste las cinco áreas como organizadas. Revísalas periódicamente."})
+        : localeText({en:"This is not a success score. The unchecked items simply show areas you may want to organise next.",hu:"Ez nem sikerpontszám. A ki nem pipált pontok csak azt mutatják, mely területeket érdemes következőnek rendszerezni.",de:"Dies ist kein Erfolgs-Score. Nicht markierte Punkte zeigen nur mögliche nächste Organisationsbereiche.",fr:"Ce n'est pas un score de réussite. Les éléments non cochés indiquent simplement des domaines à organiser ensuite.",es:"No es una puntuación de éxito. Los puntos sin marcar solo muestran áreas que podrías organizar después."});
+    }
+
+    async function healthAskAi() {
+      const unchecked = Array.from(document.querySelectorAll(".healthCheck"))
+        .map((b,i)=>({checked:b.checked,index:i+1}))
+        .filter(x=>!x.checked)
+        .map(x=>x.index);
+      document.getElementById("aiChatInput").value =
+        `My business organisation self-check is ${latestHealth.checked}/${latestHealth.total}. The unchecked question numbers are: ${unchecked.join(", ") || "none"}. Give me practical next steps without treating this as a success score.`;
+      showPage("assistant");
+      document.getElementById("aiChatInput").focus();
+    }
+
+    function refreshCommandMetrics() {
+      let tasks=[], docs=[], settings={};
+      try { tasks=JSON.parse(localStorage.getItem("hegeva_planner_tasks")||"[]"); } catch {}
+      try { docs=JSON.parse(localStorage.getItem("hegeva_documents")||"[]"); } catch {}
+      try { settings=JSON.parse(localStorage.getItem("hegeva_settings")||"{}"); } catch {}
+
+      const openTasks = tasks.filter(t=>!t.done).length;
+      const fields = ["businessName","businessEmail","country","address"];
+      const done = fields.filter(k => String(settings[k]||"").trim()).length;
+
+      if (document.getElementById("commandTaskCount")) document.getElementById("commandTaskCount").textContent = openTasks;
+      if (document.getElementById("commandDocCount")) document.getElementById("commandDocCount").textContent = docs.length;
+      if (document.getElementById("commandChatCount")) document.getElementById("commandChatCount").textContent = getSavedChats().length;
+      if (document.getElementById("commandSetup")) document.getElementById("commandSetup").textContent = `${Math.round(done/fields.length*100)}%`;
+    }
+
+    // Vault search
+    function applyVaultSearch() {
+      const q = (document.getElementById("vaultSearch")?.value || "").trim().toLowerCase();
+      const container = document.getElementById("vaultDocuments");
+      if (!container) return;
+      Array.from(container.children).forEach(item => {
+        item.style.display = !q || item.textContent.toLowerCase().includes(q) ? "" : "none";
       });
+    }
+
+    // Wire V4.1 controls
+    document.getElementById("createNewSavedChat")?.addEventListener("click", createSavedChat);
+    document.getElementById("clearCurrentChat")?.addEventListener("click", clearCurrentChat);
+    document.getElementById("sendAiChat")?.addEventListener("click", sendAiMessage);
+    document.getElementById("aiChatInput")?.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAiMessage(); }
+    });
+    document.getElementById("aiMode")?.addEventListener("change", updateAiMetrics);
+    document.querySelectorAll(".ai-quick").forEach(btn => btn.addEventListener("click", () => {
+      document.getElementById("aiChatInput").value = quickPrompt(btn.dataset.promptKey);
+      document.getElementById("aiChatInput").focus();
+    }));
+
+    document.getElementById("studioLocal")?.addEventListener("click", localStudioTemplate);
+    document.getElementById("studioAi")?.addEventListener("click", aiStudioImprove);
+    document.getElementById("studioCopy")?.addEventListener("click", async () => {
+      const out = document.getElementById("studioOutput");
+      if (!out.value.trim()) return;
+      try { await navigator.clipboard.writeText(out.value); }
+      catch { out.select(); document.execCommand("copy"); }
     });
 
-    document.getElementById("newAiChat").addEventListener("click", () => {
-      localStorage.removeItem(AI_HISTORY_KEY);
-      renderAiHistory();
-      document.getElementById("aiChatStatus").textContent = "";
+    document.getElementById("healthCalculate")?.addEventListener("click", calculateHealth);
+    document.getElementById("healthAskAi")?.addEventListener("click", healthAskAi);
+    document.getElementById("vaultSearch")?.addEventListener("input", applyVaultSearch);
+
+    document.querySelectorAll("[data-go]").forEach(button => {
+      button.addEventListener("click", () => showPage(button.dataset.go));
     });
 
-    renderAiHistory();
+    renderSavedChats();
+    renderCurrentChat();
+    refreshCommandMetrics();
 
     const savedLanguage = localStorage.getItem("hegeva_language");
     if (savedLanguage && savedLanguage in translations) {
