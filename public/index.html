@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V3.5 — honest, multilingual business workspace." />
-  <title>Hegeva AI V3.5</title>
+  <meta name="description" content="Hegeva AI V3.6 — honest, multilingual business workspace." />
+  <title>Hegeva AI V3.6</title>
 
   <style>
     :root {
@@ -749,7 +749,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name">Hegeva AI</div>
-          <div class="brand-subtitle">V3.5 TIME SAVER</div>
+          <div class="brand-subtitle">V3.6 VAULT & TEMPLATES</div>
         </div>
       </div>
 
@@ -799,6 +799,10 @@
           <span class="nav-icon">⏳</span>
           <span class="nav-text">Time Saver</span>
         </button>
+        <button class="nav-button" data-page="vault" type="button">
+          <span class="nav-icon">🗂️</span>
+          <span class="nav-text" data-i18n="nav.vault">Vault & Templates</span>
+        </button>
         <button class="nav-button" data-page="settings" type="button">
           <span class="nav-icon">⚙️</span>
           <span class="nav-text" data-i18n="nav.settings">Settings</span>
@@ -809,7 +813,7 @@
     <main class="main">
       <section id="home" class="page active">
         <section class="hero">
-          <div class="badge" data-i18n="home.badge">HEGEVA AI V3.5</div>
+          <div class="badge" data-i18n="home.badge">HEGEVA AI V3.6</div>
 
           <h2>
             <span data-i18n="home.title1">Save time. Work smarter.</span>
@@ -908,7 +912,7 @@
         </div>
 
         <div class="footer-note" data-i18n="home.footer">
-          Hegeva AI V3.5 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
+          Hegeva AI V3.6 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
         </div>
       </section>
 
@@ -1122,6 +1126,68 @@
         </div>
       </section>
 
+      
+      <section id="vault" class="page">
+        <div class="page-heading">
+          <div>
+            <h1 data-i18n="vault.title">🗂️ Business Vault & Smart Templates</h1>
+            <p data-i18n="vault.subtitle">Keep locally saved business items together and create useful text templates from your own details.</p>
+          </div>
+        </div>
+
+        <div class="notice" data-i18n="vault.notice">
+          This V3.6 vault uses local browser storage only. It is not cloud backup yet, so clearing browser data can remove locally saved items.
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <h3 data-i18n="vault.docsTitle">🧾 Saved documents</h3>
+            <p data-i18n="vault.docsText">Invoices and quotes you saved locally appear here.</p>
+            <div id="vaultDocuments" class="coming-list" style="margin-top:14px"></div>
+          </div>
+
+          <div class="card">
+            <h3 data-i18n="vault.notesTitle">📝 Quick business note</h3>
+            <p data-i18n="vault.notesText">Save a short note in this browser.</p>
+            <div class="form-group" style="margin-top:14px">
+              <textarea id="vaultNote" data-i18n-placeholder="vault.notePlaceholder" placeholder="Write a note..."></textarea>
+            </div>
+            <button class="secondary-button" id="saveVaultNote" type="button" style="margin-top:12px" data-i18n="vault.saveNote">Save note</button>
+            <div id="vaultSavedNote" class="status live" style="display:none;margin-top:14px"></div>
+          </div>
+
+          <div class="card">
+            <h3 data-i18n="vault.templatesTitle">✨ Smart templates</h3>
+            <p data-i18n="vault.templatesText">Generate editable business text without pretending it is AI.</p>
+            <div class="form-group" style="margin-top:14px">
+              <label for="templateType" data-i18n="vault.templateType">Template type</label>
+              <select id="templateType">
+                <option value="payment" data-i18n="vault.paymentReminder">Payment reminder</option>
+                <option value="followup" data-i18n="vault.customerFollowup">Customer follow-up</option>
+                <option value="meeting" data-i18n="vault.meetingNotes">Meeting notes</option>
+                <option value="plan" data-i18n="vault.businessPlan">Business plan outline</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-top:12px">
+              <label for="templateSubject" data-i18n="vault.subject">Name / subject</label>
+              <input id="templateSubject" data-i18n-placeholder="vault.subjectPlaceholder" placeholder="Customer or topic">
+            </div>
+            <button class="primary-button" id="generateVaultTemplate" type="button" style="margin-top:12px" data-i18n="vault.generate">Create template</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+            <div>
+              <h3 data-i18n="vault.outputTitle">📄 Template output</h3>
+              <p data-i18n="vault.outputText">Edit the text before you use or send it.</p>
+            </div>
+            <button class="secondary-button" id="copyVaultTemplate" type="button" data-i18n="vault.copy">Copy text</button>
+          </div>
+          <textarea id="vaultTemplateOutput" style="width:100%;min-height:230px;margin-top:14px;padding:14px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--text);resize:vertical"></textarea>
+        </div>
+      </section>
+
       <section id="settings" class="page">
         <div class="page-heading">
           <div>
@@ -1186,7 +1252,7 @@
         "nav.expenses": "Expenses",
         "nav.reports": "Reports",
         "nav.settings": "Settings",
-        "home.badge": "HEGEVA AI V3.5",
+        "home.badge": "HEGEVA AI V3.6",
         "home.title1": "Build your business workspace",
         "home.title2": "without fake promises.",
         "home.subtitle": "Hegeva AI is a human-first business workspace designed to reduce admin, organize everyday work and give you more time to focus. Only working features are marked as available.",
@@ -1201,7 +1267,7 @@
         "cards.aiText": "The secure AI backend is not connected yet. This feature is clearly marked as Coming Soon until it is real.",
         "status.live": "● Working",
         "status.soon": "Coming Soon",
-        "home.footer": "Hegeva AI V3.5 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
+        "home.footer": "Hegeva AI V3.6 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
         "ai.title": "🤖 AI Assistant",
         "ai.subtitle": "Secure AI integration is the next development stage.",
         "ai.comingTitle": "Hegeva AI Assistant — Coming Soon",
@@ -1275,6 +1341,32 @@
         "documents.total": "Total",
         "documents.grandTotal": "Total",
         "documents.savedToast": "Document saved locally.",
+        "nav.vault": "Vault & Templates",
+        "vault.title": "🗂️ Business Vault & Smart Templates",
+        "vault.subtitle": "Keep locally saved business items together and create useful text templates from your own details.",
+        "vault.notice": "This V3.6 vault uses local browser storage only. It is not cloud backup yet, so clearing browser data can remove locally saved items.",
+        "vault.docsTitle": "🧾 Saved documents",
+        "vault.docsText": "Invoices and quotes you saved locally appear here.",
+        "vault.notesTitle": "📝 Quick business note",
+        "vault.notesText": "Save a short note in this browser.",
+        "vault.notePlaceholder": "Write a note...",
+        "vault.saveNote": "Save note",
+        "vault.templatesTitle": "✨ Smart templates",
+        "vault.templatesText": "Generate editable business text without pretending it is AI.",
+        "vault.templateType": "Template type",
+        "vault.paymentReminder": "Payment reminder",
+        "vault.customerFollowup": "Customer follow-up",
+        "vault.meetingNotes": "Meeting notes",
+        "vault.businessPlan": "Business plan outline",
+        "vault.subject": "Name / subject",
+        "vault.subjectPlaceholder": "Customer or topic",
+        "vault.generate": "Create template",
+        "vault.outputTitle": "📄 Template output",
+        "vault.outputText": "Edit the text before you use or send it.",
+        "vault.copy": "Copy text",
+        "vault.noteSaved": "Note saved locally.",
+        "vault.copied": "Template copied.",
+        "vault.noDocs": "No locally saved invoices or quotes yet.",
         "toast.saved": "Settings saved in this browser.",
         "toast.language": "Language changed."
       },
@@ -1286,7 +1378,7 @@
         "nav.expenses": "Kiadások",
         "nav.reports": "Riportok",
         "nav.settings": "Beállítások",
-        "home.badge": "HEGEVA AI V3.5",
+        "home.badge": "HEGEVA AI V3.6",
         "home.title1": "Építsd fel az üzleti munkateredet",
         "home.title2": "kamu ígéretek nélkül.",
         "home.subtitle": "A Hegeva AI lépésről lépésre épül. Csak a valóban működő funkciókat jelöljük elérhetőnek; ami még nincs kész, az egyértelműen Coming Soon.",
@@ -1301,7 +1393,7 @@
         "cards.aiText": "A biztonságos AI backend még nincs csatlakoztatva. Addig ez a funkció egyértelműen Coming Soon.",
         "status.live": "● Működik",
         "status.soon": "Hamarosan",
-        "home.footer": "A Hegeva AI V3.5 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
+        "home.footer": "A Hegeva AI V3.6 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
         "ai.title": "🤖 AI Asszisztens",
         "ai.subtitle": "A biztonságos AI-integráció a következő fejlesztési szakasz.",
         "ai.comingTitle": "Hegeva AI Asszisztens — Hamarosan",
@@ -1375,6 +1467,32 @@
         "documents.total": "Összesen",
         "documents.grandTotal": "Végösszeg",
         "documents.savedToast": "Dokumentum helyben elmentve.",
+        "nav.vault": "Széf és sablonok",
+        "vault.title": "🗂️ Üzleti széf és okos sablonok",
+        "vault.subtitle": "Tartsd együtt a helyben mentett üzleti elemeket, és készíts használható szövegsablonokat a saját adataidból.",
+        "vault.notice": "A V3.6 széf jelenleg csak helyi böngészős tárolást használ. Ez még nem felhőmentés, ezért a böngészőadatok törlése eltávolíthatja a mentéseket.",
+        "vault.docsTitle": "🧾 Mentett dokumentumok",
+        "vault.docsText": "A helyben mentett számlák és árajánlatok itt jelennek meg.",
+        "vault.notesTitle": "📝 Gyors üzleti jegyzet",
+        "vault.notesText": "Ments el egy rövid jegyzetet ebben a böngészőben.",
+        "vault.notePlaceholder": "Írj egy jegyzetet...",
+        "vault.saveNote": "Jegyzet mentése",
+        "vault.templatesTitle": "✨ Okos sablonok",
+        "vault.templatesText": "Készíts szerkeszthető üzleti szöveget anélkül, hogy AI-nak állítanánk.",
+        "vault.templateType": "Sablon típusa",
+        "vault.paymentReminder": "Fizetési emlékeztető",
+        "vault.customerFollowup": "Ügyfél utánkövetés",
+        "vault.meetingNotes": "Meeting jegyzet",
+        "vault.businessPlan": "Üzleti terv vázlat",
+        "vault.subject": "Név / téma",
+        "vault.subjectPlaceholder": "Ügyfél vagy téma",
+        "vault.generate": "Sablon készítése",
+        "vault.outputTitle": "📄 Sablon eredménye",
+        "vault.outputText": "Használat vagy küldés előtt szerkeszd át a szöveget.",
+        "vault.copy": "Szöveg másolása",
+        "vault.noteSaved": "Jegyzet helyben elmentve.",
+        "vault.copied": "Sablon kimásolva.",
+        "vault.noDocs": "Még nincs helyben mentett számla vagy árajánlat.",
         "toast.saved": "A beállításokat elmentettük ebben a böngészőben.",
         "toast.language": "Nyelv átállítva."
       },
@@ -1386,7 +1504,7 @@
         "nav.expenses": "Ausgaben",
         "nav.reports": "Berichte",
         "nav.settings": "Einstellungen",
-        "home.badge": "HEGEVA AI V3.5",
+        "home.badge": "HEGEVA AI V3.6",
         "home.title1": "Baue deinen Business-Arbeitsbereich",
         "home.title2": "ohne falsche Versprechen.",
         "home.subtitle": "Hegeva AI wird Schritt für Schritt entwickelt. Nur funktionierende Funktionen werden als verfügbar angezeigt; unfertige Werkzeuge sind klar als Coming Soon markiert.",
@@ -1401,7 +1519,7 @@
         "cards.aiText": "Das sichere KI-Backend ist noch nicht verbunden. Bis dahin ist diese Funktion klar als Coming Soon markiert.",
         "status.live": "● Funktioniert",
         "status.soon": "Demnächst",
-        "home.footer": "Hegeva AI V3.5 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
+        "home.footer": "Hegeva AI V3.6 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
         "ai.title": "🤖 KI-Assistent",
         "ai.subtitle": "Die sichere KI-Integration ist die nächste Entwicklungsstufe.",
         "ai.comingTitle": "Hegeva AI Assistent — Demnächst",
@@ -1475,6 +1593,32 @@
         "documents.total": "Gesamt",
         "documents.grandTotal": "Gesamtsumme",
         "documents.savedToast": "Dokument lokal gespeichert.",
+        "nav.vault": "Ablage & Vorlagen",
+        "vault.title": "🗂️ Business-Ablage & Smart Templates",
+        "vault.subtitle": "Halte lokal gespeicherte Geschäftsinhalte zusammen und erstelle nützliche Textvorlagen aus deinen eigenen Angaben.",
+        "vault.notice": "Diese V3.6-Ablage nutzt nur lokalen Browserspeicher. Es ist noch kein Cloud-Backup; das Löschen von Browserdaten kann lokale Inhalte entfernen.",
+        "vault.docsTitle": "🧾 Gespeicherte Dokumente",
+        "vault.docsText": "Lokal gespeicherte Rechnungen und Angebote erscheinen hier.",
+        "vault.notesTitle": "📝 Kurze Geschäftsnotiz",
+        "vault.notesText": "Speichere eine kurze Notiz in diesem Browser.",
+        "vault.notePlaceholder": "Notiz schreiben...",
+        "vault.saveNote": "Notiz speichern",
+        "vault.templatesTitle": "✨ Smart Templates",
+        "vault.templatesText": "Erstelle editierbare Geschäftstexte, ohne sie fälschlich als KI auszugeben.",
+        "vault.templateType": "Vorlagentyp",
+        "vault.paymentReminder": "Zahlungserinnerung",
+        "vault.customerFollowup": "Kunden-Follow-up",
+        "vault.meetingNotes": "Meeting-Notizen",
+        "vault.businessPlan": "Businessplan-Gliederung",
+        "vault.subject": "Name / Thema",
+        "vault.subjectPlaceholder": "Kunde oder Thema",
+        "vault.generate": "Vorlage erstellen",
+        "vault.outputTitle": "📄 Vorlagentext",
+        "vault.outputText": "Bearbeite den Text vor Verwendung oder Versand.",
+        "vault.copy": "Text kopieren",
+        "vault.noteSaved": "Notiz lokal gespeichert.",
+        "vault.copied": "Vorlage kopiert.",
+        "vault.noDocs": "Noch keine lokal gespeicherten Rechnungen oder Angebote.",
         "toast.saved": "Einstellungen wurden in diesem Browser gespeichert.",
         "toast.language": "Sprache geändert."
       },
@@ -1486,7 +1630,7 @@
         "nav.expenses": "Dépenses",
         "nav.reports": "Rapports",
         "nav.settings": "Paramètres",
-        "home.badge": "HEGEVA AI V3.5",
+        "home.badge": "HEGEVA AI V3.6",
         "home.title1": "Construisez votre espace professionnel",
         "home.title2": "sans fausses promesses.",
         "home.subtitle": "Hegeva AI est développé étape par étape. Seules les fonctions réellement opérationnelles sont indiquées comme disponibles ; les outils non terminés sont clairement marqués Coming Soon.",
@@ -1501,7 +1645,7 @@
         "cards.aiText": "Le backend IA sécurisé n'est pas encore connecté. Cette fonction reste clairement marquée Coming Soon jusqu'à ce qu'elle soit réelle.",
         "status.live": "● Fonctionnel",
         "status.soon": "Bientôt",
-        "home.footer": "Hegeva AI V3.5 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
+        "home.footer": "Hegeva AI V3.6 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
         "ai.title": "🤖 Assistant IA",
         "ai.subtitle": "L'intégration sécurisée de l'IA est la prochaine étape.",
         "ai.comingTitle": "Assistant Hegeva AI — Bientôt",
@@ -1575,6 +1719,32 @@
         "documents.total": "Total",
         "documents.grandTotal": "Total",
         "documents.savedToast": "Document enregistré localement.",
+        "nav.vault": "Coffre & modèles",
+        "vault.title": "🗂️ Coffre professionnel & modèles intelligents",
+        "vault.subtitle": "Regroupez les éléments professionnels enregistrés localement et créez des modèles de texte utiles avec vos propres informations.",
+        "vault.notice": "Ce coffre V3.6 utilise uniquement le stockage local du navigateur. Ce n'est pas encore une sauvegarde cloud ; effacer les données du navigateur peut supprimer les éléments locaux.",
+        "vault.docsTitle": "🧾 Documents enregistrés",
+        "vault.docsText": "Les factures et devis enregistrés localement apparaissent ici.",
+        "vault.notesTitle": "📝 Note professionnelle rapide",
+        "vault.notesText": "Enregistrez une courte note dans ce navigateur.",
+        "vault.notePlaceholder": "Écrivez une note...",
+        "vault.saveNote": "Enregistrer la note",
+        "vault.templatesTitle": "✨ Modèles intelligents",
+        "vault.templatesText": "Créez du texte professionnel modifiable sans prétendre qu'il s'agit d'IA.",
+        "vault.templateType": "Type de modèle",
+        "vault.paymentReminder": "Rappel de paiement",
+        "vault.customerFollowup": "Suivi client",
+        "vault.meetingNotes": "Notes de réunion",
+        "vault.businessPlan": "Plan d'affaires",
+        "vault.subject": "Nom / sujet",
+        "vault.subjectPlaceholder": "Client ou sujet",
+        "vault.generate": "Créer le modèle",
+        "vault.outputTitle": "📄 Résultat du modèle",
+        "vault.outputText": "Modifiez le texte avant de l'utiliser ou de l'envoyer.",
+        "vault.copy": "Copier le texte",
+        "vault.noteSaved": "Note enregistrée localement.",
+        "vault.copied": "Modèle copié.",
+        "vault.noDocs": "Aucune facture ou devis enregistré localement pour le moment.",
         "toast.saved": "Paramètres enregistrés dans ce navigateur.",
         "toast.language": "Langue modifiée."
       },
@@ -1586,7 +1756,7 @@
         "nav.expenses": "Gastos",
         "nav.reports": "Informes",
         "nav.settings": "Ajustes",
-        "home.badge": "HEGEVA AI V3.5",
+        "home.badge": "HEGEVA AI V3.6",
         "home.title1": "Construye tu espacio de negocio",
         "home.title2": "sin promesas falsas.",
         "home.subtitle": "Hegeva AI se está construyendo paso a paso. Solo las funciones que realmente funcionan se marcan como disponibles; las herramientas sin terminar se indican claramente como Coming Soon.",
@@ -1601,7 +1771,7 @@
         "cards.aiText": "El backend seguro de IA todavía no está conectado. Esta función se marca claramente como Coming Soon hasta que sea real.",
         "status.live": "● Funciona",
         "status.soon": "Próximamente",
-        "home.footer": "Hegeva AI V3.5 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
+        "home.footer": "Hegeva AI V3.6 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
         "ai.title": "🤖 Asistente IA",
         "ai.subtitle": "La integración segura de IA es la siguiente fase de desarrollo.",
         "ai.comingTitle": "Asistente Hegeva AI — Próximamente",
@@ -1675,6 +1845,32 @@
         "documents.total": "Total",
         "documents.grandTotal": "Total",
         "documents.savedToast": "Documento guardado localmente.",
+        "nav.vault": "Archivo y plantillas",
+        "vault.title": "🗂️ Archivo de negocio y plantillas inteligentes",
+        "vault.subtitle": "Mantén juntos los elementos de negocio guardados localmente y crea plantillas de texto útiles con tus propios datos.",
+        "vault.notice": "Este archivo V3.6 usa solo almacenamiento local del navegador. Aún no es una copia en la nube; borrar los datos del navegador puede eliminar elementos guardados.",
+        "vault.docsTitle": "🧾 Documentos guardados",
+        "vault.docsText": "Las facturas y presupuestos guardados localmente aparecen aquí.",
+        "vault.notesTitle": "📝 Nota rápida de negocio",
+        "vault.notesText": "Guarda una nota breve en este navegador.",
+        "vault.notePlaceholder": "Escribe una nota...",
+        "vault.saveNote": "Guardar nota",
+        "vault.templatesTitle": "✨ Plantillas inteligentes",
+        "vault.templatesText": "Genera texto empresarial editable sin fingir que es IA.",
+        "vault.templateType": "Tipo de plantilla",
+        "vault.paymentReminder": "Recordatorio de pago",
+        "vault.customerFollowup": "Seguimiento de cliente",
+        "vault.meetingNotes": "Notas de reunión",
+        "vault.businessPlan": "Esquema de plan de negocio",
+        "vault.subject": "Nombre / tema",
+        "vault.subjectPlaceholder": "Cliente o tema",
+        "vault.generate": "Crear plantilla",
+        "vault.outputTitle": "📄 Resultado de plantilla",
+        "vault.outputText": "Edita el texto antes de usarlo o enviarlo.",
+        "vault.copy": "Copiar texto",
+        "vault.noteSaved": "Nota guardada localmente.",
+        "vault.copied": "Plantilla copiada.",
+        "vault.noDocs": "Todavía no hay facturas o presupuestos guardados localmente.",
         "toast.saved": "Ajustes guardados en este navegador.",
         "toast.language": "Idioma cambiado."
       }
@@ -2021,6 +2217,125 @@
     if(savedGoal){document.getElementById("goalDisplay").textContent=savedGoal;document.getElementById("goalDisplay").style.display="inline-flex"}
     document.getElementById("repeatWork").value=localStorage.getItem("hegeva_repeat_work")||"";
     renderPlanner();
+
+
+    function renderVaultDocuments() {
+      const container = document.getElementById("vaultDocuments");
+      const language = getLanguage();
+      let documents = [];
+
+      try {
+        documents = JSON.parse(localStorage.getItem("hegeva_documents") || "[]");
+      } catch {
+        documents = [];
+      }
+
+      container.innerHTML = "";
+
+      if (!documents.length) {
+        const empty = document.createElement("div");
+        empty.className = "coming-item";
+        empty.textContent = translations[language]["vault.noDocs"];
+        container.appendChild(empty);
+        return;
+      }
+
+      documents.slice().reverse().forEach((doc) => {
+        const row = document.createElement("div");
+        row.className = "coming-item";
+
+        const title = document.createElement("strong");
+        title.textContent = `${doc.type || "Document"} • ${doc.number || "—"}`;
+
+        const meta = document.createElement("div");
+        meta.style.marginTop = "5px";
+        meta.style.color = "var(--muted)";
+        meta.style.fontSize = "12px";
+        meta.textContent = `${doc.customer || "—"} • ${formatDocumentMoney(Number(doc.total || 0))}`;
+
+        row.append(title, meta);
+        container.appendChild(row);
+      });
+    }
+
+    document.getElementById("saveVaultNote").addEventListener("click", () => {
+      const note = document.getElementById("vaultNote").value.trim();
+      localStorage.setItem("hegeva_vault_note", note);
+
+      const display = document.getElementById("vaultSavedNote");
+      display.textContent = note || "—";
+      display.style.display = "inline-flex";
+
+      showToast(translations[getLanguage()]["vault.noteSaved"]);
+    });
+
+    const savedVaultNote = localStorage.getItem("hegeva_vault_note") || "";
+    document.getElementById("vaultNote").value = savedVaultNote;
+    if (savedVaultNote) {
+      document.getElementById("vaultSavedNote").textContent = savedVaultNote;
+      document.getElementById("vaultSavedNote").style.display = "inline-flex";
+    }
+
+    function createVaultTemplate() {
+      const type = document.getElementById("templateType").value;
+      const subject = document.getElementById("templateSubject").value.trim() || "[Name / subject]";
+      const language = getLanguage();
+      let text = "";
+
+      const content = {
+        en: {
+          payment: `Hello ${subject},\n\nThis is a friendly reminder regarding the outstanding payment. Please let me know if you need the invoice or payment details sent again.\n\nKind regards`,
+          followup: `Hello ${subject},\n\nI am following up on our recent conversation. Please let me know if you have any questions or if you would like to continue with the next step.\n\nKind regards`,
+          meeting: `Meeting: ${subject}\n\nDate:\nAttendees:\n\nKey points:\n- \n\nDecisions:\n- \n\nNext actions:\n- `,
+          plan: `Business plan outline: ${subject}\n\n1. Business idea\n2. Target customer\n3. Problem being solved\n4. Product or service\n5. Pricing\n6. Marketing approach\n7. Key costs\n8. Next 30-day actions`
+        },
+        hu: {
+          payment: `Kedves ${subject}!\n\nEz egy barátságos emlékeztető a fennálló fizetéssel kapcsolatban. Kérlek jelezd, ha újra el kell küldenem a számlát vagy a fizetési adatokat.\n\nÜdvözlettel`,
+          followup: `Kedves ${subject}!\n\nSzeretnék visszatérni a legutóbbi egyeztetésünkre. Kérlek jelezd, ha kérdésed van, vagy folytathatjuk a következő lépéssel.\n\nÜdvözlettel`,
+          meeting: `Meeting: ${subject}\n\nDátum:\nRésztvevők:\n\nFő pontok:\n- \n\nDöntések:\n- \n\nKövetkező feladatok:\n- `,
+          plan: `Üzleti terv vázlat: ${subject}\n\n1. Üzleti ötlet\n2. Célügyfél\n3. Megoldandó probléma\n4. Termék vagy szolgáltatás\n5. Árazás\n6. Marketing megközelítés\n7. Fő költségek\n8. Következő 30 nap feladatai`
+        },
+        de: {
+          payment: `Hallo ${subject},\n\ndies ist eine freundliche Erinnerung an die noch offene Zahlung. Bitte gib Bescheid, falls die Rechnung oder Zahlungsdaten erneut gesendet werden sollen.\n\nFreundliche Grüße`,
+          followup: `Hallo ${subject},\n\nich möchte an unser letztes Gespräch anknüpfen. Bitte gib Bescheid, falls Fragen bestehen oder wir mit dem nächsten Schritt fortfahren können.\n\nFreundliche Grüße`,
+          meeting: `Meeting: ${subject}\n\nDatum:\nTeilnehmer:\n\nWichtige Punkte:\n- \n\nEntscheidungen:\n- \n\nNächste Schritte:\n- `,
+          plan: `Businessplan-Gliederung: ${subject}\n\n1. Geschäftsidee\n2. Zielkunde\n3. Zu lösendes Problem\n4. Produkt oder Dienstleistung\n5. Preisgestaltung\n6. Marketingansatz\n7. Hauptkosten\n8. Maßnahmen für die nächsten 30 Tage`
+        },
+        fr: {
+          payment: `Bonjour ${subject},\n\nCeci est un rappel amical concernant le paiement en attente. Dites-moi si vous souhaitez que je renvoie la facture ou les informations de paiement.\n\nCordialement`,
+          followup: `Bonjour ${subject},\n\nJe reviens vers vous à la suite de notre récent échange. N'hésitez pas à me dire si vous avez des questions ou si nous pouvons passer à l'étape suivante.\n\nCordialement`,
+          meeting: `Réunion : ${subject}\n\nDate :\nParticipants :\n\nPoints clés :\n- \n\nDécisions :\n- \n\nProchaines actions :\n- `,
+          plan: `Plan d'affaires : ${subject}\n\n1. Idée d'entreprise\n2. Client cible\n3. Problème résolu\n4. Produit ou service\n5. Tarification\n6. Approche marketing\n7. Principaux coûts\n8. Actions des 30 prochains jours`
+        },
+        es: {
+          payment: `Hola ${subject},\n\nEste es un recordatorio amistoso sobre el pago pendiente. Avísame si necesitas que vuelva a enviar la factura o los datos de pago.\n\nUn saludo`,
+          followup: `Hola ${subject},\n\nQuería hacer seguimiento de nuestra conversación reciente. Dime si tienes alguna pregunta o si podemos continuar con el siguiente paso.\n\nUn saludo`,
+          meeting: `Reunión: ${subject}\n\nFecha:\nAsistentes:\n\nPuntos clave:\n- \n\nDecisiones:\n- \n\nPróximas acciones:\n- `,
+          plan: `Esquema de plan de negocio: ${subject}\n\n1. Idea de negocio\n2. Cliente objetivo\n3. Problema que se resuelve\n4. Producto o servicio\n5. Precios\n6. Enfoque de marketing\n7. Costes principales\n8. Acciones para los próximos 30 días`
+        }
+      };
+
+      text = (content[language] || content.en)[type];
+      document.getElementById("vaultTemplateOutput").value = text;
+    }
+
+    document.getElementById("generateVaultTemplate").addEventListener("click", createVaultTemplate);
+
+    document.getElementById("copyVaultTemplate").addEventListener("click", async () => {
+      const output = document.getElementById("vaultTemplateOutput");
+      if (!output.value.trim()) return;
+
+      try {
+        await navigator.clipboard.writeText(output.value);
+      } catch {
+        output.select();
+        document.execCommand("copy");
+      }
+
+      showToast(translations[getLanguage()]["vault.copied"]);
+    });
+
+    renderVaultDocuments();
 
     const savedLanguage = localStorage.getItem("hegeva_language");
     if (savedLanguage && savedLanguage in translations) {
