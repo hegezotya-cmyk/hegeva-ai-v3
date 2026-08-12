@@ -1060,7 +1060,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name">Hegeva AI</div>
-          <div class="brand-subtitle">V4.6.2 USER DATA ISOLATION</div>
+          <div class="brand-subtitle">V4.6.3 PLANNER CLOUD RESTORE</div>
         </div>
       </div>
 
@@ -1184,7 +1184,7 @@
       <section id="home" class="page active">
         <section class="v43-vision">
           <div class="v43-copy">
-            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.6.2 • HUMAN-FIRST BUSINESS AI</div>
+            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.6.3 • HUMAN-FIRST BUSINESS AI</div>
             <h1>
               <span data-i18n="v43.hero1">Save time.</span>
               <span class="gradient-text" data-i18n="v43.hero2"> Work smarter.</span>
@@ -4594,6 +4594,13 @@
         await refreshAuthSession();
         v46ClearUserWorkspaceLocalData();
         await v46RestoreWorkspace();
+
+        // One final planner refresh after login avoids a startup/render race
+        // on a brand-new browser or incognito session.
+        setTimeout(() => {
+          if (typeof renderPlanner === "function") renderPlanner();
+        }, 500);
+
         setAuthStatus(authMessage({en:"Account created successfully.",hu:"A fiók sikeresen létrejött.",de:"Konto erfolgreich erstellt.",fr:"Compte créé avec succès.",es:"Cuenta creada correctamente."}),"success");
         authRegisterForm.reset(); setTimeout(closeAuthModal,650);
       }catch(error){setAuthStatus(error.message||"Registration failed.","error");}
@@ -4690,8 +4697,40 @@
         const result = await response.json();
         if (!result.found || !result.data || typeof result.data !== "object") return false;
         Object.entries(result.data).forEach(([key, value]) => {
-          if ((V46_SYNC_BUCKETS[bucket] || []).includes(key)) v46WriteLocalValue(key, value);
+          if ((V46_SYNC_BUCKETS[bucket] || []).includes(key)) {
+            v46WriteLocalValue(key, value);
+          }
         });
+
+        // Refresh the relevant interface immediately after cloud data is written.
+        if (bucket === "planner" && typeof renderPlanner === "function") {
+          renderPlanner();
+
+          const goal = localStorage.getItem("hegeva_business_goal") || "";
+          const goalInput = document.getElementById("businessGoal");
+          const goalDisplay = document.getElementById("goalDisplay");
+          const repeat = document.getElementById("repeatWork");
+
+          if (goalInput) goalInput.value = goal;
+          if (goalDisplay) {
+            goalDisplay.textContent = goal || "No goal saved.";
+            goalDisplay.style.display = goal ? "inline-flex" : "none";
+          }
+          if (repeat) repeat.value = localStorage.getItem("hegeva_repeat_work") || "";
+        }
+
+        if (bucket === "expenses" && typeof renderExpensesV46 === "function") {
+          renderExpensesV46();
+        }
+
+        if (bucket === "documents" && typeof renderReportsV46 === "function") {
+          renderReportsV46();
+        }
+
+        if (bucket === "vault" && typeof renderVaultDocuments === "function") {
+          renderVaultDocuments();
+        }
+
         return true;
       } catch (error) {
         console.warn(`HEGEVA ${bucket} cloud load failed`, error);
@@ -4745,29 +4784,41 @@
     async function v46RestoreWorkspace() {
       const session = await refreshAuthSession();
       if (!session) return false;
+
+      // Load sequentially so each bucket can refresh its own UI deterministically.
       const buckets = Object.keys(V46_SYNC_BUCKETS);
-      await Promise.all(buckets.map(v46LoadBucket));
+      for (const bucket of buckets) {
+        await v46LoadBucket(bucket);
+      }
 
-      // Refresh visible tools from the restored local copies.
-      if (typeof renderPlanner === "function") renderPlanner();
-      if (typeof renderVaultDocuments === "function") renderVaultDocuments();
-      if (typeof renderSavedChats === "function") renderSavedChats();
-      if (typeof renderCurrentChat === "function") renderCurrentChat();
-      if (typeof refreshCommandMetrics === "function") refreshCommandMetrics();
-      if (typeof renderExpensesV46 === "function") renderExpensesV46();
-      if (typeof renderReportsV46 === "function") renderReportsV46();
+      const refreshWorkspaceUi = () => {
+        if (typeof renderPlanner === "function") renderPlanner();
+        if (typeof renderVaultDocuments === "function") renderVaultDocuments();
+        if (typeof renderSavedChats === "function") renderSavedChats();
+        if (typeof renderCurrentChat === "function") renderCurrentChat();
+        if (typeof refreshCommandMetrics === "function") refreshCommandMetrics();
+        if (typeof renderExpensesV46 === "function") renderExpensesV46();
+        if (typeof renderReportsV46 === "function") renderReportsV46();
 
-      const goal = localStorage.getItem("hegeva_business_goal") || "";
-      const goalInput = document.getElementById("businessGoal");
-      const goalDisplay = document.getElementById("goalDisplay");
-      if (goalInput) goalInput.value = goal;
-      if (goalDisplay && goal) { goalDisplay.textContent = goal; goalDisplay.style.display = "inline-flex"; }
+        const goal = localStorage.getItem("hegeva_business_goal") || "";
+        const goalInput = document.getElementById("businessGoal");
+        const goalDisplay = document.getElementById("goalDisplay");
+        const repeat = document.getElementById("repeatWork");
+        const vaultNote = document.getElementById("vaultNote");
 
-      const repeat = document.getElementById("repeatWork");
-      if (repeat) repeat.value = localStorage.getItem("hegeva_repeat_work") || "";
+        if (goalInput) goalInput.value = goal;
+        if (goalDisplay) {
+          goalDisplay.textContent = goal || "No goal saved.";
+          goalDisplay.style.display = goal ? "inline-flex" : "none";
+        }
+        if (repeat) repeat.value = localStorage.getItem("hegeva_repeat_work") || "";
+        if (vaultNote) vaultNote.value = localStorage.getItem("hegeva_vault_note") || "";
+      };
 
-      const vaultNote = localStorage.getItem("hegeva_vault_note") || "";
-      if (document.getElementById("vaultNote")) document.getElementById("vaultNote").value = vaultNote;
+      // Refresh now and once more after the page's other startup handlers settle.
+      refreshWorkspaceUi();
+      setTimeout(refreshWorkspaceUi, 350);
+
       return true;
     }
 
