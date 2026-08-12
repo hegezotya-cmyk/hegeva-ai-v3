@@ -1129,7 +1129,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name notranslate" translate="no">Hegeva AI</div>
-          <div class="brand-subtitle">V4.7.2 LANGUAGE ENGINE LOCK</div>
+          <div class="brand-subtitle">V4.7.3 LANGUAGE ENGINE LOCK</div>
         </div>
       </div>
 
@@ -1257,7 +1257,7 @@
       <section id="home" class="page active">
         <section class="v43-vision">
           <div class="v43-copy">
-            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.7.2 • HUMAN-FIRST BUSINESS AI</div>
+            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.7.3 • HUMAN-FIRST BUSINESS AI</div>
             <h1>
               <span data-i18n="v43.hero1">Save time.</span>
               <span class="gradient-text" data-i18n="v43.hero2"> Work smarter.</span>
@@ -5702,7 +5702,7 @@
             fr: { badge: "DÉCONNECTÉ", cloud: "Se connecter" },
             es: { badge: "SESIÓN CERRADA", cloud: "Iniciar sesión" }
           };
-          const signed = signedOutCopy[currentLanguage] || signedOutCopy.en;
+          const signed = signedOutCopy[currentLanguage()] || signedOutCopy.en;
           badge.textContent = signed.badge;
           usage.textContent = "—";
           cloud.textContent = signed.cloud;
@@ -5722,15 +5722,23 @@
 
         badge.textContent = plan;
         usage.textContent = limit > 0 ? `${used} / ${limit}` : `${used}`;
-        cloud.textContent = data.features?.cloudWorkspace === false ? "Limited" : "Active";
-        period.textContent = data.period?.label || data.period?.endsAt || "Current";
-        message.textContent = data.message || ({
+        const planRuntimeCopy = {
+          en: { limited: "Limited", active: "Active", current: "Current" },
+          hu: { limited: "Korlátozott", active: "Aktív", current: "Jelenlegi" },
+          de: { limited: "Eingeschränkt", active: "Aktiv", current: "Aktuell" },
+          fr: { limited: "Limité", active: "Actif", current: "Actuel" },
+          es: { limited: "Limitado", active: "Activo", current: "Actual" }
+        };
+        const runtimeCopy = planRuntimeCopy[currentLanguage()] || planRuntimeCopy.en;
+        cloud.textContent = data.features?.cloudWorkspace === false ? runtimeCopy.limited : runtimeCopy.active;
+        period.textContent = data.period?.label || data.period?.endsAt || runtimeCopy.current;
+        message.textContent = ({
           en: `${plan} plan confirmed by HEGEVA backend.`,
           hu: `${plan} csomag megerősítve a HEGEVA backend által.`,
           de: `${plan}-Tarif vom HEGEVA-Backend bestätigt.`,
           fr: `Forfait ${plan} confirmé par le serveur HEGEVA.`,
           es: `Plan ${plan} confirmado por el servidor de HEGEVA.`
-        }[currentLanguage] || `${plan} plan confirmed by HEGEVA backend.`);
+        }[currentLanguage()] || `${plan} plan confirmed by HEGEVA backend.`);
         v47SetMeter(used, limit);
       } catch (error) {
         // V4.7 frontend can safely deploy before the backend route.
@@ -5741,7 +5749,7 @@
           fr: { pending: "Serveur en attente", active: "Actif", message: "Le serveur des forfaits V4.7 n’est pas encore déployé. Aucun accès payant n’est présenté comme actif." },
           es: { pending: "Servidor pendiente", active: "Activo", message: "El servidor de planes V4.7 todavía no está desplegado. No se muestra ningún acceso de pago como activo." }
         };
-        const copy = fallback[currentLanguage] || fallback.en;
+        const copy = fallback[currentLanguage()] || fallback.en;
         badge.textContent = "BASIC";
         usage.textContent = copy.pending;
         cloud.textContent = copy.active;
