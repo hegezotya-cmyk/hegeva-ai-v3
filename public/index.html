@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="notranslate" translate="no">
 <head>
   <meta charset="UTF-8" />
+  <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Hegeva AI V4.6 — honest, multilingual business workspace." />
   <title>Hegeva AI V4.6</title>
@@ -1127,13 +1128,13 @@
       <div class="brand">
         <div class="brand-logo">H</div>
         <div>
-          <div class="brand-name">Hegeva AI</div>
-          <div class="brand-subtitle">V4.7.1 FR ES LANGUAGE FIX</div>
+          <div class="brand-name notranslate" translate="no">Hegeva AI</div>
+          <div class="brand-subtitle">V4.7.2 LANGUAGE ENGINE LOCK</div>
         </div>
       </div>
 
       <div class="header-actions">
-        <select class="select" id="languageSelect" aria-label="Language">
+        <select class="select notranslate" id="languageSelect" aria-label="Language" translate="no">
           <option value="en">🇬🇧 English</option>
           <option value="hu">🇭🇺 Magyar</option>
           <option value="de">🇩🇪 Deutsch</option>
@@ -1256,7 +1257,7 @@
       <section id="home" class="page active">
         <section class="v43-vision">
           <div class="v43-copy">
-            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.7.1 • HUMAN-FIRST BUSINESS AI</div>
+            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.7.2 • HUMAN-FIRST BUSINESS AI</div>
             <h1>
               <span data-i18n="v43.hero1">Save time.</span>
               <span class="gradient-text" data-i18n="v43.hero2"> Work smarter.</span>
@@ -2005,7 +2006,7 @@
         <div class="plan-grid">
           <div class="plan-card">
             <span class="plan-badge" translate="no">BASIC</span>
-            <div class="plan-name" translate="no">Basic</div>
+            <div class="plan-name notranslate" translate="no">Basic</div>
             <div class="plan-price" data-i18n="plans.pricePending">Price activates with the payment system</div>
             <div class="plan-features">
               <div class="plan-feature">✓ <span data-i18n="plans.basic1">Core HEGEVA workspace</span></div>
@@ -2017,7 +2018,7 @@
 
           <div class="plan-card featured">
             <span class="plan-badge" translate="no">PREMIUM</span>
-            <div class="plan-name" translate="no">Premium</div>
+            <div class="plan-name notranslate" translate="no">Premium</div>
             <div class="plan-price" data-i18n="plans.pricePending">Price activates with the payment system</div>
             <div class="plan-features">
               <div class="plan-feature">✓ <span data-i18n="plans.premium1">Higher AI usage allowance</span></div>
@@ -2029,7 +2030,7 @@
 
           <div class="plan-card">
             <span class="plan-badge" translate="no">PRO</span>
-            <div class="plan-name" translate="no">Pro</div>
+            <div class="plan-name notranslate" translate="no">Pro</div>
             <div class="plan-price" data-i18n="plans.pricePending">Price activates with the payment system</div>
             <div class="plan-features">
               <div class="plan-feature">✓ <span data-i18n="plans.pro1">Highest planned AI allowance</span></div>
@@ -3883,6 +3884,8 @@
 
     function translatePage(language) {
       const dictionary = translations[language] || translations.en;
+      document.documentElement.lang = language;
+      document.documentElement.dataset.hegevaLanguage = language;
 
       document.querySelectorAll("[data-i18n]").forEach((element) => {
         const key = element.dataset.i18n;
@@ -3898,7 +3901,6 @@
         }
       });
 
-      document.documentElement.lang = language;
       localStorage.setItem("hegeva_language", language);
     }
 
