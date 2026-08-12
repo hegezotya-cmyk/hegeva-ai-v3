@@ -1477,7 +1477,7 @@
 
           <div class="hero-buttons">
             <button class="primary-button" id="createDocument" type="button" data-i18n="documents.create">Create preview</button>
-            <button class="secondary-button" id="saveDocument" type="button" data-i18n="documents.save">Save locally</button>
+            <button class="secondary-button" id="saveDocument" type="button" data-i18n="documents.save">Save settings</button>
             <button class="secondary-button" id="printDocument" type="button" data-i18n="documents.print">Print</button>
           </div>
         </div>
@@ -1814,12 +1814,12 @@
         <div class="page-heading">
           <div>
             <h1 data-i18n="settings.title">⚙️ Settings</h1>
-            <p data-i18n="settings.subtitle">These details are saved only in this browser for now.</p>
+            <p data-i18n="settings.subtitle">Signed-in users can save these business details to their HEGEVA cloud workspace.</p>
           </div>
         </div>
 
         <div class="notice" data-i18n="settings.notice">
-          Local browser storage is used here. This is a real local feature, but it is not yet a cloud account or database.
+          A local backup is kept in this browser. When you are signed in, these settings are also saved to your HEGEVA cloud workspace.
         </div>
 
         <div class="card">
@@ -1910,14 +1910,14 @@
         "reports.comingTitle": "Business Reports — Coming Soon",
         "reports.comingText": "Demo revenue, profit forecasts and artificial growth percentages have been removed. This page will activate after real data storage is connected.",
         "settings.title": "⚙️ Settings",
-        "settings.subtitle": "These details are saved only in this browser for now.",
-        "settings.notice": "Local browser storage is used here. This is a real local feature, but it is not yet a cloud account or database.",
+        "settings.subtitle": "Signed-in users can save these business details to their HEGEVA cloud workspace.",
+        "settings.notice": "A local backup is kept in this browser. When you are signed in, these settings are also saved to your HEGEVA cloud workspace.",
         "settings.businessName": "Business name",
         "settings.email": "Email",
         "settings.currency": "Currency",
         "settings.country": "Country",
         "settings.address": "Business address",
-        "settings.save": "Save locally",
+        "settings.save": "Save settings",
         "tools.title": "⚡ Useful tools you can use now",
         "tools.subtitle": "Simple tools that work in your browser — no fake AI required.",
         "task.title": "✅ Business Checklist",
@@ -2161,7 +2161,7 @@
         "settings.currency": "Pénznem",
         "settings.country": "Ország",
         "settings.address": "Üzleti cím",
-        "settings.save": "Mentés helyben",
+        "settings.save": "Beállítások mentése",
         "tools.title": "⚡ Azonnal használható eszközök",
         "tools.subtitle": "Egyszerű, böngészőben működő eszközök — kamu AI nélkül.",
         "task.title": "✅ Üzleti feladatlista",
@@ -2399,13 +2399,13 @@
         "reports.comingText": "Demo-Umsatz, Gewinnprognosen und künstliche Wachstumswerte wurden entfernt. Diese Seite wird nach Verbindung echter Datenspeicherung aktiviert.",
         "settings.title": "⚙️ Einstellungen",
         "settings.subtitle": "Diese Angaben werden derzeit nur in diesem Browser gespeichert.",
-        "settings.notice": "Hier wird lokaler Browserspeicher verwendet. Das ist eine echte lokale Funktion, aber noch kein Cloud-Konto oder keine Datenbank.",
+        "settings.notice": "Eine lokale Sicherung bleibt in diesem Browser. Wenn du angemeldet bist, werden die Einstellungen zusätzlich im HEGEVA Cloud-Workspace gespeichert.",
         "settings.businessName": "Unternehmensname",
         "settings.email": "E-Mail",
         "settings.currency": "Währung",
         "settings.country": "Land",
         "settings.address": "Geschäftsadresse",
-        "settings.save": "Lokal speichern",
+        "settings.save": "Einstellungen speichern",
         "tools.title": "⚡ Sofort nutzbare Werkzeuge",
         "tools.subtitle": "Einfache Werkzeuge im Browser — ohne vorgetäuschte KI.",
         "task.title": "✅ Business-Checkliste",
@@ -2649,7 +2649,7 @@
         "settings.currency": "Devise",
         "settings.country": "Pays",
         "settings.address": "Adresse professionnelle",
-        "settings.save": "Enregistrer localement",
+        "settings.save": "Enregistrer les paramètres",
         "tools.title": "⚡ Outils utilisables maintenant",
         "tools.subtitle": "Des outils simples dans votre navigateur — sans fausse IA.",
         "task.title": "✅ Liste de tâches professionnelle",
@@ -2893,7 +2893,7 @@
         "settings.currency": "Moneda",
         "settings.country": "País",
         "settings.address": "Dirección comercial",
-        "settings.save": "Guardar localmente",
+        "settings.save": "Guardar ajustes",
         "tools.title": "⚡ Herramientas que puedes usar ahora",
         "tools.subtitle": "Herramientas sencillas que funcionan en tu navegador — sin IA falsa.",
         "task.title": "✅ Lista de tareas de negocio",
@@ -3170,7 +3170,8 @@
       address: document.getElementById("address")
     };
 
-    function loadSettings() {
+    async function loadSettings() {
+      // Load the local copy first so the page remains useful offline.
       try {
         const saved = JSON.parse(localStorage.getItem("hegeva_settings") || "{}");
 
@@ -3180,21 +3181,109 @@
           }
         });
       } catch (error) {
-        console.warn("Could not load local Hegeva settings.", error);
+        console.warn("Could not load local HEGEVA settings.", error);
+      }
+
+      // If the user is signed in, prefer their cloud-saved settings.
+      try {
+        const response = await fetch("/api/workspace/settings", {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+
+        if (response.status === 401) {
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.found && result.data && typeof result.data === "object") {
+          Object.entries(settingsFields).forEach(([key, field]) => {
+            if (result.data[key] !== undefined) {
+              field.value = result.data[key];
+            }
+          });
+
+          localStorage.setItem(
+            "hegeva_settings",
+            JSON.stringify(result.data)
+          );
+        }
+      } catch (error) {
+        console.warn("Could not load HEGEVA cloud settings.", error);
       }
     }
 
-    document.getElementById("saveSettings").addEventListener("click", () => {
+    document.getElementById("saveSettings").addEventListener("click", async () => {
       const data = {};
 
       Object.entries(settingsFields).forEach(([key, field]) => {
         data[key] = field.value.trim ? field.value.trim() : field.value;
       });
 
+      // Always keep a local backup.
       localStorage.setItem("hegeva_settings", JSON.stringify(data));
 
-      const language = getLanguage();
-      showToast(translations[language]["toast.saved"]);
+      try {
+        const response = await fetch("/api/workspace/settings", {
+          method: "PUT",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ data })
+        });
+
+        if (response.status === 401) {
+          showToast(
+            authMessage({
+              en: "Saved locally. Sign in to save these settings to your HEGEVA cloud account.",
+              hu: "Helyben mentve. Jelentkezz be, hogy a HEGEVA felhőfiókodba is elmentsük.",
+              de: "Lokal gespeichert. Melde dich an, um die Einstellungen auch in deinem HEGEVA Cloud-Konto zu speichern.",
+              fr: "Enregistré localement. Connectez-vous pour enregistrer aussi ces paramètres dans votre compte cloud HEGEVA.",
+              es: "Guardado localmente. Inicia sesión para guardar también estos ajustes en tu cuenta HEGEVA en la nube."
+            })
+          );
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(`Cloud save failed: HTTP ${response.status}`);
+        }
+
+        showToast(
+          authMessage({
+            en: "Settings saved securely to your HEGEVA cloud account.",
+            hu: "A beállítások biztonságosan elmentve a HEGEVA felhőfiókodba.",
+            de: "Einstellungen sicher in deinem HEGEVA Cloud-Konto gespeichert.",
+            fr: "Paramètres enregistrés en toute sécurité dans votre compte cloud HEGEVA.",
+            es: "Ajustes guardados de forma segura en tu cuenta HEGEVA en la nube."
+          })
+        );
+
+        if (typeof refreshCommandMetrics === "function") {
+          refreshCommandMetrics();
+        }
+      } catch (error) {
+        console.error("HEGEVA cloud settings save error:", error);
+
+        showToast(
+          authMessage({
+            en: "Cloud save failed. A local backup was still saved.",
+            hu: "A felhős mentés nem sikerült, de a helyi biztonsági mentés elkészült.",
+            de: "Cloud-Speicherung fehlgeschlagen. Eine lokale Sicherung wurde trotzdem gespeichert.",
+            fr: "L'enregistrement cloud a échoué, mais une copie locale a été conservée.",
+            es: "El guardado en la nube falló, pero se conservó una copia local."
+          })
+        );
+      }
     });
 
 
