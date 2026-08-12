@@ -1060,7 +1060,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name">Hegeva AI</div>
-          <div class="brand-subtitle">V4.6.4 MESSAGE STUDIO CLOUD</div>
+          <div class="brand-subtitle">V4.6.5 LANGUAGE FIX</div>
         </div>
       </div>
 
@@ -1154,7 +1154,7 @@
 
         <button class="nav-button" data-page="planner" type="button">
           <span class="nav-icon">⏳</span>
-          <span class="nav-text">Time Saver</span>
+          <span class="nav-text" data-i18n="nav.timeSaver">Time Saver</span>
         </button>
         <button class="nav-button" data-page="vault" type="button">
           <span class="nav-icon">🗂️</span>
@@ -1172,7 +1172,7 @@
           <span class="nav-icon">🩺</span>
           <span class="nav-text" data-i18n="nav.health">Business Check</span>
         </button>
-        <button class="nav-button" data-page="businessTools44" type="button">🧰 Business Tools</button>
+        <button class="nav-button" data-page="businessTools44" type="button">🧰 <span data-i18n="nav.businessTools">Business Tools</span></button>
         <button class="nav-button" data-page="settings" type="button">
           <span class="nav-icon">⚙️</span>
           <span class="nav-text" data-i18n="nav.settings">Settings</span>
@@ -1184,7 +1184,7 @@
       <section id="home" class="page active">
         <section class="v43-vision">
           <div class="v43-copy">
-            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.6.4 • HUMAN-FIRST BUSINESS AI</div>
+            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.6.5 • HUMAN-FIRST BUSINESS AI</div>
             <h1>
               <span data-i18n="v43.hero1">Save time.</span>
               <span class="gradient-text" data-i18n="v43.hero2"> Work smarter.</span>
@@ -1639,28 +1639,28 @@
       </section>
 
       <section id="planner" class="page">
-        <div class="page-heading"><div><h1>⏳ Time Saver & Business Planner</h1>
-        <p>Plan what matters, set priorities and keep recurring work visible.</p></div></div>
-        <div class="notice">A local backup is kept in this browser. Signed-in users can also sync planner data to their HEGEVA cloud workspace.</div>
+        <div class="page-heading"><div><h1 data-i18n="planner.title">⏳ Time Saver & Business Planner</h1>
+        <p data-i18n="planner.subtitle">Plan what matters, set priorities and keep recurring work visible.</p></div></div>
+        <div class="notice" data-i18n="planner.notice">A local backup is kept in this browser. Signed-in users can also sync planner data to their HEGEVA cloud workspace.</div>
         <div class="grid">
-          <div class="card"><h3>🎯 Add a priority</h3>
-            <div class="form-group"><label>Task</label><input id="plannerTask" placeholder="e.g. Follow up unpaid invoice"></div>
-            <div class="form-grid"><div class="form-group"><label>Priority</label><select id="plannerPriority"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
-            <div class="form-group"><label>Target date</label><input id="plannerDate" type="date"></div></div>
-            <button class="primary-button" id="plannerAdd" type="button">Add to planner</button>
+          <div class="card"><h3 data-i18n="planner.addTitle">🎯 Add a priority</h3>
+            <div class="form-group"><label data-i18n="planner.task">Task</label><input id="plannerTask" data-i18n-placeholder="planner.taskPlaceholder" placeholder="e.g. Follow up unpaid invoice"></div>
+            <div class="form-grid"><div class="form-group"><label data-i18n="planner.priority">Priority</label><select id="plannerPriority"><option data-i18n="planner.high">High</option><option selected data-i18n="planner.medium">Medium</option><option data-i18n="planner.low">Low</option></select></div>
+            <div class="form-group"><label data-i18n="planner.targetDate">Target date</label><input id="plannerDate" type="date"></div></div>
+            <button class="primary-button" id="plannerAdd" type="button" data-i18n="planner.addButton">Add to planner</button>
           </div>
-          <div class="card"><h3>🌱 Business goal</h3><p>Keep one clear goal visible while you work.</p>
-            <div class="form-group"><input id="businessGoal" placeholder="e.g. Organise this month's invoices"></div>
-            <button class="secondary-button" id="saveGoal" type="button">Save goal</button>
+          <div class="card"><h3 data-i18n="planner.goalTitle">🌱 Business goal</h3><p data-i18n="planner.goalText">Keep one clear goal visible while you work.</p>
+            <div class="form-group"><input id="businessGoal" data-i18n-placeholder="planner.goalPlaceholder" placeholder="e.g. Organise this month's invoices"></div>
+            <button class="secondary-button" id="saveGoal" type="button" data-i18n="planner.saveGoal">Save goal</button>
             <div id="goalDisplay" class="status live" style="display:none;margin-top:14px"></div>
           </div>
-          <div class="card"><h3>🔄 Repetitive work note</h3><p>Record work you repeat often so you can spot what may be simplified later.</p>
-            <div class="form-group"><textarea id="repeatWork" placeholder="e.g. I send the same reminder every Friday"></textarea></div>
-            <button class="secondary-button" id="saveRepeatWork" type="button">Save note</button>
+          <div class="card"><h3 data-i18n="planner.repeatTitle">🔄 Repetitive work note</h3><p data-i18n="planner.repeatText">Record work you repeat often so you can spot what may be simplified later.</p>
+            <div class="form-group"><textarea id="repeatWork" data-i18n-placeholder="planner.repeatPlaceholder" placeholder="e.g. I send the same reminder every Friday"></textarea></div>
+            <button class="secondary-button" id="saveRepeatWork" type="button" data-i18n="planner.saveNote">Save note</button>
           </div>
         </div>
         <div class="card" style="margin-top:18px">
-          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h3>📋 My priorities</h3><p>These are tasks you entered yourself.</p></div><div id="plannerProgress" class="badge">0 / 0 complete</div></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h3 data-i18n="planner.myPriorities">📋 My priorities</h3><p data-i18n="planner.myPrioritiesText">These are tasks you entered yourself.</p></div><div id="plannerProgress" class="badge">0 / 0 complete</div></div>
           <div id="plannerList" class="coming-list" style="margin-top:16px"></div>
         </div>
       </section>
@@ -1835,53 +1835,53 @@
         <div class="page-head">
           <div>
             <span class="eyebrow">V4.4</span>
-            <h1>Business Tools</h1>
-            <p>Practical local tools. Values are calculated only from information you enter.</p>
+            <h1 data-i18n="bt.title">Business Tools</h1>
+            <p data-i18n="bt.subtitle">Practical local tools. Values are calculated only from information you enter.</p>
           </div>
         </div>
 
         <div class="command-grid">
           <div class="card">
-            <h3>🧾 Invoice / Quote Builder</h3>
+            <h3 data-i18n="bt.invoiceTitle">🧾 Invoice / Quote Builder</h3>
             <div class="form-grid">
-              <div class="form-group"><label>Document type</label><select id="btDocType"><option value="Invoice">Invoice</option><option value="Quote">Quote</option></select></div>
-              <div class="form-group"><label>Document number</label><input id="btDocNumber" readonly></div>
-              <div class="form-group"><label>Customer name</label><input id="btCustomer" placeholder="Customer / company"></div>
-              <div class="form-group"><label>Description</label><input id="btDescription" placeholder="Product or service"></div>
-              <div class="form-group"><label>Quantity</label><input id="btQty" type="number" min="0" step="1" value="1"></div>
-              <div class="form-group"><label>Unit price (£)</label><input id="btPrice" type="number" min="0" step="0.01" value="0"></div>
+              <div class="form-group"><label data-i18n="bt.docType">Document type</label><select id="btDocType"><option value="Invoice" data-i18n="bt.invoice">Invoice</option><option value="Quote" data-i18n="bt.quote">Quote</option></select></div>
+              <div class="form-group"><label data-i18n="bt.docNumber">Document number</label><input id="btDocNumber" readonly></div>
+              <div class="form-group"><label data-i18n="bt.customerName">Customer name</label><input id="btCustomer" data-i18n-placeholder="bt.customerPlaceholder" placeholder="Customer / company"></div>
+              <div class="form-group"><label data-i18n="bt.description">Description</label><input id="btDescription" data-i18n-placeholder="bt.descriptionPlaceholder" placeholder="Product or service"></div>
+              <div class="form-group"><label data-i18n="bt.quantity">Quantity</label><input id="btQty" type="number" min="0" step="1" value="1"></div>
+              <div class="form-group"><label data-i18n="bt.unitPrice">Unit price (£)</label><input id="btPrice" type="number" min="0" step="0.01" value="0"></div>
               <div class="form-group"><label>VAT %</label><input id="btVat" type="number" min="0" step="0.01" value="0"></div>
             </div>
             <div class="tool-row" style="margin-top:12px">
-              <button class="primary-button" id="btPreview" type="button">Preview</button>
-              <button class="secondary-button" id="btSaveDoc" type="button">Save locally</button>
-              <button class="secondary-button" id="btPrint" type="button">Print / Save PDF</button>
+              <button class="primary-button" id="btPreview" type="button" data-i18n="bt.preview">Preview</button>
+              <button class="secondary-button" id="btSaveDoc" type="button" data-i18n="bt.save">Save locally</button>
+              <button class="secondary-button" id="btPrint" type="button" data-i18n="bt.print">Print / Save PDF</button>
             </div>
             <div id="btDocPreview" class="notice" style="display:none;margin-top:14px"></div>
           </div>
 
           <div class="card">
-            <h3>💷 Cost & Profit Tracker</h3>
-            <p style="color:var(--muted)">No estimates are invented. HEGEVA uses only the numbers below.</p>
+            <h3 data-i18n="bt.profitTitle">💷 Cost & Profit Tracker</h3>
+            <p style="color:var(--muted)" data-i18n="bt.profitNotice">No estimates are invented. HEGEVA uses only the numbers below.</p>
             <div class="form-grid" style="margin-top:12px">
-              <div class="form-group"><label>Revenue (£)</label><input id="btRevenue" type="number" min="0" step="0.01" value="0"></div>
-              <div class="form-group"><label>Materials / stock (£)</label><input id="btStock" type="number" min="0" step="0.01" value="0"></div>
-              <div class="form-group"><label>Operating costs (£)</label><input id="btOperating" type="number" min="0" step="0.01" value="0"></div>
-              <div class="form-group"><label>Other costs (£)</label><input id="btOther" type="number" min="0" step="0.01" value="0"></div>
+              <div class="form-group"><label data-i18n="bt.revenue">Revenue (£)</label><input id="btRevenue" type="number" min="0" step="0.01" value="0"></div>
+              <div class="form-group"><label data-i18n="bt.stock">Materials / stock (£)</label><input id="btStock" type="number" min="0" step="0.01" value="0"></div>
+              <div class="form-group"><label data-i18n="bt.operating">Operating costs (£)</label><input id="btOperating" type="number" min="0" step="0.01" value="0"></div>
+              <div class="form-group"><label data-i18n="bt.other">Other costs (£)</label><input id="btOther" type="number" min="0" step="0.01" value="0"></div>
             </div>
-            <button class="primary-button" id="btCalculate" type="button" style="margin-top:12px">Calculate</button>
+            <button class="primary-button" id="btCalculate" type="button" style="margin-top:12px" data-i18n="bt.calculate">Calculate</button>
             <div id="btProfitResult" class="notice" style="display:none;margin-top:14px"></div>
           </div>
         </div>
 
         <div class="card" style="margin-top:16px">
-          <h3>👥 Local Customer List</h3>
-          <p style="color:var(--muted)">Saved only in this browser in V4.4. Cloud sync comes later.</p>
+          <h3 data-i18n="bt.clientsTitle">👥 Local Customer List</h3>
+          <p style="color:var(--muted)" data-i18n="bt.clientsNotice">Customer data is kept locally as a backup and supported entries can sync for signed-in users.</p>
           <div class="form-grid" style="margin-top:12px">
-            <div class="form-group"><label>Name</label><input id="btClientName" placeholder="Customer name"></div>
+            <div class="form-group"><label data-i18n="bt.name">Name</label><input id="btClientName" data-i18n-placeholder="bt.clientPlaceholder" placeholder="Customer name"></div>
             <div class="form-group"><label>Email</label><input id="btClientEmail" type="email" placeholder="name@example.com"></div>
           </div>
-          <button class="primary-button" id="btAddClient" type="button" style="margin-top:12px">Add customer</button>
+          <button class="primary-button" id="btAddClient" type="button" style="margin-top:12px" data-i18n="bt.addCustomer">Add customer</button>
           <div id="btClientList" class="coming-list" style="margin-top:14px"></div>
         </div>
       </section>
@@ -2217,6 +2217,58 @@
         "v46.cloudCoverage": "☁️ Cloud coverage",
         "v46.cloudCoverageText": "Settings, documents, planner, vault notes, expenses and selected workspace items can sync for signed-in users.",
         "v46.categoryBreakdown": "Expense categories",
+        "nav.timeSaver": "Time Saver",
+        "nav.businessTools": "Business Tools",
+        "planner.title": "⏳ Time Saver & Business Planner",
+        "planner.subtitle": "Plan what matters, set priorities and keep recurring work visible.",
+        "planner.notice": "A local backup is kept in this browser. Signed-in users can also sync planner data to their HEGEVA cloud workspace.",
+        "planner.addTitle": "🎯 Add a priority",
+        "planner.task": "Task",
+        "planner.taskPlaceholder": "e.g. Follow up unpaid invoice",
+        "planner.priority": "Priority",
+        "planner.high": "High",
+        "planner.medium": "Medium",
+        "planner.low": "Low",
+        "planner.targetDate": "Target date",
+        "planner.addButton": "Add to planner",
+        "planner.goalTitle": "🌱 Business goal",
+        "planner.goalText": "Keep one clear goal visible while you work.",
+        "planner.goalPlaceholder": "e.g. Organise this month's invoices",
+        "planner.saveGoal": "Save goal",
+        "planner.repeatTitle": "🔄 Repetitive work note",
+        "planner.repeatText": "Record work you repeat often so you can spot what may be simplified later.",
+        "planner.repeatPlaceholder": "e.g. I send the same reminder every Friday",
+        "planner.saveNote": "Save note",
+        "planner.myPriorities": "📋 My priorities",
+        "planner.myPrioritiesText": "These are tasks you entered yourself.",
+        "bt.title": "Business Tools",
+        "bt.subtitle": "Practical local tools. Values are calculated only from information you enter.",
+        "bt.invoiceTitle": "🧾 Invoice / Quote Builder",
+        "bt.docType": "Document type",
+        "bt.invoice": "Invoice",
+        "bt.quote": "Quote",
+        "bt.docNumber": "Document number",
+        "bt.customerName": "Customer name",
+        "bt.customerPlaceholder": "Customer / company",
+        "bt.description": "Description",
+        "bt.descriptionPlaceholder": "Product or service",
+        "bt.quantity": "Quantity",
+        "bt.unitPrice": "Unit price (£)",
+        "bt.preview": "Preview",
+        "bt.save": "Save locally",
+        "bt.print": "Print / Save PDF",
+        "bt.profitTitle": "💷 Cost & Profit Tracker",
+        "bt.profitNotice": "No estimates are invented. HEGEVA uses only the numbers below.",
+        "bt.revenue": "Revenue (£)",
+        "bt.stock": "Materials / stock (£)",
+        "bt.operating": "Operating costs (£)",
+        "bt.other": "Other costs (£)",
+        "bt.calculate": "Calculate",
+        "bt.clientsTitle": "👥 Local Customer List",
+        "bt.clientsNotice": "Customer data is kept locally as a backup and supported entries can sync for signed-in users.",
+        "bt.name": "Name",
+        "bt.clientPlaceholder": "Customer name",
+        "bt.addCustomer": "Add customer",
         "toast.saved": "Settings saved in this browser.",
         "toast.language": "Language changed."
       },
@@ -2495,6 +2547,58 @@
         "v46.cloudCoverage": "☁️ Felhős lefedettség",
         "v46.cloudCoverageText": "Bejelentkezve a Settings, Documents, Planner, Vault-jegyzetek, kiadások és kiválasztott munkatéradatok szinkronizálhatók.",
         "v46.categoryBreakdown": "Kiadási kategóriák",
+        "nav.timeSaver": "Időspóroló",
+        "nav.businessTools": "Üzleti eszközök",
+        "planner.title": "⏳ Időspóroló és üzleti tervező",
+        "planner.subtitle": "Tervezd meg a fontos feladatokat, állíts prioritásokat, és tartsd szem előtt az ismétlődő munkát.",
+        "planner.notice": "Ebben a böngészőben helyi biztonsági másolat marad. Bejelentkezve a tervező adatai a HEGEVA felhős munkaterébe is szinkronizálhatók.",
+        "planner.addTitle": "🎯 Prioritás hozzáadása",
+        "planner.task": "Feladat",
+        "planner.taskPlaceholder": "pl. Lejárt számla nyomon követése",
+        "planner.priority": "Prioritás",
+        "planner.high": "Magas",
+        "planner.medium": "Közepes",
+        "planner.low": "Alacsony",
+        "planner.targetDate": "Céldátum",
+        "planner.addButton": "Hozzáadás a tervezőhöz",
+        "planner.goalTitle": "🌱 Üzleti cél",
+        "planner.goalText": "Tarts egy világos célt szem előtt munka közben.",
+        "planner.goalPlaceholder": "pl. E havi számlák rendszerezése",
+        "planner.saveGoal": "Cél mentése",
+        "planner.repeatTitle": "🔄 Ismétlődő munka jegyzet",
+        "planner.repeatText": "Jegyezd fel a gyakran ismétlődő munkát, hogy később könnyebb legyen egyszerűsíteni.",
+        "planner.repeatPlaceholder": "pl. Minden pénteken ugyanazt az emlékeztetőt küldöm",
+        "planner.saveNote": "Jegyzet mentése",
+        "planner.myPriorities": "📋 Prioritásaim",
+        "planner.myPrioritiesText": "Ezeket a feladatokat te adtad meg.",
+        "bt.title": "Üzleti eszközök",
+        "bt.subtitle": "Gyakorlati eszközök. Az értékek kizárólag az általad megadott adatokból készülnek.",
+        "bt.invoiceTitle": "🧾 Számla / árajánlat készítő",
+        "bt.docType": "Dokumentumtípus",
+        "bt.invoice": "Számla",
+        "bt.quote": "Árajánlat",
+        "bt.docNumber": "Dokumentumszám",
+        "bt.customerName": "Ügyfél neve",
+        "bt.customerPlaceholder": "Ügyfél / cég",
+        "bt.description": "Leírás",
+        "bt.descriptionPlaceholder": "Termék vagy szolgáltatás",
+        "bt.quantity": "Mennyiség",
+        "bt.unitPrice": "Egységár (£)",
+        "bt.preview": "Előnézet",
+        "bt.save": "Mentés helyben",
+        "bt.print": "Nyomtatás / PDF mentése",
+        "bt.profitTitle": "💷 Költség- és profitkövető",
+        "bt.profitNotice": "A HEGEVA nem talál ki becsléseket, csak az alábbi számokat használja.",
+        "bt.revenue": "Bevétel (£)",
+        "bt.stock": "Anyag / készlet (£)",
+        "bt.operating": "Működési költségek (£)",
+        "bt.other": "Egyéb költségek (£)",
+        "bt.calculate": "Számítás",
+        "bt.clientsTitle": "👥 Helyi ügyféllista",
+        "bt.clientsNotice": "Az ügyféladatok helyi biztonsági másolatként megmaradnak, és a támogatott adatok bejelentkezve szinkronizálhatók.",
+        "bt.name": "Név",
+        "bt.clientPlaceholder": "Ügyfél neve",
+        "bt.addCustomer": "Ügyfél hozzáadása",
         "toast.saved": "A beállításokat elmentettük ebben a böngészőben.",
         "toast.language": "Nyelv átállítva."
       },
@@ -2773,6 +2877,58 @@
         "v46.cloudCoverage": "☁️ Cloud-Abdeckung",
         "v46.cloudCoverageText": "Einstellungen, Dokumente, Planer, Vault-Notizen, Ausgaben und ausgewählte Workspace-Daten können für angemeldete Nutzer synchronisiert werden.",
         "v46.categoryBreakdown": "Ausgabenkategorien",
+        "nav.timeSaver": "Zeitsparer",
+        "nav.businessTools": "Geschäftstools",
+        "planner.title": "⏳ Zeitsparer & Geschäftsplaner",
+        "planner.subtitle": "Plane wichtige Aufgaben, setze Prioritäten und behalte wiederkehrende Arbeit im Blick.",
+        "planner.notice": "Eine lokale Sicherung bleibt in diesem Browser. Angemeldete Nutzer können Planerdaten mit dem HEGEVA Cloud-Workspace synchronisieren.",
+        "planner.addTitle": "🎯 Priorität hinzufügen",
+        "planner.task": "Aufgabe",
+        "planner.taskPlaceholder": "z. B. unbezahlte Rechnung nachverfolgen",
+        "planner.priority": "Priorität",
+        "planner.high": "Hoch",
+        "planner.medium": "Mittel",
+        "planner.low": "Niedrig",
+        "planner.targetDate": "Zieldatum",
+        "planner.addButton": "Zum Planer hinzufügen",
+        "planner.goalTitle": "🌱 Geschäftsziel",
+        "planner.goalText": "Behalte ein klares Ziel während der Arbeit sichtbar.",
+        "planner.goalPlaceholder": "z. B. Rechnungen dieses Monats organisieren",
+        "planner.saveGoal": "Ziel speichern",
+        "planner.repeatTitle": "🔄 Notiz zu wiederkehrender Arbeit",
+        "planner.repeatText": "Notiere häufig wiederkehrende Aufgaben, um spätere Vereinfachungen zu erkennen.",
+        "planner.repeatPlaceholder": "z. B. jeden Freitag dieselbe Erinnerung senden",
+        "planner.saveNote": "Notiz speichern",
+        "planner.myPriorities": "📋 Meine Prioritäten",
+        "planner.myPrioritiesText": "Diese Aufgaben hast du selbst eingetragen.",
+        "bt.title": "Geschäftstools",
+        "bt.subtitle": "Praktische Werkzeuge. Werte werden nur aus deinen Eingaben berechnet.",
+        "bt.invoiceTitle": "🧾 Rechnungs-/Angebots-Builder",
+        "bt.docType": "Dokumenttyp",
+        "bt.invoice": "Rechnung",
+        "bt.quote": "Angebot",
+        "bt.docNumber": "Dokumentnummer",
+        "bt.customerName": "Kundenname",
+        "bt.customerPlaceholder": "Kunde / Unternehmen",
+        "bt.description": "Beschreibung",
+        "bt.descriptionPlaceholder": "Produkt oder Dienstleistung",
+        "bt.quantity": "Menge",
+        "bt.unitPrice": "Stückpreis (£)",
+        "bt.preview": "Vorschau",
+        "bt.save": "Lokal speichern",
+        "bt.print": "Drucken / PDF speichern",
+        "bt.profitTitle": "💷 Kosten- & Gewinnübersicht",
+        "bt.profitNotice": "HEGEVA erfindet keine Schätzungen und verwendet nur die eingegebenen Zahlen.",
+        "bt.revenue": "Umsatz (£)",
+        "bt.stock": "Material / Bestand (£)",
+        "bt.operating": "Betriebskosten (£)",
+        "bt.other": "Sonstige Kosten (£)",
+        "bt.calculate": "Berechnen",
+        "bt.clientsTitle": "👥 Lokale Kundenliste",
+        "bt.clientsNotice": "Kundendaten bleiben lokal gesichert; unterstützte Daten können für angemeldete Nutzer synchronisiert werden.",
+        "bt.name": "Name",
+        "bt.clientPlaceholder": "Kundenname",
+        "bt.addCustomer": "Kunden hinzufügen",
         "toast.saved": "Einstellungen wurden in diesem Browser gespeichert.",
         "toast.language": "Sprache geändert."
       },
@@ -3051,6 +3207,58 @@
         "v46.cloudCoverage": "☁️ Couverture cloud",
         "v46.cloudCoverageText": "Paramètres, documents, planificateur, notes du coffre, dépenses et certaines données d'espace peuvent être synchronisés pour les utilisateurs connectés.",
         "v46.categoryBreakdown": "Catégories de dépenses",
+        "nav.timeSaver": "Gain de temps",
+        "nav.businessTools": "Outils professionnels",
+        "planner.title": "⏳ Gain de temps & planificateur d’activité",
+        "planner.subtitle": "Planifiez l’essentiel, définissez les priorités et gardez le travail récurrent visible.",
+        "planner.notice": "Une sauvegarde locale reste dans ce navigateur. Les utilisateurs connectés peuvent aussi synchroniser les données du planificateur avec leur espace cloud HEGEVA.",
+        "planner.addTitle": "🎯 Ajouter une priorité",
+        "planner.task": "Tâche",
+        "planner.taskPlaceholder": "ex. relancer une facture impayée",
+        "planner.priority": "Priorité",
+        "planner.high": "Haute",
+        "planner.medium": "Moyenne",
+        "planner.low": "Faible",
+        "planner.targetDate": "Date cible",
+        "planner.addButton": "Ajouter au planificateur",
+        "planner.goalTitle": "🌱 Objectif professionnel",
+        "planner.goalText": "Gardez un objectif clair visible pendant votre travail.",
+        "planner.goalPlaceholder": "ex. organiser les factures du mois",
+        "planner.saveGoal": "Enregistrer l’objectif",
+        "planner.repeatTitle": "🔄 Note de travail récurrent",
+        "planner.repeatText": "Notez les tâches répétitives afin d’identifier ce qui peut être simplifié.",
+        "planner.repeatPlaceholder": "ex. j’envoie le même rappel chaque vendredi",
+        "planner.saveNote": "Enregistrer la note",
+        "planner.myPriorities": "📋 Mes priorités",
+        "planner.myPrioritiesText": "Ce sont les tâches que vous avez saisies.",
+        "bt.title": "Outils professionnels",
+        "bt.subtitle": "Outils pratiques. Les valeurs sont calculées uniquement à partir des informations saisies.",
+        "bt.invoiceTitle": "🧾 Créateur de facture / devis",
+        "bt.docType": "Type de document",
+        "bt.invoice": "Facture",
+        "bt.quote": "Devis",
+        "bt.docNumber": "Numéro du document",
+        "bt.customerName": "Nom du client",
+        "bt.customerPlaceholder": "Client / entreprise",
+        "bt.description": "Description",
+        "bt.descriptionPlaceholder": "Produit ou service",
+        "bt.quantity": "Quantité",
+        "bt.unitPrice": "Prix unitaire (£)",
+        "bt.preview": "Aperçu",
+        "bt.save": "Enregistrer localement",
+        "bt.print": "Imprimer / enregistrer PDF",
+        "bt.profitTitle": "💷 Suivi des coûts et du bénéfice",
+        "bt.profitNotice": "HEGEVA n’invente aucune estimation et utilise uniquement les chiffres saisis.",
+        "bt.revenue": "Revenu (£)",
+        "bt.stock": "Matériel / stock (£)",
+        "bt.operating": "Coûts d’exploitation (£)",
+        "bt.other": "Autres coûts (£)",
+        "bt.calculate": "Calculer",
+        "bt.clientsTitle": "👥 Liste locale des clients",
+        "bt.clientsNotice": "Les données client restent sauvegardées localement et les données prises en charge peuvent être synchronisées pour les utilisateurs connectés.",
+        "bt.name": "Nom",
+        "bt.clientPlaceholder": "Nom du client",
+        "bt.addCustomer": "Ajouter un client",
         "toast.saved": "Paramètres enregistrés dans ce navigateur.",
         "toast.language": "Langue modifiée."
       },
@@ -3329,6 +3537,58 @@
         "v46.cloudCoverage": "☁️ Cobertura en la nube",
         "v46.cloudCoverageText": "Ajustes, documentos, planificador, notas del archivo, gastos y algunos datos del espacio pueden sincronizarse para usuarios conectados.",
         "v46.categoryBreakdown": "Categorías de gastos",
+        "nav.timeSaver": "Ahorro de tiempo",
+        "nav.businessTools": "Herramientas de negocio",
+        "planner.title": "⏳ Ahorro de tiempo y planificador de negocio",
+        "planner.subtitle": "Planifica lo importante, establece prioridades y mantén visible el trabajo recurrente.",
+        "planner.notice": "Se conserva una copia local en este navegador. Los usuarios conectados también pueden sincronizar los datos del planificador con su espacio HEGEVA en la nube.",
+        "planner.addTitle": "🎯 Añadir prioridad",
+        "planner.task": "Tarea",
+        "planner.taskPlaceholder": "p. ej. seguimiento de factura pendiente",
+        "planner.priority": "Prioridad",
+        "planner.high": "Alta",
+        "planner.medium": "Media",
+        "planner.low": "Baja",
+        "planner.targetDate": "Fecha objetivo",
+        "planner.addButton": "Añadir al planificador",
+        "planner.goalTitle": "🌱 Objetivo de negocio",
+        "planner.goalText": "Mantén un objetivo claro visible mientras trabajas.",
+        "planner.goalPlaceholder": "p. ej. organizar las facturas de este mes",
+        "planner.saveGoal": "Guardar objetivo",
+        "planner.repeatTitle": "🔄 Nota de trabajo repetitivo",
+        "planner.repeatText": "Registra tareas repetitivas para detectar qué puede simplificarse.",
+        "planner.repeatPlaceholder": "p. ej. envío el mismo recordatorio cada viernes",
+        "planner.saveNote": "Guardar nota",
+        "planner.myPriorities": "📋 Mis prioridades",
+        "planner.myPrioritiesText": "Estas son las tareas que tú mismo introdujiste.",
+        "bt.title": "Herramientas de negocio",
+        "bt.subtitle": "Herramientas prácticas. Los valores se calculan solo con la información que introduces.",
+        "bt.invoiceTitle": "🧾 Creador de factura / presupuesto",
+        "bt.docType": "Tipo de documento",
+        "bt.invoice": "Factura",
+        "bt.quote": "Presupuesto",
+        "bt.docNumber": "Número de documento",
+        "bt.customerName": "Nombre del cliente",
+        "bt.customerPlaceholder": "Cliente / empresa",
+        "bt.description": "Descripción",
+        "bt.descriptionPlaceholder": "Producto o servicio",
+        "bt.quantity": "Cantidad",
+        "bt.unitPrice": "Precio unitario (£)",
+        "bt.preview": "Vista previa",
+        "bt.save": "Guardar localmente",
+        "bt.print": "Imprimir / guardar PDF",
+        "bt.profitTitle": "💷 Seguimiento de costes y beneficio",
+        "bt.profitNotice": "HEGEVA no inventa estimaciones y solo usa los números introducidos.",
+        "bt.revenue": "Ingresos (£)",
+        "bt.stock": "Materiales / stock (£)",
+        "bt.operating": "Costes operativos (£)",
+        "bt.other": "Otros costes (£)",
+        "bt.calculate": "Calcular",
+        "bt.clientsTitle": "👥 Lista local de clientes",
+        "bt.clientsNotice": "Los datos de clientes se conservan como copia local y los datos compatibles pueden sincronizarse para usuarios conectados.",
+        "bt.name": "Nombre",
+        "bt.clientPlaceholder": "Nombre del cliente",
+        "bt.addCustomer": "Añadir cliente",
         "toast.saved": "Ajustes guardados en este navegador.",
         "toast.language": "Idioma cambiado."
       }
