@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V4.8 — multilingual business workspace with live plan and AI usage status." />
-  <title>Hegeva AI V4.8</title>
+  <meta name="description" content="Hegeva AI V4.9 — multilingual business workspace with live plan and AI usage status." />
+  <title>Hegeva AI V4.9</title>
 
   <style>
     :root {
@@ -1132,6 +1132,85 @@
       .plan-grid,.usage-grid{grid-template-columns:1fr}
     }
 
+
+    /* =========================================
+       HEGEVA AI V4.9 — REAL DOCUMENT CENTER
+       ========================================= */
+    .doc-center-toolbar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      margin:18px 0 12px;
+    }
+    .doc-center-toolbar .filter-row{margin:0;flex:1}
+    .doc-saved-list{display:grid;gap:10px;margin-top:12px}
+    .doc-saved-row{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) auto;
+      gap:14px;
+      align-items:center;
+      padding:14px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:rgba(255,255,255,.035);
+    }
+    .doc-saved-title{font-weight:900}
+    .doc-saved-meta{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.5}
+    .doc-saved-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+    .doc-saved-actions button{padding:7px 10px}
+    .doc-summary-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:10px;
+      margin-top:14px;
+    }
+    .doc-summary-card{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+      border-radius:13px;
+      padding:12px;
+    }
+    .doc-summary-card span{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}
+    .doc-summary-card strong{font-size:18px}
+    .doc-preview-totals{
+      width:min(360px,100%);
+      margin-left:auto;
+      display:grid;
+      gap:7px;
+      margin-top:20px;
+    }
+    .doc-preview-total-row{
+      display:flex;
+      justify-content:space-between;
+      gap:20px;
+      color:var(--muted);
+    }
+    .doc-preview-total-row.grand{
+      padding-top:9px;
+      margin-top:3px;
+      border-top:1px solid var(--border);
+      color:var(--text);
+      font-size:20px;
+      font-weight:900;
+    }
+    .doc-editing-badge{
+      display:none;
+      margin-left:8px;
+      color:var(--warning);
+      font-size:12px;
+      font-weight:800;
+    }
+    @media(max-width:900px){
+      .doc-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .doc-saved-row{grid-template-columns:1fr}
+      .doc-saved-actions{justify-content:flex-start}
+    }
+    @media(max-width:580px){
+      .doc-summary-grid{grid-template-columns:1fr}
+    }
+
 </style>
 </head>
 
@@ -1270,7 +1349,7 @@
       <section id="home" class="page active">
         <section class="v43-vision">
           <div class="v43-copy">
-            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.8 • HUMAN-FIRST BUSINESS AI</div>
+            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.9 • HUMAN-FIRST BUSINESS AI</div>
             <h1>
               <span data-i18n="v43.hero1">Save time.</span>
               <span class="gradient-text" data-i18n="v43.hero2"> Work smarter.</span>
@@ -1313,7 +1392,7 @@
         </div>
 
         <section class="hero">
-          <div class="badge" data-i18n="home.badge">HEGEVA AI V4.8</div>
+          <div class="badge" data-i18n="home.badge">HEGEVA AI V4.9</div>
 
           <h2>
             <span data-i18n="home.title1">Save time. Work smarter.</span>
@@ -1412,7 +1491,7 @@
         </div>
 
         <div class="footer-note" data-i18n="home.footer">
-          Hegeva AI V4.8 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
+          Hegeva AI V4.9 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
         </div>
       </section>
 
@@ -1503,28 +1582,44 @@
       <section id="documents" class="page">
         <div class="page-heading">
           <div>
-            <h1 data-i18n="documents.title">🧾 Invoice & Quote Builder</h1>
-            <p data-i18n="documents.subtitle">Create a real invoice or quote using only the information you enter.</p>
+            <h1 data-i18n="documents.title">🧾 Document Center</h1>
+            <p data-i18n="documents.subtitle">Create, save, reopen, export and print invoices, quotes and receipts using only information you enter.</p>
           </div>
         </div>
 
         <div class="notice" data-i18n="documents.notice">
-          This tool works locally in your browser. Check your legal, tax and payment details before sending a document to a customer.
+          HEGEVA does not invent legal, tax or payment details. Check the information before sending any document to a customer.
         </div>
 
-        <div class="card">
-          <div class="form-grid">
+        <div class="doc-summary-grid">
+          <div class="doc-summary-card"><span data-i18n="documents.savedCount">Saved documents</span><strong id="docCenterCount">0</strong></div>
+          <div class="doc-summary-card"><span data-i18n="documents.invoiceCount">Invoices</span><strong id="docCenterInvoices">0</strong></div>
+          <div class="doc-summary-card"><span data-i18n="documents.quoteCount">Quotes</span><strong id="docCenterQuotes">0</strong></div>
+          <div class="doc-summary-card"><span data-i18n="documents.receiptCount">Receipts</span><strong id="docCenterReceipts">0</strong></div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div style="display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap">
+            <h3 style="margin:0" data-i18n="documents.editorTitle">Create document</h3>
+            <div>
+              <span class="status live" id="docAutoNumberStatus" data-i18n="documents.autoNumber">Auto-numbering active</span>
+              <span class="doc-editing-badge" id="docEditingBadge" data-i18n="documents.editing">Editing saved document</span>
+            </div>
+          </div>
+
+          <div class="form-grid" style="margin-top:16px">
             <div class="form-group">
               <label for="docType" data-i18n="documents.type">Document type</label>
               <select id="docType">
                 <option value="Invoice" data-i18n="documents.invoice">Invoice</option>
                 <option value="Quote" data-i18n="documents.quote">Quote</option>
+                <option value="Receipt" data-i18n="documents.receipt">Receipt</option>
               </select>
             </div>
 
             <div class="form-group">
               <label for="docNumber" data-i18n="documents.number">Document number</label>
-              <input id="docNumber" placeholder="INV-001">
+              <input id="docNumber" readonly>
             </div>
 
             <div class="form-group">
@@ -1551,11 +1646,7 @@
               <label for="docCustomerAddress" data-i18n="documents.customerAddress">Customer address</label>
               <textarea id="docCustomerAddress"></textarea>
             </div>
-          </div>
 
-          <h3 style="margin-top:22px" data-i18n="documents.item">Item / service</h3>
-
-          <div class="form-grid" style="margin-top:12px">
             <div class="form-group full">
               <label for="docDescription" data-i18n="documents.description">Description</label>
               <input id="docDescription" data-i18n-placeholder="documents.descriptionPlaceholder" placeholder="Service or product">
@@ -1570,12 +1661,28 @@
               <label for="docPrice" data-i18n="documents.price">Unit price</label>
               <input id="docPrice" type="number" min="0" step="0.01" value="0">
             </div>
+
+            <div class="form-group">
+              <label for="docVat" data-i18n="documents.vat">VAT %</label>
+              <input id="docVat" type="number" min="0" step="0.01" value="0">
+            </div>
+
+            <div class="form-group">
+              <label for="docReference" data-i18n="documents.reference">Reference / PO</label>
+              <input id="docReference" maxlength="80">
+            </div>
+
+            <div class="form-group full">
+              <label for="docNotes" data-i18n="documents.notes">Notes / payment terms</label>
+              <textarea id="docNotes" maxlength="1000" data-i18n-placeholder="documents.notesPlaceholder" placeholder="Optional payment terms or notes"></textarea>
+            </div>
           </div>
 
           <div class="hero-buttons">
             <button class="primary-button" id="createDocument" type="button" data-i18n="documents.create">Create preview</button>
             <button class="secondary-button" id="saveDocument" type="button" data-i18n="documents.save">Save document</button>
-            <button class="secondary-button" id="printDocument" type="button" data-i18n="documents.print">Print</button>
+            <button class="secondary-button" id="newDocument" type="button" data-i18n="documents.new">New document</button>
+            <button class="secondary-button" id="printDocument" type="button" data-i18n="documents.print">Print / Save PDF</button>
           </div>
         </div>
 
@@ -1590,6 +1697,7 @@
             <div style="text-align:right">
               <strong id="previewNumber"></strong>
               <p id="previewDates"></p>
+              <p id="previewReference" style="color:var(--muted)"></p>
             </div>
           </div>
 
@@ -1619,10 +1727,37 @@
             </table>
           </div>
 
-          <div style="text-align:right;margin-top:20px">
-            <div style="color:var(--muted)" data-i18n="documents.grandTotal">Total</div>
-            <div id="previewTotal" style="font-size:30px;font-weight:900;color:var(--primary-2)"></div>
+          <div class="doc-preview-totals">
+            <div class="doc-preview-total-row"><span data-i18n="documents.subtotal">Subtotal</span><strong id="previewSubtotal"></strong></div>
+            <div class="doc-preview-total-row"><span data-i18n="documents.vatAmount">VAT</span><strong id="previewVat"></strong></div>
+            <div class="doc-preview-total-row grand"><span data-i18n="documents.grandTotal">Total</span><strong id="previewTotal"></strong></div>
           </div>
+
+          <div id="previewNotesWrap" style="display:none;margin-top:20px">
+            <h3 data-i18n="documents.notes">Notes / payment terms</h3>
+            <p id="previewNotes" style="margin-top:8px;white-space:pre-wrap"></p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px">
+          <div class="page-heading" style="margin-bottom:12px">
+            <div>
+              <h2 data-i18n="documents.savedTitle">📚 Saved Document Center</h2>
+              <p data-i18n="documents.savedText">Reopen, export or delete documents you actually saved.</p>
+            </div>
+          </div>
+
+          <div class="filter-row">
+            <input id="docCenterSearch" class="vault-search" style="margin:0" data-i18n-placeholder="documents.searchPlaceholder" placeholder="Search customer, number or description...">
+            <select id="docCenterFilter">
+              <option value="" data-i18n="v42.allDocs">All documents</option>
+              <option value="Invoice" data-i18n="documents.invoice">Invoices</option>
+              <option value="Quote" data-i18n="documents.quote">Quotes</option>
+              <option value="Receipt" data-i18n="documents.receipt">Receipts</option>
+            </select>
+          </div>
+
+          <div id="docCenterList" class="doc-saved-list"></div>
         </div>
       </section>
 
@@ -1930,7 +2065,7 @@
           <div class="card">
             <h3 data-i18n="bt.invoiceTitle">🧾 Invoice / Quote Builder</h3>
             <div class="form-grid">
-              <div class="form-group"><label data-i18n="bt.docType">Document type</label><select id="btDocType"><option value="Invoice" data-i18n="bt.invoice">Invoice</option><option value="Quote" data-i18n="bt.quote">Quote</option></select></div>
+              <div class="form-group"><label data-i18n="bt.docType">Document type</label><select id="btDocType"><option value="Invoice" data-i18n="bt.invoice">Invoice</option><option value="Quote" data-i18n="bt.quote">Quote</option><option value="Receipt" data-i18n="documents.receipt">Receipt</option></select></div>
               <div class="form-group"><label data-i18n="bt.docNumber">Document number</label><input id="btDocNumber" readonly></div>
               <div class="form-group"><label data-i18n="bt.customerName">Customer name</label><input id="btCustomer" data-i18n-placeholder="bt.customerPlaceholder" placeholder="Customer / company"></div>
               <div class="form-group"><label data-i18n="bt.description">Description</label><input id="btDescription" data-i18n-placeholder="bt.descriptionPlaceholder" placeholder="Product or service"></div>
@@ -2123,7 +2258,7 @@
         "nav.expenses": "Expenses",
         "nav.reports": "Reports",
         "nav.settings": "Settings",
-        "home.badge": "HEGEVA AI V4.8",
+        "home.badge": "HEGEVA AI V4.9",
         "home.title1": "Build your business workspace",
         "home.title2": "without fake promises.",
         "home.subtitle": "Hegeva AI is a human-first business workspace designed to reduce admin, organize everyday work and give you more time to focus. Only working features are marked as available.",
@@ -2138,7 +2273,7 @@
         "cards.aiText": "The secure AI backend is not connected yet. This feature is clearly marked as Coming Soon until it is real.",
         "status.live": "● Working",
         "status.soon": "Coming Soon",
-        "home.footer": "Hegeva AI V4.8 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
+        "home.footer": "Hegeva AI V4.9 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
         "ai.title": "🤖 AI Assistant",
         "ai.subtitle": "Secure AI integration is the next development stage.",
         "ai.comingTitle": "Hegeva AI Assistant — Coming Soon",
@@ -2212,6 +2347,24 @@
         "documents.total": "Total",
         "documents.grandTotal": "Total",
         "documents.savedToast": "Document saved locally.",
+        "documents.receipt": "Receipt",
+        "documents.vat": "VAT %",
+        "documents.reference": "Reference / PO",
+        "documents.notes": "Notes / payment terms",
+        "documents.notesPlaceholder": "Optional payment terms or notes",
+        "documents.new": "New document",
+        "documents.subtotal": "Subtotal",
+        "documents.vatAmount": "VAT",
+        "documents.savedTitle": "📚 Saved Document Center",
+        "documents.savedText": "Reopen, export or delete documents you actually saved.",
+        "documents.searchPlaceholder": "Search customer, number or description...",
+        "documents.savedCount": "Saved documents",
+        "documents.invoiceCount": "Invoices",
+        "documents.quoteCount": "Quotes",
+        "documents.receiptCount": "Receipts",
+        "documents.editorTitle": "Create document",
+        "documents.autoNumber": "Auto-numbering active",
+        "documents.editing": "Editing saved document",
         "nav.vault": "Vault & Templates",
         "vault.title": "🗂️ Business Vault & Smart Templates",
         "vault.subtitle": "Keep locally saved business items together and create useful text templates from your own details.",
@@ -2332,7 +2485,7 @@
         "v42.allDocs": "All documents",
         "v42.invoices": "Invoices",
         "v42.quotes": "Quotes",
-        "v43.eyebrow": "HEGEVA AI V4.8 • HUMAN-FIRST BUSINESS AI",
+        "v43.eyebrow": "HEGEVA AI V4.9 • HUMAN-FIRST BUSINESS AI",
         "v43.hero1": "Save time.",
         "v43.hero2": " Work smarter.",
         "v43.hero3": " Stay in control.",
@@ -2477,7 +2630,7 @@
         "nav.expenses": "Kiadások",
         "nav.reports": "Riportok",
         "nav.settings": "Beállítások",
-        "home.badge": "HEGEVA AI V4.8",
+        "home.badge": "HEGEVA AI V4.9",
         "home.title1": "Építsd fel az üzleti munkateredet",
         "home.title2": "kamu ígéretek nélkül.",
         "home.subtitle": "A Hegeva AI lépésről lépésre épül. Csak a valóban működő funkciókat jelöljük elérhetőnek; ami még nincs kész, az egyértelműen Coming Soon.",
@@ -2566,6 +2719,24 @@
         "documents.total": "Összesen",
         "documents.grandTotal": "Végösszeg",
         "documents.savedToast": "Dokumentum helyben elmentve.",
+        "documents.receipt": "Nyugta",
+        "documents.vat": "ÁFA %",
+        "documents.reference": "Hivatkozás / PO",
+        "documents.notes": "Megjegyzés / fizetési feltételek",
+        "documents.notesPlaceholder": "Opcionális fizetési feltételek vagy megjegyzés",
+        "documents.new": "Új dokumentum",
+        "documents.subtotal": "Nettó / részösszeg",
+        "documents.vatAmount": "ÁFA",
+        "documents.savedTitle": "📚 Mentett dokumentumok",
+        "documents.savedText": "Nyisd újra, exportáld vagy töröld a valóban elmentett dokumentumokat.",
+        "documents.searchPlaceholder": "Keresés ügyfél, sorszám vagy leírás alapján...",
+        "documents.savedCount": "Mentett dokumentumok",
+        "documents.invoiceCount": "Számlák",
+        "documents.quoteCount": "Árajánlatok",
+        "documents.receiptCount": "Nyugták",
+        "documents.editorTitle": "Dokumentum készítése",
+        "documents.autoNumber": "Automatikus sorszámozás aktív",
+        "documents.editing": "Mentett dokumentum szerkesztése",
         "nav.vault": "Széf és sablonok",
         "vault.title": "🗂️ Üzleti széf és okos sablonok",
         "vault.subtitle": "Tartsd együtt a helyben mentett üzleti elemeket, és készíts használható szövegsablonokat a saját adataidból.",
@@ -2686,7 +2857,7 @@
         "v42.allDocs": "Minden dokumentum",
         "v42.invoices": "Számlák",
         "v42.quotes": "Árajánlatok",
-        "v43.eyebrow": "HEGEVA AI V4.8 • EMBERKÖZPONTÚ ÜZLETI AI",
+        "v43.eyebrow": "HEGEVA AI V4.9 • EMBERKÖZPONTÚ ÜZLETI AI",
         "v43.hero1": "Spórolj időt.",
         "v43.hero2": " Dolgozz okosabban.",
         "v43.hero3": " Maradj irányításban.",
@@ -2831,7 +3002,7 @@
         "nav.expenses": "Ausgaben",
         "nav.reports": "Berichte",
         "nav.settings": "Einstellungen",
-        "home.badge": "HEGEVA AI V4.8",
+        "home.badge": "HEGEVA AI V4.9",
         "home.title1": "Baue deinen Business-Arbeitsbereich",
         "home.title2": "ohne falsche Versprechen.",
         "home.subtitle": "Hegeva AI wird Schritt für Schritt entwickelt. Nur funktionierende Funktionen werden als verfügbar angezeigt; unfertige Werkzeuge sind klar als Coming Soon markiert.",
@@ -2920,6 +3091,24 @@
         "documents.total": "Gesamt",
         "documents.grandTotal": "Gesamtsumme",
         "documents.savedToast": "Dokument lokal gespeichert.",
+        "documents.receipt": "Beleg",
+        "documents.vat": "MwSt. %",
+        "documents.reference": "Referenz / PO",
+        "documents.notes": "Notizen / Zahlungsbedingungen",
+        "documents.notesPlaceholder": "Optionale Zahlungsbedingungen oder Notizen",
+        "documents.new": "Neues Dokument",
+        "documents.subtotal": "Zwischensumme",
+        "documents.vatAmount": "MwSt.",
+        "documents.savedTitle": "📚 Gespeicherte Dokumente",
+        "documents.savedText": "Gespeicherte Dokumente erneut öffnen, exportieren oder löschen.",
+        "documents.searchPlaceholder": "Kunde, Nummer oder Beschreibung suchen...",
+        "documents.savedCount": "Gespeicherte Dokumente",
+        "documents.invoiceCount": "Rechnungen",
+        "documents.quoteCount": "Angebote",
+        "documents.receiptCount": "Belege",
+        "documents.editorTitle": "Dokument erstellen",
+        "documents.autoNumber": "Automatische Nummerierung aktiv",
+        "documents.editing": "Gespeichertes Dokument bearbeiten",
         "nav.vault": "Ablage & Vorlagen",
         "vault.title": "🗂️ Business-Ablage & Smart Templates",
         "vault.subtitle": "Halte lokal gespeicherte Geschäftsinhalte zusammen und erstelle nützliche Textvorlagen aus deinen eigenen Angaben.",
@@ -3040,7 +3229,7 @@
         "v42.allDocs": "Alle Dokumente",
         "v42.invoices": "Rechnungen",
         "v42.quotes": "Angebote",
-        "v43.eyebrow": "HEGEVA AI V4.8 • MENSCHENZENTRIERTE BUSINESS-KI",
+        "v43.eyebrow": "HEGEVA AI V4.9 • MENSCHENZENTRIERTE BUSINESS-KI",
         "v43.hero1": "Zeit sparen.",
         "v43.hero2": " Smarter arbeiten.",
         "v43.hero3": " Die Kontrolle behalten.",
@@ -3185,7 +3374,7 @@
         "nav.expenses": "Dépenses",
         "nav.reports": "Rapports",
         "nav.settings": "Paramètres",
-        "home.badge": "HEGEVA AI V4.8",
+        "home.badge": "HEGEVA AI V4.9",
         "home.title1": "Construisez votre espace professionnel",
         "home.title2": "sans fausses promesses.",
         "home.subtitle": "Hegeva AI est développé étape par étape. Seules les fonctions réellement opérationnelles sont indiquées comme disponibles ; les outils non terminés sont clairement marqués Coming Soon.",
@@ -3274,6 +3463,24 @@
         "documents.total": "Total",
         "documents.grandTotal": "Total",
         "documents.savedToast": "Document enregistré localement.",
+        "documents.receipt": "Reçu",
+        "documents.vat": "TVA %",
+        "documents.reference": "Référence / PO",
+        "documents.notes": "Notes / conditions de paiement",
+        "documents.notesPlaceholder": "Conditions de paiement ou notes facultatives",
+        "documents.new": "Nouveau document",
+        "documents.subtotal": "Sous-total",
+        "documents.vatAmount": "TVA",
+        "documents.savedTitle": "📚 Documents enregistrés",
+        "documents.savedText": "Rouvrez, exportez ou supprimez les documents réellement enregistrés.",
+        "documents.searchPlaceholder": "Rechercher client, numéro ou description...",
+        "documents.savedCount": "Documents enregistrés",
+        "documents.invoiceCount": "Factures",
+        "documents.quoteCount": "Devis",
+        "documents.receiptCount": "Reçus",
+        "documents.editorTitle": "Créer un document",
+        "documents.autoNumber": "Numérotation automatique active",
+        "documents.editing": "Modification d’un document enregistré",
         "nav.vault": "Coffre & modèles",
         "vault.title": "🗂️ Coffre professionnel & modèles intelligents",
         "vault.subtitle": "Regroupez les éléments professionnels enregistrés localement et créez des modèles de texte utiles avec vos propres informations.",
@@ -3394,7 +3601,7 @@
         "v42.allDocs": "Tous les documents",
         "v42.invoices": "Factures",
         "v42.quotes": "Devis",
-        "v43.eyebrow": "HEGEVA AI V4.8 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
+        "v43.eyebrow": "HEGEVA AI V4.9 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
         "v43.hero1": "Gagnez du temps.",
         "v43.hero2": " Travaillez plus intelligemment.",
         "v43.hero3": " Gardez le contrôle.",
@@ -3539,7 +3746,7 @@
         "nav.expenses": "Gastos",
         "nav.reports": "Informes",
         "nav.settings": "Ajustes",
-        "home.badge": "HEGEVA AI V4.8",
+        "home.badge": "HEGEVA AI V4.9",
         "home.title1": "Construye tu espacio de negocio",
         "home.title2": "sin promesas falsas.",
         "home.subtitle": "Hegeva AI se está construyendo paso a paso. Solo las funciones que realmente funcionan se marcan como disponibles; las herramientas sin terminar se indican claramente como Coming Soon.",
@@ -3628,6 +3835,24 @@
         "documents.total": "Total",
         "documents.grandTotal": "Total",
         "documents.savedToast": "Documento guardado localmente.",
+        "documents.receipt": "Recibo",
+        "documents.vat": "IVA %",
+        "documents.reference": "Referencia / PO",
+        "documents.notes": "Notas / condiciones de pago",
+        "documents.notesPlaceholder": "Condiciones de pago o notas opcionales",
+        "documents.new": "Nuevo documento",
+        "documents.subtotal": "Subtotal",
+        "documents.vatAmount": "IVA",
+        "documents.savedTitle": "📚 Documentos guardados",
+        "documents.savedText": "Vuelve a abrir, exporta o elimina los documentos realmente guardados.",
+        "documents.searchPlaceholder": "Buscar cliente, número o descripción...",
+        "documents.savedCount": "Documentos guardados",
+        "documents.invoiceCount": "Facturas",
+        "documents.quoteCount": "Presupuestos",
+        "documents.receiptCount": "Recibos",
+        "documents.editorTitle": "Crear documento",
+        "documents.autoNumber": "Numeración automática activa",
+        "documents.editing": "Editando documento guardado",
         "nav.vault": "Archivo y plantillas",
         "vault.title": "🗂️ Archivo de negocio y plantillas inteligentes",
         "vault.subtitle": "Mantén juntos los elementos de negocio guardados localmente y crea plantillas de texto útiles con tus propios datos.",
@@ -3748,7 +3973,7 @@
         "v42.allDocs": "Todos los documentos",
         "v42.invoices": "Facturas",
         "v42.quotes": "Presupuestos",
-        "v43.eyebrow": "HEGEVA AI V4.8 • IA EMPRESARIAL CENTRADA EN PERSONAS",
+        "v43.eyebrow": "HEGEVA AI V4.9 • IA EMPRESARIAL CENTRADA EN PERSONAS",
         "v43.hero1": "Ahorra tiempo.",
         "v43.hero2": " Trabaja de forma más inteligente.",
         "v43.hero3": " Mantén el control.",
@@ -4199,93 +4424,349 @@
     renderTasks();
 
 
+    const DOC_KEY = "hegeva_documents";
+    const DOC_COUNTER_KEY = "hegeva_document_counters_v49";
+    let editingDocumentId = null;
+
     function formatDocumentMoney(value) {
       const currency = settingsFields.currency.value || "GBP";
-
       try {
         return new Intl.NumberFormat(getLanguage(), {
           style: "currency",
           currency
-        }).format(value);
+        }).format(Number(value) || 0);
       } catch {
-        return `${Number(value).toFixed(2)} ${currency}`;
+        return `${Number(value || 0).toFixed(2)} ${currency}`;
       }
     }
 
-    function buildDocumentPreview() {
+    function readDocumentsV49() {
+      try {
+        const value = JSON.parse(localStorage.getItem(DOC_KEY) || "[]");
+        return Array.isArray(value) ? value : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function writeDocumentsV49(docs) {
+      localStorage.setItem(DOC_KEY, JSON.stringify(docs.slice(0, 500)));
+    }
+
+    function readDocumentCountersV49() {
+      try {
+        return JSON.parse(localStorage.getItem(DOC_COUNTER_KEY) || "{}");
+      } catch {
+        return {};
+      }
+    }
+
+    function documentPrefixV49(type) {
+      return type === "Quote" ? "QUO" : type === "Receipt" ? "REC" : "INV";
+    }
+
+    function nextDocumentNumberV49(type) {
+      const counters = readDocumentCountersV49();
+      const prefix = documentPrefixV49(type);
+      const next = Number(counters[prefix] || 0) + 1;
+      return `${prefix}-${String(next).padStart(5, "0")}`;
+    }
+
+    function commitDocumentNumberV49(type) {
+      const counters = readDocumentCountersV49();
+      const prefix = documentPrefixV49(type);
+      counters[prefix] = Number(counters[prefix] || 0) + 1;
+      localStorage.setItem(DOC_COUNTER_KEY, JSON.stringify(counters));
+    }
+
+    function setFreshDocumentNumberV49() {
+      if (editingDocumentId) return;
+      const type = document.getElementById("docType")?.value || "Invoice";
+      const number = document.getElementById("docNumber");
+      if (number) number.value = nextDocumentNumberV49(type);
+    }
+
+    function documentDataV49() {
       const type = document.getElementById("docType").value;
-      const number = document.getElementById("docNumber").value.trim() || "—";
-      const date = document.getElementById("docDate").value || "—";
-      const due = document.getElementById("docDue").value || "—";
-      const customer = document.getElementById("docCustomer").value.trim() || "—";
-      const customerEmail = document.getElementById("docCustomerEmail").value.trim();
-      const customerAddress = document.getElementById("docCustomerAddress").value.trim();
-      const description = document.getElementById("docDescription").value.trim() || "—";
       const qty = Math.max(0, Number(document.getElementById("docQty").value || 0));
       const price = Math.max(0, Number(document.getElementById("docPrice").value || 0));
-      const total = qty * price;
-
-      const saved = (() => {
-        try {
-          return JSON.parse(localStorage.getItem("hegeva_settings") || "{}");
-        } catch {
-          return {};
-        }
-      })();
-
-      document.getElementById("previewType").textContent = type.toUpperCase();
-      document.getElementById("previewNumber").textContent = number;
-      document.getElementById("previewDates").textContent = `${date} • ${due}`;
-      document.getElementById("previewBusiness").textContent = saved.businessName || "Hegeva Workspace";
-      document.getElementById("previewBusinessDetails").textContent =
-        [saved.businessEmail, saved.address, saved.country].filter(Boolean).join(" • ");
-
-      document.getElementById("previewCustomer").textContent =
-        [customer, customerEmail, customerAddress].filter(Boolean).join(" • ");
-
-      document.getElementById("previewDescription").textContent = description;
-      document.getElementById("previewQty").textContent = qty;
-      document.getElementById("previewPrice").textContent = formatDocumentMoney(price);
-      document.getElementById("previewLineTotal").textContent = formatDocumentMoney(total);
-      document.getElementById("previewTotal").textContent = formatDocumentMoney(total);
-      document.getElementById("documentPreview").style.display = "block";
+      const vatRate = Math.max(0, Number(document.getElementById("docVat").value || 0));
+      const subtotal = qty * price;
+      const vat = subtotal * vatRate / 100;
+      const total = subtotal + vat;
 
       return {
-        type, number, date, due,
-        customer, customerEmail, customerAddress,
-        description, qty, price, total
+        id: editingDocumentId || crypto.randomUUID(),
+        type,
+        number: document.getElementById("docNumber").value.trim() || nextDocumentNumberV49(type),
+        date: document.getElementById("docDate").value || "",
+        due: document.getElementById("docDue").value || "",
+        customer: document.getElementById("docCustomer").value.trim(),
+        customerEmail: document.getElementById("docCustomerEmail").value.trim(),
+        customerAddress: document.getElementById("docCustomerAddress").value.trim(),
+        description: document.getElementById("docDescription").value.trim(),
+        qty,
+        price,
+        vatRate,
+        subtotal,
+        vat,
+        total,
+        reference: document.getElementById("docReference").value.trim(),
+        notes: document.getElementById("docNotes").value.trim(),
+        updatedAt: new Date().toISOString()
       };
     }
 
-    document.getElementById("createDocument").addEventListener("click", () => {
-      buildDocumentPreview();
-    });
+    function buildDocumentPreview() {
+      const d = documentDataV49();
+      const saved = (() => {
+        try { return JSON.parse(localStorage.getItem("hegeva_settings") || "{}"); }
+        catch { return {}; }
+      })();
 
-    document.getElementById("saveDocument").addEventListener("click", () => {
-      const documentData = buildDocumentPreview();
-
-      let savedDocuments = [];
-      try {
-        savedDocuments = JSON.parse(localStorage.getItem("hegeva_documents") || "[]");
-      } catch {
-        savedDocuments = [];
+      document.getElementById("previewType").textContent = d.type.toUpperCase();
+      document.getElementById("previewNumber").textContent = d.number;
+      document.getElementById("previewDates").textContent =
+        [d.date, d.due ? `${localeText({en:"Due",hu:"Határidő",de:"Fällig",fr:"Échéance",es:"Vence"})}: ${d.due}` : ""]
+          .filter(Boolean).join(" • ");
+      document.getElementById("previewReference").textContent =
+        d.reference ? `${localeText({en:"Reference",hu:"Hivatkozás",de:"Referenz",fr:"Référence",es:"Referencia"})}: ${d.reference}` : "";
+      document.getElementById("previewBusiness").textContent = saved.businessName || "HEGEVA Workspace";
+      document.getElementById("previewBusinessDetails").textContent =
+        [saved.businessEmail, saved.address, saved.country].filter(Boolean).join(" • ");
+      document.getElementById("previewCustomer").textContent =
+        [d.customer || "—", d.customerEmail, d.customerAddress].filter(Boolean).join(" • ");
+      document.getElementById("previewDescription").textContent = d.description || "—";
+      document.getElementById("previewQty").textContent = d.qty;
+      document.getElementById("previewPrice").textContent = formatDocumentMoney(d.price);
+      document.getElementById("previewLineTotal").textContent = formatDocumentMoney(d.subtotal);
+      document.getElementById("previewSubtotal").textContent = formatDocumentMoney(d.subtotal);
+      document.getElementById("previewVat").textContent = `${formatDocumentMoney(d.vat)} (${d.vatRate}%)`;
+      document.getElementById("previewTotal").textContent = formatDocumentMoney(d.total);
+      const notesWrap = document.getElementById("previewNotesWrap");
+      const notes = document.getElementById("previewNotes");
+      if (d.notes) {
+        notes.textContent = d.notes;
+        notesWrap.style.display = "block";
+      } else {
+        notes.textContent = "";
+        notesWrap.style.display = "none";
       }
+      document.getElementById("documentPreview").style.display = "block";
+      return d;
+    }
 
-      savedDocuments.push({
-        ...documentData,
-        savedAt: new Date().toISOString()
+    function clearDocumentFormV49() {
+      editingDocumentId = null;
+      document.getElementById("docType").value = "Invoice";
+      document.getElementById("docDate").value = new Date().toISOString().slice(0,10);
+      document.getElementById("docDue").value = "";
+      document.getElementById("docCustomer").value = "";
+      document.getElementById("docCustomerEmail").value = "";
+      document.getElementById("docCustomerAddress").value = "";
+      document.getElementById("docDescription").value = "";
+      document.getElementById("docQty").value = "1";
+      document.getElementById("docPrice").value = "0";
+      document.getElementById("docVat").value = "0";
+      document.getElementById("docReference").value = "";
+      document.getElementById("docNotes").value = "";
+      document.getElementById("documentPreview").style.display = "none";
+      document.getElementById("docEditingBadge").style.display = "none";
+      setFreshDocumentNumberV49();
+    }
+
+    function loadDocumentIntoEditorV49(id) {
+      const doc = readDocumentsV49().find(x => x.id === id);
+      if (!doc) return;
+      editingDocumentId = doc.id;
+      document.getElementById("docType").value = doc.type || "Invoice";
+      document.getElementById("docNumber").value = doc.number || "";
+      document.getElementById("docDate").value = doc.date || "";
+      document.getElementById("docDue").value = doc.due || "";
+      document.getElementById("docCustomer").value = doc.customer || "";
+      document.getElementById("docCustomerEmail").value = doc.customerEmail || "";
+      document.getElementById("docCustomerAddress").value = doc.customerAddress || "";
+      document.getElementById("docDescription").value = doc.description || "";
+      document.getElementById("docQty").value = Number(doc.qty ?? 1);
+      document.getElementById("docPrice").value = Number(doc.price ?? 0);
+      document.getElementById("docVat").value = Number(doc.vatRate ?? 0);
+      document.getElementById("docReference").value = doc.reference || "";
+      document.getElementById("docNotes").value = doc.notes || "";
+      document.getElementById("docEditingBadge").style.display = "inline";
+      buildDocumentPreview();
+      showPage("documents");
+      window.scrollTo({top:0, behavior:"smooth"});
+    }
+
+    function exportDocumentV49(id) {
+      const doc = readDocumentsV49().find(x => x.id === id);
+      if (!doc) return;
+      const text = [
+        `HEGEVA AI — ${doc.type || "Document"}`,
+        `Number: ${doc.number || "—"}`,
+        `Date: ${doc.date || "—"}`,
+        doc.due ? `Due / valid until: ${doc.due}` : "",
+        `Customer: ${doc.customer || "—"}`,
+        doc.customerEmail ? `Email: ${doc.customerEmail}` : "",
+        doc.customerAddress ? `Address: ${doc.customerAddress}` : "",
+        doc.reference ? `Reference: ${doc.reference}` : "",
+        "",
+        `Description: ${doc.description || "—"}`,
+        `Quantity: ${doc.qty ?? 0}`,
+        `Unit price: ${formatDocumentMoney(doc.price || 0)}`,
+        `Subtotal: ${formatDocumentMoney(doc.subtotal ?? ((doc.qty || 0) * (doc.price || 0)))}`,
+        `VAT: ${formatDocumentMoney(doc.vat || 0)} (${Number(doc.vatRate || 0)}%)`,
+        `Total: ${formatDocumentMoney(doc.total || 0)}`,
+        doc.notes ? `\nNotes:\n${doc.notes}` : ""
+      ].filter(Boolean).join("\n");
+
+      const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${(doc.number || "hegeva-document").replace(/[^\w\-]+/g,"_")}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function deleteDocumentV49(id) {
+      const ok = confirm(localeText({
+        en:"Delete this saved document?",
+        hu:"Törlöd ezt a mentett dokumentumot?",
+        de:"Dieses gespeicherte Dokument löschen?",
+        fr:"Supprimer ce document enregistré ?",
+        es:"¿Eliminar este documento guardado?"
+      }));
+      if (!ok) return;
+      const docs = readDocumentsV49().filter(x => x.id !== id);
+      writeDocumentsV49(docs);
+      if (editingDocumentId === id) clearDocumentFormV49();
+      renderDocumentCenterV49();
+      renderVaultDocuments();
+      if (typeof renderReportsV46 === "function") renderReportsV46();
+      if (typeof refreshV43VisionMetrics === "function") refreshV43VisionMetrics();
+      if (typeof v46SaveBucket === "function") v46SaveBucket("documents");
+    }
+
+    function renderDocumentCenterV49() {
+      const list = document.getElementById("docCenterList");
+      if (!list) return;
+      const docs = readDocumentsV49();
+      const search = (document.getElementById("docCenterSearch")?.value || "").trim().toLowerCase();
+      const type = document.getElementById("docCenterFilter")?.value || "";
+
+      document.getElementById("docCenterCount").textContent = docs.length;
+      document.getElementById("docCenterInvoices").textContent = docs.filter(d=>d.type==="Invoice").length;
+      document.getElementById("docCenterQuotes").textContent = docs.filter(d=>d.type==="Quote").length;
+      document.getElementById("docCenterReceipts").textContent = docs.filter(d=>d.type==="Receipt").length;
+
+      const filtered = docs.filter(doc => {
+        const haystack = [doc.type,doc.number,doc.customer,doc.customerEmail,doc.description,doc.reference].join(" ").toLowerCase();
+        return (!type || doc.type === type) && (!search || haystack.includes(search));
       });
 
-      localStorage.setItem("hegeva_documents", JSON.stringify(savedDocuments));
-      showToast(translations[getLanguage()]["documents.savedToast"]);
+      list.innerHTML = "";
+      if (!filtered.length) {
+        const empty = document.createElement("div");
+        empty.className = "coming-item";
+        empty.textContent = localeText({
+          en:"No matching saved documents.",
+          hu:"Nincs megfelelő mentett dokumentum.",
+          de:"Keine passenden gespeicherten Dokumente.",
+          fr:"Aucun document enregistré correspondant.",
+          es:"No hay documentos guardados que coincidan."
+        });
+        list.appendChild(empty);
+        return;
+      }
+
+      filtered.slice().sort((a,b)=>String(b.updatedAt||b.savedAt||"").localeCompare(String(a.updatedAt||a.savedAt||""))).forEach(doc => {
+        const row = document.createElement("div");
+        row.className = "doc-saved-row";
+
+        const copy = document.createElement("div");
+        const title = document.createElement("div");
+        title.className = "doc-saved-title";
+        title.textContent = `${doc.type || "Document"} • ${doc.number || "—"}`;
+        const meta = document.createElement("div");
+        meta.className = "doc-saved-meta";
+        meta.textContent = `${doc.customer || "—"} • ${formatDocumentMoney(Number(doc.total || 0))} • ${doc.date || "—"}`;
+        copy.append(title, meta);
+
+        const actions = document.createElement("div");
+        actions.className = "doc-saved-actions";
+
+        const reopen = document.createElement("button");
+        reopen.className = "secondary-button";
+        reopen.type = "button";
+        reopen.textContent = localeText({en:"Reopen",hu:"Megnyitás",de:"Öffnen",fr:"Rouvrir",es:"Abrir"});
+        reopen.onclick = () => loadDocumentIntoEditorV49(doc.id);
+
+        const exportBtn = document.createElement("button");
+        exportBtn.className = "secondary-button";
+        exportBtn.type = "button";
+        exportBtn.textContent = localeText({en:"Export",hu:"Export",de:"Export",fr:"Exporter",es:"Exportar"});
+        exportBtn.onclick = () => exportDocumentV49(doc.id);
+
+        const del = document.createElement("button");
+        del.className = "secondary-button";
+        del.type = "button";
+        del.textContent = localeText({en:"Delete",hu:"Törlés",de:"Löschen",fr:"Supprimer",es:"Eliminar"});
+        del.onclick = () => deleteDocumentV49(doc.id);
+
+        actions.append(reopen, exportBtn, del);
+        row.append(copy, actions);
+        list.appendChild(row);
+      });
+    }
+
+    document.getElementById("createDocument")?.addEventListener("click", buildDocumentPreview);
+
+    document.getElementById("saveDocument")?.addEventListener("click", () => {
+      const d = buildDocumentPreview();
+      if (!d.customer || !d.description) {
+        alert(localeText({
+          en:"Please enter a customer and description before saving.",
+          hu:"Mentés előtt add meg az ügyfelet és a leírást.",
+          de:"Bitte Kunde und Beschreibung vor dem Speichern eingeben.",
+          fr:"Veuillez saisir le client et la description avant d’enregistrer.",
+          es:"Introduce el cliente y la descripción antes de guardar."
+        }));
+        return;
+      }
+
+      const docs = readDocumentsV49();
+      const existingIndex = docs.findIndex(x => x.id === d.id);
+      if (existingIndex >= 0) {
+        d.savedAt = docs[existingIndex].savedAt || new Date().toISOString();
+        docs[existingIndex] = d;
+      } else {
+        d.savedAt = new Date().toISOString();
+        docs.push(d);
+        commitDocumentNumberV49(d.type);
+      }
+
+      writeDocumentsV49(docs);
+      editingDocumentId = d.id;
+      document.getElementById("docEditingBadge").style.display = "inline";
+      showToast(translations[getLanguage()]["documents.savedToast"] || "Document saved.");
+      renderDocumentCenterV49();
+      renderVaultDocuments();
+      if (typeof renderReportsV46 === "function") renderReportsV46();
+      if (typeof refreshV43VisionMetrics === "function") refreshV43VisionMetrics();
     });
 
-    document.getElementById("printDocument").addEventListener("click", () => {
+    document.getElementById("newDocument")?.addEventListener("click", clearDocumentFormV49);
+    document.getElementById("printDocument")?.addEventListener("click", () => {
       buildDocumentPreview();
       window.print();
     });
+    document.getElementById("docType")?.addEventListener("change", setFreshDocumentNumberV49);
+    document.getElementById("docCenterSearch")?.addEventListener("input", renderDocumentCenterV49);
+    document.getElementById("docCenterFilter")?.addEventListener("change", renderDocumentCenterV49);
 
-    document.getElementById("docDate").value = new Date().toISOString().slice(0, 10);
+    clearDocumentFormV49();
+    renderDocumentCenterV49();
 
 
     function readPlannerTasks(){try{return JSON.parse(localStorage.getItem("hegeva_planner_tasks")||"[]")}catch{return[]}}
@@ -4326,14 +4807,9 @@
 
     function renderVaultDocuments() {
       const container = document.getElementById("vaultDocuments");
+      if (!container) return;
       const language = getLanguage();
-      let documents = [];
-
-      try {
-        documents = JSON.parse(localStorage.getItem("hegeva_documents") || "[]");
-      } catch {
-        documents = [];
-      }
+      const documents = readDocumentsV49();
 
       container.innerHTML = "";
 
@@ -4345,22 +4821,43 @@
         return;
       }
 
-      documents.slice().reverse().forEach((doc) => {
-        const row = document.createElement("div");
-        row.className = "coming-item";
+      documents.slice()
+        .sort((a,b)=>String(b.updatedAt||b.savedAt||"").localeCompare(String(a.updatedAt||a.savedAt||"")))
+        .forEach((doc) => {
+          const row = document.createElement("div");
+          row.className = "coming-item";
+          row.dataset.docType = doc.type || "";
 
-        const title = document.createElement("strong");
-        title.textContent = `${doc.type || "Document"} • ${doc.number || "—"}`;
+          const title = document.createElement("strong");
+          title.textContent = `${doc.type || "Document"} • ${doc.number || "—"}`;
 
-        const meta = document.createElement("div");
-        meta.style.marginTop = "5px";
-        meta.style.color = "var(--muted)";
-        meta.style.fontSize = "12px";
-        meta.textContent = `${doc.customer || "—"} • ${formatDocumentMoney(Number(doc.total || 0))}`;
+          const meta = document.createElement("div");
+          meta.style.marginTop = "5px";
+          meta.style.color = "var(--muted)";
+          meta.style.fontSize = "12px";
+          meta.textContent = `${doc.customer || "—"} • ${formatDocumentMoney(Number(doc.total || 0))}`;
 
-        row.append(title, meta);
-        container.appendChild(row);
-      });
+          const actions = document.createElement("div");
+          actions.className = "chat-actions";
+
+          const reopen = document.createElement("button");
+          reopen.className = "mini-action";
+          reopen.type = "button";
+          reopen.textContent = localeText({en:"Reopen",hu:"Megnyitás",de:"Öffnen",fr:"Rouvrir",es:"Abrir"});
+          reopen.onclick = () => loadDocumentIntoEditorV49(doc.id);
+
+          const exp = document.createElement("button");
+          exp.className = "mini-action";
+          exp.type = "button";
+          exp.textContent = localeText({en:"Export",hu:"Export",de:"Export",fr:"Exporter",es:"Exportar"});
+          exp.onclick = () => exportDocumentV49(doc.id);
+
+          actions.append(reopen, exp);
+          row.append(title, meta, actions);
+          container.appendChild(row);
+        });
+
+      if (typeof applyVaultSearch === "function") applyVaultSearch();
     }
 
     document.getElementById("saveVaultNote").addEventListener("click", () => {
@@ -4919,7 +5416,7 @@
       Array.from(container.children).forEach(item => {
         const text = item.textContent.toLowerCase();
         const searchOk = !q || text.includes(q);
-        const typeOk = !type || text.includes(type);
+        const typeOk = !type || item.dataset.docType === type || text.includes(type);
         item.style.display = searchOk && typeOk ? "" : "none";
       });
     };
@@ -4963,7 +5460,7 @@
 
     function bt44NextNumber(type) {
       const current = Number(localStorage.getItem(BT44_COUNTER_KEY) || "0") + 1;
-      return `${type === "Quote" ? "QUO" : "INV"}-${String(current).padStart(5,"0")}`;
+      return `${type === "Quote" ? "QUO" : type === "Receipt" ? "REC" : "INV"}-${String(current).padStart(5,"0")}`;
     }
 
     function bt44RefreshNumber() {
@@ -5204,7 +5701,7 @@
 
 
     // =========================================
-    // HEGEVA AI V4.8 - CLOUD WORKSPACE SYNC
+    // HEGEVA AI V4.9 - CLOUD WORKSPACE SYNC
     // =========================================
     const V46_SYNC_BUCKETS = {
       documents: ["hegeva_documents"],
@@ -5695,7 +6192,7 @@
 
 
     // =========================================
-    // HEGEVA AI V4.8 - LIVE PLAN + USAGE STATUS
+    // HEGEVA AI V4.9 - LIVE PLAN + USAGE STATUS
     // =========================================
     function v48SetMeter(value, max) {
       const meter = document.getElementById("planAiMeter");
@@ -5795,6 +6292,7 @@
 
     loadSettings();
     translatePage(getLanguage());
+    if (typeof renderDocumentCenterV49 === "function") renderDocumentCenterV49();
   </script>
 </body>
 </html>
