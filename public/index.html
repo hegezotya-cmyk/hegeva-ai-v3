@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V20.0 — multilingual business workspace with live plan and AI usage status." />
-  <title>Hegeva AI V20.0</title>
+  <meta name="description" content="Hegeva AI V21.0 — multilingual business workspace with live plan and AI usage status." />
+  <title>Hegeva AI V21.0</title>
 
   <style>
     :root {
@@ -1134,7 +1134,7 @@
 
 
     /* =========================================
-       HEGEVA AI V20.0 — REAL DOCUMENT CENTER
+       HEGEVA AI V21.0 — REAL DOCUMENT CENTER
        ========================================= */
     .doc-center-toolbar{
       display:flex;
@@ -1213,7 +1213,7 @@
 
 
     /* =========================================
-       HEGEVA AI V20.0 — BUSINESS OPERATING SYSTEM
+       HEGEVA AI V21.0 — BUSINESS OPERATING SYSTEM
        ========================================= */
     .v50-grid{
       display:grid;
@@ -1249,7 +1249,7 @@
 
 
     /* =========================================
-       HEGEVA AI V20.0 — BUSINESS COMMAND CENTER
+       HEGEVA AI V21.0 — BUSINESS COMMAND CENTER
        ========================================= */
     .v70-command{
       margin:18px 0;
@@ -1283,7 +1283,7 @@
 
 
     /* =========================================
-       HEGEVA AI V20.0 — STABLE RELEASE • VERIFIED CORE
+       HEGEVA AI V21.0 — STABLE RELEASE • VERIFIED CORE
        ========================================= */
     .v80-livebar{
       display:grid;
@@ -1311,7 +1311,7 @@
 
 
     /* =========================================
-       HEGEVA AI V20.0 — STABLE RELEASE • VERIFIED CORE
+       HEGEVA AI V21.0 — STABLE RELEASE • VERIFIED CORE
        ========================================= */
     .v10-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:16px;margin-top:18px}
     .v10-card{border:1px solid var(--border);border-radius:18px;padding:17px;background:rgba(255,255,255,.028)}
@@ -1340,7 +1340,7 @@
 
 
     /* =========================================
-       HEGEVA AI V20.0 — RELEASE CANDIDATE
+       HEGEVA AI V21.0 — RELEASE CANDIDATE
        ========================================= */
     .v12-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0}
     .v12-stat{border:1px solid var(--border);border-radius:15px;padding:14px;background:rgba(255,255,255,.03)}
@@ -1365,7 +1365,7 @@
 
 
     /* =========================================
-       HEGEVA AI V20.0 — BILLING PREP + FIXES
+       HEGEVA AI V21.0 — BILLING PREP + FIXES
        ========================================= */
     .v13-billing-grid{
       display:grid;
@@ -1400,7 +1400,7 @@
 
 
     /* =========================================
-       HEGEVA AI V20.0 — STABLE RELEASE UTILITIES
+       HEGEVA AI V21.0 — STABLE RELEASE UTILITIES
        ========================================= */
     .v20-release-card{
       border:1px solid var(--border);
@@ -1434,10 +1434,64 @@
       .v20-release-grid{grid-template-columns:1fr}
       .topbar{position:sticky;top:0;z-index:30}
       .sidebar{width:100%;position:relative;height:auto}
-      .app-shell{display:block}
+      .app-shell,.app-layout{display:block}
       .main{width:100%}
       .nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
       .nav-button{width:100%}
+    }
+
+
+    /* HEGEVA AI V21.0 — SMART LITE */
+    .v21-lite{
+      display:grid;
+      grid-template-columns:1.15fr .85fr;
+      gap:16px;
+      margin-bottom:18px;
+    }
+    .v21-lite-card{
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:17px;
+      background:linear-gradient(145deg,rgba(55,200,255,.07),rgba(155,108,255,.07),rgba(246,196,83,.04));
+    }
+    .v21-lite-card h2,.v21-lite-card h3{margin-bottom:8px}
+    .v21-lite-card p{color:var(--muted);line-height:1.55}
+    .v21-lite-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .v21-lite-brief{
+      margin-top:12px;padding:13px;border:1px solid var(--border);
+      border-radius:13px;background:rgba(255,255,255,.025);line-height:1.6
+    }
+    .v21-mini-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}
+    .v21-mini{padding:11px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.025)}
+    .v21-mini span{display:block;color:var(--muted);font-size:11px}.v21-mini strong{display:block;margin-top:5px;font-size:18px}
+    .v21-backdrop{position:fixed;inset:0;z-index:9995;display:none;align-items:flex-start;justify-content:center;padding:10vh 18px;background:rgba(2,5,14,.74);backdrop-filter:blur(12px)}
+    .v21-backdrop.open{display:flex}
+    .v21-modal{width:min(720px,100%);max-height:78vh;overflow:auto;border:1px solid rgba(246,196,83,.26);border-radius:20px;background:linear-gradient(155deg,rgba(24,29,52,.99),rgba(7,13,29,.99));padding:18px}
+    .v21-modal-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .v21-close{width:38px;height:38px;border-radius:11px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);font-size:20px}
+    .v21-search-input{width:100%;margin-top:14px;padding:13px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text)}
+    .v21-result{width:100%;text-align:left;padding:11px;border-radius:11px;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--text);margin-top:8px}
+    .v21-result small{display:block;color:var(--muted);margin-top:4px}
+    .v21-timeline{display:grid;gap:8px;margin-top:12px}.v21-timeline-item{padding:11px;border:1px solid var(--border);border-radius:11px;background:rgba(255,255,255,.025)}
+    .v21-timeline-item small{display:block;color:var(--muted);margin-top:4px}
+    @media(max-width:900px){.v21-lite{grid-template-columns:1fr}}
+
+
+    @media(max-width:560px){
+      .v20-release-actions,.v21-lite-actions,.hero-buttons{width:100%}
+      .v20-release-actions button,.v21-lite-actions button,.hero-buttons button{max-width:100%;white-space:normal}
+      .v20-release-card,.v21-lite-card{min-width:0}
+    }
+
+
+    @media(max-width:560px){
+      .header-inner{padding:0 10px;gap:8px}
+      .header-actions{gap:5px;min-width:0}
+      .header-actions .select{max-width:105px;padding:8px 6px;font-size:12px}
+      .auth-user{max-width:96px;padding:5px 6px;gap:5px}
+      .auth-user-copy{display:none}
+      .auth-logout{padding:3px;font-size:10px}
+      .icon-button{width:38px;height:38px;flex:0 0 38px}
     }
 
 </style>
@@ -1450,7 +1504,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name notranslate" translate="no">Hegeva AI</div>
-          <div class="brand-subtitle">V20.0 SMART BUSINESS HUB</div>
+          <div class="brand-subtitle">V21.0 SMART BUSINESS HUB</div>
         </div>
       </div>
 
@@ -1583,7 +1637,7 @@
       <section id="home" class="page active">
         <section class="v43-vision">
           <div class="v43-copy">
-            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V20.0 • HUMAN-FIRST BUSINESS AI</div>
+            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V21.0 • HUMAN-FIRST BUSINESS AI</div>
             <h1>
               <span data-i18n="v43.hero1">Save time.</span>
               <span class="gradient-text" data-i18n="v43.hero2"> Work smarter.</span>
@@ -1607,10 +1661,34 @@
 
 
         
+
+        <section class="v21-lite" id="v21SmartLite">
+          <div class="v21-lite-card">
+            <div class="vision-tagline">V21.0 SMART DAILY BRIEF</div>
+            <h2 style="margin-top:7px">Your business at a glance</h2>
+            <p>Built only from information already stored in HEGEVA.</p>
+            <div id="v21DailyBrief" class="v21-lite-brief">Preparing summary…</div>
+            <div class="v21-lite-actions">
+              <button class="primary-button" type="button" id="v21NextAction">✨ Next best action</button>
+              <button class="secondary-button" type="button" id="v21SearchOpen">⌘ Search everything</button>
+              <button class="secondary-button" type="button" id="v21AskAi">🤖 Ask AI from workspace</button>
+            </div>
+          </div>
+          <div class="v21-lite-card">
+            <div class="vision-tagline">REAL DATA SNAPSHOT</div>
+            <div class="v21-mini-grid">
+              <div class="v21-mini"><span>Customers</span><strong id="v21Customers">0</strong></div>
+              <div class="v21-mini"><span>Follow-ups</span><strong id="v21Followups">0</strong></div>
+              <div class="v21-mini"><span>Invoice value</span><strong id="v21InvoiceValue">£0.00</strong></div>
+              <div class="v21-mini"><span>Expenses</span><strong id="v21ExpenseValue">£0.00</strong></div>
+            </div>
+          </div>
+        </section>
+
         <section class="v70-command">
           <div class="v70-head">
             <div>
-              <div class="vision-tagline">V20.0</div>
+              <div class="vision-tagline">V21.0</div>
               <h2 data-i18n="v70.title">Business Command Center</h2>
               <p data-i18n="v70.subtitle">A live view of the real information stored in your HEGEVA workspace.</p>
             </div>
@@ -1673,7 +1751,7 @@
 <section class="card" style="margin-bottom:18px">
           <div class="page-heading" style="margin-bottom:10px">
             <div>
-              <div class="vision-tagline">V20.0</div>
+              <div class="vision-tagline">V21.0</div>
               <h2 data-i18n="v50.title">Business Operating Dashboard</h2>
               <p data-i18n="v50.subtitle">One place to see real workspace activity, plan usage and the next useful actions.</p>
             </div>
@@ -1733,7 +1811,7 @@
         </div>
 
         <section class="hero">
-          <div class="badge" data-i18n="home.badge">HEGEVA AI V20.0</div>
+          <div class="badge" data-i18n="home.badge">HEGEVA AI V21.0</div>
 
           <h2>
             <span data-i18n="home.title1">Save time. Work smarter.</span>
@@ -1832,7 +1910,7 @@
         </div>
 
         <div class="footer-note" data-i18n="home.footer">
-          Hegeva AI V20.0 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
+          Hegeva AI V21.0 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
         </div>
       </section>
 
@@ -2174,7 +2252,7 @@
 
         <section class="card" style="margin-bottom:16px">
           <div>
-            <div class="vision-tagline">V20.0 REPORTS</div>
+            <div class="vision-tagline">V21.0 REPORTS</div>
             <h2 data-i18n="v12.reportTitle">Monthly Business Snapshot</h2>
             <p style="color:var(--muted);margin-top:6px" data-i18n="v12.reportSubtitle">Calculated only from information you actually saved in HEGEVA. It is not an accounting or tax report.</p>
           </div>
@@ -2590,7 +2668,7 @@
         <div class="card" id="v13BillingCenter" style="margin-top:18px">
           <div class="page-heading" style="margin-bottom:10px">
             <div>
-              <div class="vision-tagline">V20.0 BILLING & UPGRADE PREP</div>
+              <div class="vision-tagline">V21.0 BILLING & UPGRADE PREP</div>
               <h2 data-i18n="v13.billingTitle">Billing & Upgrade Center</h2>
               <p data-i18n="v13.billingSubtitle">Payments are not active yet. This page prepares real plan upgrades without charging a card.</p>
             </div>
@@ -2719,7 +2797,7 @@
 
           
           <div class="v20-release-card">
-            <div class="vision-tagline">V20.0 STABLE RELEASE</div>
+            <div class="vision-tagline">V21.0 STABLE RELEASE</div>
             <h3 style="margin-top:6px" data-i18n="v20.releaseTitle">Release & Safety Check</h3>
             <p style="color:var(--muted);margin-top:6px" data-i18n="v20.releaseText">
               Verify the local workspace, account session and backend plan connection before public use.
@@ -2748,7 +2826,7 @@
       <section id="customers" class="page">
         <div class="page-title">
           <div>
-            <div class="vision-tagline">V20.0 CRM</div>
+            <div class="vision-tagline">V21.0 CRM</div>
             <h1 data-i18n="crm.title">Customers & CRM</h1>
             <p data-i18n="crm.subtitle">Keep customer details, notes and document activity together in your HEGEVA workspace.</p>
           </div>
@@ -2800,6 +2878,28 @@
       </section>
 
     </main>
+  </div>
+
+
+  <div id="v21SearchBackdrop" class="v21-backdrop">
+    <div class="v21-modal">
+      <div class="v21-modal-head">
+        <div><h2>Search everything</h2><p style="color:var(--muted)">Customers, documents, expenses and planner tasks.</p></div>
+        <button class="v21-close" id="v21SearchClose" type="button">×</button>
+      </div>
+      <input id="v21SearchInput" class="v21-search-input" autocomplete="off" placeholder="Search HEGEVA...">
+      <div id="v21SearchResults"></div>
+    </div>
+  </div>
+
+  <div id="v21TimelineBackdrop" class="v21-backdrop">
+    <div class="v21-modal">
+      <div class="v21-modal-head">
+        <div><h2 id="v21TimelineTitle">Customer timeline</h2><p style="color:var(--muted)">Saved customer details and linked documents.</p></div>
+        <button class="v21-close" id="v21TimelineClose" type="button">×</button>
+      </div>
+      <div id="v21TimelineContent" class="v21-timeline"></div>
+    </div>
   </div>
 
   <div id="toast" class="toast"></div>
@@ -2885,7 +2985,7 @@
         "nav.expenses": "Expenses",
         "nav.reports": "Reports",
         "nav.settings": "Settings",
-        "home.badge": "HEGEVA AI V20.0",
+        "home.badge": "HEGEVA AI V21.0",
         "home.title1": "Build your business workspace",
         "home.title2": "without fake promises.",
         "home.subtitle": "Hegeva AI is a human-first business workspace designed to reduce admin, organize everyday work and give you more time to focus. Only working features are marked as available.",
@@ -2900,7 +3000,7 @@
         "cards.aiText": "The secure AI backend is not connected yet. This feature is clearly marked as Coming Soon until it is real.",
         "status.live": "● Working",
         "status.soon": "Coming Soon",
-        "home.footer": "Hegeva AI V20.0 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
+        "home.footer": "Hegeva AI V21.0 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
         "ai.title": "🤖 AI Assistant",
         "ai.subtitle": "Secure AI integration is the next development stage.",
         "ai.comingTitle": "Hegeva AI Assistant — Coming Soon",
@@ -3111,7 +3211,7 @@
         "v42.allDocs": "All documents",
         "v42.invoices": "Invoices",
         "v42.quotes": "Quotes",
-        "v43.eyebrow": "HEGEVA AI V20.0 • HUMAN-FIRST BUSINESS AI",
+        "v43.eyebrow": "HEGEVA AI V21.0 • HUMAN-FIRST BUSINESS AI",
         "v43.hero1": "Save time.",
         "v43.hero2": " Work smarter.",
         "v43.hero3": " Stay in control.",
@@ -3348,7 +3448,7 @@
         "nav.expenses": "Kiadások",
         "nav.reports": "Riportok",
         "nav.settings": "Beállítások",
-        "home.badge": "HEGEVA AI V20.0",
+        "home.badge": "HEGEVA AI V21.0",
         "home.title1": "Építsd fel az üzleti munkateredet",
         "home.title2": "kamu ígéretek nélkül.",
         "home.subtitle": "A Hegeva AI lépésről lépésre épül. Csak a valóban működő funkciókat jelöljük elérhetőnek; ami még nincs kész, az egyértelműen Coming Soon.",
@@ -3363,7 +3463,7 @@
         "cards.aiText": "A biztonságos AI backend még nincs csatlakoztatva. Addig ez a funkció egyértelműen Coming Soon.",
         "status.live": "● Működik",
         "status.soon": "Hamarosan",
-        "home.footer": "A Hegeva AI V20.0 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
+        "home.footer": "A Hegeva AI V21.0 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
         "ai.title": "🤖 AI Asszisztens",
         "ai.subtitle": "A biztonságos AI-integráció a következő fejlesztési szakasz.",
         "ai.comingTitle": "Hegeva AI Asszisztens — Hamarosan",
@@ -3574,7 +3674,7 @@
         "v42.allDocs": "Minden dokumentum",
         "v42.invoices": "Számlák",
         "v42.quotes": "Árajánlatok",
-        "v43.eyebrow": "HEGEVA AI V20.0 • EMBERKÖZPONTÚ ÜZLETI AI",
+        "v43.eyebrow": "HEGEVA AI V21.0 • EMBERKÖZPONTÚ ÜZLETI AI",
         "v43.hero1": "Spórolj időt.",
         "v43.hero2": " Dolgozz okosabban.",
         "v43.hero3": " Maradj irányításban.",
@@ -3811,7 +3911,7 @@
         "nav.expenses": "Ausgaben",
         "nav.reports": "Berichte",
         "nav.settings": "Einstellungen",
-        "home.badge": "HEGEVA AI V20.0",
+        "home.badge": "HEGEVA AI V21.0",
         "home.title1": "Baue deinen Business-Arbeitsbereich",
         "home.title2": "ohne falsche Versprechen.",
         "home.subtitle": "Hegeva AI wird Schritt für Schritt entwickelt. Nur funktionierende Funktionen werden als verfügbar angezeigt; unfertige Werkzeuge sind klar als Coming Soon markiert.",
@@ -3826,7 +3926,7 @@
         "cards.aiText": "Das sichere KI-Backend ist noch nicht verbunden. Bis dahin ist diese Funktion klar als Coming Soon markiert.",
         "status.live": "● Funktioniert",
         "status.soon": "Demnächst",
-        "home.footer": "Hegeva AI V20.0 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
+        "home.footer": "Hegeva AI V21.0 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
         "ai.title": "🤖 KI-Assistent",
         "ai.subtitle": "Die sichere KI-Integration ist die nächste Entwicklungsstufe.",
         "ai.comingTitle": "Hegeva AI Assistent — Demnächst",
@@ -4037,7 +4137,7 @@
         "v42.allDocs": "Alle Dokumente",
         "v42.invoices": "Rechnungen",
         "v42.quotes": "Angebote",
-        "v43.eyebrow": "HEGEVA AI V20.0 • MENSCHENZENTRIERTE BUSINESS-KI",
+        "v43.eyebrow": "HEGEVA AI V21.0 • MENSCHENZENTRIERTE BUSINESS-KI",
         "v43.hero1": "Zeit sparen.",
         "v43.hero2": " Smarter arbeiten.",
         "v43.hero3": " Die Kontrolle behalten.",
@@ -4274,7 +4374,7 @@
         "nav.expenses": "Dépenses",
         "nav.reports": "Rapports",
         "nav.settings": "Paramètres",
-        "home.badge": "HEGEVA AI V20.0",
+        "home.badge": "HEGEVA AI V21.0",
         "home.title1": "Construisez votre espace professionnel",
         "home.title2": "sans fausses promesses.",
         "home.subtitle": "Hegeva AI est développé étape par étape. Seules les fonctions réellement opérationnelles sont indiquées comme disponibles ; les outils non terminés sont clairement marqués Coming Soon.",
@@ -4289,7 +4389,7 @@
         "cards.aiText": "Le backend IA sécurisé n'est pas encore connecté. Cette fonction reste clairement marquée Coming Soon jusqu'à ce qu'elle soit réelle.",
         "status.live": "● Fonctionnel",
         "status.soon": "Bientôt",
-        "home.footer": "Hegeva AI V20.0 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
+        "home.footer": "Hegeva AI V21.0 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
         "ai.title": "🤖 Assistant IA",
         "ai.subtitle": "L'intégration sécurisée de l'IA est la prochaine étape.",
         "ai.comingTitle": "Assistant Hegeva AI — Bientôt",
@@ -4500,7 +4600,7 @@
         "v42.allDocs": "Tous les documents",
         "v42.invoices": "Factures",
         "v42.quotes": "Devis",
-        "v43.eyebrow": "HEGEVA AI V20.0 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
+        "v43.eyebrow": "HEGEVA AI V21.0 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
         "v43.hero1": "Gagnez du temps.",
         "v43.hero2": " Travaillez plus intelligemment.",
         "v43.hero3": " Gardez le contrôle.",
@@ -4737,7 +4837,7 @@
         "nav.expenses": "Gastos",
         "nav.reports": "Informes",
         "nav.settings": "Ajustes",
-        "home.badge": "HEGEVA AI V20.0",
+        "home.badge": "HEGEVA AI V21.0",
         "home.title1": "Construye tu espacio de negocio",
         "home.title2": "sin promesas falsas.",
         "home.subtitle": "Hegeva AI se está construyendo paso a paso. Solo las funciones que realmente funcionan se marcan como disponibles; las herramientas sin terminar se indican claramente como Coming Soon.",
@@ -4752,7 +4852,7 @@
         "cards.aiText": "El backend seguro de IA todavía no está conectado. Esta función se marca claramente como Coming Soon hasta que sea real.",
         "status.live": "● Funciona",
         "status.soon": "Próximamente",
-        "home.footer": "Hegeva AI V20.0 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
+        "home.footer": "Hegeva AI V21.0 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
         "ai.title": "🤖 Asistente IA",
         "ai.subtitle": "La integración segura de IA es la siguiente fase de desarrollo.",
         "ai.comingTitle": "Asistente Hegeva AI — Próximamente",
@@ -4963,7 +5063,7 @@
         "v42.allDocs": "Todos los documentos",
         "v42.invoices": "Facturas",
         "v42.quotes": "Presupuestos",
-        "v43.eyebrow": "HEGEVA AI V20.0 • IA EMPRESARIAL CENTRADA EN PERSONAS",
+        "v43.eyebrow": "HEGEVA AI V21.0 • IA EMPRESARIAL CENTRADA EN PERSONAS",
         "v43.hero1": "Ahorra tiempo.",
         "v43.hero2": " Trabaja de forma más inteligente.",
         "v43.hero3": " Mantén el control.",
@@ -5737,7 +5837,16 @@
         del.textContent = localeText({en:"Delete",hu:"Törlés",de:"Löschen",fr:"Supprimer",es:"Eliminar"});
         del.onclick = () => deleteDocumentV49(doc.id);
 
-        actions.append(reopen, exportBtn, del);
+        if (doc.type === "Quote") {
+          const convert = document.createElement("button");
+          convert.className = "secondary-button";
+          convert.type = "button";
+          convert.textContent = localeText({en:"Convert to invoice",hu:"Számlává alakítás",de:"In Rechnung umwandeln",fr:"Convertir en facture",es:"Convertir en factura"});
+          convert.onclick = () => v21ConvertQuoteToInvoice(doc.id);
+          actions.append(reopen, exportBtn, convert, del);
+        } else {
+          actions.append(reopen, exportBtn, del);
+        }
         row.append(copy, actions);
         list.appendChild(row);
       });
@@ -6636,7 +6745,7 @@
     }
 
     // =========================================
-    // HEGEVA AI V20.0 — SHARED SESSION STATE
+    // HEGEVA AI V21.0 — SHARED SESSION STATE
     // =========================================
     let hegevaCurrentUser = null;
     let hegevaCurrentSession = null;
@@ -6791,7 +6900,7 @@
 
 
     // =========================================
-    // HEGEVA AI V20.0 - CLOUD WORKSPACE SYNC
+    // HEGEVA AI V21.0 - CLOUD WORKSPACE SYNC
     // =========================================
     const V46_SYNC_BUCKETS = {
       documents: ["hegeva_documents", "hegeva_document_counters_v49"],
@@ -7030,7 +7139,7 @@
 
 
     // =========================================
-    // V20.0.4 MESSAGE STUDIO CLOUD
+    // V21.0.4 MESSAGE STUDIO CLOUD
     // =========================================
     const V46_MESSAGE_KEY = "hegeva_message_studio";
 
@@ -7123,7 +7232,7 @@
     }
 
     // =========================================
-    // V20.0 EXPENSE TRACKER
+    // V21.0 EXPENSE TRACKER
     // =========================================
     const V46_EXPENSE_KEY = "hegeva_expenses";
 
@@ -7244,7 +7353,7 @@
     }
 
     // =========================================
-    // V20.0 REAL-DATA REPORTS
+    // V21.0 REAL-DATA REPORTS
     // =========================================
     function renderReportsV46() {
       if (!document.getElementById("reportDocumentCount")) return;
@@ -7298,7 +7407,7 @@
 
 
     // =========================================
-    // HEGEVA AI V20.0 - LIVE PLAN + USAGE STATUS
+    // HEGEVA AI V21.0 - LIVE PLAN + USAGE STATUS
     // =========================================
     function v48SetMeter(value, max) {
       const meter = document.getElementById("planAiMeter");
@@ -7591,7 +7700,7 @@
 
 
     // =========================================
-    // HEGEVA AI V20.0 — CUSTOMER CRM
+    // HEGEVA AI V21.0 — CUSTOMER CRM
     // Local-first, no paid API required.
     // =========================================
     const CRM_KEY="hegeva_v10_customers";
@@ -7716,6 +7825,7 @@
               <div class="v10-actions">
                 <button class="secondary-button" type="button" data-crm-edit="${crmEscape(c.id)}">Edit</button>
                 <button class="secondary-button" type="button" data-crm-doc="${crmEscape(c.id)}">Use in document</button>
+                <button class="secondary-button" type="button" data-crm-timeline="${crmEscape(c.id)}">Timeline</button>
                 <button class="secondary-button" type="button" data-crm-delete="${crmEscape(c.id)}">Delete</button>
               </div>`;
             box.appendChild(el);
@@ -7752,6 +7862,7 @@
     document.getElementById("crmCustomerList")?.addEventListener("click",e=>{
       const edit=e.target.closest("[data-crm-edit]");if(edit)return crmEdit(edit.dataset.crmEdit);
       const doc=e.target.closest("[data-crm-doc]");if(doc)return crmUseInDocument(doc.dataset.crmDoc);
+      const timeline=e.target.closest("[data-crm-timeline]");if(timeline)return v21OpenCustomerTimeline(timeline.dataset.crmTimeline);
       const del=e.target.closest("[data-crm-delete]");if(del)return crmDelete(del.dataset.crmDelete);
     });
     document.querySelector('[data-page="customers"]')?.addEventListener("click",()=>setTimeout(crmRender,50));
@@ -7760,7 +7871,7 @@
 
 
     // =========================================
-    // HEGEVA AI V20.0 — REPORTS + RELEASE POLISH
+    // HEGEVA AI V21.0 — REPORTS + RELEASE POLISH
     // =========================================
     function v12ReadExpenses(){
       try{
@@ -7871,7 +7982,7 @@
       const monthExpenses=expenses.filter(e=>v12MonthKey(e.date||e.createdAt||e.updatedAt)===month).reduce((s,e)=>s+Number(e.amount||e.value||e.total||0),0);
 
       const lines=[
-        "HEGEVA AI V20.0 — Monthly Business Snapshot",
+        "HEGEVA AI V21.0 — Monthly Business Snapshot",
         `Period: ${month}`,
         `Documents this month: ${monthDocs.length}`,
         `Invoice value: ${v12Money(invoiceValue)}`,
@@ -7913,7 +8024,7 @@
 
 
     // =========================================
-    // HEGEVA AI V20.0 — CRM -> DOCUMENT HANDOFF
+    // HEGEVA AI V21.0 — CRM -> DOCUMENT HANDOFF
     // =========================================
     const V14_CRM_HANDOFF_KEY = "hegeva_v14_crm_document_handoff";
 
@@ -8004,8 +8115,172 @@
     }
 
 
+
     // =========================================
-    // HEGEVA AI V20.0 — STABILITY UTILITIES
+    // HEGEVA AI V21.0 — SMART LITE
+    // =========================================
+    function v21ReadArray(key){
+      try{
+        const value=JSON.parse(localStorage.getItem(key)||"[]");
+        return Array.isArray(value)?value:[];
+      }catch{return [];}
+    }
+
+    function v21Snapshot(){
+      const docs=typeof readDocumentsV49==="function"?readDocumentsV49():v21ReadArray("hegeva_documents");
+      const expenses=typeof readExpensesV46==="function"?readExpensesV46():v21ReadArray("hegeva_expenses");
+      const customers=typeof crmRead==="function"?crmRead():v21ReadArray("hegeva_v10_customers");
+      const planner=typeof readPlannerTasks==="function"?readPlannerTasks():v21ReadArray("hegeva_planner_tasks");
+      const invoiceValue=docs.filter(d=>d.type==="Invoice").reduce((n,d)=>n+Number(d.total||0),0);
+      const expenseValue=expenses.reduce((n,e)=>n+Number(e.amount||0),0);
+      return{
+        docs,expenses,customers,planner,
+        invoiceValue,expenseValue,
+        followups:customers.filter(c=>Boolean(c.followup)).length,
+        openTasks:planner.filter(t=>!t.done).length
+      };
+    }
+
+    function v21Money(value){
+      try{return typeof moneyV46==="function"?moneyV46(Number(value||0)):`£${Number(value||0).toFixed(2)}`;}
+      catch{return `£${Number(value||0).toFixed(2)}`;}
+    }
+
+    function v21Recommendation(s=v21Snapshot()){
+      if(s.followups>0)return{page:"customers",text:`You have ${s.followups} customer follow-up(s) waiting.`};
+      if(!s.customers.length)return{page:"customers",text:"Add your first customer."};
+      if(!s.docs.length)return{page:"documents",text:"Create your first invoice or quote."};
+      if(s.openTasks>0)return{page:"planner",text:`You have ${s.openTasks} open planner task(s).`};
+      return{page:"reports",text:"Review your latest business snapshot."};
+    }
+
+    function v21Refresh(){
+      const s=v21Snapshot();
+      const rec=v21Recommendation(s);
+      const brief=document.getElementById("v21DailyBrief");
+      if(brief)brief.textContent=`${s.customers.length} customer(s), ${s.docs.length} saved document(s), ${s.openTasks} open task(s), ${s.followups} follow-up(s). Invoice value ${v21Money(s.invoiceValue)}. Expenses ${v21Money(s.expenseValue)}. Next: ${rec.text}`;
+      const map={
+        v21Customers:s.customers.length,
+        v21Followups:s.followups,
+        v21InvoiceValue:v21Money(s.invoiceValue),
+        v21ExpenseValue:v21Money(s.expenseValue)
+      };
+      Object.entries(map).forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.textContent=val;});
+    }
+
+    function v21OpenNextAction(){
+      const rec=v21Recommendation();
+      showPage(rec.page);
+      showToast(rec.text);
+    }
+
+    function v21SendWorkspaceToAi(){
+      const s=v21Snapshot();
+      const prompt=`Use only these HEGEVA workspace facts and do not invent missing numbers.
+Customers: ${s.customers.length}
+Follow-ups: ${s.followups}
+Saved documents: ${s.docs.length}
+Invoice value: ${v21Money(s.invoiceValue)}
+Recorded expenses: ${v21Money(s.expenseValue)}
+Open planner tasks: ${s.openTasks}
+
+Give me 3 practical next business actions.`;
+      showPage("assistant");
+      const input=document.getElementById("aiChatInput");
+      if(input){input.value=prompt;input.focus();}
+    }
+
+    function v21SearchData(){
+      const s=v21Snapshot(), out=[];
+      s.customers.forEach(c=>out.push({type:"Customer",page:"customers",label:c.name||"Customer",meta:[c.email,c.company].filter(Boolean).join(" • "),id:c.id}));
+      s.docs.forEach(d=>out.push({type:d.type||"Document",page:"documents",label:d.number||"Document",meta:[d.customer,d.description,v21Money(d.total)].filter(Boolean).join(" • "),id:d.id}));
+      s.expenses.forEach(e=>out.push({type:"Expense",page:"expenses",label:`${e.category||"Expense"} • ${v21Money(e.amount)}`,meta:[e.date,e.note].filter(Boolean).join(" • ")}));
+      s.planner.forEach(t=>out.push({type:"Task",page:"planner",label:t.text||"Task",meta:[t.priority,t.date].filter(Boolean).join(" • ")}));
+      return out;
+    }
+
+    function v21RenderSearch(){
+      const q=(document.getElementById("v21SearchInput")?.value||"").trim().toLowerCase();
+      const box=document.getElementById("v21SearchResults");if(!box)return;
+      const rows=v21SearchData().filter(r=>!q||`${r.type} ${r.label} ${r.meta}`.toLowerCase().includes(q)).slice(0,25);
+      box.innerHTML="";
+      if(!rows.length){const e=document.createElement("div");e.className="v21-result";e.textContent="No matching HEGEVA data.";box.appendChild(e);return;}
+      rows.forEach(r=>{
+        const b=document.createElement("button");b.type="button";b.className="v21-result";
+        const strong=document.createElement("strong");strong.textContent=`${r.type} • ${r.label}`;
+        const small=document.createElement("small");small.textContent=r.meta||r.page;
+        b.append(strong,small);
+        b.onclick=()=>{
+          v21CloseSearch();
+          if(r.type==="Customer"&&r.id){showPage("customers");setTimeout(()=>v21OpenCustomerTimeline(r.id),60);return;}
+          if(["Invoice","Quote","Receipt"].includes(r.type)&&r.id&&typeof loadDocumentIntoEditorV49==="function"){loadDocumentIntoEditorV49(r.id);return;}
+          showPage(r.page);
+        };
+        box.appendChild(b);
+      });
+    }
+
+    function v21OpenSearch(){
+      document.getElementById("v21SearchBackdrop")?.classList.add("open");
+      const i=document.getElementById("v21SearchInput");if(i){i.value="";setTimeout(()=>i.focus(),20);}
+      v21RenderSearch();
+    }
+    function v21CloseSearch(){document.getElementById("v21SearchBackdrop")?.classList.remove("open");}
+
+    function v21OpenCustomerTimeline(id){
+      const customer=(typeof crmRead==="function"?crmRead():[]).find(c=>c.id===id);
+      if(!customer)return;
+      const docs=typeof v13ReadDocumentsUnified==="function"?v13ReadDocumentsUnified():[];
+      const hayName=String(customer.name||"").toLowerCase(), hayEmail=String(customer.email||"").toLowerCase();
+      const linked=docs.filter(d=>{const text=JSON.stringify(d).toLowerCase();return(hayName&&text.includes(hayName))||(hayEmail&&text.includes(hayEmail));});
+      const title=document.getElementById("v21TimelineTitle");if(title)title.textContent=customer.name||"Customer timeline";
+      const box=document.getElementById("v21TimelineContent");box.innerHTML="";
+      const first=document.createElement("div");first.className="v21-timeline-item";
+      const a=document.createElement("strong");a.textContent="Customer details";
+      const b=document.createElement("small");b.textContent=[customer.email,customer.phone,customer.company,customer.address].filter(Boolean).join(" • ")||"—";
+      first.append(a,b);box.appendChild(first);
+      if(customer.notes){const n=document.createElement("div");n.className="v21-timeline-item";n.textContent=`Notes: ${customer.notes}`;box.appendChild(n);}
+      if(!linked.length){const e=document.createElement("div");e.className="v21-timeline-item";e.textContent="No linked documents yet.";box.appendChild(e);}
+      linked.forEach(d=>{const e=document.createElement("div");e.className="v21-timeline-item";const x=document.createElement("strong");x.textContent=`${d.type||"Document"} • ${d.number||"—"}`;const y=document.createElement("small");y.textContent=[d.date,d.description,v21Money(d.total)].filter(Boolean).join(" • ");e.append(x,y);box.appendChild(e);});
+      document.getElementById("v21TimelineBackdrop")?.classList.add("open");
+    }
+    function v21CloseTimeline(){document.getElementById("v21TimelineBackdrop")?.classList.remove("open");}
+
+    function v21ConvertQuoteToInvoice(id){
+      const docs=readDocumentsV49();
+      const quote=docs.find(d=>d.id===id&&d.type==="Quote");
+      if(!quote)return;
+      const invoice={...quote,id:(crypto?.randomUUID?.() || `inv-${Date.now()}-${Math.random().toString(16).slice(2)}`),type:"Invoice",number:nextDocumentNumberV49("Invoice"),savedAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+      docs.push(invoice);
+      commitDocumentNumberV49("Invoice");
+      writeDocumentsV49(docs);
+      renderDocumentCenterV49();
+      if(typeof renderReportsV46==="function")renderReportsV46();
+      if(typeof v46SaveBucket==="function")v46SaveBucket("documents");
+      showToast(`Created ${invoice.number}.`);
+      v21Refresh();
+    }
+
+    document.getElementById("v21NextAction")?.addEventListener("click",v21OpenNextAction);
+    document.getElementById("v21AskAi")?.addEventListener("click",v21SendWorkspaceToAi);
+    document.getElementById("v21SearchOpen")?.addEventListener("click",v21OpenSearch);
+    document.getElementById("v21SearchClose")?.addEventListener("click",v21CloseSearch);
+    document.getElementById("v21SearchInput")?.addEventListener("input",v21RenderSearch);
+    document.getElementById("v21TimelineClose")?.addEventListener("click",v21CloseTimeline);
+    document.getElementById("v21SearchBackdrop")?.addEventListener("click",e=>{if(e.target.id==="v21SearchBackdrop")v21CloseSearch();});
+    document.getElementById("v21TimelineBackdrop")?.addEventListener("click",e=>{if(e.target.id==="v21TimelineBackdrop")v21CloseTimeline();});
+    document.addEventListener("keydown",e=>{
+      if((e.ctrlKey||e.metaKey)&&String(e.key).toLowerCase()==="k"){e.preventDefault();v21OpenSearch();}
+      if(e.key==="Escape"){v21CloseSearch();v21CloseTimeline();}
+    });
+    document.addEventListener("click",e=>{
+      if(e.target.closest("#saveDocument,#addExpense,#plannerAdd,#crmSaveBtn,[data-crm-delete]"))setTimeout(v21Refresh,120);
+    });
+    setTimeout(v21Refresh,850);
+
+
+    // =========================================
+    // HEGEVA AI V21.0 — STABILITY UTILITIES
     // =========================================
     function v20SafeJson(key, fallback){
       try{
@@ -8107,7 +8382,7 @@
 
       const data={
         product:"HEGEVA AI",
-        version:"V20.0",
+        version:"V21.0",
         exportedAt:new Date().toISOString(),
         format:"hegeva-workspace-backup-v1",
         localStorage:{}
