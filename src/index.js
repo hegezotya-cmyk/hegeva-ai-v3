@@ -1,5 +1,16 @@
 import { betterAuth } from "better-auth";
 
+// =========================================
+// HEGEVA AI V4.7
+// Auth + Cloud Workspace + Plans + AI Usage
+// =========================================
+
+const PLAN_LIMITS = {
+  basic: 50,
+  premium: 300,
+  pro: 1000
+};
+
 function createAuth(env, request) {
   const origin = new URL(request.url).origin;
 
@@ -36,6 +47,151 @@ function validWorkspaceType(type) {
   return /^[a-z0-9_-]{1,40}$/i.test(type);
 }
 
+function getCurrentPeriod() {
+  const now = new Date();
+
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+
+  return `${year}-${month}`;
+}
+
+async function ensureUserPlan(env, userId) {
+  const now = new Date().toISOString();
+
+  await env.DB
+    .prepare(`
+      INSERT INTO user_plans (
+        userId,
+        plan,
+        createdAt,
+        updatedAt
+      )
+      VALUES (
+        ?1,
+        'basic',
+        ?2,
+        ?2
+      )
+      ON CONFLICT(userId)
+      DO NOTHING
+    `)
+    .bind(
+      userId,
+      now
+    )
+    .run();
+}
+
+async function getUserPlan(env, userId) {
+  await ensureUserPlan(env, userId);
+
+  const row = await env.DB
+    .prepare(`
+      SELECT
+        plan,
+        createdAt,
+        updatedAt
+      FROM user_plans
+      WHERE userId = ?1
+      LIMIT 1
+    `)
+    .bind(userId)
+    .first();
+
+  const plan =
+    row?.plan &&
+    Object.prototype.hasOwnProperty.call(
+      PLAN_LIMITS,
+      row.plan
+    )
+      ? row.plan
+      : "basic";
+
+  return {
+    plan,
+    limit: PLAN_LIMITS[plan],
+    createdAt: row?.createdAt || null,
+    updatedAt: row?.updatedAt || null
+  };
+}
+
+async function getAIUsage(env, userId, period) {
+  const row = await env.DB
+    .prepare(`
+      SELECT
+        aiMessages,
+        createdAt,
+        updatedAt
+      FROM ai_usage
+      WHERE userId = ?1
+        AND period = ?2
+      LIMIT 1
+    `)
+    .bind(
+      userId,
+      period
+    )
+    .first();
+
+  return {
+    aiMessages:
+      Number.isFinite(Number(row?.aiMessages))
+        ? Number(row.aiMessages)
+        : 0,
+
+    createdAt:
+      row?.createdAt || null,
+
+    updatedAt:
+      row?.updatedAt || null
+  };
+}
+
+async function incrementAIUsage(
+  env,
+  userId,
+  period
+) {
+  const now = new Date().toISOString();
+
+  await env.DB
+    .prepare(`
+      INSERT INTO ai_usage (
+        userId,
+        period,
+        aiMessages,
+        createdAt,
+        updatedAt
+      )
+      VALUES (
+        ?1,
+        ?2,
+        1,
+        ?3,
+        ?3
+      )
+
+      ON CONFLICT(
+        userId,
+        period
+      )
+
+      DO UPDATE SET
+        aiMessages =
+          ai_usage.aiMessages + 1,
+
+        updatedAt =
+          excluded.updatedAt
+    `)
+    .bind(
+      userId,
+      period,
+      now
+    )
+    .run();
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -47,9 +203,13 @@ export default {
     if (url.pathname.startsWith("/api/auth/")) {
       try {
         const auth = createAuth(env, request);
+
         return await auth.handler(request);
       } catch (error) {
-        console.error("HEGEVA Auth error:", error);
+        console.error(
+          "HEGEVA Auth error:",
+          error
+        );
 
         return Response.json(
           {
@@ -64,20 +224,121 @@ export default {
     }
 
     // =========================================
-    // CLOUD WORKSPACE
+    // V4.7 PLAN STATUS
     // =========================================
 
-    if (url.pathname.startsWith("/api/workspace/")) {
-      try {
-        const user = await getLoggedInUser(
-          request,
-          env
+    if (url.pathname === "/api/plan/status") {
+      if (request.method !== "GET") {
+        return Response.json(
+          {
+            error:
+              "Method not allowed."
+          },
+          {
+            status: 405
+          }
         );
+      }
+
+      try {
+        const user =
+          await getLoggedInUser(
+            request,
+            env
+          );
 
         if (!user) {
           return Response.json(
             {
-              error: "Authentication required."
+              error:
+                "Authentication required."
+            },
+            {
+              status: 401
+            }
+          );
+        }
+
+        const period =
+          getCurrentPeriod();
+
+        const planInfo =
+          await getUserPlan(
+            env,
+            user.id
+          );
+
+        const usage =
+          await getAIUsage(
+            env,
+            user.id,
+            period
+          );
+
+        const remaining =
+          Math.max(
+            0,
+            planInfo.limit -
+              usage.aiMessages
+          );
+
+        return Response.json({
+          ok: true,
+
+          plan:
+            planInfo.plan,
+
+          period,
+
+          usage: {
+            aiMessages:
+              usage.aiMessages,
+
+            limit:
+              planInfo.limit,
+
+            remaining
+          }
+        });
+      } catch (error) {
+        console.error(
+          "HEGEVA plan status error:",
+          error
+        );
+
+        return Response.json(
+          {
+            error:
+              "Plan information is temporarily unavailable."
+          },
+          {
+            status: 500
+          }
+        );
+      }
+    }
+
+    // =========================================
+    // CLOUD WORKSPACE
+    // =========================================
+
+    if (
+      url.pathname.startsWith(
+        "/api/workspace/"
+      )
+    ) {
+      try {
+        const user =
+          await getLoggedInUser(
+            request,
+            env
+          );
+
+        if (!user) {
+          return Response.json(
+            {
+              error:
+                "Authentication required."
             },
             {
               status: 401
@@ -87,18 +348,23 @@ export default {
 
         const rawType =
           url.pathname
-            .slice("/api/workspace/".length)
+            .slice(
+              "/api/workspace/".length
+            )
             .trim();
 
         let dataType;
 
         try {
           dataType =
-            decodeURIComponent(rawType);
+            decodeURIComponent(
+              rawType
+            );
         } catch {
           return Response.json(
             {
-              error: "Invalid workspace type."
+              error:
+                "Invalid workspace type."
             },
             {
               status: 400
@@ -106,10 +372,15 @@ export default {
           );
         }
 
-        if (!validWorkspaceType(dataType)) {
+        if (
+          !validWorkspaceType(
+            dataType
+          )
+        ) {
           return Response.json(
             {
-              error: "Invalid workspace type."
+              error:
+                "Invalid workspace type."
             },
             {
               status: 400
@@ -117,7 +388,10 @@ export default {
           );
         }
 
+        // =====================================
         // LOAD CLOUD DATA
+        // =====================================
+
         if (request.method === "GET") {
           const row =
             await env.DB
@@ -151,7 +425,9 @@ export default {
 
           try {
             parsedData =
-              JSON.parse(row.data);
+              JSON.parse(
+                row.data
+              );
           } catch {}
 
           return Response.json({
@@ -164,7 +440,10 @@ export default {
           });
         }
 
+        // =====================================
         // SAVE CLOUD DATA
+        // =====================================
+
         if (request.method === "PUT") {
           let body;
 
@@ -205,7 +484,9 @@ export default {
 
           try {
             serializedData =
-              JSON.stringify(body.data);
+              JSON.stringify(
+                body.data
+              );
           } catch {
             return Response.json(
               {
@@ -314,11 +595,17 @@ export default {
     }
 
     // =========================================
-    // HEGEVA AI CHAT
+    // HEGEVA AI CHAT V4.7
     // =========================================
 
-    if (url.pathname === "/api/chat") {
-      if (request.method !== "POST") {
+    if (
+      url.pathname ===
+      "/api/chat"
+    ) {
+      if (
+        request.method !==
+        "POST"
+      ) {
         return Response.json(
           {
             error:
@@ -331,11 +618,93 @@ export default {
       }
 
       try {
+        // =====================================
+        // LOGIN CHECK
+        // =====================================
+
+        const user =
+          await getLoggedInUser(
+            request,
+            env
+          );
+
+        if (!user) {
+          return Response.json(
+            {
+              error:
+                "Authentication required.",
+              code:
+                "AUTH_REQUIRED"
+            },
+            {
+              status: 401
+            }
+          );
+        }
+
+        // =====================================
+        // PLAN + MONTHLY USAGE
+        // =====================================
+
+        const period =
+          getCurrentPeriod();
+
+        const planInfo =
+          await getUserPlan(
+            env,
+            user.id
+          );
+
+        const usage =
+          await getAIUsage(
+            env,
+            user.id,
+            period
+          );
+
+        if (
+          usage.aiMessages >=
+          planInfo.limit
+        ) {
+          return Response.json(
+            {
+              error:
+                "Monthly AI message limit reached.",
+
+              code:
+                "AI_LIMIT_REACHED",
+
+              plan:
+                planInfo.plan,
+
+              period,
+
+              usage: {
+                aiMessages:
+                  usage.aiMessages,
+
+                limit:
+                  planInfo.limit,
+
+                remaining: 0
+              }
+            },
+            {
+              status: 429
+            }
+          );
+        }
+
+        // =====================================
+        // REQUEST BODY
+        // =====================================
+
         const body =
           await request.json();
 
         const message =
-          typeof body.message === "string"
+          typeof body.message ===
+          "string"
             ? body.message.trim()
             : "";
 
@@ -351,7 +720,10 @@ export default {
           );
         }
 
-        if (message.length > 2500) {
+        if (
+          message.length >
+          2500
+        ) {
           return Response.json(
             {
               error:
@@ -362,6 +734,10 @@ export default {
             }
           );
         }
+
+        // =====================================
+        // AI MODES
+        // =====================================
 
         const modeInstructions = {
           general:
@@ -422,11 +798,14 @@ export default {
             : "";
 
         const rawHistory =
-          Array.isArray(body.history)
+          Array.isArray(
+            body.history
+          )
             ? body.history.slice(-10)
             : [];
 
         let totalChars = 0;
+
         const safeHistory = [];
 
         for (
@@ -437,7 +816,9 @@ export default {
             ![
               "user",
               "assistant"
-            ].includes(item.role) ||
+            ].includes(
+              item.role
+            ) ||
             typeof item.content !==
               "string"
           ) {
@@ -479,6 +860,10 @@ export default {
                 }: ${item.content}`
             )
             .join("\n\n");
+
+        // =====================================
+        // HEGEVA AI SYSTEM PROMPT
+        // =====================================
 
         const prompt = `
 You are HEGEVA AI, a practical business companion.
@@ -524,6 +909,10 @@ Latest message:
 ${message}
         `.trim();
 
+        // =====================================
+        // RUN CLOUDFLARE AI
+        // =====================================
+
         const result =
           await env.AI.run(
             "@cf/meta/llama-3.1-8b-instruct-fast",
@@ -532,10 +921,49 @@ ${message}
             }
           );
 
+        // =====================================
+        // COUNT SUCCESSFUL AI MESSAGE
+        // =====================================
+
+        await incrementAIUsage(
+          env,
+          user.id,
+          period
+        );
+
+        const newUsed =
+          usage.aiMessages + 1;
+
+        const remaining =
+          Math.max(
+            0,
+            planInfo.limit -
+              newUsed
+          );
+
+        // =====================================
+        // RESPONSE
+        // =====================================
+
         return Response.json({
           response:
             result?.response ||
-            "HEGEVA AI could not generate a response."
+            "HEGEVA AI could not generate a response.",
+
+          plan:
+            planInfo.plan,
+
+          usage: {
+            period,
+
+            aiMessages:
+              newUsed,
+
+            limit:
+              planInfo.limit,
+
+            remaining
+          }
         });
       } catch (error) {
         console.error(
@@ -554,6 +982,10 @@ ${message}
         );
       }
     }
+
+    // =========================================
+    // STATIC WEBSITE
+    // =========================================
 
     return env.ASSETS.fetch(
       request
