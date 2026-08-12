@@ -5,9 +5,7 @@ function createAuth(env, request) {
 
   return betterAuth({
     database: env.DB,
-
     secret: env.BETTER_AUTH_SECRET,
-
     baseURL: origin,
 
     emailAndPassword: {
@@ -17,21 +15,10 @@ function createAuth(env, request) {
       autoSignIn: true
     },
 
-    user: {
-      modelName: "user"
-    },
-
-    session: {
-      modelName: "session"
-    },
-
-    account: {
-      modelName: "account"
-    },
-
-    verification: {
-      modelName: "verification"
-    }
+    user: { modelName: "user" },
+    session: { modelName: "session" },
+    account: { modelName: "account" },
+    verification: { modelName: "verification" }
   });
 }
 
@@ -42,11 +29,7 @@ async function getLoggedInUser(request, env) {
     headers: request.headers
   });
 
-  if (!session || !session.user) {
-    return null;
-  }
-
-  return session.user;
+  return session?.user || null;
 }
 
 function validWorkspaceType(type) {
@@ -57,14 +40,13 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // ==================================================
-    // HEGEVA AI V4.5 - BETTER AUTH
-    // ==================================================
+    // =========================================
+    // BETTER AUTH
+    // =========================================
 
     if (url.pathname.startsWith("/api/auth/")) {
       try {
         const auth = createAuth(env, request);
-
         return await auth.handler(request);
       } catch (error) {
         console.error("HEGEVA Auth error:", error);
@@ -81,14 +63,9 @@ export default {
       }
     }
 
-    // ==================================================
-    // HEGEVA AI V4.5 - CLOUD WORKSPACE
-    //
-    // GET /api/workspace/:type
-    // PUT /api/workspace/:type
-    //
-    // Each record is tied to the authenticated user ID.
-    // ==================================================
+    // =========================================
+    // CLOUD WORKSPACE
+    // =========================================
 
     if (url.pathname.startsWith("/api/workspace/")) {
       try {
@@ -116,7 +93,8 @@ export default {
         let dataType;
 
         try {
-          dataType = decodeURIComponent(rawType);
+          dataType =
+            decodeURIComponent(rawType);
         } catch {
           return Response.json(
             {
@@ -139,31 +117,27 @@ export default {
           );
         }
 
-        // ----------------------------------------------
-        // LOAD USER WORKSPACE DATA
-        // ----------------------------------------------
-
+        // LOAD CLOUD DATA
         if (request.method === "GET") {
-          const row = await env.DB
-            .prepare(
-              `
-              SELECT
-                id,
-                dataType,
-                data,
-                createdAt,
-                updatedAt
-              FROM workspace_data
-              WHERE userId = ?
-                AND dataType = ?
-              LIMIT 1
-              `
-            )
-            .bind(
-              user.id,
-              dataType
-            )
-            .first();
+          const row =
+            await env.DB
+              .prepare(`
+                SELECT
+                  id,
+                  dataType,
+                  data,
+                  createdAt,
+                  updatedAt
+                FROM workspace_data
+                WHERE userId = ?1
+                  AND dataType = ?2
+                LIMIT 1
+              `)
+              .bind(
+                user.id,
+                dataType
+              )
+              .first();
 
           if (!row) {
             return Response.json({
@@ -176,10 +150,9 @@ export default {
           let parsedData = null;
 
           try {
-            parsedData = JSON.parse(row.data);
-          } catch {
-            parsedData = null;
-          }
+            parsedData =
+              JSON.parse(row.data);
+          } catch {}
 
           return Response.json({
             found: true,
@@ -191,19 +164,18 @@ export default {
           });
         }
 
-        // ----------------------------------------------
-        // SAVE USER WORKSPACE DATA
-        // ----------------------------------------------
-
+        // SAVE CLOUD DATA
         if (request.method === "PUT") {
           let body;
 
           try {
-            body = await request.json();
+            body =
+              await request.json();
           } catch {
             return Response.json(
               {
-                error: "Invalid JSON body."
+                error:
+                  "Invalid JSON body."
               },
               {
                 status: 400
@@ -246,9 +218,10 @@ export default {
             );
           }
 
-          // Prevent accidentally storing very large
-          // browser payloads in one record.
-          if (serializedData.length > 250000) {
+          if (
+            serializedData.length >
+            250000
+          ) {
             return Response.json(
               {
                 error:
@@ -267,8 +240,7 @@ export default {
             crypto.randomUUID();
 
           await env.DB
-            .prepare(
-              `
+            .prepare(`
               INSERT INTO workspace_data (
                 id,
                 userId,
@@ -277,14 +249,26 @@ export default {
                 createdAt,
                 updatedAt
               )
-              VALUES (?, ?, ?, ?, ?, ?)
+              VALUES (
+                ?1,
+                ?2,
+                ?3,
+                ?4,
+                ?5,
+                ?6
+              )
 
-              ON CONFLICT(userId, dataType)
+              ON CONFLICT(
+                userId,
+                dataType
+              )
+
               DO UPDATE SET
-                data = excluded.data,
-                updatedAt = excluded.updatedAt
-              `
-            )
+                data =
+                  excluded.data,
+                updatedAt =
+                  excluded.updatedAt
+            `)
             .bind(
               id,
               user.id,
@@ -304,7 +288,8 @@ export default {
 
         return Response.json(
           {
-            error: "Method not allowed."
+            error:
+              "Method not allowed."
           },
           {
             status: 405
@@ -328,15 +313,16 @@ export default {
       }
     }
 
-    // ==================================================
+    // =========================================
     // HEGEVA AI CHAT
-    // ==================================================
+    // =========================================
 
     if (url.pathname === "/api/chat") {
       if (request.method !== "POST") {
         return Response.json(
           {
-            error: "Method not allowed"
+            error:
+              "Method not allowed"
           },
           {
             status: 405
@@ -443,7 +429,9 @@ export default {
         let totalChars = 0;
         const safeHistory = [];
 
-        for (const item of rawHistory) {
+        for (
+          const item of rawHistory
+        ) {
           if (
             !item ||
             ![
@@ -523,7 +511,7 @@ Rules:
 
 - For customer messages and document wording, produce editable drafts and do not claim legal validity.
 
-- For decisions, explain trade-offs instead of telling the user there is a guaranteed best choice.
+- For decisions, explain trade-offs instead of claiming there is a guaranteed best choice.
 
 - Keep answers practical, clear and reasonably concise.
 
@@ -566,10 +554,6 @@ ${message}
         );
       }
     }
-
-    // ==================================================
-    // STATIC HEGEVA WEBSITE
-    // ==================================================
 
     return env.ASSETS.fetch(
       request
