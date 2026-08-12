@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V7.0 — multilingual business workspace with live plan and AI usage status." />
-  <title>Hegeva AI V7.0</title>
+  <meta name="description" content="Hegeva AI V8.0 — multilingual business workspace with live plan and AI usage status." />
+  <title>Hegeva AI V8.0</title>
 
   <style>
     :root {
@@ -1134,7 +1134,7 @@
 
 
     /* =========================================
-       HEGEVA AI V7.0 — REAL DOCUMENT CENTER
+       HEGEVA AI V8.0 — REAL DOCUMENT CENTER
        ========================================= */
     .doc-center-toolbar{
       display:flex;
@@ -1213,7 +1213,7 @@
 
 
     /* =========================================
-       HEGEVA AI V7.0 — BUSINESS OPERATING SYSTEM
+       HEGEVA AI V8.0 — BUSINESS OPERATING SYSTEM
        ========================================= */
     .v50-grid{
       display:grid;
@@ -1249,7 +1249,7 @@
 
 
     /* =========================================
-       HEGEVA AI V7.0 — BUSINESS COMMAND CENTER
+       HEGEVA AI V8.0 — BUSINESS COMMAND CENTER
        ========================================= */
     .v70-command{
       margin:18px 0;
@@ -1280,6 +1280,34 @@
     .v70-chip{display:inline-flex;padding:6px 9px;border-radius:999px;border:1px solid var(--border);font-size:11px;color:var(--muted)}
     @media(max-width:1050px){.v70-kpis,.v70-launcher{grid-template-columns:repeat(2,minmax(0,1fr))}.v70-panel-grid{grid-template-columns:1fr}}
     @media(max-width:620px){.v70-kpis,.v70-launcher{grid-template-columns:1fr}}
+
+
+    /* =========================================
+       HEGEVA AI V8.0 — CONNECTED BUSINESS OS
+       ========================================= */
+    .v80-livebar{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:10px;
+      margin:14px 0 0;
+    }
+    .v80-liveitem{
+      padding:12px 13px;
+      border-radius:13px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+    }
+    .v80-liveitem span{display:block;color:var(--muted);font-size:11px}
+    .v80-liveitem strong{display:block;margin-top:5px;font-size:15px}
+    .v80-liveitem strong.ok{color:#79eab1}
+    .v80-liveitem strong.warn{color:#ffe19a}
+    .v80-liveitem strong.danger{color:#ff9b9b}
+    .v80-progress{
+      margin-top:8px;height:7px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.07)
+    }
+    .v80-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,#37c8ff,#9b6cff,#f6c453);transition:.25s}
+    @media(max-width:900px){.v80-livebar{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:560px){.v80-livebar{grid-template-columns:1fr}}
 
 </style>
 </head>
@@ -1419,7 +1447,7 @@
       <section id="home" class="page active">
         <section class="v43-vision">
           <div class="v43-copy">
-            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V7.0 • HUMAN-FIRST BUSINESS AI</div>
+            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V8.0 • HUMAN-FIRST BUSINESS AI</div>
             <h1>
               <span data-i18n="v43.hero1">Save time.</span>
               <span class="gradient-text" data-i18n="v43.hero2"> Work smarter.</span>
@@ -1459,6 +1487,27 @@
             <div class="v70-kpi"><span data-i18n="v70.docs">Documents</span><strong id="v70Docs">0</strong></div>
             <div class="v70-kpi"><span data-i18n="v70.expenses">Expenses</span><strong id="v70Expenses">0</strong></div>
             <div class="v70-kpi"><span data-i18n="v70.tasks">Planner tasks</span><strong id="v70Tasks">0</strong></div>
+          </div>
+
+          <div class="v80-livebar">
+            <div class="v80-liveitem">
+              <span data-i18n="v80.login">Login connection</span>
+              <strong id="v80Login">Checking…</strong>
+            </div>
+            <div class="v80-liveitem">
+              <span data-i18n="v80.backend">Plan backend</span>
+              <strong id="v80Backend">Checking…</strong>
+            </div>
+            <div class="v80-liveitem">
+              <span data-i18n="v80.usage">Monthly AI capacity</span>
+              <strong id="v80Usage">—</strong>
+              <div class="v80-progress"><i id="v80UsageBar"></i></div>
+            </div>
+            <div class="v80-liveitem">
+              <span data-i18n="v80.profile">Business profile readiness</span>
+              <strong id="v80Profile">—</strong>
+              <div class="v80-progress"><i id="v80ProfileBar"></i></div>
+            </div>
           </div>
 
           <div class="v70-launcher">
@@ -1548,7 +1597,7 @@
         </div>
 
         <section class="hero">
-          <div class="badge" data-i18n="home.badge">HEGEVA AI V7.0</div>
+          <div class="badge" data-i18n="home.badge">HEGEVA AI V8.0</div>
 
           <h2>
             <span data-i18n="home.title1">Save time. Work smarter.</span>
@@ -1647,7 +1696,7 @@
         </div>
 
         <div class="footer-note" data-i18n="home.footer">
-          Hegeva AI V7.0 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
+          Hegeva AI V8.0 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
         </div>
       </section>
 
@@ -2442,6 +2491,10 @@
   <script>
     const translations = {
       en: {
+        "v80.login": "Login connection",
+        "v80.backend": "Plan backend",
+        "v80.usage": "Monthly AI capacity",
+        "v80.profile": "Business profile readiness",
         "v70.title": "Business Command Center",
         "v70.subtitle": "A live view of the real information stored in your HEGEVA workspace.",
         "v70.plan": "Plan",
@@ -2465,7 +2518,7 @@
         "nav.expenses": "Expenses",
         "nav.reports": "Reports",
         "nav.settings": "Settings",
-        "home.badge": "HEGEVA AI V7.0",
+        "home.badge": "HEGEVA AI V8.0",
         "home.title1": "Build your business workspace",
         "home.title2": "without fake promises.",
         "home.subtitle": "Hegeva AI is a human-first business workspace designed to reduce admin, organize everyday work and give you more time to focus. Only working features are marked as available.",
@@ -2480,7 +2533,7 @@
         "cards.aiText": "The secure AI backend is not connected yet. This feature is clearly marked as Coming Soon until it is real.",
         "status.live": "● Working",
         "status.soon": "Coming Soon",
-        "home.footer": "Hegeva AI V7.0 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
+        "home.footer": "Hegeva AI V8.0 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
         "ai.title": "🤖 AI Assistant",
         "ai.subtitle": "Secure AI integration is the next development stage.",
         "ai.comingTitle": "Hegeva AI Assistant — Coming Soon",
@@ -2692,7 +2745,7 @@
         "v42.allDocs": "All documents",
         "v42.invoices": "Invoices",
         "v42.quotes": "Quotes",
-        "v43.eyebrow": "HEGEVA AI V7.0 • HUMAN-FIRST BUSINESS AI",
+        "v43.eyebrow": "HEGEVA AI V8.0 • HUMAN-FIRST BUSINESS AI",
         "v43.hero1": "Save time.",
         "v43.hero2": " Work smarter.",
         "v43.hero3": " Stay in control.",
@@ -2851,6 +2904,10 @@
       },
 
       hu: {
+        "v80.login": "Bejelentkezési kapcsolat",
+        "v80.backend": "Csomag backend",
+        "v80.usage": "Havi AI kapacitás",
+        "v80.profile": "Üzleti profil készültsége",
         "v70.title": "Üzleti vezérlőközpont",
         "v70.subtitle": "Élő áttekintés a HEGEVA munkateredben ténylegesen tárolt adatokról.",
         "v70.plan": "Csomag",
@@ -2874,7 +2931,7 @@
         "nav.expenses": "Kiadások",
         "nav.reports": "Riportok",
         "nav.settings": "Beállítások",
-        "home.badge": "HEGEVA AI V7.0",
+        "home.badge": "HEGEVA AI V8.0",
         "home.title1": "Építsd fel az üzleti munkateredet",
         "home.title2": "kamu ígéretek nélkül.",
         "home.subtitle": "A Hegeva AI lépésről lépésre épül. Csak a valóban működő funkciókat jelöljük elérhetőnek; ami még nincs kész, az egyértelműen Coming Soon.",
@@ -3101,7 +3158,7 @@
         "v42.allDocs": "Minden dokumentum",
         "v42.invoices": "Számlák",
         "v42.quotes": "Árajánlatok",
-        "v43.eyebrow": "HEGEVA AI V7.0 • EMBERKÖZPONTÚ ÜZLETI AI",
+        "v43.eyebrow": "HEGEVA AI V8.0 • EMBERKÖZPONTÚ ÜZLETI AI",
         "v43.hero1": "Spórolj időt.",
         "v43.hero2": " Dolgozz okosabban.",
         "v43.hero3": " Maradj irányításban.",
@@ -3260,6 +3317,10 @@
       },
 
       de: {
+        "v80.login": "Anmeldeverbindung",
+        "v80.backend": "Tarif-Backend",
+        "v80.usage": "Monatliche AI-Kapazität",
+        "v80.profile": "Unternehmensprofil",
         "v70.title": "Business-Kommandozentrale",
         "v70.subtitle": "Live-Überblick über die tatsächlich in deinem HEGEVA-Arbeitsbereich gespeicherten Daten.",
         "v70.plan": "Tarif",
@@ -3283,7 +3344,7 @@
         "nav.expenses": "Ausgaben",
         "nav.reports": "Berichte",
         "nav.settings": "Einstellungen",
-        "home.badge": "HEGEVA AI V7.0",
+        "home.badge": "HEGEVA AI V8.0",
         "home.title1": "Baue deinen Business-Arbeitsbereich",
         "home.title2": "ohne falsche Versprechen.",
         "home.subtitle": "Hegeva AI wird Schritt für Schritt entwickelt. Nur funktionierende Funktionen werden als verfügbar angezeigt; unfertige Werkzeuge sind klar als Coming Soon markiert.",
@@ -3510,7 +3571,7 @@
         "v42.allDocs": "Alle Dokumente",
         "v42.invoices": "Rechnungen",
         "v42.quotes": "Angebote",
-        "v43.eyebrow": "HEGEVA AI V7.0 • MENSCHENZENTRIERTE BUSINESS-KI",
+        "v43.eyebrow": "HEGEVA AI V8.0 • MENSCHENZENTRIERTE BUSINESS-KI",
         "v43.hero1": "Zeit sparen.",
         "v43.hero2": " Smarter arbeiten.",
         "v43.hero3": " Die Kontrolle behalten.",
@@ -3669,6 +3730,10 @@
       },
 
       fr: {
+        "v80.login": "Connexion du compte",
+        "v80.backend": "Serveur des forfaits",
+        "v80.usage": "Capacité AI mensuelle",
+        "v80.profile": "Profil d’entreprise",
         "v70.title": "Centre de commande",
         "v70.subtitle": "Vue en direct des informations réellement stockées dans votre espace HEGEVA.",
         "v70.plan": "Forfait",
@@ -3692,7 +3757,7 @@
         "nav.expenses": "Dépenses",
         "nav.reports": "Rapports",
         "nav.settings": "Paramètres",
-        "home.badge": "HEGEVA AI V7.0",
+        "home.badge": "HEGEVA AI V8.0",
         "home.title1": "Construisez votre espace professionnel",
         "home.title2": "sans fausses promesses.",
         "home.subtitle": "Hegeva AI est développé étape par étape. Seules les fonctions réellement opérationnelles sont indiquées comme disponibles ; les outils non terminés sont clairement marqués Coming Soon.",
@@ -3919,7 +3984,7 @@
         "v42.allDocs": "Tous les documents",
         "v42.invoices": "Factures",
         "v42.quotes": "Devis",
-        "v43.eyebrow": "HEGEVA AI V7.0 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
+        "v43.eyebrow": "HEGEVA AI V8.0 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
         "v43.hero1": "Gagnez du temps.",
         "v43.hero2": " Travaillez plus intelligemment.",
         "v43.hero3": " Gardez le contrôle.",
@@ -4078,6 +4143,10 @@
       },
 
       es: {
+        "v80.login": "Conexión de cuenta",
+        "v80.backend": "Backend del plan",
+        "v80.usage": "Capacidad AI mensual",
+        "v80.profile": "Perfil del negocio",
         "v70.title": "Centro de mando",
         "v70.subtitle": "Vista en directo de la información realmente guardada en tu espacio HEGEVA.",
         "v70.plan": "Plan",
@@ -4101,7 +4170,7 @@
         "nav.expenses": "Gastos",
         "nav.reports": "Informes",
         "nav.settings": "Ajustes",
-        "home.badge": "HEGEVA AI V7.0",
+        "home.badge": "HEGEVA AI V8.0",
         "home.title1": "Construye tu espacio de negocio",
         "home.title2": "sin promesas falsas.",
         "home.subtitle": "Hegeva AI se está construyendo paso a paso. Solo las funciones que realmente funcionan se marcan como disponibles; las herramientas sin terminar se indican claramente como Coming Soon.",
@@ -4328,7 +4397,7 @@
         "v42.allDocs": "Todos los documentos",
         "v42.invoices": "Facturas",
         "v42.quotes": "Presupuestos",
-        "v43.eyebrow": "HEGEVA AI V7.0 • IA EMPRESARIAL CENTRADA EN PERSONAS",
+        "v43.eyebrow": "HEGEVA AI V8.0 • IA EMPRESARIAL CENTRADA EN PERSONAS",
         "v43.hero1": "Ahorra tiempo.",
         "v43.hero2": " Trabaja de forma más inteligente.",
         "v43.hero3": " Mantén el control.",
@@ -5959,6 +6028,13 @@
     bt44RenderClients();
 
 
+
+    // =========================================
+    // HEGEVA AI V8.0 — SHARED SESSION STATE
+    // =========================================
+    let hegevaCurrentUser = null;
+    let hegevaCurrentSession = null;
+
     const authModalBackdrop = document.getElementById("authModalBackdrop");
     const authOpenButton = document.getElementById("authOpenButton");
     const authCloseButton = document.getElementById("authCloseButton");
@@ -6023,12 +6099,37 @@
     async function refreshAuthSession(){
       try{
         const response=await fetch("/api/auth/get-session",{method:"GET",credentials:"include",headers:{"Accept":"application/json"}});
-        if(!response.ok){showSignedOut();return null;}
+        if(!response.ok){
+          hegevaCurrentUser=null;
+          hegevaCurrentSession=null;
+          showSignedOut();
+          if(typeof refreshV70CommandCenter==="function") refreshV70CommandCenter();
+          if(typeof refreshV50Dashboard==="function") refreshV50Dashboard();
+          return null;
+        }
         const data=await response.json().catch(()=>null);
         const user=data?.user||data?.session?.user||null;
-        if(user){showSignedIn(user);return data;}
-        showSignedOut();return null;
-      }catch{showSignedOut();return null;}
+        hegevaCurrentSession=data;
+        hegevaCurrentUser=user;
+        if(user){
+          showSignedIn(user);
+          if(typeof refreshV70CommandCenter==="function") refreshV70CommandCenter();
+          if(typeof refreshV50Dashboard==="function") refreshV50Dashboard();
+          return data;
+        }
+        hegevaCurrentUser=null;
+        showSignedOut();
+        if(typeof refreshV70CommandCenter==="function") refreshV70CommandCenter();
+        if(typeof refreshV50Dashboard==="function") refreshV50Dashboard();
+        return null;
+      }catch{
+        hegevaCurrentUser=null;
+        hegevaCurrentSession=null;
+        showSignedOut();
+        if(typeof refreshV70CommandCenter==="function") refreshV70CommandCenter();
+        if(typeof refreshV50Dashboard==="function") refreshV50Dashboard();
+        return null;
+      }
     }
 
     authRegisterForm?.addEventListener("submit",async e=>{
@@ -6084,7 +6185,7 @@
 
 
     // =========================================
-    // HEGEVA AI V7.0 - CLOUD WORKSPACE SYNC
+    // HEGEVA AI V8.0 - CLOUD WORKSPACE SYNC
     // =========================================
     const V46_SYNC_BUCKETS = {
       documents: ["hegeva_documents"],
@@ -6575,7 +6676,7 @@
 
 
     // =========================================
-    // HEGEVA AI V7.0 - LIVE PLAN + USAGE STATUS
+    // HEGEVA AI V8.0 - LIVE PLAN + USAGE STATUS
     // =========================================
     function v48SetMeter(value, max) {
       const meter = document.getElementById("planAiMeter");
@@ -6686,15 +6787,15 @@
         const workspaceStatus = document.getElementById("v50WorkspaceStatus");
 
         if (authStatus) {
-          authStatus.textContent = currentUser
-            ? `Account: ${currentUser.email || currentUser.name || "Active"}`
+          authStatus.textContent = hegevaCurrentUser
+            ? `Account: ${hegevaCurrentUser.email || hegevaCurrentUser.name || "Active"}`
             : "Account: Signed out";
-          authStatus.className = `v50-badge ${currentUser ? "ok" : "warn"}`;
+          authStatus.className = `v50-badge ${hegevaCurrentUser ? "ok" : "warn"}`;
         }
 
         if (cloudStatus) {
-          cloudStatus.textContent = currentUser ? "Cloud: Active" : "Cloud: Sign in required";
-          cloudStatus.className = `v50-badge ${currentUser ? "ok" : "warn"}`;
+          cloudStatus.textContent = hegevaCurrentUser ? "Cloud: Active" : "Cloud: Sign in required";
+          cloudStatus.className = `v50-badge ${hegevaCurrentUser ? "ok" : "warn"}`;
         }
 
         const saved = (() => {
@@ -6721,7 +6822,7 @@
           if (planEl) planEl.textContent = String(data.plan || "basic").toUpperCase();
           if (usageEl) usageEl.textContent = `${Number(data.usage?.aiMessages || 0)} / ${Number(data.usage?.limit || 0)}`;
         } else {
-          if (planEl) planEl.textContent = currentUser ? "BASIC" : "—";
+          if (planEl) planEl.textContent = hegevaCurrentUser ? "BASIC" : "—";
           if (usageEl) usageEl.textContent = "—";
         }
       } catch {
@@ -6763,84 +6864,107 @@
     }
 
     async function refreshV70CommandCenter() {
+      const setText=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
       try {
         const docs = typeof readDocumentsV49 === "function" ? readDocumentsV49() : v70ReadArray("hegeva_documents");
         const expenses = v70ReadArray("hegeva_expenses");
         const tasks = typeof readPlannerTasks === "function" ? readPlannerTasks() : v70ReadArray("hegeva_planner_tasks");
 
-        const setText = (id,val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
         setText("v70Docs", docs.length);
         setText("v70Expenses", expenses.length);
         setText("v70Tasks", tasks.length);
 
-        const account = document.getElementById("v70Account");
-        const cloud = document.getElementById("v70Cloud");
-        const profile = document.getElementById("v70Profile");
-        const chip = document.getElementById("v70SyncChip");
+        const account=document.getElementById("v70Account");
+        const cloud=document.getElementById("v70Cloud");
+        const profile=document.getElementById("v70Profile");
+        const chip=document.getElementById("v70SyncChip");
+        const loginLive=document.getElementById("v80Login");
+        const backendLive=document.getElementById("v80Backend");
+        const usageLive=document.getElementById("v80Usage");
+        const usageBar=document.getElementById("v80UsageBar");
+        const profileLive=document.getElementById("v80Profile");
+        const profileBar=document.getElementById("v80ProfileBar");
 
-        if (account) {
-          account.textContent = currentUser ? "Active" : "Signed out";
-          account.className = currentUser ? "ok" : "warn";
+        const signedIn=Boolean(hegevaCurrentUser);
+        if(account){
+          account.textContent=signedIn ? "Active" : "Signed out";
+          account.className=signedIn ? "ok" : "warn";
         }
-        if (cloud) {
-          cloud.textContent = currentUser ? "Active" : "Sign in required";
-          cloud.className = currentUser ? "ok" : "warn";
+        if(cloud){
+          cloud.textContent=signedIn ? "Active" : "Sign in required";
+          cloud.className=signedIn ? "ok" : "warn";
+        }
+        if(loginLive){
+          loginLive.textContent=signedIn ? (hegevaCurrentUser.email || "Connected") : "Signed out";
+          loginLive.className=signedIn ? "ok" : "warn";
         }
 
-        let saved = {};
-        try { saved = JSON.parse(localStorage.getItem("hegeva_settings") || "{}"); } catch {}
-        const profileReady = Boolean(saved.businessName && saved.businessEmail && saved.country);
-        if (profile) {
-          profile.textContent = profileReady ? "Ready" : "Needs details";
-          profile.className = profileReady ? "ok" : "warn";
+        let saved={};
+        try{saved=JSON.parse(localStorage.getItem("hegeva_settings")||"{}");}catch{}
+        const profileFields=[saved.businessName,saved.businessEmail,saved.country,saved.address];
+        const readyCount=profileFields.filter(Boolean).length;
+        const profilePct=Math.round((readyCount/profileFields.length)*100);
+        if(profile){
+          profile.textContent=profilePct===100 ? "Ready" : `${profilePct}%`;
+          profile.className=profilePct===100 ? "ok" : "warn";
         }
-        if (chip) chip.textContent = currentUser ? "Cloud workspace active" : "Local workspace";
+        if(profileLive){
+          profileLive.textContent=`${profilePct}%`;
+          profileLive.className=profilePct===100 ? "ok" : "warn";
+        }
+        if(profileBar) profileBar.style.width=`${profilePct}%`;
+        if(chip) chip.textContent=signedIn ? "Cloud workspace active" : "Local workspace";
 
-        const feed = document.getElementById("v70Activity");
-        if (feed) {
-          feed.innerHTML = "";
-          const items = v70RecentActivity();
-          if (!items.length) {
-            const empty = document.createElement("div");
-            empty.className = "v70-feed-item";
-            empty.textContent = localeText({
-              en:"No saved activity yet.",
-              hu:"Még nincs mentett aktivitás.",
-              de:"Noch keine gespeicherten Aktivitäten.",
-              fr:"Aucune activité enregistrée.",
-              es:"Aún no hay actividad guardada."
+        const feed=document.getElementById("v70Activity");
+        if(feed){
+          feed.innerHTML="";
+          const items=v70RecentActivity();
+          if(!items.length){
+            const empty=document.createElement("div");
+            empty.className="v70-feed-item";
+            empty.textContent=localeText({
+              en:"No saved activity yet.",hu:"Még nincs mentett aktivitás.",de:"Noch keine gespeicherten Aktivitäten.",
+              fr:"Aucune activité enregistrée.",es:"Aún no hay actividad guardada."
             });
             feed.appendChild(empty);
-          } else {
-            items.forEach(item => {
-              const row = document.createElement("div");
-              row.className = "v70-feed-item";
-              row.textContent = item.text;
+          }else{
+            items.forEach(item=>{
+              const row=document.createElement("div");
+              row.className="v70-feed-item";
+              row.textContent=item.text;
               feed.appendChild(row);
             });
           }
         }
 
-        try {
-          const r = await fetch("/api/plan/status", {credentials:"include", headers:{"Accept":"application/json"}});
-          if (r.ok) {
-            const data = await r.json();
-            setText("v70Plan", String(data.plan || "basic").toUpperCase());
-            setText("v70Ai", `${Number(data.usage?.aiMessages || 0)} / ${Number(data.usage?.limit || 0)}`);
-          } else {
-            setText("v70Plan", currentUser ? "BASIC" : "—");
-            setText("v70Ai", "—");
-          }
-        } catch {
-          setText("v70Plan", currentUser ? "BASIC" : "—");
-          setText("v70Ai", "—");
+        const r=await fetch("/api/plan/status",{method:"GET",credentials:"include",headers:{"Accept":"application/json"}});
+        if(r.status===401){
+          setText("v70Plan","—");setText("v70Ai","—");
+          if(backendLive){backendLive.textContent="Sign in required";backendLive.className="warn";}
+          if(usageLive)usageLive.textContent="—";
+          if(usageBar)usageBar.style.width="0%";
+          return;
         }
-      } catch (e) {
-        console.warn("HEGEVA V7 dashboard refresh skipped:", e);
+        if(!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data=await r.json();
+        const plan=String(data.plan||"basic").toUpperCase();
+        const used=Number(data.usage?.aiMessages||0);
+        const limit=Number(data.usage?.limit||0);
+        setText("v70Plan",plan);
+        setText("v70Ai",limit>0?`${used} / ${limit}`:`${used}`);
+        if(backendLive){backendLive.textContent="Connected";backendLive.className="ok";}
+        if(usageLive)usageLive.textContent=limit>0?`${used} / ${limit}`:`${used}`;
+        if(usageBar)usageBar.style.width=limit>0?`${Math.min(100,(used/limit)*100)}%`:"0%";
+      } catch(e) {
+        if(document.getElementById("v80Backend")){
+          document.getElementById("v80Backend").textContent="Unavailable";
+          document.getElementById("v80Backend").className="warn";
+        }
+        console.warn("HEGEVA V8 dashboard refresh skipped:",e);
       }
     }
 
-    setTimeout(refreshV70CommandCenter, 900);
+    setTimeout(async()=>{await refreshAuthSession(); await refreshV70CommandCenter();}, 900);
     document.querySelector('[data-page="home"]')?.addEventListener("click", () => setTimeout(refreshV70CommandCenter, 100));
 
     const savedLanguage = localStorage.getItem("hegeva_language");
@@ -6853,6 +6977,7 @@
 
     loadSettings();
     translatePage(getLanguage());
+    setTimeout(refreshAuthSession, 250);
     if (typeof refreshV50Dashboard === "function") setTimeout(refreshV50Dashboard, 200);
     if (typeof renderDocumentCenterV49 === "function") renderDocumentCenterV49();
   </script>
