@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V4.5 — honest, multilingual business workspace." />
-  <title>Hegeva AI V4.5</title>
+  <meta name="description" content="Hegeva AI V4.6 — honest, multilingual business workspace." />
+  <title>Hegeva AI V4.6</title>
 
   <style>
     :root {
@@ -1039,6 +1039,17 @@
     .auth-note{margin-top:16px;padding:12px 13px;border-radius:13px;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--muted);font-size:12px;line-height:1.55}
     @media(max-width:760px){.auth-user-email{display:none}.auth-user{max-width:150px}.header-actions{gap:7px}.auth-button{padding:0 10px}}
 
+
+    .cloud-sync-pill {
+      display:inline-flex;align-items:center;gap:7px;
+      padding:7px 10px;border-radius:999px;
+      border:1px solid rgba(55,200,255,.25);
+      background:rgba(55,200,255,.06);
+      color:var(--muted);font-size:12px;font-weight:800;
+    }
+    .cloud-sync-pill.ok {border-color:rgba(53,213,138,.28);color:#79eab1;background:rgba(53,213,138,.07)}
+    .cloud-sync-pill.warn {border-color:rgba(246,196,83,.28);color:#ffe19a;background:rgba(246,196,83,.07)}
+
 </style>
 </head>
 
@@ -1049,7 +1060,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name">Hegeva AI</div>
-          <div class="brand-subtitle">V4.5 ACCOUNTS & CLOUD</div>
+          <div class="brand-subtitle">V4.6 CLOUD WORKSPACE</div>
         </div>
       </div>
 
@@ -1173,7 +1184,7 @@
       <section id="home" class="page active">
         <section class="v43-vision">
           <div class="v43-copy">
-            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.5 • HUMAN-FIRST BUSINESS AI</div>
+            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.6 • HUMAN-FIRST BUSINESS AI</div>
             <h1>
               <span data-i18n="v43.hero1">Save time.</span>
               <span class="gradient-text" data-i18n="v43.hero2"> Work smarter.</span>
@@ -1216,7 +1227,7 @@
         </div>
 
         <section class="hero">
-          <div class="badge" data-i18n="home.badge">HEGEVA AI V4.5</div>
+          <div class="badge" data-i18n="home.badge">HEGEVA AI V4.6</div>
 
           <h2>
             <span data-i18n="home.title1">Save time. Work smarter.</span>
@@ -1315,7 +1326,7 @@
         </div>
 
         <div class="footer-note" data-i18n="home.footer">
-          Hegeva AI V4.5 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
+          Hegeva AI V4.6 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
         </div>
       </section>
 
@@ -1477,7 +1488,7 @@
 
           <div class="hero-buttons">
             <button class="primary-button" id="createDocument" type="button" data-i18n="documents.create">Create preview</button>
-           <button class="secondary-button" id="saveDocument" type="button" data-i18n="documents.save">Save document</button>
+            <button class="secondary-button" id="saveDocument" type="button" data-i18n="documents.save">Save document</button>
             <button class="secondary-button" id="printDocument" type="button" data-i18n="documents.print">Print</button>
           </div>
         </div>
@@ -1532,41 +1543,105 @@
       <section id="expenses" class="page">
         <div class="page-heading">
           <div>
-            <h1 data-i18n="expenses.title">💰 Expenses</h1>
-            <p data-i18n="expenses.subtitle">Real expense tracking will require real user-entered data.</p>
+            <h1 data-i18n="v46.expensesTitle">💰 Expense Tracker</h1>
+            <p data-i18n="v46.expensesSubtitle">Record only real expenses you enter. Signed-in users can sync them to their HEGEVA cloud workspace.</p>
           </div>
         </div>
 
-        <div class="card empty-state">
-          <div class="empty-icon">💰</div>
-          <h2 data-i18n="expenses.comingTitle">Expense Tracker — Coming Soon</h2>
-          <p data-i18n="expenses.comingText">
-            The previous sample expense values and AI savings estimates have been removed. No numbers will appear until you add real data.
-          </p>
+        <div class="notice" data-i18n="v46.expensesNotice">
+          HEGEVA does not estimate or invent expenses. Amounts below come only from your entries.
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <h3 data-i18n="v46.addExpense">➕ Add expense</h3>
+            <div class="form-grid" style="margin-top:12px">
+              <div class="form-group">
+                <label for="expenseDate" data-i18n="v46.date">Date</label>
+                <input id="expenseDate" type="date">
+              </div>
+              <div class="form-group">
+                <label for="expenseCategory" data-i18n="v46.category">Category</label>
+                <select id="expenseCategory">
+                  <option value="Stock" data-i18n="v46.catStock">Stock / materials</option>
+                  <option value="Rent" data-i18n="v46.catRent">Rent / premises</option>
+                  <option value="Transport" data-i18n="v46.catTransport">Transport</option>
+                  <option value="Software" data-i18n="v46.catSoftware">Software / services</option>
+                  <option value="Marketing" data-i18n="v46.catMarketing">Marketing</option>
+                  <option value="Other" data-i18n="v46.catOther">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="expenseAmount" data-i18n="v46.amount">Amount</label>
+                <input id="expenseAmount" type="number" min="0" step="0.01" placeholder="0.00">
+              </div>
+              <div class="form-group">
+                <label for="expenseNote" data-i18n="v46.note">Note</label>
+                <input id="expenseNote" maxlength="160" data-i18n-placeholder="v46.notePlaceholder" placeholder="e.g. printer paper">
+              </div>
+            </div>
+            <button class="primary-button" id="addExpense" type="button" style="margin-top:12px" data-i18n="v46.saveExpense">Save expense</button>
+          </div>
+
+          <div class="card">
+            <h3 data-i18n="v46.expenseSummary">📊 Expense summary</h3>
+            <div class="metric-strip" style="grid-template-columns:1fr 1fr;margin-top:12px">
+              <div class="metric-mini"><span data-i18n="v46.entries">Entries</span><strong id="expenseCount">0</strong></div>
+              <div class="metric-mini"><span data-i18n="v46.totalExpenses">Total expenses</span><strong id="expenseTotal">£0.00</strong></div>
+            </div>
+            <div id="expenseCloudStatus" class="status live" style="display:inline-flex;margin-top:10px" data-i18n="v46.localBackup">Local backup active</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+            <div><h3 data-i18n="v46.savedExpenses">Saved expenses</h3><p data-i18n="v46.savedExpensesText">Delete an entry if you added it by mistake.</p></div>
+          </div>
+          <div id="expenseList" class="coming-list" style="margin-top:14px"></div>
         </div>
       </section>
 
       <section id="reports" class="page">
         <div class="page-heading">
           <div>
-            <h1 data-i18n="reports.title">📈 Reports</h1>
-            <p data-i18n="reports.subtitle">Reports will be generated from real saved data, not sample figures.</p>
+            <h1 data-i18n="v46.reportsTitle">📈 Real Data Reports</h1>
+            <p data-i18n="v46.reportsSubtitle">A simple summary generated only from documents and expenses you actually saved.</p>
           </div>
         </div>
 
-        <div class="card empty-state">
-          <div class="empty-icon">📈</div>
-          <h2 data-i18n="reports.comingTitle">Business Reports — Coming Soon</h2>
-          <p data-i18n="reports.comingText">
-            Demo revenue, profit forecasts and artificial growth percentages have been removed. This page will activate after real data storage is connected.
-          </p>
+        <div class="notice" data-i18n="v46.reportsNotice">
+          This is an operational summary, not accounting, tax advice or a profit forecast.
+        </div>
+
+        <div class="metric-strip">
+          <div class="metric-mini"><span data-i18n="v46.savedDocs">Saved documents</span><strong id="reportDocumentCount">0</strong></div>
+          <div class="metric-mini"><span data-i18n="v46.documentValue">Document total</span><strong id="reportDocumentValue">£0.00</strong></div>
+          <div class="metric-mini"><span data-i18n="v46.expenseEntries">Expense entries</span><strong id="reportExpenseCount">0</strong></div>
+          <div class="metric-mini"><span data-i18n="v46.expenseValue">Expense total</span><strong id="reportExpenseValue">£0.00</strong></div>
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <h3 data-i18n="v46.reportExplanation">How to read this</h3>
+            <p data-i18n="v46.reportExplanationText">Document total is the sum of saved invoice and quote previews. Quotes are not revenue, so HEGEVA does not label this number as income or profit.</p>
+          </div>
+          <div class="card">
+            <h3 data-i18n="v46.cloudCoverage">☁️ Cloud coverage</h3>
+            <p data-i18n="v46.cloudCoverageText">Settings, documents, planner, vault notes, expenses and selected workspace items can sync for signed-in users.</p>
+            <div id="reportCloudStatus" class="status live" style="display:inline-flex;margin-top:10px">Cloud-ready</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px">
+          <h3 data-i18n="v46.categoryBreakdown">Expense categories</h3>
+          <div id="reportCategories" class="coming-list" style="margin-top:14px"></div>
         </div>
       </section>
 
       <section id="planner" class="page">
         <div class="page-heading"><div><h1>⏳ Time Saver & Business Planner</h1>
         <p>Plan what matters, set priorities and keep recurring work visible.</p></div></div>
-        <div class="notice">Your planner is stored locally in this browser. HEGEVA only marks work complete when you do.</div>
+        <div class="notice">A local backup is kept in this browser. Signed-in users can also sync planner data to their HEGEVA cloud workspace.</div>
         <div class="grid">
           <div class="card"><h3>🎯 Add a priority</h3>
             <div class="form-group"><label>Task</label><input id="plannerTask" placeholder="e.g. Follow up unpaid invoice"></div>
@@ -1600,7 +1675,7 @@
         </div>
 
         <div class="notice" data-i18n="vault.notice">
-          This V3.6 vault uses local browser storage only. It is not cloud backup yet, so clearing browser data can remove locally saved items.
+          A local backup is kept in this browser. Signed-in users can also sync supported Vault data to their HEGEVA cloud workspace.
         </div>
 
         <div class="grid">
@@ -1874,7 +1949,7 @@
         "nav.expenses": "Expenses",
         "nav.reports": "Reports",
         "nav.settings": "Settings",
-        "home.badge": "HEGEVA AI V4.5",
+        "home.badge": "HEGEVA AI V4.6",
         "home.title1": "Build your business workspace",
         "home.title2": "without fake promises.",
         "home.subtitle": "Hegeva AI is a human-first business workspace designed to reduce admin, organize everyday work and give you more time to focus. Only working features are marked as available.",
@@ -1889,7 +1964,7 @@
         "cards.aiText": "The secure AI backend is not connected yet. This feature is clearly marked as Coming Soon until it is real.",
         "status.live": "● Working",
         "status.soon": "Coming Soon",
-        "home.footer": "Hegeva AI V4.5 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
+        "home.footer": "Hegeva AI V4.6 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
         "ai.title": "🤖 AI Assistant",
         "ai.subtitle": "Secure AI integration is the next development stage.",
         "ai.comingTitle": "Hegeva AI Assistant — Coming Soon",
@@ -1966,7 +2041,7 @@
         "nav.vault": "Vault & Templates",
         "vault.title": "🗂️ Business Vault & Smart Templates",
         "vault.subtitle": "Keep locally saved business items together and create useful text templates from your own details.",
-        "vault.notice": "This V3.6 vault uses local browser storage only. It is not cloud backup yet, so clearing browser data can remove locally saved items.",
+        "vault.notice": "A local backup is kept in this browser. Signed-in users can also sync supported Vault data to their HEGEVA cloud workspace.",
         "vault.docsTitle": "🧾 Saved documents",
         "vault.docsText": "Invoices and quotes you saved locally appear here.",
         "vault.notesTitle": "📝 Quick business note",
@@ -2083,7 +2158,7 @@
         "v42.allDocs": "All documents",
         "v42.invoices": "Invoices",
         "v42.quotes": "Quotes",
-        "v43.eyebrow": "HEGEVA AI V4.5 • HUMAN-FIRST BUSINESS AI",
+        "v43.eyebrow": "HEGEVA AI V4.6 • HUMAN-FIRST BUSINESS AI",
         "v43.hero1": "Save time.",
         "v43.hero2": " Work smarter.",
         "v43.hero3": " Stay in control.",
@@ -2107,6 +2182,40 @@
         "auth.loginButton": "Login securely",
         "auth.registerButton": "Create account",
         "auth.note": "V4.5 account authentication is live. Cloud workspace syncing is being added separately, so local browser tools remain local until that feature is explicitly enabled.",
+        "v46.expensesTitle": "💰 Expense Tracker",
+        "v46.expensesSubtitle": "Record only real expenses you enter. Signed-in users can sync them to their HEGEVA cloud workspace.",
+        "v46.expensesNotice": "HEGEVA does not estimate or invent expenses. Amounts below come only from your entries.",
+        "v46.addExpense": "➕ Add expense",
+        "v46.date": "Date",
+        "v46.category": "Category",
+        "v46.catStock": "Stock / materials",
+        "v46.catRent": "Rent / premises",
+        "v46.catTransport": "Transport",
+        "v46.catSoftware": "Software / services",
+        "v46.catMarketing": "Marketing",
+        "v46.catOther": "Other",
+        "v46.amount": "Amount",
+        "v46.note": "Note",
+        "v46.notePlaceholder": "e.g. printer paper",
+        "v46.saveExpense": "Save expense",
+        "v46.expenseSummary": "📊 Expense summary",
+        "v46.entries": "Entries",
+        "v46.totalExpenses": "Total expenses",
+        "v46.localBackup": "Local backup active",
+        "v46.savedExpenses": "Saved expenses",
+        "v46.savedExpensesText": "Delete an entry if you added it by mistake.",
+        "v46.reportsTitle": "📈 Real Data Reports",
+        "v46.reportsSubtitle": "A simple summary generated only from documents and expenses you actually saved.",
+        "v46.reportsNotice": "This is an operational summary, not accounting, tax advice or a profit forecast.",
+        "v46.savedDocs": "Saved documents",
+        "v46.documentValue": "Document total",
+        "v46.expenseEntries": "Expense entries",
+        "v46.expenseValue": "Expense total",
+        "v46.reportExplanation": "How to read this",
+        "v46.reportExplanationText": "Document total is the sum of saved invoice and quote previews. Quotes are not revenue, so HEGEVA does not label this number as income or profit.",
+        "v46.cloudCoverage": "☁️ Cloud coverage",
+        "v46.cloudCoverageText": "Settings, documents, planner, vault notes, expenses and selected workspace items can sync for signed-in users.",
+        "v46.categoryBreakdown": "Expense categories",
         "toast.saved": "Settings saved in this browser.",
         "toast.language": "Language changed."
       },
@@ -2118,7 +2227,7 @@
         "nav.expenses": "Kiadások",
         "nav.reports": "Riportok",
         "nav.settings": "Beállítások",
-        "home.badge": "HEGEVA AI V4.5",
+        "home.badge": "HEGEVA AI V4.6",
         "home.title1": "Építsd fel az üzleti munkateredet",
         "home.title2": "kamu ígéretek nélkül.",
         "home.subtitle": "A Hegeva AI lépésről lépésre épül. Csak a valóban működő funkciókat jelöljük elérhetőnek; ami még nincs kész, az egyértelműen Coming Soon.",
@@ -2133,7 +2242,7 @@
         "cards.aiText": "A biztonságos AI backend még nincs csatlakoztatva. Addig ez a funkció egyértelműen Coming Soon.",
         "status.live": "● Működik",
         "status.soon": "Hamarosan",
-        "home.footer": "A Hegeva AI V4.5 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
+        "home.footer": "A Hegeva AI V4.6 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
         "ai.title": "🤖 AI Asszisztens",
         "ai.subtitle": "A biztonságos AI-integráció a következő fejlesztési szakasz.",
         "ai.comingTitle": "Hegeva AI Asszisztens — Hamarosan",
@@ -2327,7 +2436,7 @@
         "v42.allDocs": "Minden dokumentum",
         "v42.invoices": "Számlák",
         "v42.quotes": "Árajánlatok",
-        "v43.eyebrow": "HEGEVA AI V4.5 • EMBERKÖZPONTÚ ÜZLETI AI",
+        "v43.eyebrow": "HEGEVA AI V4.6 • EMBERKÖZPONTÚ ÜZLETI AI",
         "v43.hero1": "Spórolj időt.",
         "v43.hero2": " Dolgozz okosabban.",
         "v43.hero3": " Maradj irányításban.",
@@ -2351,6 +2460,40 @@
         "auth.loginButton": "Biztonságos bejelentkezés",
         "auth.registerButton": "Fiók létrehozása",
         "auth.note": "A V4.5 fiókhitelesítés működik. A felhős munkatér-szinkron külön fejlesztésként érkezik, ezért a böngészőben tárolt eszközök addig helyben maradnak.",
+        "v46.expensesTitle": "💰 Kiadáskövető",
+        "v46.expensesSubtitle": "Csak a valóban megadott kiadásaidat rögzíti. Bejelentkezve a HEGEVA felhős munkaterébe is szinkronizálható.",
+        "v46.expensesNotice": "A HEGEVA nem becsül és nem talál ki kiadásokat. Az összegek kizárólag a te bejegyzéseidből származnak.",
+        "v46.addExpense": "➕ Kiadás hozzáadása",
+        "v46.date": "Dátum",
+        "v46.category": "Kategória",
+        "v46.catStock": "Készlet / anyag",
+        "v46.catRent": "Bérleti díj / üzlethelyiség",
+        "v46.catTransport": "Szállítás / közlekedés",
+        "v46.catSoftware": "Szoftver / szolgáltatás",
+        "v46.catMarketing": "Marketing",
+        "v46.catOther": "Egyéb",
+        "v46.amount": "Összeg",
+        "v46.note": "Megjegyzés",
+        "v46.notePlaceholder": "pl. nyomtatópapír",
+        "v46.saveExpense": "Kiadás mentése",
+        "v46.expenseSummary": "📊 Kiadási összesítő",
+        "v46.entries": "Bejegyzések",
+        "v46.totalExpenses": "Összes kiadás",
+        "v46.localBackup": "Helyi biztonsági mentés aktív",
+        "v46.savedExpenses": "Mentett kiadások",
+        "v46.savedExpensesText": "Töröld a bejegyzést, ha véletlenül rögzítetted.",
+        "v46.reportsTitle": "📈 Valós adatokból készült riport",
+        "v46.reportsSubtitle": "Egyszerű összesítő kizárólag a ténylegesen mentett dokumentumokból és kiadásokból.",
+        "v46.reportsNotice": "Ez működési összesítő, nem könyvelési vagy adótanács és nem profit-előrejelzés.",
+        "v46.savedDocs": "Mentett dokumentumok",
+        "v46.documentValue": "Dokumentumok összértéke",
+        "v46.expenseEntries": "Kiadási bejegyzések",
+        "v46.expenseValue": "Kiadások összesen",
+        "v46.reportExplanation": "Hogyan értelmezd",
+        "v46.reportExplanationText": "A dokumentumösszeg a mentett számla- és árajánlat-előnézetek összege. Az árajánlat nem bevétel, ezért a HEGEVA ezt nem nevezi bevételnek vagy profitnak.",
+        "v46.cloudCoverage": "☁️ Felhős lefedettség",
+        "v46.cloudCoverageText": "Bejelentkezve a Settings, Documents, Planner, Vault-jegyzetek, kiadások és kiválasztott munkatéradatok szinkronizálhatók.",
+        "v46.categoryBreakdown": "Kiadási kategóriák",
         "toast.saved": "A beállításokat elmentettük ebben a böngészőben.",
         "toast.language": "Nyelv átállítva."
       },
@@ -2362,7 +2505,7 @@
         "nav.expenses": "Ausgaben",
         "nav.reports": "Berichte",
         "nav.settings": "Einstellungen",
-        "home.badge": "HEGEVA AI V4.5",
+        "home.badge": "HEGEVA AI V4.6",
         "home.title1": "Baue deinen Business-Arbeitsbereich",
         "home.title2": "ohne falsche Versprechen.",
         "home.subtitle": "Hegeva AI wird Schritt für Schritt entwickelt. Nur funktionierende Funktionen werden als verfügbar angezeigt; unfertige Werkzeuge sind klar als Coming Soon markiert.",
@@ -2377,7 +2520,7 @@
         "cards.aiText": "Das sichere KI-Backend ist noch nicht verbunden. Bis dahin ist diese Funktion klar als Coming Soon markiert.",
         "status.live": "● Funktioniert",
         "status.soon": "Demnächst",
-        "home.footer": "Hegeva AI V4.5 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
+        "home.footer": "Hegeva AI V4.6 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
         "ai.title": "🤖 KI-Assistent",
         "ai.subtitle": "Die sichere KI-Integration ist die nächste Entwicklungsstufe.",
         "ai.comingTitle": "Hegeva AI Assistent — Demnächst",
@@ -2571,7 +2714,7 @@
         "v42.allDocs": "Alle Dokumente",
         "v42.invoices": "Rechnungen",
         "v42.quotes": "Angebote",
-        "v43.eyebrow": "HEGEVA AI V4.5 • MENSCHENZENTRIERTE BUSINESS-KI",
+        "v43.eyebrow": "HEGEVA AI V4.6 • MENSCHENZENTRIERTE BUSINESS-KI",
         "v43.hero1": "Zeit sparen.",
         "v43.hero2": " Smarter arbeiten.",
         "v43.hero3": " Die Kontrolle behalten.",
@@ -2595,6 +2738,40 @@
         "auth.loginButton": "Sicher anmelden",
         "auth.registerButton": "Konto erstellen",
         "auth.note": "Die V4.5-Kontoauthentifizierung ist aktiv. Cloud-Workspace-Synchronisierung wird separat ergänzt; lokale Browser-Werkzeuge bleiben bis dahin lokal.",
+        "v46.expensesTitle": "💰 Ausgaben-Tracker",
+        "v46.expensesSubtitle": "Erfasst nur Ausgaben, die du selbst eingibst. Angemeldete Nutzer können sie mit dem HEGEVA Cloud-Workspace synchronisieren.",
+        "v46.expensesNotice": "HEGEVA schätzt oder erfindet keine Ausgaben. Alle Beträge stammen nur aus deinen Einträgen.",
+        "v46.addExpense": "➕ Ausgabe hinzufügen",
+        "v46.date": "Datum",
+        "v46.category": "Kategorie",
+        "v46.catStock": "Bestand / Material",
+        "v46.catRent": "Miete / Räume",
+        "v46.catTransport": "Transport",
+        "v46.catSoftware": "Software / Dienste",
+        "v46.catMarketing": "Marketing",
+        "v46.catOther": "Sonstiges",
+        "v46.amount": "Betrag",
+        "v46.note": "Notiz",
+        "v46.notePlaceholder": "z. B. Druckerpapier",
+        "v46.saveExpense": "Ausgabe speichern",
+        "v46.expenseSummary": "📊 Ausgabenübersicht",
+        "v46.entries": "Einträge",
+        "v46.totalExpenses": "Gesamtausgaben",
+        "v46.localBackup": "Lokale Sicherung aktiv",
+        "v46.savedExpenses": "Gespeicherte Ausgaben",
+        "v46.savedExpensesText": "Lösche einen Eintrag, wenn er versehentlich hinzugefügt wurde.",
+        "v46.reportsTitle": "📈 Berichte aus echten Daten",
+        "v46.reportsSubtitle": "Einfache Übersicht nur aus tatsächlich gespeicherten Dokumenten und Ausgaben.",
+        "v46.reportsNotice": "Dies ist eine operative Übersicht, keine Buchhaltungs- oder Steuerberatung und keine Gewinnprognose.",
+        "v46.savedDocs": "Gespeicherte Dokumente",
+        "v46.documentValue": "Dokumentensumme",
+        "v46.expenseEntries": "Ausgabeneinträge",
+        "v46.expenseValue": "Ausgabensumme",
+        "v46.reportExplanation": "So liest du die Übersicht",
+        "v46.reportExplanationText": "Die Dokumentensumme addiert gespeicherte Rechnungs- und Angebotsvorschauen. Angebote sind kein Umsatz, daher nennt HEGEVA diese Zahl nicht Einnahmen oder Gewinn.",
+        "v46.cloudCoverage": "☁️ Cloud-Abdeckung",
+        "v46.cloudCoverageText": "Einstellungen, Dokumente, Planer, Vault-Notizen, Ausgaben und ausgewählte Workspace-Daten können für angemeldete Nutzer synchronisiert werden.",
+        "v46.categoryBreakdown": "Ausgabenkategorien",
         "toast.saved": "Einstellungen wurden in diesem Browser gespeichert.",
         "toast.language": "Sprache geändert."
       },
@@ -2606,7 +2783,7 @@
         "nav.expenses": "Dépenses",
         "nav.reports": "Rapports",
         "nav.settings": "Paramètres",
-        "home.badge": "HEGEVA AI V4.5",
+        "home.badge": "HEGEVA AI V4.6",
         "home.title1": "Construisez votre espace professionnel",
         "home.title2": "sans fausses promesses.",
         "home.subtitle": "Hegeva AI est développé étape par étape. Seules les fonctions réellement opérationnelles sont indiquées comme disponibles ; les outils non terminés sont clairement marqués Coming Soon.",
@@ -2621,7 +2798,7 @@
         "cards.aiText": "Le backend IA sécurisé n'est pas encore connecté. Cette fonction reste clairement marquée Coming Soon jusqu'à ce qu'elle soit réelle.",
         "status.live": "● Fonctionnel",
         "status.soon": "Bientôt",
-        "home.footer": "Hegeva AI V4.5 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
+        "home.footer": "Hegeva AI V4.6 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
         "ai.title": "🤖 Assistant IA",
         "ai.subtitle": "L'intégration sécurisée de l'IA est la prochaine étape.",
         "ai.comingTitle": "Assistant Hegeva AI — Bientôt",
@@ -2815,7 +2992,7 @@
         "v42.allDocs": "Tous les documents",
         "v42.invoices": "Factures",
         "v42.quotes": "Devis",
-        "v43.eyebrow": "HEGEVA AI V4.5 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
+        "v43.eyebrow": "HEGEVA AI V4.6 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
         "v43.hero1": "Gagnez du temps.",
         "v43.hero2": " Travaillez plus intelligemment.",
         "v43.hero3": " Gardez le contrôle.",
@@ -2839,6 +3016,40 @@
         "auth.loginButton": "Connexion sécurisée",
         "auth.registerButton": "Créer un compte",
         "auth.note": "L'authentification V4.5 est active. La synchronisation cloud de l'espace de travail est ajoutée séparément ; les outils du navigateur restent locaux jusque-là.",
+        "v46.expensesTitle": "💰 Suivi des dépenses",
+        "v46.expensesSubtitle": "Enregistre uniquement les dépenses que vous saisissez. Les utilisateurs connectés peuvent les synchroniser avec leur espace cloud HEGEVA.",
+        "v46.expensesNotice": "HEGEVA n'estime ni n'invente de dépenses. Les montants proviennent uniquement de vos saisies.",
+        "v46.addExpense": "➕ Ajouter une dépense",
+        "v46.date": "Date",
+        "v46.category": "Catégorie",
+        "v46.catStock": "Stock / matériel",
+        "v46.catRent": "Loyer / locaux",
+        "v46.catTransport": "Transport",
+        "v46.catSoftware": "Logiciels / services",
+        "v46.catMarketing": "Marketing",
+        "v46.catOther": "Autre",
+        "v46.amount": "Montant",
+        "v46.note": "Note",
+        "v46.notePlaceholder": "ex. papier d'imprimante",
+        "v46.saveExpense": "Enregistrer la dépense",
+        "v46.expenseSummary": "📊 Résumé des dépenses",
+        "v46.entries": "Entrées",
+        "v46.totalExpenses": "Dépenses totales",
+        "v46.localBackup": "Sauvegarde locale active",
+        "v46.savedExpenses": "Dépenses enregistrées",
+        "v46.savedExpensesText": "Supprimez une entrée ajoutée par erreur.",
+        "v46.reportsTitle": "📈 Rapports basés sur des données réelles",
+        "v46.reportsSubtitle": "Résumé simple basé uniquement sur les documents et dépenses réellement enregistrés.",
+        "v46.reportsNotice": "Il s'agit d'un résumé opérationnel, pas d'un conseil comptable ou fiscal ni d'une prévision de bénéfice.",
+        "v46.savedDocs": "Documents enregistrés",
+        "v46.documentValue": "Total des documents",
+        "v46.expenseEntries": "Entrées de dépenses",
+        "v46.expenseValue": "Total des dépenses",
+        "v46.reportExplanation": "Comment lire ceci",
+        "v46.reportExplanationText": "Le total des documents additionne les aperçus de factures et devis enregistrés. Un devis n'est pas un revenu, donc HEGEVA ne présente pas ce nombre comme un revenu ou un bénéfice.",
+        "v46.cloudCoverage": "☁️ Couverture cloud",
+        "v46.cloudCoverageText": "Paramètres, documents, planificateur, notes du coffre, dépenses et certaines données d'espace peuvent être synchronisés pour les utilisateurs connectés.",
+        "v46.categoryBreakdown": "Catégories de dépenses",
         "toast.saved": "Paramètres enregistrés dans ce navigateur.",
         "toast.language": "Langue modifiée."
       },
@@ -2850,7 +3061,7 @@
         "nav.expenses": "Gastos",
         "nav.reports": "Informes",
         "nav.settings": "Ajustes",
-        "home.badge": "HEGEVA AI V4.5",
+        "home.badge": "HEGEVA AI V4.6",
         "home.title1": "Construye tu espacio de negocio",
         "home.title2": "sin promesas falsas.",
         "home.subtitle": "Hegeva AI se está construyendo paso a paso. Solo las funciones que realmente funcionan se marcan como disponibles; las herramientas sin terminar se indican claramente como Coming Soon.",
@@ -2865,7 +3076,7 @@
         "cards.aiText": "El backend seguro de IA todavía no está conectado. Esta función se marca claramente como Coming Soon hasta que sea real.",
         "status.live": "● Funciona",
         "status.soon": "Próximamente",
-        "home.footer": "Hegeva AI V4.5 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
+        "home.footer": "Hegeva AI V4.6 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
         "ai.title": "🤖 Asistente IA",
         "ai.subtitle": "La integración segura de IA es la siguiente fase de desarrollo.",
         "ai.comingTitle": "Asistente Hegeva AI — Próximamente",
@@ -3059,7 +3270,7 @@
         "v42.allDocs": "Todos los documentos",
         "v42.invoices": "Facturas",
         "v42.quotes": "Presupuestos",
-        "v43.eyebrow": "HEGEVA AI V4.5 • IA EMPRESARIAL CENTRADA EN PERSONAS",
+        "v43.eyebrow": "HEGEVA AI V4.6 • IA EMPRESARIAL CENTRADA EN PERSONAS",
         "v43.hero1": "Ahorra tiempo.",
         "v43.hero2": " Trabaja de forma más inteligente.",
         "v43.hero3": " Mantén el control.",
@@ -3083,6 +3294,40 @@
         "auth.loginButton": "Iniciar sesión de forma segura",
         "auth.registerButton": "Crear cuenta",
         "auth.note": "La autenticación de cuenta V4.5 está activa. La sincronización del espacio en la nube se añadirá por separado; las herramientas guardadas en el navegador seguirán siendo locales hasta entonces.",
+        "v46.expensesTitle": "💰 Seguimiento de gastos",
+        "v46.expensesSubtitle": "Registra solo los gastos que introduces. Los usuarios conectados pueden sincronizarlos con su espacio HEGEVA en la nube.",
+        "v46.expensesNotice": "HEGEVA no estima ni inventa gastos. Los importes proceden únicamente de tus entradas.",
+        "v46.addExpense": "➕ Añadir gasto",
+        "v46.date": "Fecha",
+        "v46.category": "Categoría",
+        "v46.catStock": "Stock / materiales",
+        "v46.catRent": "Alquiler / local",
+        "v46.catTransport": "Transporte",
+        "v46.catSoftware": "Software / servicios",
+        "v46.catMarketing": "Marketing",
+        "v46.catOther": "Otros",
+        "v46.amount": "Importe",
+        "v46.note": "Nota",
+        "v46.notePlaceholder": "p. ej. papel de impresora",
+        "v46.saveExpense": "Guardar gasto",
+        "v46.expenseSummary": "📊 Resumen de gastos",
+        "v46.entries": "Entradas",
+        "v46.totalExpenses": "Gastos totales",
+        "v46.localBackup": "Copia local activa",
+        "v46.savedExpenses": "Gastos guardados",
+        "v46.savedExpensesText": "Elimina una entrada si la añadiste por error.",
+        "v46.reportsTitle": "📈 Informes con datos reales",
+        "v46.reportsSubtitle": "Resumen simple generado solo con documentos y gastos que realmente hayas guardado.",
+        "v46.reportsNotice": "Es un resumen operativo, no asesoramiento contable o fiscal ni una previsión de beneficio.",
+        "v46.savedDocs": "Documentos guardados",
+        "v46.documentValue": "Total de documentos",
+        "v46.expenseEntries": "Entradas de gastos",
+        "v46.expenseValue": "Total de gastos",
+        "v46.reportExplanation": "Cómo interpretar esto",
+        "v46.reportExplanationText": "El total de documentos suma las vistas previas de facturas y presupuestos guardados. Un presupuesto no es ingreso, por eso HEGEVA no llama a este valor ingresos o beneficio.",
+        "v46.cloudCoverage": "☁️ Cobertura en la nube",
+        "v46.cloudCoverageText": "Ajustes, documentos, planificador, notas del archivo, gastos y algunos datos del espacio pueden sincronizarse para usuarios conectados.",
+        "v46.categoryBreakdown": "Categorías de gastos",
         "toast.saved": "Ajustes guardados en este navegador.",
         "toast.language": "Idioma cambiado."
       }
@@ -4372,6 +4617,306 @@
     });
 
     refreshAuthSession();
+
+
+    // =========================================
+    // HEGEVA AI V4.6 - CLOUD WORKSPACE SYNC
+    // =========================================
+    const V46_SYNC_BUCKETS = {
+      documents: ["hegeva_documents"],
+      planner: ["hegeva_planner_tasks", "hegeva_business_goal", "hegeva_repeat_work"],
+      vault: ["hegeva_vault_note"],
+      expenses: ["hegeva_expenses"],
+      chats: ["hegeva_v41_saved_chats", "hegeva_v41_active_chat"],
+      business_tools: ["hegeva_v44_clients", "hegeva_v44_documents", "hegeva_v44_doc_counter"]
+    };
+
+    function v46ReadLocalValue(key) {
+      const raw = localStorage.getItem(key);
+      if (raw === null) return null;
+      try { return JSON.parse(raw); } catch { return raw; }
+    }
+
+    function v46WriteLocalValue(key, value) {
+      if (value === null || value === undefined) {
+        localStorage.removeItem(key);
+        return;
+      }
+      localStorage.setItem(key, typeof value === "string" ? value : JSON.stringify(value));
+    }
+
+    function v46BucketData(bucket) {
+      const keys = V46_SYNC_BUCKETS[bucket] || [];
+      const data = {};
+      keys.forEach(key => { data[key] = v46ReadLocalValue(key); });
+      return data;
+    }
+
+    async function v46SaveBucket(bucket, silent = true) {
+      if (!V46_SYNC_BUCKETS[bucket]) return false;
+      try {
+        const response = await fetch(`/api/workspace/${bucket}`, {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: v46BucketData(bucket) })
+        });
+        if (response.status === 401) return false;
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!silent) showToast("Cloud sync complete.");
+        return true;
+      } catch (error) {
+        console.warn(`HEGEVA ${bucket} cloud sync failed`, error);
+        return false;
+      }
+    }
+
+    async function v46LoadBucket(bucket) {
+      if (!V46_SYNC_BUCKETS[bucket]) return false;
+      try {
+        const response = await fetch(`/api/workspace/${bucket}`, {
+          method: "GET",
+          credentials: "include",
+          headers: { "Accept": "application/json" }
+        });
+        if (response.status === 401) return false;
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const result = await response.json();
+        if (!result.found || !result.data || typeof result.data !== "object") return false;
+        Object.entries(result.data).forEach(([key, value]) => {
+          if ((V46_SYNC_BUCKETS[bucket] || []).includes(key)) v46WriteLocalValue(key, value);
+        });
+        return true;
+      } catch (error) {
+        console.warn(`HEGEVA ${bucket} cloud load failed`, error);
+        return false;
+      }
+    }
+
+    async function v46RestoreWorkspace() {
+      const session = await refreshAuthSession();
+      if (!session) return false;
+      const buckets = Object.keys(V46_SYNC_BUCKETS);
+      await Promise.all(buckets.map(v46LoadBucket));
+
+      // Refresh visible tools from the restored local copies.
+      if (typeof renderPlanner === "function") renderPlanner();
+      if (typeof renderVaultDocuments === "function") renderVaultDocuments();
+      if (typeof renderSavedChats === "function") renderSavedChats();
+      if (typeof renderCurrentChat === "function") renderCurrentChat();
+      if (typeof refreshCommandMetrics === "function") refreshCommandMetrics();
+      if (typeof renderExpensesV46 === "function") renderExpensesV46();
+      if (typeof renderReportsV46 === "function") renderReportsV46();
+
+      const goal = localStorage.getItem("hegeva_business_goal") || "";
+      const goalInput = document.getElementById("businessGoal");
+      const goalDisplay = document.getElementById("goalDisplay");
+      if (goalInput) goalInput.value = goal;
+      if (goalDisplay && goal) { goalDisplay.textContent = goal; goalDisplay.style.display = "inline-flex"; }
+
+      const repeat = document.getElementById("repeatWork");
+      if (repeat) repeat.value = localStorage.getItem("hegeva_repeat_work") || "";
+
+      const vaultNote = localStorage.getItem("hegeva_vault_note") || "";
+      if (document.getElementById("vaultNote")) document.getElementById("vaultNote").value = vaultNote;
+      return true;
+    }
+
+    // Hook cloud saves to existing working controls.
+    document.getElementById("saveDocument")?.addEventListener("click", () => setTimeout(() => {
+      v46SaveBucket("documents");
+      renderReportsV46();
+    }, 50));
+
+    document.getElementById("plannerAdd")?.addEventListener("click", () => setTimeout(() => v46SaveBucket("planner"), 50));
+    document.getElementById("saveGoal")?.addEventListener("click", () => setTimeout(() => v46SaveBucket("planner"), 50));
+    document.getElementById("saveRepeatWork")?.addEventListener("click", () => setTimeout(() => v46SaveBucket("planner"), 50));
+    document.getElementById("saveVaultNote")?.addEventListener("click", () => setTimeout(() => v46SaveBucket("vault"), 50));
+    document.getElementById("btAddClient")?.addEventListener("click", () => setTimeout(() => v46SaveBucket("business_tools"), 50));
+    document.getElementById("btSaveDoc")?.addEventListener("click", () => setTimeout(() => v46SaveBucket("business_tools"), 50));
+
+    // Planner checkbox/delete controls are dynamic, so catch clicks/changes at the list.
+    document.getElementById("plannerList")?.addEventListener("change", () => setTimeout(() => v46SaveBucket("planner"), 50));
+    document.getElementById("plannerList")?.addEventListener("click", () => setTimeout(() => v46SaveBucket("planner"), 80));
+
+    // Chat persistence already writes localStorage; sync after meaningful chat controls.
+    document.getElementById("sendAiChat")?.addEventListener("click", () => setTimeout(() => v46SaveBucket("chats"), 1500));
+    document.getElementById("createNewSavedChat")?.addEventListener("click", () => setTimeout(() => v46SaveBucket("chats"), 50));
+    document.getElementById("clearCurrentChat")?.addEventListener("click", () => setTimeout(() => v46SaveBucket("chats"), 50));
+    document.getElementById("renameCurrentChat")?.addEventListener("click", () => setTimeout(() => v46SaveBucket("chats"), 50));
+    document.getElementById("deleteCurrentChat")?.addEventListener("click", () => setTimeout(() => v46SaveBucket("chats"), 50));
+
+    // =========================================
+    // V4.6 EXPENSE TRACKER
+    // =========================================
+    const V46_EXPENSE_KEY = "hegeva_expenses";
+
+    function readExpensesV46() {
+      try {
+        const data = JSON.parse(localStorage.getItem(V46_EXPENSE_KEY) || "[]");
+        return Array.isArray(data) ? data : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function writeExpensesV46(items) {
+      localStorage.setItem(V46_EXPENSE_KEY, JSON.stringify(items.slice(0, 500)));
+    }
+
+    function currencyCodeV46() {
+      try {
+        const settings = JSON.parse(localStorage.getItem("hegeva_settings") || "{}");
+        return settings.currency || "GBP";
+      } catch {
+        return "GBP";
+      }
+    }
+
+    function moneyV46(value) {
+      try {
+        return new Intl.NumberFormat(getLanguage() === "hu" ? "hu-HU" : "en-GB", {
+          style: "currency",
+          currency: currencyCodeV46()
+        }).format(Number(value) || 0);
+      } catch {
+        return `${(Number(value) || 0).toFixed(2)} ${currencyCodeV46()}`;
+      }
+    }
+
+    function renderExpensesV46() {
+      const list = document.getElementById("expenseList");
+      if (!list) return;
+      const items = readExpensesV46();
+      const total = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+      document.getElementById("expenseCount").textContent = items.length;
+      document.getElementById("expenseTotal").textContent = moneyV46(total);
+      list.innerHTML = "";
+
+      if (!items.length) {
+        const empty = document.createElement("div");
+        empty.className = "coming-item";
+        empty.textContent = getLanguage() === "hu" ? "Még nincs mentett kiadás." : "No expenses saved yet.";
+        list.appendChild(empty);
+        renderReportsV46();
+        return;
+      }
+
+      items.slice().reverse().forEach((item, reverseIndex) => {
+        const actualIndex = items.length - 1 - reverseIndex;
+        const row = document.createElement("div");
+        row.className = "coming-item";
+        row.style.cssText = "display:flex;justify-content:space-between;gap:12px;align-items:center";
+
+        const text = document.createElement("div");
+        const title = document.createElement("strong");
+        title.textContent = `${item.category} • ${moneyV46(item.amount)}`;
+        const meta = document.createElement("div");
+        meta.style.cssText = "margin-top:5px;color:var(--muted);font-size:12px";
+        meta.textContent = [item.date, item.note].filter(Boolean).join(" • ");
+        text.append(title, meta);
+
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "mini-action";
+        del.textContent = "×";
+        del.addEventListener("click", () => {
+          const next = readExpensesV46();
+          next.splice(actualIndex, 1);
+          writeExpensesV46(next);
+          renderExpensesV46();
+          v46SaveBucket("expenses");
+        });
+
+        row.append(text, del);
+        list.appendChild(row);
+      });
+
+      renderReportsV46();
+    }
+
+    document.getElementById("addExpense")?.addEventListener("click", () => {
+      const date = document.getElementById("expenseDate").value || new Date().toISOString().slice(0,10);
+      const category = document.getElementById("expenseCategory").value;
+      const amount = Number(document.getElementById("expenseAmount").value || 0);
+      const note = document.getElementById("expenseNote").value.trim();
+
+      if (!Number.isFinite(amount) || amount <= 0) {
+        showToast(getLanguage() === "hu" ? "Adj meg valós, pozitív összeget." : "Enter a real positive amount.");
+        return;
+      }
+
+      const items = readExpensesV46();
+      items.push({
+        id: crypto.randomUUID(),
+        date,
+        category,
+        amount: Math.round(amount * 100) / 100,
+        note,
+        savedAt: new Date().toISOString()
+      });
+      writeExpensesV46(items);
+      document.getElementById("expenseAmount").value = "";
+      document.getElementById("expenseNote").value = "";
+      renderExpensesV46();
+      v46SaveBucket("expenses");
+    });
+
+    if (document.getElementById("expenseDate")) {
+      document.getElementById("expenseDate").value = new Date().toISOString().slice(0,10);
+    }
+
+    // =========================================
+    // V4.6 REAL-DATA REPORTS
+    // =========================================
+    function renderReportsV46() {
+      if (!document.getElementById("reportDocumentCount")) return;
+
+      let docs = [];
+      try {
+        docs = JSON.parse(localStorage.getItem("hegeva_documents") || "[]");
+        if (!Array.isArray(docs)) docs = [];
+      } catch { docs = []; }
+
+      const expenses = readExpensesV46();
+      const docTotal = docs.reduce((sum, doc) => sum + Number(doc.total || 0), 0);
+      const expenseTotal = expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+      document.getElementById("reportDocumentCount").textContent = docs.length;
+      document.getElementById("reportDocumentValue").textContent = moneyV46(docTotal);
+      document.getElementById("reportExpenseCount").textContent = expenses.length;
+      document.getElementById("reportExpenseValue").textContent = moneyV46(expenseTotal);
+
+      const categoryBox = document.getElementById("reportCategories");
+      categoryBox.innerHTML = "";
+      const totals = {};
+      expenses.forEach(item => { totals[item.category] = (totals[item.category] || 0) + Number(item.amount || 0); });
+
+      const entries = Object.entries(totals).sort((a,b) => b[1]-a[1]);
+      if (!entries.length) {
+        const empty = document.createElement("div");
+        empty.className = "coming-item";
+        empty.textContent = getLanguage() === "hu" ? "Nincs még kiadási adat a riporthoz." : "No expense data available for the report yet.";
+        categoryBox.appendChild(empty);
+      } else {
+        entries.forEach(([category, amount]) => {
+          const row = document.createElement("div");
+          row.className = "coming-item";
+          row.style.cssText = "display:flex;justify-content:space-between;gap:12px";
+          const a = document.createElement("strong"); a.textContent = category;
+          const b = document.createElement("span"); b.textContent = moneyV46(amount);
+          row.append(a,b); categoryBox.appendChild(row);
+        });
+      }
+    }
+
+    renderExpensesV46();
+    renderReportsV46();
+
+    // Restore cloud workspace after the page initializes. This does not overwrite
+    // anything for signed-out users.
+    setTimeout(() => v46RestoreWorkspace(), 250);
 
     const savedLanguage = localStorage.getItem("hegeva_language");
     if (savedLanguage && savedLanguage in translations) {
