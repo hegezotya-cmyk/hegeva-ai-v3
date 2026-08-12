@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V4.6 — honest, multilingual business workspace." />
-  <title>Hegeva AI V4.6</title>
+  <meta name="description" content="Hegeva AI V4.8 — multilingual business workspace with live plan and AI usage status." />
+  <title>Hegeva AI V4.8</title>
 
   <style>
     :root {
@@ -1115,6 +1115,19 @@
       background:rgba(53,213,138,.06);
       color:var(--muted);font-size:13px
     }
+    .plan-card.current-plan{
+      border-color:rgba(53,213,138,.55);
+      box-shadow:0 18px 55px rgba(53,213,138,.10);
+      background:linear-gradient(145deg,rgba(53,213,138,.08),rgba(255,255,255,.035));
+    }
+    .plan-card.current-plan::after{
+      content:"CURRENT";
+      position:absolute;top:14px;right:14px;
+      padding:5px 8px;border-radius:999px;
+      border:1px solid rgba(53,213,138,.32);
+      background:rgba(53,213,138,.10);
+      color:#79eab1;font-size:10px;font-weight:900;letter-spacing:.05em;
+    }
     @media(max-width:900px){
       .plan-grid,.usage-grid{grid-template-columns:1fr}
     }
@@ -1129,7 +1142,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name notranslate" translate="no">Hegeva AI</div>
-          <div class="brand-subtitle">V4.7.3 LANGUAGE ENGINE LOCK</div>
+          <div class="brand-subtitle">V4.8 PLANS & USAGE LIVE</div>
         </div>
       </div>
 
@@ -1257,7 +1270,7 @@
       <section id="home" class="page active">
         <section class="v43-vision">
           <div class="v43-copy">
-            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.7.3 • HUMAN-FIRST BUSINESS AI</div>
+            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.8 • HUMAN-FIRST BUSINESS AI</div>
             <h1>
               <span data-i18n="v43.hero1">Save time.</span>
               <span class="gradient-text" data-i18n="v43.hero2"> Work smarter.</span>
@@ -1300,7 +1313,7 @@
         </div>
 
         <section class="hero">
-          <div class="badge" data-i18n="home.badge">HEGEVA AI V4.6</div>
+          <div class="badge" data-i18n="home.badge">HEGEVA AI V4.8</div>
 
           <h2>
             <span data-i18n="home.title1">Save time. Work smarter.</span>
@@ -1399,7 +1412,7 @@
         </div>
 
         <div class="footer-note" data-i18n="home.footer">
-          Hegeva AI V4.6 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
+          Hegeva AI V4.8 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
         </div>
       </section>
 
@@ -1977,7 +1990,7 @@
             <div>
               <div class="vision-tagline" data-i18n="plans.currentEyebrow">YOUR ACCOUNT</div>
               <h3 style="margin:6px 0 4px" data-i18n="plans.currentTitle">Current plan & usage</h3>
-              <p style="margin:0;color:var(--muted)" data-i18n="plans.currentText">Usage information comes from the HEGEVA backend when available.</p>
+              <p style="margin:0;color:var(--muted)" data-i18n="plans.currentText">Usage information comes directly from the HEGEVA backend.</p>
             </div>
             <span class="status live" id="planStatusBadge" translate="no">BASIC</span>
           </div>
@@ -1999,12 +2012,12 @@
           </div>
 
           <div class="plan-current" id="planCurrentMessage" data-i18n="plans.backendPending">
-            The plan service will become authoritative after the V4.7 backend is deployed.
+            Your plan and monthly AI usage are verified by the live HEGEVA backend.
           </div>
         </div>
 
         <div class="plan-grid">
-          <div class="plan-card">
+          <div class="plan-card" id="planCardBasic" data-plan-card="basic">
             <span class="plan-badge" translate="no">BASIC</span>
             <div class="plan-name notranslate" translate="no">Basic</div>
             <div class="plan-price" data-i18n="plans.pricePending">Price activates with the payment system</div>
@@ -2016,7 +2029,7 @@
             <button class="secondary-button" type="button" disabled data-i18n="plans.currentPlan">Current / default plan</button>
           </div>
 
-          <div class="plan-card featured">
+          <div class="plan-card featured" id="planCardPremium" data-plan-card="premium">
             <span class="plan-badge" translate="no">PREMIUM</span>
             <div class="plan-name notranslate" translate="no">Premium</div>
             <div class="plan-price" data-i18n="plans.pricePending">Price activates with the payment system</div>
@@ -2028,7 +2041,7 @@
             <button class="primary-button" type="button" disabled data-i18n="plans.comingSoon">Coming with payments</button>
           </div>
 
-          <div class="plan-card">
+          <div class="plan-card" id="planCardPro" data-plan-card="pro">
             <span class="plan-badge" translate="no">PRO</span>
             <div class="plan-name notranslate" translate="no">Pro</div>
             <div class="plan-price" data-i18n="plans.pricePending">Price activates with the payment system</div>
@@ -2110,7 +2123,7 @@
         "nav.expenses": "Expenses",
         "nav.reports": "Reports",
         "nav.settings": "Settings",
-        "home.badge": "HEGEVA AI V4.6",
+        "home.badge": "HEGEVA AI V4.8",
         "home.title1": "Build your business workspace",
         "home.title2": "without fake promises.",
         "home.subtitle": "Hegeva AI is a human-first business workspace designed to reduce admin, organize everyday work and give you more time to focus. Only working features are marked as available.",
@@ -2125,7 +2138,7 @@
         "cards.aiText": "The secure AI backend is not connected yet. This feature is clearly marked as Coming Soon until it is real.",
         "status.live": "● Working",
         "status.soon": "Coming Soon",
-        "home.footer": "Hegeva AI V4.6 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
+        "home.footer": "Hegeva AI V4.8 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
         "ai.title": "🤖 AI Assistant",
         "ai.subtitle": "Secure AI integration is the next development stage.",
         "ai.comingTitle": "Hegeva AI Assistant — Coming Soon",
@@ -2319,7 +2332,7 @@
         "v42.allDocs": "All documents",
         "v42.invoices": "Invoices",
         "v42.quotes": "Quotes",
-        "v43.eyebrow": "HEGEVA AI V4.6 • HUMAN-FIRST BUSINESS AI",
+        "v43.eyebrow": "HEGEVA AI V4.8 • HUMAN-FIRST BUSINESS AI",
         "v43.hero1": "Save time.",
         "v43.hero2": " Work smarter.",
         "v43.hero3": " Stay in control.",
@@ -2435,11 +2448,11 @@
         "plans.notice": "Payments are not active yet. No card will be charged from this page. Plan access must be verified by the backend before paid features are enabled.",
         "plans.currentEyebrow": "YOUR ACCOUNT",
         "plans.currentTitle": "Current plan & usage",
-        "plans.currentText": "Usage information comes from the HEGEVA backend when available.",
+        "plans.currentText": "Usage information comes directly from the HEGEVA backend.",
         "plans.aiUsage": "AI messages",
         "plans.cloudUsage": "Cloud workspace",
         "plans.period": "Usage period",
-        "plans.backendPending": "The plan service will become authoritative after the V4.7 backend is deployed.",
+        "plans.backendPending": "Your plan and monthly AI usage are verified by the live HEGEVA backend.",
         "plans.pricePending": "Price activates with the payment system",
         "plans.basic1": "Core HEGEVA workspace",
         "plans.basic2": "Secure account & cloud storage",
@@ -2464,7 +2477,7 @@
         "nav.expenses": "Kiadások",
         "nav.reports": "Riportok",
         "nav.settings": "Beállítások",
-        "home.badge": "HEGEVA AI V4.6",
+        "home.badge": "HEGEVA AI V4.8",
         "home.title1": "Építsd fel az üzleti munkateredet",
         "home.title2": "kamu ígéretek nélkül.",
         "home.subtitle": "A Hegeva AI lépésről lépésre épül. Csak a valóban működő funkciókat jelöljük elérhetőnek; ami még nincs kész, az egyértelműen Coming Soon.",
@@ -2673,7 +2686,7 @@
         "v42.allDocs": "Minden dokumentum",
         "v42.invoices": "Számlák",
         "v42.quotes": "Árajánlatok",
-        "v43.eyebrow": "HEGEVA AI V4.6 • EMBERKÖZPONTÚ ÜZLETI AI",
+        "v43.eyebrow": "HEGEVA AI V4.8 • EMBERKÖZPONTÚ ÜZLETI AI",
         "v43.hero1": "Spórolj időt.",
         "v43.hero2": " Dolgozz okosabban.",
         "v43.hero3": " Maradj irányításban.",
@@ -2818,7 +2831,7 @@
         "nav.expenses": "Ausgaben",
         "nav.reports": "Berichte",
         "nav.settings": "Einstellungen",
-        "home.badge": "HEGEVA AI V4.6",
+        "home.badge": "HEGEVA AI V4.8",
         "home.title1": "Baue deinen Business-Arbeitsbereich",
         "home.title2": "ohne falsche Versprechen.",
         "home.subtitle": "Hegeva AI wird Schritt für Schritt entwickelt. Nur funktionierende Funktionen werden als verfügbar angezeigt; unfertige Werkzeuge sind klar als Coming Soon markiert.",
@@ -3027,7 +3040,7 @@
         "v42.allDocs": "Alle Dokumente",
         "v42.invoices": "Rechnungen",
         "v42.quotes": "Angebote",
-        "v43.eyebrow": "HEGEVA AI V4.6 • MENSCHENZENTRIERTE BUSINESS-KI",
+        "v43.eyebrow": "HEGEVA AI V4.8 • MENSCHENZENTRIERTE BUSINESS-KI",
         "v43.hero1": "Zeit sparen.",
         "v43.hero2": " Smarter arbeiten.",
         "v43.hero3": " Die Kontrolle behalten.",
@@ -3172,7 +3185,7 @@
         "nav.expenses": "Dépenses",
         "nav.reports": "Rapports",
         "nav.settings": "Paramètres",
-        "home.badge": "HEGEVA AI V4.6",
+        "home.badge": "HEGEVA AI V4.8",
         "home.title1": "Construisez votre espace professionnel",
         "home.title2": "sans fausses promesses.",
         "home.subtitle": "Hegeva AI est développé étape par étape. Seules les fonctions réellement opérationnelles sont indiquées comme disponibles ; les outils non terminés sont clairement marqués Coming Soon.",
@@ -3381,7 +3394,7 @@
         "v42.allDocs": "Tous les documents",
         "v42.invoices": "Factures",
         "v42.quotes": "Devis",
-        "v43.eyebrow": "HEGEVA AI V4.6 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
+        "v43.eyebrow": "HEGEVA AI V4.8 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
         "v43.hero1": "Gagnez du temps.",
         "v43.hero2": " Travaillez plus intelligemment.",
         "v43.hero3": " Gardez le contrôle.",
@@ -3526,7 +3539,7 @@
         "nav.expenses": "Gastos",
         "nav.reports": "Informes",
         "nav.settings": "Ajustes",
-        "home.badge": "HEGEVA AI V4.6",
+        "home.badge": "HEGEVA AI V4.8",
         "home.title1": "Construye tu espacio de negocio",
         "home.title2": "sin promesas falsas.",
         "home.subtitle": "Hegeva AI se está construyendo paso a paso. Solo las funciones que realmente funcionan se marcan como disponibles; las herramientas sin terminar se indican claramente como Coming Soon.",
@@ -3735,7 +3748,7 @@
         "v42.allDocs": "Todos los documentos",
         "v42.invoices": "Facturas",
         "v42.quotes": "Presupuestos",
-        "v43.eyebrow": "HEGEVA AI V4.6 • IA EMPRESARIAL CENTRADA EN PERSONAS",
+        "v43.eyebrow": "HEGEVA AI V4.8 • IA EMPRESARIAL CENTRADA EN PERSONAS",
         "v43.hero1": "Ahorra tiempo.",
         "v43.hero2": " Trabaja de forma más inteligente.",
         "v43.hero3": " Mantén el control.",
@@ -4614,7 +4627,23 @@
       });
 
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+      if (!response.ok) {
+        if (response.status === 429 && data.code === "AI_LIMIT_REACHED") {
+          setTimeout(v48RefreshPlanStatus, 0);
+          throw new Error(v48PlanCopy().limitReached);
+        }
+        if (response.status === 401 || data.code === "AUTH_REQUIRED") {
+          throw new Error(localeText({
+            en:"Please sign in to use HEGEVA AI.",
+            hu:"A HEGEVA AI használatához jelentkezz be.",
+            de:"Bitte melde dich an, um HEGEVA AI zu verwenden.",
+            fr:"Veuillez vous connecter pour utiliser HEGEVA AI.",
+            es:"Inicia sesión para usar HEGEVA AI."
+          }));
+        }
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
+      setTimeout(v48RefreshPlanStatus, 0);
       return typeof data.response === "string" ? data.response.trim() : "";
     }
 
@@ -5175,7 +5204,7 @@
 
 
     // =========================================
-    // HEGEVA AI V4.6 - CLOUD WORKSPACE SYNC
+    // HEGEVA AI V4.8 - CLOUD WORKSPACE SYNC
     // =========================================
     const V46_SYNC_BUCKETS = {
       documents: ["hegeva_documents"],
@@ -5666,9 +5695,9 @@
 
 
     // =========================================
-    // HEGEVA AI V4.7 - PLAN STATUS FRONTEND
+    // HEGEVA AI V4.8 - LIVE PLAN + USAGE STATUS
     // =========================================
-    function v47SetMeter(value, max) {
+    function v48SetMeter(value, max) {
       const meter = document.getElementById("planAiMeter");
       if (!meter) return;
       if (!Number.isFinite(value) || !Number.isFinite(max) || max <= 0) {
@@ -5678,14 +5707,32 @@
       meter.style.width = `${Math.min(100, Math.max(0, (value / max) * 100))}%`;
     }
 
-    async function v47RefreshPlanStatus() {
+    function v48MarkCurrentPlan(planName) {
+      document.querySelectorAll("[data-plan-card]").forEach(card => {
+        card.classList.toggle("current-plan", card.dataset.planCard === planName);
+      });
+    }
+
+    function v48PlanCopy() {
+      const copies = {
+        en: { signedOut:"SIGNED OUT", signIn:"Sign in", active:"Active", current:"Current month", backendError:"Plan service unavailable", backendErrorText:"HEGEVA could not load your plan status right now. Your account has not been upgraded or charged.", confirmed:p=>`${p} plan confirmed by HEGEVA backend.`, limitReached:"Monthly AI message limit reached. Upgrade options will become available only when real payments are activated." },
+        hu: { signedOut:"KIJELENTKEZVE", signIn:"Jelentkezz be", active:"Aktív", current:"Aktuális hónap", backendError:"Csomagadat nem elérhető", backendErrorText:"A HEGEVA most nem tudta betölteni a csomagállapotot. A fiókod nem lett magasabb csomagra váltva és nem történt terhelés.", confirmed:p=>`${p} csomag megerősítve a HEGEVA backend által.`, limitReached:"Elérted a havi AI üzenetlimitet. A csomagváltás csak a valódi fizetési rendszer aktiválása után lesz elérhető." },
+        de: { signedOut:"ABGEMELDET", signIn:"Anmelden", active:"Aktiv", current:"Aktueller Monat", backendError:"Tarifdienst nicht verfügbar", backendErrorText:"HEGEVA konnte deinen Tarifstatus gerade nicht laden. Dein Konto wurde nicht hochgestuft und es wurde nichts berechnet.", confirmed:p=>`${p}-Tarif vom HEGEVA-Backend bestätigt.`, limitReached:"Das monatliche KI-Nachrichtenlimit ist erreicht. Upgrades werden erst mit dem echten Zahlungssystem verfügbar." },
+        fr: { signedOut:"DÉCONNECTÉ", signIn:"Se connecter", active:"Actif", current:"Mois en cours", backendError:"Service de forfait indisponible", backendErrorText:"HEGEVA ne peut pas charger votre forfait pour le moment. Aucun changement de forfait ni prélèvement n'a été effectué.", confirmed:p=>`Forfait ${p} confirmé par le serveur HEGEVA.`, limitReached:"La limite mensuelle de messages IA est atteinte. Les changements de forfait seront disponibles uniquement avec le vrai système de paiement." },
+        es: { signedOut:"SESIÓN CERRADA", signIn:"Iniciar sesión", active:"Activo", current:"Mes actual", backendError:"Servicio de planes no disponible", backendErrorText:"HEGEVA no puede cargar tu plan en este momento. No se ha actualizado tu cuenta ni se ha realizado ningún cargo.", confirmed:p=>`Plan ${p} confirmado por el servidor de HEGEVA.`, limitReached:"Has alcanzado el límite mensual de mensajes de IA. Los cambios de plan estarán disponibles solo cuando se active el sistema de pago real." }
+      };
+      return copies[currentLanguage()] || copies.en;
+    }
+
+    async function v48RefreshPlanStatus() {
       const badge = document.getElementById("planStatusBadge");
       const usage = document.getElementById("planAiUsage");
       const cloud = document.getElementById("planCloudUsage");
       const period = document.getElementById("planPeriod");
       const message = document.getElementById("planCurrentMessage");
-
       if (!badge || !usage || !cloud || !period || !message) return;
+
+      const copy = v48PlanCopy();
 
       try {
         const response = await fetch("/api/plan/status", {
@@ -5695,75 +5742,48 @@
         });
 
         if (response.status === 401) {
-          const signedOutCopy = {
-            en: { badge: "SIGNED OUT", cloud: "Sign in" },
-            hu: { badge: "KIJELENTKEZVE", cloud: "Jelentkezz be" },
-            de: { badge: "ABGEMELDET", cloud: "Anmelden" },
-            fr: { badge: "DÉCONNECTÉ", cloud: "Se connecter" },
-            es: { badge: "SESIÓN CERRADA", cloud: "Iniciar sesión" }
-          };
-          const signed = signedOutCopy[currentLanguage()] || signedOutCopy.en;
-          badge.textContent = signed.badge;
+          badge.textContent = copy.signedOut;
           usage.textContent = "—";
-          cloud.textContent = signed.cloud;
+          cloud.textContent = copy.signIn;
           period.textContent = "—";
-          v47SetMeter(0, 1);
+          message.textContent = copy.signIn;
+          v48SetMeter(0, 1);
+          v48MarkCurrentPlan("");
           return;
         }
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
 
-        const data = await response.json();
-        const plan = String(data.plan || "basic").toUpperCase();
+        const planName = String(data.plan || "basic").toLowerCase();
+        const planLabel = planName.toUpperCase();
         const used = Number(data.usage?.aiMessages ?? 0);
-        const limit = Number(data.limits?.aiMessages ?? 0);
+        const limit = Number(data.usage?.limit ?? 0);
+        const remaining = Number(data.usage?.remaining ?? Math.max(0, limit - used));
 
-        badge.textContent = plan;
+        badge.textContent = planLabel;
         usage.textContent = limit > 0 ? `${used} / ${limit}` : `${used}`;
-        const planRuntimeCopy = {
-          en: { limited: "Limited", active: "Active", current: "Current" },
-          hu: { limited: "Korlátozott", active: "Aktív", current: "Jelenlegi" },
-          de: { limited: "Eingeschränkt", active: "Aktiv", current: "Aktuell" },
-          fr: { limited: "Limité", active: "Actif", current: "Actuel" },
-          es: { limited: "Limitado", active: "Activo", current: "Actual" }
-        };
-        const runtimeCopy = planRuntimeCopy[currentLanguage()] || planRuntimeCopy.en;
-        cloud.textContent = data.features?.cloudWorkspace === false ? runtimeCopy.limited : runtimeCopy.active;
-        period.textContent = data.period?.label || data.period?.endsAt || runtimeCopy.current;
-        message.textContent = ({
-          en: `${plan} plan confirmed by HEGEVA backend.`,
-          hu: `${plan} csomag megerősítve a HEGEVA backend által.`,
-          de: `${plan}-Tarif vom HEGEVA-Backend bestätigt.`,
-          fr: `Forfait ${plan} confirmé par le serveur HEGEVA.`,
-          es: `Plan ${plan} confirmado por el servidor de HEGEVA.`
-        }[currentLanguage()] || `${plan} plan confirmed by HEGEVA backend.`);
-        v47SetMeter(used, limit);
+        cloud.textContent = copy.active;
+        period.textContent = typeof data.period === "string" && data.period ? data.period : copy.current;
+        message.textContent = remaining <= 0 && limit > 0 ? copy.limitReached : copy.confirmed(planLabel);
+        v48SetMeter(used, limit);
+        v48MarkCurrentPlan(planName);
       } catch (error) {
-        // V4.7 frontend can safely deploy before the backend route.
-        const fallback = {
-          en: { pending: "Backend pending", active: "Active", message: "The V4.7 plan backend has not been deployed yet. No paid access is being claimed." },
-          hu: { pending: "Backend függőben", active: "Aktív", message: "A V4.7 csomag-backend még nincs telepítve. A HEGEVA nem állít fizetős hozzáférést." },
-          de: { pending: "Backend ausstehend", active: "Aktiv", message: "Das V4.7-Tarif-Backend ist noch nicht bereitgestellt. Es wird kein kostenpflichtiger Zugriff behauptet." },
-          fr: { pending: "Serveur en attente", active: "Actif", message: "Le serveur des forfaits V4.7 n’est pas encore déployé. Aucun accès payant n’est présenté comme actif." },
-          es: { pending: "Servidor pendiente", active: "Activo", message: "El servidor de planes V4.7 todavía no está desplegado. No se muestra ningún acceso de pago como activo." }
-        };
-        const copy = fallback[currentLanguage()] || fallback.en;
-        badge.textContent = "BASIC";
-        usage.textContent = copy.pending;
+        badge.textContent = copy.backendError;
+        usage.textContent = "—";
         cloud.textContent = copy.active;
         period.textContent = "—";
-        message.textContent = copy.message;
-        v47SetMeter(0, 1);
+        message.textContent = copy.backendErrorText;
+        v48SetMeter(0, 1);
+        v48MarkCurrentPlan("");
       }
     }
 
     document.querySelector('[data-page="pricing"]')?.addEventListener("click", () => {
-      setTimeout(v47RefreshPlanStatus, 50);
+      setTimeout(v48RefreshPlanStatus, 50);
     });
 
-    setTimeout(v47RefreshPlanStatus, 400);
+    setTimeout(v48RefreshPlanStatus, 400);
 
     const savedLanguage = localStorage.getItem("hegeva_language");
     if (savedLanguage && savedLanguage in translations) {
