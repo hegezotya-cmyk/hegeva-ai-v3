@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V4.4 — honest, multilingual business workspace." />
-  <title>Hegeva AI V4.4</title>
+  <meta name="description" content="Hegeva AI V4.5 — honest, multilingual business workspace." />
+  <title>Hegeva AI V4.5</title>
 
   <style>
     :root {
@@ -1024,6 +1024,21 @@
       .v43-real-metrics { grid-template-columns: 1fr; }
     }
 
+
+    .auth-button{min-height:42px;padding:0 14px;border-radius:12px;border:1px solid rgba(246,196,83,.30);background:linear-gradient(135deg,rgba(246,196,83,.14),rgba(155,108,255,.11));color:var(--text);font-weight:800;cursor:pointer;white-space:nowrap}
+    .auth-user{display:none;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--border);border-radius:13px;background:rgba(255,255,255,.035);max-width:280px}
+    .auth-avatar{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-weight:950;color:#080a0f;background:linear-gradient(145deg,#fff3be,#f6c453,#9b6cff);flex:0 0 auto}
+    .auth-user-copy{min-width:0}.auth-user-name{font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.auth-user-email{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .auth-logout{border:0;background:transparent;color:var(--muted);cursor:pointer;font-weight:800;padding:4px 6px;border-radius:8px}
+    .auth-modal-backdrop{position:fixed;inset:0;z-index:9998;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(2,5,14,.72);backdrop-filter:blur(12px)}
+    .auth-modal-backdrop.open{display:flex}.auth-modal{width:min(520px,100%);border-radius:24px;border:1px solid rgba(246,196,83,.26);background:radial-gradient(circle at 92% 8%,rgba(55,200,255,.12),transparent 28%),linear-gradient(155deg,rgba(24,29,52,.98),rgba(7,13,29,.99));box-shadow:0 36px 110px rgba(0,0,0,.50);padding:24px}
+    .auth-modal-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.auth-modal-head h2{margin:0 0 6px;font-size:26px}
+    .auth-close{width:38px;height:38px;border-radius:11px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;font-size:20px}
+    .auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:18px 0}.auth-tab{padding:10px;border:1px solid var(--border);border-radius:11px;background:rgba(255,255,255,.035);color:var(--text);cursor:pointer;font-weight:850}.auth-tab.active{border-color:rgba(246,196,83,.48);background:rgba(246,196,83,.10);color:#ffe8a7}
+    .auth-form{display:none}.auth-form.active{display:block}.auth-grid{display:grid;gap:12px}.auth-status{min-height:22px;margin-top:12px;font-size:13px;color:var(--muted);line-height:1.5}.auth-status.error{color:#ff9b9b}.auth-status.success{color:#74e7ad}
+    .auth-note{margin-top:16px;padding:12px 13px;border-radius:13px;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--muted);font-size:12px;line-height:1.55}
+    @media(max-width:760px){.auth-user-email{display:none}.auth-user{max-width:150px}.header-actions{gap:7px}.auth-button{padding:0 10px}}
+
 </style>
 </head>
 
@@ -1034,7 +1049,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name">Hegeva AI</div>
-          <div class="brand-subtitle">V4.4 BUSINESS TOOLS</div>
+          <div class="brand-subtitle">V4.5 ACCOUNTS & CLOUD</div>
         </div>
       </div>
 
@@ -1047,10 +1062,56 @@
           <option value="es">🇪🇸 Español</option>
         </select>
 
+        
+        <button class="auth-button" id="authOpenButton" type="button" data-i18n="auth.account">Account</button>
+        <div class="auth-user" id="authUserBox">
+          <div class="auth-avatar" id="authAvatar">H</div>
+          <div class="auth-user-copy">
+            <div class="auth-user-name" id="authUserName">User</div>
+            <div class="auth-user-email" id="authUserEmail"></div>
+          </div>
+          <button class="auth-logout" id="authLogoutButton" type="button" data-i18n="auth.logout">Logout</button>
+        </div>
+
         <button class="icon-button" id="themeButton" type="button" title="Toggle theme">🌗</button>
       </div>
     </div>
   </header>
+
+
+  <div class="auth-modal-backdrop" id="authModalBackdrop" aria-hidden="true">
+    <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+      <div class="auth-modal-head">
+        <div>
+          <div class="vision-tagline" data-i18n="auth.secure">SECURE HEGEVA ACCOUNT</div>
+          <h2 id="authModalTitle" data-i18n="auth.title">HEGEVA AI Account</h2>
+          <p style="color:var(--muted);margin:0" data-i18n="auth.subtitle">Create an account or sign in to prepare for cloud-saved HEGEVA workspaces.</p>
+        </div>
+        <button class="auth-close" id="authCloseButton" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" type="button" data-auth-tab="login" data-i18n="auth.login">Login</button>
+        <button class="auth-tab" type="button" data-auth-tab="register" data-i18n="auth.register">Register</button>
+      </div>
+      <form class="auth-form active" id="authLoginForm">
+        <div class="auth-grid">
+          <div class="form-group"><label for="authLoginEmail" data-i18n="auth.email">Email</label><input id="authLoginEmail" type="email" autocomplete="email" required placeholder="you@example.com"></div>
+          <div class="form-group"><label for="authLoginPassword" data-i18n="auth.password">Password</label><input id="authLoginPassword" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></div>
+          <button class="primary-button" type="submit" data-i18n="auth.loginButton">Login securely</button>
+        </div>
+      </form>
+      <form class="auth-form" id="authRegisterForm">
+        <div class="auth-grid">
+          <div class="form-group"><label for="authRegisterName" data-i18n="auth.name">Name</label><input id="authRegisterName" type="text" autocomplete="name" maxlength="80" required placeholder="Your name"></div>
+          <div class="form-group"><label for="authRegisterEmail" data-i18n="auth.email">Email</label><input id="authRegisterEmail" type="email" autocomplete="email" required placeholder="you@example.com"></div>
+          <div class="form-group"><label for="authRegisterPassword" data-i18n="auth.password">Password</label><input id="authRegisterPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></div>
+          <button class="primary-button" type="submit" data-i18n="auth.registerButton">Create account</button>
+        </div>
+      </form>
+      <div class="auth-status" id="authStatus"></div>
+      <div class="auth-note" data-i18n="auth.note">V4.5 account authentication is live. Cloud workspace syncing is being added separately, so local browser tools remain local until that feature is explicitly enabled.</div>
+    </div>
+  </div>
 
   <div class="app-layout">
     <aside class="sidebar">
@@ -1112,7 +1173,7 @@
       <section id="home" class="page active">
         <section class="v43-vision">
           <div class="v43-copy">
-            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.4 • HUMAN-FIRST BUSINESS AI</div>
+            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.5 • HUMAN-FIRST BUSINESS AI</div>
             <h1>
               <span data-i18n="v43.hero1">Save time.</span>
               <span class="gradient-text" data-i18n="v43.hero2"> Work smarter.</span>
@@ -1155,7 +1216,7 @@
         </div>
 
         <section class="hero">
-          <div class="badge" data-i18n="home.badge">HEGEVA AI V4.4</div>
+          <div class="badge" data-i18n="home.badge">HEGEVA AI V4.5</div>
 
           <h2>
             <span data-i18n="home.title1">Save time. Work smarter.</span>
@@ -1254,7 +1315,7 @@
         </div>
 
         <div class="footer-note" data-i18n="home.footer">
-          Hegeva AI V4.4 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
+          Hegeva AI V4.5 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
         </div>
       </section>
 
@@ -1813,7 +1874,7 @@
         "nav.expenses": "Expenses",
         "nav.reports": "Reports",
         "nav.settings": "Settings",
-        "home.badge": "HEGEVA AI V4.4",
+        "home.badge": "HEGEVA AI V4.5",
         "home.title1": "Build your business workspace",
         "home.title2": "without fake promises.",
         "home.subtitle": "Hegeva AI is a human-first business workspace designed to reduce admin, organize everyday work and give you more time to focus. Only working features are marked as available.",
@@ -1828,7 +1889,7 @@
         "cards.aiText": "The secure AI backend is not connected yet. This feature is clearly marked as Coming Soon until it is real.",
         "status.live": "● Working",
         "status.soon": "Coming Soon",
-        "home.footer": "Hegeva AI V4.4 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
+        "home.footer": "Hegeva AI V4.5 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
         "ai.title": "🤖 AI Assistant",
         "ai.subtitle": "Secure AI integration is the next development stage.",
         "ai.comingTitle": "Hegeva AI Assistant — Coming Soon",
@@ -2022,7 +2083,7 @@
         "v42.allDocs": "All documents",
         "v42.invoices": "Invoices",
         "v42.quotes": "Quotes",
-        "v43.eyebrow": "HEGEVA AI V4.4 • HUMAN-FIRST BUSINESS AI",
+        "v43.eyebrow": "HEGEVA AI V4.5 • HUMAN-FIRST BUSINESS AI",
         "v43.hero1": "Save time.",
         "v43.hero2": " Work smarter.",
         "v43.hero3": " Stay in control.",
@@ -2033,6 +2094,19 @@
         "v43.openTasks": "Open planner tasks",
         "v43.savedDocs": "Saved documents",
         "v43.setup": "Workspace setup",
+        "auth.account": "Account",
+        "auth.logout": "Logout",
+        "auth.secure": "SECURE HEGEVA ACCOUNT",
+        "auth.title": "HEGEVA AI Account",
+        "auth.subtitle": "Create an account or sign in to prepare for cloud-saved HEGEVA workspaces.",
+        "auth.login": "Login",
+        "auth.register": "Register",
+        "auth.email": "Email",
+        "auth.password": "Password",
+        "auth.name": "Name",
+        "auth.loginButton": "Login securely",
+        "auth.registerButton": "Create account",
+        "auth.note": "V4.5 account authentication is live. Cloud workspace syncing is being added separately, so local browser tools remain local until that feature is explicitly enabled.",
         "toast.saved": "Settings saved in this browser.",
         "toast.language": "Language changed."
       },
@@ -2044,7 +2118,7 @@
         "nav.expenses": "Kiadások",
         "nav.reports": "Riportok",
         "nav.settings": "Beállítások",
-        "home.badge": "HEGEVA AI V4.4",
+        "home.badge": "HEGEVA AI V4.5",
         "home.title1": "Építsd fel az üzleti munkateredet",
         "home.title2": "kamu ígéretek nélkül.",
         "home.subtitle": "A Hegeva AI lépésről lépésre épül. Csak a valóban működő funkciókat jelöljük elérhetőnek; ami még nincs kész, az egyértelműen Coming Soon.",
@@ -2059,7 +2133,7 @@
         "cards.aiText": "A biztonságos AI backend még nincs csatlakoztatva. Addig ez a funkció egyértelműen Coming Soon.",
         "status.live": "● Működik",
         "status.soon": "Hamarosan",
-        "home.footer": "A Hegeva AI V4.4 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
+        "home.footer": "A Hegeva AI V4.5 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
         "ai.title": "🤖 AI Asszisztens",
         "ai.subtitle": "A biztonságos AI-integráció a következő fejlesztési szakasz.",
         "ai.comingTitle": "Hegeva AI Asszisztens — Hamarosan",
@@ -2253,7 +2327,7 @@
         "v42.allDocs": "Minden dokumentum",
         "v42.invoices": "Számlák",
         "v42.quotes": "Árajánlatok",
-        "v43.eyebrow": "HEGEVA AI V4.4 • EMBERKÖZPONTÚ ÜZLETI AI",
+        "v43.eyebrow": "HEGEVA AI V4.5 • EMBERKÖZPONTÚ ÜZLETI AI",
         "v43.hero1": "Spórolj időt.",
         "v43.hero2": " Dolgozz okosabban.",
         "v43.hero3": " Maradj irányításban.",
@@ -2264,6 +2338,19 @@
         "v43.openTasks": "Nyitott tervező feladatok",
         "v43.savedDocs": "Mentett dokumentumok",
         "v43.setup": "Munkatér beállítása",
+        "auth.account": "Fiók",
+        "auth.logout": "Kilépés",
+        "auth.secure": "BIZTONSÁGOS HEGEVA FIÓK",
+        "auth.title": "HEGEVA AI Fiók",
+        "auth.subtitle": "Hozz létre fiókot vagy jelentkezz be a későbbi felhőben mentett HEGEVA munkatérhez.",
+        "auth.login": "Bejelentkezés",
+        "auth.register": "Regisztráció",
+        "auth.email": "E-mail",
+        "auth.password": "Jelszó",
+        "auth.name": "Név",
+        "auth.loginButton": "Biztonságos bejelentkezés",
+        "auth.registerButton": "Fiók létrehozása",
+        "auth.note": "A V4.5 fiókhitelesítés működik. A felhős munkatér-szinkron külön fejlesztésként érkezik, ezért a böngészőben tárolt eszközök addig helyben maradnak.",
         "toast.saved": "A beállításokat elmentettük ebben a böngészőben.",
         "toast.language": "Nyelv átállítva."
       },
@@ -2275,7 +2362,7 @@
         "nav.expenses": "Ausgaben",
         "nav.reports": "Berichte",
         "nav.settings": "Einstellungen",
-        "home.badge": "HEGEVA AI V4.4",
+        "home.badge": "HEGEVA AI V4.5",
         "home.title1": "Baue deinen Business-Arbeitsbereich",
         "home.title2": "ohne falsche Versprechen.",
         "home.subtitle": "Hegeva AI wird Schritt für Schritt entwickelt. Nur funktionierende Funktionen werden als verfügbar angezeigt; unfertige Werkzeuge sind klar als Coming Soon markiert.",
@@ -2290,7 +2377,7 @@
         "cards.aiText": "Das sichere KI-Backend ist noch nicht verbunden. Bis dahin ist diese Funktion klar als Coming Soon markiert.",
         "status.live": "● Funktioniert",
         "status.soon": "Demnächst",
-        "home.footer": "Hegeva AI V4.4 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
+        "home.footer": "Hegeva AI V4.5 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
         "ai.title": "🤖 KI-Assistent",
         "ai.subtitle": "Die sichere KI-Integration ist die nächste Entwicklungsstufe.",
         "ai.comingTitle": "Hegeva AI Assistent — Demnächst",
@@ -2484,7 +2571,7 @@
         "v42.allDocs": "Alle Dokumente",
         "v42.invoices": "Rechnungen",
         "v42.quotes": "Angebote",
-        "v43.eyebrow": "HEGEVA AI V4.4 • MENSCHENZENTRIERTE BUSINESS-KI",
+        "v43.eyebrow": "HEGEVA AI V4.5 • MENSCHENZENTRIERTE BUSINESS-KI",
         "v43.hero1": "Zeit sparen.",
         "v43.hero2": " Smarter arbeiten.",
         "v43.hero3": " Die Kontrolle behalten.",
@@ -2495,6 +2582,19 @@
         "v43.openTasks": "Offene Planer-Aufgaben",
         "v43.savedDocs": "Gespeicherte Dokumente",
         "v43.setup": "Workspace-Einrichtung",
+        "auth.account": "Konto",
+        "auth.logout": "Abmelden",
+        "auth.secure": "SICHERES HEGEVA-KONTO",
+        "auth.title": "HEGEVA AI Konto",
+        "auth.subtitle": "Konto erstellen oder anmelden, um den späteren Cloud-Workspace vorzubereiten.",
+        "auth.login": "Anmelden",
+        "auth.register": "Registrieren",
+        "auth.email": "E-Mail",
+        "auth.password": "Passwort",
+        "auth.name": "Name",
+        "auth.loginButton": "Sicher anmelden",
+        "auth.registerButton": "Konto erstellen",
+        "auth.note": "Die V4.5-Kontoauthentifizierung ist aktiv. Cloud-Workspace-Synchronisierung wird separat ergänzt; lokale Browser-Werkzeuge bleiben bis dahin lokal.",
         "toast.saved": "Einstellungen wurden in diesem Browser gespeichert.",
         "toast.language": "Sprache geändert."
       },
@@ -2506,7 +2606,7 @@
         "nav.expenses": "Dépenses",
         "nav.reports": "Rapports",
         "nav.settings": "Paramètres",
-        "home.badge": "HEGEVA AI V4.4",
+        "home.badge": "HEGEVA AI V4.5",
         "home.title1": "Construisez votre espace professionnel",
         "home.title2": "sans fausses promesses.",
         "home.subtitle": "Hegeva AI est développé étape par étape. Seules les fonctions réellement opérationnelles sont indiquées comme disponibles ; les outils non terminés sont clairement marqués Coming Soon.",
@@ -2521,7 +2621,7 @@
         "cards.aiText": "Le backend IA sécurisé n'est pas encore connecté. Cette fonction reste clairement marquée Coming Soon jusqu'à ce qu'elle soit réelle.",
         "status.live": "● Fonctionnel",
         "status.soon": "Bientôt",
-        "home.footer": "Hegeva AI V4.4 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
+        "home.footer": "Hegeva AI V4.5 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
         "ai.title": "🤖 Assistant IA",
         "ai.subtitle": "L'intégration sécurisée de l'IA est la prochaine étape.",
         "ai.comingTitle": "Assistant Hegeva AI — Bientôt",
@@ -2715,7 +2815,7 @@
         "v42.allDocs": "Tous les documents",
         "v42.invoices": "Factures",
         "v42.quotes": "Devis",
-        "v43.eyebrow": "HEGEVA AI V4.4 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
+        "v43.eyebrow": "HEGEVA AI V4.5 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
         "v43.hero1": "Gagnez du temps.",
         "v43.hero2": " Travaillez plus intelligemment.",
         "v43.hero3": " Gardez le contrôle.",
@@ -2726,6 +2826,19 @@
         "v43.openTasks": "Tâches ouvertes",
         "v43.savedDocs": "Documents enregistrés",
         "v43.setup": "Configuration de l'espace",
+        "auth.account": "Compte",
+        "auth.logout": "Déconnexion",
+        "auth.secure": "COMPTE HEGEVA SÉCURISÉ",
+        "auth.title": "Compte HEGEVA AI",
+        "auth.subtitle": "Créez un compte ou connectez-vous pour préparer les futurs espaces HEGEVA sauvegardés dans le cloud.",
+        "auth.login": "Connexion",
+        "auth.register": "Inscription",
+        "auth.email": "E-mail",
+        "auth.password": "Mot de passe",
+        "auth.name": "Nom",
+        "auth.loginButton": "Connexion sécurisée",
+        "auth.registerButton": "Créer un compte",
+        "auth.note": "L'authentification V4.5 est active. La synchronisation cloud de l'espace de travail est ajoutée séparément ; les outils du navigateur restent locaux jusque-là.",
         "toast.saved": "Paramètres enregistrés dans ce navigateur.",
         "toast.language": "Langue modifiée."
       },
@@ -2737,7 +2850,7 @@
         "nav.expenses": "Gastos",
         "nav.reports": "Informes",
         "nav.settings": "Ajustes",
-        "home.badge": "HEGEVA AI V4.4",
+        "home.badge": "HEGEVA AI V4.5",
         "home.title1": "Construye tu espacio de negocio",
         "home.title2": "sin promesas falsas.",
         "home.subtitle": "Hegeva AI se está construyendo paso a paso. Solo las funciones que realmente funcionan se marcan como disponibles; las herramientas sin terminar se indican claramente como Coming Soon.",
@@ -2752,7 +2865,7 @@
         "cards.aiText": "El backend seguro de IA todavía no está conectado. Esta función se marca claramente como Coming Soon hasta que sea real.",
         "status.live": "● Funciona",
         "status.soon": "Próximamente",
-        "home.footer": "Hegeva AI V4.4 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
+        "home.footer": "Hegeva AI V4.5 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
         "ai.title": "🤖 Asistente IA",
         "ai.subtitle": "La integración segura de IA es la siguiente fase de desarrollo.",
         "ai.comingTitle": "Asistente Hegeva AI — Próximamente",
@@ -2946,7 +3059,7 @@
         "v42.allDocs": "Todos los documentos",
         "v42.invoices": "Facturas",
         "v42.quotes": "Presupuestos",
-        "v43.eyebrow": "HEGEVA AI V4.4 • IA EMPRESARIAL CENTRADA EN PERSONAS",
+        "v43.eyebrow": "HEGEVA AI V4.5 • IA EMPRESARIAL CENTRADA EN PERSONAS",
         "v43.hero1": "Ahorra tiempo.",
         "v43.hero2": " Trabaja de forma más inteligente.",
         "v43.hero3": " Mantén el control.",
@@ -2957,6 +3070,19 @@
         "v43.openTasks": "Tareas abiertas",
         "v43.savedDocs": "Documentos guardados",
         "v43.setup": "Configuración del espacio",
+        "auth.account": "Cuenta",
+        "auth.logout": "Salir",
+        "auth.secure": "CUENTA HEGEVA SEGURA",
+        "auth.title": "Cuenta HEGEVA AI",
+        "auth.subtitle": "Crea una cuenta o inicia sesión para preparar los futuros espacios HEGEVA guardados en la nube.",
+        "auth.login": "Iniciar sesión",
+        "auth.register": "Registrarse",
+        "auth.email": "Correo electrónico",
+        "auth.password": "Contraseña",
+        "auth.name": "Nombre",
+        "auth.loginButton": "Iniciar sesión de forma segura",
+        "auth.registerButton": "Crear cuenta",
+        "auth.note": "La autenticación de cuenta V4.5 está activa. La sincronización del espacio en la nube se añadirá por separado; las herramientas guardadas en el navegador seguirán siendo locales hasta entonces.",
         "toast.saved": "Ajustes guardados en este navegador.",
         "toast.language": "Idioma cambiado."
       }
@@ -4046,6 +4172,117 @@
 
     bt44RefreshNumber();
     bt44RenderClients();
+
+
+    const authModalBackdrop = document.getElementById("authModalBackdrop");
+    const authOpenButton = document.getElementById("authOpenButton");
+    const authCloseButton = document.getElementById("authCloseButton");
+    const authUserBox = document.getElementById("authUserBox");
+    const authUserName = document.getElementById("authUserName");
+    const authUserEmail = document.getElementById("authUserEmail");
+    const authAvatar = document.getElementById("authAvatar");
+    const authLogoutButton = document.getElementById("authLogoutButton");
+    const authStatus = document.getElementById("authStatus");
+    const authLoginForm = document.getElementById("authLoginForm");
+    const authRegisterForm = document.getElementById("authRegisterForm");
+
+    function authMessage(map){ return map[getLanguage()] || map.en; }
+    function setAuthStatus(message="", type=""){ authStatus.textContent=message; authStatus.className="auth-status"+(type?` ${type}`:""); }
+    function setAuthTab(tab){
+      document.querySelectorAll(".auth-tab").forEach(btn=>btn.classList.toggle("active",btn.dataset.authTab===tab));
+      authLoginForm.classList.toggle("active",tab==="login");
+      authRegisterForm.classList.toggle("active",tab==="register");
+    }
+    function openAuthModal(tab="login"){
+      authModalBackdrop.classList.add("open");
+      authModalBackdrop.setAttribute("aria-hidden","false");
+      setAuthTab(tab); setAuthStatus("");
+    }
+    function closeAuthModal(){ authModalBackdrop.classList.remove("open"); authModalBackdrop.setAttribute("aria-hidden","true"); setAuthStatus(""); }
+
+    document.querySelectorAll(".auth-tab").forEach(btn=>btn.addEventListener("click",()=>setAuthTab(btn.dataset.authTab)));
+    authOpenButton?.addEventListener("click",()=>openAuthModal("login"));
+    authCloseButton?.addEventListener("click",closeAuthModal);
+    authModalBackdrop?.addEventListener("click",e=>{if(e.target===authModalBackdrop)closeAuthModal();});
+    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&authModalBackdrop?.classList.contains("open"))closeAuthModal();});
+
+    async function authRequest(path, options={}){
+      const response = await fetch(`/api/auth/${path}`,{
+        credentials:"include",
+        ...options,
+        headers:{"Content-Type":"application/json",...(options.headers||{})}
+      });
+      let data=null; try{data=await response.json();}catch{}
+      if(!response.ok){
+        const message=data?.message||data?.error?.message||data?.error||`HTTP ${response.status}`;
+        throw new Error(message);
+      }
+      return data;
+    }
+
+    function showSignedOut(){
+      authOpenButton.style.display="";
+      authUserBox.style.display="none";
+      authUserName.textContent="";
+      authUserEmail.textContent="";
+      authAvatar.textContent="H";
+    }
+    function showSignedIn(user){
+      authOpenButton.style.display="none";
+      authUserBox.style.display="flex";
+      authUserName.textContent=user?.name||"HEGEVA User";
+      authUserEmail.textContent=user?.email||"";
+      authAvatar.textContent=(user?.name||user?.email||"H").trim().charAt(0).toUpperCase();
+    }
+
+    async function refreshAuthSession(){
+      try{
+        const response=await fetch("/api/auth/get-session",{method:"GET",credentials:"include",headers:{"Accept":"application/json"}});
+        if(!response.ok){showSignedOut();return null;}
+        const data=await response.json().catch(()=>null);
+        const user=data?.user||data?.session?.user||null;
+        if(user){showSignedIn(user);return data;}
+        showSignedOut();return null;
+      }catch{showSignedOut();return null;}
+    }
+
+    authRegisterForm?.addEventListener("submit",async e=>{
+      e.preventDefault();
+      const name=document.getElementById("authRegisterName").value.trim();
+      const email=document.getElementById("authRegisterEmail").value.trim();
+      const password=document.getElementById("authRegisterPassword").value;
+      if(!name||!email||password.length<8){
+        setAuthStatus(authMessage({en:"Please enter your name, email and a password of at least 8 characters.",hu:"Add meg a neved, e-mail címed és legalább 8 karakteres jelszavad.",de:"Bitte Name, E-Mail und ein Passwort mit mindestens 8 Zeichen eingeben.",fr:"Saisissez votre nom, votre e-mail et un mot de passe d'au moins 8 caractères.",es:"Introduce tu nombre, correo y una contraseña de al menos 8 caracteres."}),"error"); return;
+      }
+      setAuthStatus(authMessage({en:"Creating your account...",hu:"Fiók létrehozása...",de:"Konto wird erstellt...",fr:"Création du compte...",es:"Creando tu cuenta..."}));
+      try{
+        await authRequest("sign-up/email",{method:"POST",body:JSON.stringify({name,email,password})});
+        await refreshAuthSession();
+        setAuthStatus(authMessage({en:"Account created successfully.",hu:"A fiók sikeresen létrejött.",de:"Konto erfolgreich erstellt.",fr:"Compte créé avec succès.",es:"Cuenta creada correctamente."}),"success");
+        authRegisterForm.reset(); setTimeout(closeAuthModal,650);
+      }catch(error){setAuthStatus(error.message||"Registration failed.","error");}
+    });
+
+    authLoginForm?.addEventListener("submit",async e=>{
+      e.preventDefault();
+      const email=document.getElementById("authLoginEmail").value.trim();
+      const password=document.getElementById("authLoginPassword").value;
+      setAuthStatus(authMessage({en:"Signing in...",hu:"Bejelentkezés...",de:"Anmeldung...",fr:"Connexion...",es:"Iniciando sesión..."}));
+      try{
+        await authRequest("sign-in/email",{method:"POST",body:JSON.stringify({email,password,rememberMe:true})});
+        await refreshAuthSession();
+        setAuthStatus(authMessage({en:"Login successful.",hu:"Sikeres bejelentkezés.",de:"Anmeldung erfolgreich.",fr:"Connexion réussie.",es:"Inicio de sesión correcto."}),"success");
+        authLoginForm.reset(); setTimeout(closeAuthModal,500);
+      }catch(error){setAuthStatus(error.message||"Login failed.","error");}
+    });
+
+    authLogoutButton?.addEventListener("click",async()=>{
+      authLogoutButton.disabled=true;
+      try{await authRequest("sign-out",{method:"POST",body:JSON.stringify({})});}catch{}
+      showSignedOut(); authLogoutButton.disabled=false;
+    });
+
+    refreshAuthSession();
 
     const savedLanguage = localStorage.getItem("hegeva_language");
     if (savedLanguage && savedLanguage in translations) {
