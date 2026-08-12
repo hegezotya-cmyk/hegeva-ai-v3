@@ -1050,6 +1050,74 @@
     .cloud-sync-pill.ok {border-color:rgba(53,213,138,.28);color:#79eab1;background:rgba(53,213,138,.07)}
     .cloud-sync-pill.warn {border-color:rgba(246,196,83,.28);color:#ffe19a;background:rgba(246,196,83,.07)}
 
+
+    .plan-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:16px;
+      margin-top:18px;
+    }
+    .plan-card{
+      position:relative;
+      overflow:hidden;
+      border:1px solid var(--border);
+      border-radius:20px;
+      padding:20px;
+      background:rgba(255,255,255,.035);
+    }
+    .plan-card.featured{
+      border-color:rgba(246,196,83,.46);
+      box-shadow:0 18px 55px rgba(246,196,83,.08);
+    }
+    .plan-badge{
+      display:inline-flex;
+      padding:6px 9px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      color:var(--muted);
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+    }
+    .plan-name{font-size:25px;font-weight:950;margin:12px 0 4px}
+    .plan-price{font-size:14px;color:var(--muted);min-height:22px}
+    .plan-features{display:grid;gap:9px;margin:18px 0}
+    .plan-feature{display:flex;gap:8px;align-items:flex-start;color:var(--muted);font-size:13px;line-height:1.45}
+    .plan-feature strong{color:var(--text)}
+    .usage-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:12px;
+      margin-top:14px;
+    }
+    .usage-card{
+      border:1px solid var(--border);
+      border-radius:15px;
+      padding:14px;
+      background:rgba(255,255,255,.03);
+    }
+    .usage-card span{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+    .usage-card strong{font-size:20px}
+    .usage-meter{
+      height:8px;border-radius:999px;overflow:hidden;
+      background:rgba(255,255,255,.08);margin-top:9px
+    }
+    .usage-meter > i{
+      display:block;height:100%;width:0%;
+      background:linear-gradient(90deg,#f6c453,#9b6cff);
+      border-radius:999px;transition:width .25s ease
+    }
+    .plan-current{
+      margin-top:14px;padding:13px 14px;border-radius:14px;
+      border:1px solid rgba(53,213,138,.25);
+      background:rgba(53,213,138,.06);
+      color:var(--muted);font-size:13px
+    }
+    @media(max-width:900px){
+      .plan-grid,.usage-grid{grid-template-columns:1fr}
+    }
+
 </style>
 </head>
 
@@ -1060,7 +1128,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name">Hegeva AI</div>
-          <div class="brand-subtitle">V4.6.5 LANGUAGE FIX</div>
+          <div class="brand-subtitle">V4.7 PLANS & USAGE</div>
         </div>
       </div>
 
@@ -1173,6 +1241,10 @@
           <span class="nav-text" data-i18n="nav.health">Business Check</span>
         </button>
         <button class="nav-button" data-page="businessTools44" type="button">🧰 <span data-i18n="nav.businessTools">Business Tools</span></button>
+        <button class="nav-button" data-page="pricing" type="button">
+          <span class="nav-icon">💳</span>
+          <span class="nav-text" data-i18n="nav.pricing">Plans</span>
+        </button>
         <button class="nav-button" data-page="settings" type="button">
           <span class="nav-icon">⚙️</span>
           <span class="nav-text" data-i18n="nav.settings">Settings</span>
@@ -1184,7 +1256,7 @@
       <section id="home" class="page active">
         <section class="v43-vision">
           <div class="v43-copy">
-            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.6.5 • HUMAN-FIRST BUSINESS AI</div>
+            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.7 • HUMAN-FIRST BUSINESS AI</div>
             <h1>
               <span data-i18n="v43.hero1">Save time.</span>
               <span class="gradient-text" data-i18n="v43.hero2"> Work smarter.</span>
@@ -1886,7 +1958,94 @@
         </div>
       </section>
 
-      <section id="settings" class="page">
+      
+      <section id="pricing" class="page">
+        <div class="page-heading">
+          <div>
+            <h1 data-i18n="plans.title">💳 Plans & Usage</h1>
+            <p data-i18n="plans.subtitle">HEGEVA is preparing real plan limits before payments are activated.</p>
+          </div>
+        </div>
+
+        <div class="notice" data-i18n="plans.notice">
+          Payments are not active yet. No card will be charged from this page. Plan access must be verified by the backend before paid features are enabled.
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap">
+            <div>
+              <div class="vision-tagline" data-i18n="plans.currentEyebrow">YOUR ACCOUNT</div>
+              <h3 style="margin:6px 0 4px" data-i18n="plans.currentTitle">Current plan & usage</h3>
+              <p style="margin:0;color:var(--muted)" data-i18n="plans.currentText">Usage information comes from the HEGEVA backend when available.</p>
+            </div>
+            <span class="status live" id="planStatusBadge">BASIC</span>
+          </div>
+
+          <div class="usage-grid">
+            <div class="usage-card">
+              <span data-i18n="plans.aiUsage">AI messages</span>
+              <strong id="planAiUsage">—</strong>
+              <div class="usage-meter"><i id="planAiMeter"></i></div>
+            </div>
+            <div class="usage-card">
+              <span data-i18n="plans.cloudUsage">Cloud workspace</span>
+              <strong id="planCloudUsage">Active</strong>
+            </div>
+            <div class="usage-card">
+              <span data-i18n="plans.period">Usage period</span>
+              <strong id="planPeriod">—</strong>
+            </div>
+          </div>
+
+          <div class="plan-current" id="planCurrentMessage" data-i18n="plans.backendPending">
+            The plan service will become authoritative after the V4.7 backend is deployed.
+          </div>
+        </div>
+
+        <div class="plan-grid">
+          <div class="plan-card">
+            <span class="plan-badge">BASIC</span>
+            <div class="plan-name">Basic</div>
+            <div class="plan-price" data-i18n="plans.pricePending">Price activates with the payment system</div>
+            <div class="plan-features">
+              <div class="plan-feature">✓ <span data-i18n="plans.basic1">Core HEGEVA workspace</span></div>
+              <div class="plan-feature">✓ <span data-i18n="plans.basic2">Secure account & cloud storage</span></div>
+              <div class="plan-feature">✓ <span data-i18n="plans.basic3">Controlled AI usage limit</span></div>
+            </div>
+            <button class="secondary-button" type="button" disabled data-i18n="plans.currentPlan">Current / default plan</button>
+          </div>
+
+          <div class="plan-card featured">
+            <span class="plan-badge">PREMIUM</span>
+            <div class="plan-name">Premium</div>
+            <div class="plan-price" data-i18n="plans.pricePending">Price activates with the payment system</div>
+            <div class="plan-features">
+              <div class="plan-feature">✓ <span data-i18n="plans.premium1">Higher AI usage allowance</span></div>
+              <div class="plan-feature">✓ <span data-i18n="plans.premium2">Full cloud business workspace</span></div>
+              <div class="plan-feature">✓ <span data-i18n="plans.premium3">More productivity capacity</span></div>
+            </div>
+            <button class="primary-button" type="button" disabled data-i18n="plans.comingSoon">Coming with payments</button>
+          </div>
+
+          <div class="plan-card">
+            <span class="plan-badge">PRO</span>
+            <div class="plan-name">Pro</div>
+            <div class="plan-price" data-i18n="plans.pricePending">Price activates with the payment system</div>
+            <div class="plan-features">
+              <div class="plan-feature">✓ <span data-i18n="plans.pro1">Highest planned AI allowance</span></div>
+              <div class="plan-feature">✓ <span data-i18n="plans.pro2">Designed for heavier business use</span></div>
+              <div class="plan-feature">✓ <span data-i18n="plans.pro3">Priority access to advanced HEGEVA tools</span></div>
+            </div>
+            <button class="secondary-button" type="button" disabled data-i18n="plans.comingSoon">Coming with payments</button>
+          </div>
+        </div>
+
+        <div class="notice" style="margin-top:18px" data-i18n="plans.noFake">
+          HEGEVA will not mark Premium or Pro as active until the backend confirms the user's entitlement. Prices and final limits will be connected to the real payment setup later.
+        </div>
+      </section>
+
+<section id="settings" class="page">
         <div class="page-heading">
           <div>
             <h1 data-i18n="settings.title">⚙️ Settings</h1>
@@ -2269,6 +2428,30 @@
         "bt.name": "Name",
         "bt.clientPlaceholder": "Customer name",
         "bt.addCustomer": "Add customer",
+        "nav.pricing": "Plans",
+        "plans.title": "💳 Plans & Usage",
+        "plans.subtitle": "HEGEVA is preparing real plan limits before payments are activated.",
+        "plans.notice": "Payments are not active yet. No card will be charged from this page. Plan access must be verified by the backend before paid features are enabled.",
+        "plans.currentEyebrow": "YOUR ACCOUNT",
+        "plans.currentTitle": "Current plan & usage",
+        "plans.currentText": "Usage information comes from the HEGEVA backend when available.",
+        "plans.aiUsage": "AI messages",
+        "plans.cloudUsage": "Cloud workspace",
+        "plans.period": "Usage period",
+        "plans.backendPending": "The plan service will become authoritative after the V4.7 backend is deployed.",
+        "plans.pricePending": "Price activates with the payment system",
+        "plans.basic1": "Core HEGEVA workspace",
+        "plans.basic2": "Secure account & cloud storage",
+        "plans.basic3": "Controlled AI usage limit",
+        "plans.currentPlan": "Current / default plan",
+        "plans.premium1": "Higher AI usage allowance",
+        "plans.premium2": "Full cloud business workspace",
+        "plans.premium3": "More productivity capacity",
+        "plans.pro1": "Highest planned AI allowance",
+        "plans.pro2": "Designed for heavier business use",
+        "plans.pro3": "Priority access to advanced HEGEVA tools",
+        "plans.comingSoon": "Coming with payments",
+        "plans.noFake": "HEGEVA will not mark Premium or Pro as active until the backend confirms the user's entitlement. Prices and final limits will be connected to the real payment setup later.",
         "toast.saved": "Settings saved in this browser.",
         "toast.language": "Language changed."
       },
@@ -2599,6 +2782,30 @@
         "bt.name": "Név",
         "bt.clientPlaceholder": "Ügyfél neve",
         "bt.addCustomer": "Ügyfél hozzáadása",
+        "nav.pricing": "Csomagok",
+        "plans.title": "💳 Csomagok és használat",
+        "plans.subtitle": "A HEGEVA előbb valódi csomag- és használati limiteket épít, és csak utána aktiválja a fizetést.",
+        "plans.notice": "A fizetés még nincs bekapcsolva. Erről az oldalról semmilyen kártyaterhelés nem történik. Fizetős funkció csak backend által igazolt jogosultsággal aktiválható.",
+        "plans.currentEyebrow": "A FIÓKOD",
+        "plans.currentTitle": "Jelenlegi csomag és használat",
+        "plans.currentText": "A használati adatok a HEGEVA backendből érkeznek, amikor a V4.7 backend aktív.",
+        "plans.aiUsage": "AI üzenetek",
+        "plans.cloudUsage": "Felhős munkatér",
+        "plans.period": "Használati időszak",
+        "plans.backendPending": "A csomagrendszer a V4.7 backend telepítése után válik mérvadóvá.",
+        "plans.pricePending": "Az ár a fizetési rendszerrel együtt aktiválódik",
+        "plans.basic1": "Alap HEGEVA munkatér",
+        "plans.basic2": "Biztonságos fiók és felhős mentés",
+        "plans.basic3": "Szabályozott AI használati limit",
+        "plans.currentPlan": "Jelenlegi / alapcsomag",
+        "plans.premium1": "Magasabb AI használati keret",
+        "plans.premium2": "Teljes felhős üzleti munkatér",
+        "plans.premium3": "Nagyobb produktivitási kapacitás",
+        "plans.pro1": "Legmagasabb tervezett AI keret",
+        "plans.pro2": "Nagyobb üzleti használatra tervezve",
+        "plans.pro3": "Elsőbbségi hozzáférés fejlettebb HEGEVA eszközökhöz",
+        "plans.comingSoon": "A fizetéssel érkezik",
+        "plans.noFake": "A HEGEVA nem jelöli aktívnak a Premium vagy Pro csomagot addig, amíg a backend nem igazolja a jogosultságot. Az árakat és végleges limiteket később kötjük a valódi fizetéshez.",
         "toast.saved": "A beállításokat elmentettük ebben a böngészőben.",
         "toast.language": "Nyelv átállítva."
       },
@@ -2929,6 +3136,30 @@
         "bt.name": "Name",
         "bt.clientPlaceholder": "Kundenname",
         "bt.addCustomer": "Kunden hinzufügen",
+        "nav.pricing": "Tarife",
+        "plans.title": "💳 Tarife & Nutzung",
+        "plans.subtitle": "HEGEVA richtet echte Tarif- und Nutzungslimits ein, bevor Zahlungen aktiviert werden.",
+        "plans.notice": "Zahlungen sind noch nicht aktiv. Auf dieser Seite wird keine Karte belastet. Kostenpflichtige Funktionen werden nur nach Backend-Bestätigung freigeschaltet.",
+        "plans.currentEyebrow": "DEIN KONTO",
+        "plans.currentTitle": "Aktueller Tarif & Nutzung",
+        "plans.currentText": "Nutzungsinformationen kommen vom HEGEVA-Backend, sobald der V4.7-Backenddienst aktiv ist.",
+        "plans.aiUsage": "AI-Nachrichten",
+        "plans.cloudUsage": "Cloud-Workspace",
+        "plans.period": "Nutzungszeitraum",
+        "plans.backendPending": "Der Tarifdienst wird nach Bereitstellung des V4.7-Backends maßgeblich.",
+        "plans.pricePending": "Preis wird mit dem Zahlungssystem aktiviert",
+        "plans.basic1": "HEGEVA-Kernarbeitsbereich",
+        "plans.basic2": "Sicheres Konto & Cloud-Speicher",
+        "plans.basic3": "Kontrolliertes AI-Nutzungslimit",
+        "plans.currentPlan": "Aktueller / Standardtarif",
+        "plans.premium1": "Höheres AI-Nutzungskontingent",
+        "plans.premium2": "Vollständiger Cloud-Business-Workspace",
+        "plans.premium3": "Mehr Produktivitätskapazität",
+        "plans.pro1": "Höchstes geplantes AI-Kontingent",
+        "plans.pro2": "Für intensivere Geschäftsnutzung",
+        "plans.pro3": "Priorisierter Zugriff auf erweiterte HEGEVA-Tools",
+        "plans.comingSoon": "Kommt mit Zahlungen",
+        "plans.noFake": "HEGEVA aktiviert Premium oder Pro erst, wenn das Backend die Berechtigung bestätigt. Preise und endgültige Limits werden später mit dem echten Zahlungssystem verbunden.",
         "toast.saved": "Einstellungen wurden in diesem Browser gespeichert.",
         "toast.language": "Sprache geändert."
       },
@@ -3259,6 +3490,30 @@
         "bt.name": "Nom",
         "bt.clientPlaceholder": "Nom du client",
         "bt.addCustomer": "Ajouter un client",
+        "nav.pricing": "Forfaits",
+        "plans.title": "💳 Forfaits & utilisation",
+        "plans.subtitle": "HEGEVA met d'abord en place de vraies limites de forfait et d'utilisation avant d'activer les paiements.",
+        "plans.notice": "Les paiements ne sont pas encore actifs. Aucune carte ne sera débitée depuis cette page. Les fonctions payantes ne seront activées qu'après vérification par le backend.",
+        "plans.currentEyebrow": "VOTRE COMPTE",
+        "plans.currentTitle": "Forfait actuel & utilisation",
+        "plans.currentText": "Les informations d'utilisation proviendront du backend HEGEVA lorsque le service V4.7 sera actif.",
+        "plans.aiUsage": "Messages IA",
+        "plans.cloudUsage": "Espace cloud",
+        "plans.period": "Période d'utilisation",
+        "plans.backendPending": "Le service de forfait deviendra la référence après le déploiement du backend V4.7.",
+        "plans.pricePending": "Le prix sera activé avec le système de paiement",
+        "plans.basic1": "Espace HEGEVA principal",
+        "plans.basic2": "Compte sécurisé & stockage cloud",
+        "plans.basic3": "Limite d'utilisation IA contrôlée",
+        "plans.currentPlan": "Forfait actuel / par défaut",
+        "plans.premium1": "Quota IA plus élevé",
+        "plans.premium2": "Espace professionnel cloud complet",
+        "plans.premium3": "Capacité de productivité accrue",
+        "plans.pro1": "Quota IA prévu le plus élevé",
+        "plans.pro2": "Conçu pour un usage professionnel plus intensif",
+        "plans.pro3": "Accès prioritaire aux outils HEGEVA avancés",
+        "plans.comingSoon": "Arrive avec les paiements",
+        "plans.noFake": "HEGEVA n'activera pas Premium ou Pro tant que le backend n'aura pas confirmé le droit de l'utilisateur. Les prix et limites finales seront reliés au vrai système de paiement plus tard.",
         "toast.saved": "Paramètres enregistrés dans ce navigateur.",
         "toast.language": "Langue modifiée."
       },
@@ -3589,6 +3844,30 @@
         "bt.name": "Nombre",
         "bt.clientPlaceholder": "Nombre del cliente",
         "bt.addCustomer": "Añadir cliente",
+        "nav.pricing": "Planes",
+        "plans.title": "💳 Planes y uso",
+        "plans.subtitle": "HEGEVA prepara primero límites reales de plan y uso antes de activar los pagos.",
+        "plans.notice": "Los pagos todavía no están activos. No se cargará ninguna tarjeta desde esta página. Las funciones de pago solo se activarán cuando el backend confirme el derecho del usuario.",
+        "plans.currentEyebrow": "TU CUENTA",
+        "plans.currentTitle": "Plan actual y uso",
+        "plans.currentText": "La información de uso vendrá del backend de HEGEVA cuando el servicio V4.7 esté activo.",
+        "plans.aiUsage": "Mensajes de IA",
+        "plans.cloudUsage": "Espacio en la nube",
+        "plans.period": "Periodo de uso",
+        "plans.backendPending": "El servicio de planes será la fuente oficial después de desplegar el backend V4.7.",
+        "plans.pricePending": "El precio se activará con el sistema de pago",
+        "plans.basic1": "Espacio principal de HEGEVA",
+        "plans.basic2": "Cuenta segura y almacenamiento en la nube",
+        "plans.basic3": "Límite controlado de uso de IA",
+        "plans.currentPlan": "Plan actual / predeterminado",
+        "plans.premium1": "Mayor límite de uso de IA",
+        "plans.premium2": "Espacio empresarial completo en la nube",
+        "plans.premium3": "Mayor capacidad de productividad",
+        "plans.pro1": "Mayor límite de IA planificado",
+        "plans.pro2": "Diseñado para un uso empresarial más intenso",
+        "plans.pro3": "Acceso prioritario a herramientas HEGEVA avanzadas",
+        "plans.comingSoon": "Llegará con los pagos",
+        "plans.noFake": "HEGEVA no marcará Premium o Pro como activos hasta que el backend confirme el derecho del usuario. Los precios y límites finales se conectarán más adelante al sistema de pago real.",
         "toast.saved": "Ajustes guardados en este navegador.",
         "toast.language": "Idioma cambiado."
       }
@@ -5382,6 +5661,77 @@
     // Restore cloud workspace after the page initializes. This does not overwrite
     // anything for signed-out users.
     setTimeout(() => v46RestoreWorkspace(), 250);
+
+
+    // =========================================
+    // HEGEVA AI V4.7 - PLAN STATUS FRONTEND
+    // =========================================
+    function v47SetMeter(value, max) {
+      const meter = document.getElementById("planAiMeter");
+      if (!meter) return;
+      if (!Number.isFinite(value) || !Number.isFinite(max) || max <= 0) {
+        meter.style.width = "0%";
+        return;
+      }
+      meter.style.width = `${Math.min(100, Math.max(0, (value / max) * 100))}%`;
+    }
+
+    async function v47RefreshPlanStatus() {
+      const badge = document.getElementById("planStatusBadge");
+      const usage = document.getElementById("planAiUsage");
+      const cloud = document.getElementById("planCloudUsage");
+      const period = document.getElementById("planPeriod");
+      const message = document.getElementById("planCurrentMessage");
+
+      if (!badge || !usage || !cloud || !period || !message) return;
+
+      try {
+        const response = await fetch("/api/plan/status", {
+          method: "GET",
+          credentials: "include",
+          headers: { "Accept": "application/json" }
+        });
+
+        if (response.status === 401) {
+          badge.textContent = "SIGNED OUT";
+          usage.textContent = "—";
+          cloud.textContent = "Sign in";
+          period.textContent = "—";
+          v47SetMeter(0, 1);
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        const plan = String(data.plan || "basic").toUpperCase();
+        const used = Number(data.usage?.aiMessages ?? 0);
+        const limit = Number(data.limits?.aiMessages ?? 0);
+
+        badge.textContent = plan;
+        usage.textContent = limit > 0 ? `${used} / ${limit}` : `${used}`;
+        cloud.textContent = data.features?.cloudWorkspace === false ? "Limited" : "Active";
+        period.textContent = data.period?.label || data.period?.endsAt || "Current";
+        message.textContent = data.message || `${plan} plan confirmed by HEGEVA backend.`;
+        v47SetMeter(used, limit);
+      } catch (error) {
+        // V4.7 frontend can safely deploy before the backend route.
+        badge.textContent = "BASIC";
+        usage.textContent = "Backend pending";
+        cloud.textContent = "Active";
+        period.textContent = "—";
+        message.textContent = "The V4.7 plan backend has not been deployed yet. No paid access is being claimed.";
+        v47SetMeter(0, 1);
+      }
+    }
+
+    document.querySelector('[data-page="pricing"]')?.addEventListener("click", () => {
+      setTimeout(v47RefreshPlanStatus, 50);
+    });
+
+    setTimeout(v47RefreshPlanStatus, 400);
 
     const savedLanguage = localStorage.getItem("hegeva_language");
     if (savedLanguage && savedLanguage in translations) {
