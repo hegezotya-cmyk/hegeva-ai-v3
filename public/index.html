@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V10.0 — multilingual business workspace with live plan and AI usage status." />
-  <title>Hegeva AI V10.0</title>
+  <meta name="description" content="Hegeva AI V12.0 — multilingual business workspace with live plan and AI usage status." />
+  <title>Hegeva AI V12.0</title>
 
   <style>
     :root {
@@ -1134,7 +1134,7 @@
 
 
     /* =========================================
-       HEGEVA AI V10.0 — REAL DOCUMENT CENTER
+       HEGEVA AI V12.0 — REAL DOCUMENT CENTER
        ========================================= */
     .doc-center-toolbar{
       display:flex;
@@ -1213,7 +1213,7 @@
 
 
     /* =========================================
-       HEGEVA AI V10.0 — BUSINESS OPERATING SYSTEM
+       HEGEVA AI V12.0 — BUSINESS OPERATING SYSTEM
        ========================================= */
     .v50-grid{
       display:grid;
@@ -1249,7 +1249,7 @@
 
 
     /* =========================================
-       HEGEVA AI V10.0 — BUSINESS COMMAND CENTER
+       HEGEVA AI V12.0 — BUSINESS COMMAND CENTER
        ========================================= */
     .v70-command{
       margin:18px 0;
@@ -1283,7 +1283,7 @@
 
 
     /* =========================================
-       HEGEVA AI V10.0 — SMART BUSINESS HUB + CRM
+       HEGEVA AI V12.0 — RELEASE CANDIDATE • REPORTS + CRM + POLISH
        ========================================= */
     .v80-livebar{
       display:grid;
@@ -1311,7 +1311,7 @@
 
 
     /* =========================================
-       HEGEVA AI V10.0 — SMART BUSINESS HUB + CRM
+       HEGEVA AI V12.0 — RELEASE CANDIDATE • REPORTS + CRM + POLISH
        ========================================= */
     .v10-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:16px;margin-top:18px}
     .v10-card{border:1px solid var(--border);border-radius:18px;padding:17px;background:rgba(255,255,255,.028)}
@@ -1338,6 +1338,31 @@
     @media(max-width:1000px){.v10-grid{grid-template-columns:1fr}.v10-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:620px){.v10-form,.v10-stat-grid{grid-template-columns:1fr}.v10-form .wide{grid-column:auto}}
 
+
+    /* =========================================
+       HEGEVA AI V12.0 — RELEASE CANDIDATE
+       ========================================= */
+    .v12-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0}
+    .v12-stat{border:1px solid var(--border);border-radius:15px;padding:14px;background:rgba(255,255,255,.03)}
+    .v12-stat span{display:block;color:var(--muted);font-size:11px}
+    .v12-stat strong{display:block;font-size:21px;margin-top:6px}
+    .v12-insights{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;margin-top:14px}
+    .v12-panel{border:1px solid var(--border);border-radius:16px;padding:15px;background:rgba(255,255,255,.025)}
+    .v12-list{display:grid;gap:8px;margin-top:10px}
+    .v12-item{border:1px solid var(--border);border-radius:11px;padding:10px 11px;color:var(--muted);font-size:12px;line-height:1.45}
+    .v12-item.good{border-color:rgba(53,213,138,.28);color:#84e9b7}
+    .v12-item.warn{border-color:rgba(246,196,83,.28);color:#ffe19a}
+    .v12-release{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .v12-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;border:1px solid var(--border);color:var(--muted);font-size:11px}
+    .v12-pill.ok{color:#84e9b7;border-color:rgba(53,213,138,.28)}
+    .v12-table-wrap{overflow:auto;margin-top:12px}
+    .v12-table{width:100%;border-collapse:collapse;min-width:620px}
+    .v12-table th,.v12-table td{padding:10px;border-bottom:1px solid var(--border);text-align:left;font-size:12px}
+    .v12-table th{color:var(--muted);font-weight:700}
+    .v12-export-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+    @media(max-width:1000px){.v12-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.v12-insights{grid-template-columns:1fr}}
+    @media(max-width:600px){.v12-grid{grid-template-columns:1fr}.main{padding:14px}.card,.v70-command,.v10-card,.v12-panel{border-radius:14px;padding:13px}.page-heading h1{font-size:25px}}
+
 </style>
 </head>
 
@@ -1348,7 +1373,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name notranslate" translate="no">Hegeva AI</div>
-          <div class="brand-subtitle">V10.0 SMART BUSINESS HUB</div>
+          <div class="brand-subtitle">V12.0 SMART BUSINESS HUB</div>
         </div>
       </div>
 
@@ -1425,6 +1450,11 @@
           <span class="nav-text" data-i18n="nav.ai">AI Assistant</span>
         </button>
 
+        <button class="nav-button" data-page="customers" type="button">
+          <span class="nav-icon">👥</span>
+          <span class="nav-text" data-i18n="nav.customers">Customers & CRM</span>
+        </button>
+
         <button class="nav-button" data-page="documents" type="button">
           <span class="nav-icon">🧾</span>
           <span class="nav-text" data-i18n="nav.documents">Documents</span>
@@ -1476,7 +1506,7 @@
       <section id="home" class="page active">
         <section class="v43-vision">
           <div class="v43-copy">
-            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V10.0 • HUMAN-FIRST BUSINESS AI</div>
+            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V12.0 • HUMAN-FIRST BUSINESS AI</div>
             <h1>
               <span data-i18n="v43.hero1">Save time.</span>
               <span class="gradient-text" data-i18n="v43.hero2"> Work smarter.</span>
@@ -1503,7 +1533,7 @@
         <section class="v70-command">
           <div class="v70-head">
             <div>
-              <div class="vision-tagline">V10.0</div>
+              <div class="vision-tagline">V12.0</div>
               <h2 data-i18n="v70.title">Business Command Center</h2>
               <p data-i18n="v70.subtitle">A live view of the real information stored in your HEGEVA workspace.</p>
             </div>
@@ -1566,7 +1596,7 @@
 <section class="card" style="margin-bottom:18px">
           <div class="page-heading" style="margin-bottom:10px">
             <div>
-              <div class="vision-tagline">V10.0</div>
+              <div class="vision-tagline">V12.0</div>
               <h2 data-i18n="v50.title">Business Operating Dashboard</h2>
               <p data-i18n="v50.subtitle">One place to see real workspace activity, plan usage and the next useful actions.</p>
             </div>
@@ -1626,7 +1656,7 @@
         </div>
 
         <section class="hero">
-          <div class="badge" data-i18n="home.badge">HEGEVA AI V10.0</div>
+          <div class="badge" data-i18n="home.badge">HEGEVA AI V12.0</div>
 
           <h2>
             <span data-i18n="home.title1">Save time. Work smarter.</span>
@@ -1725,7 +1755,7 @@
         </div>
 
         <div class="footer-note" data-i18n="home.footer">
-          Hegeva AI V10.0 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
+          Hegeva AI V12.0 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.
         </div>
       </section>
 
@@ -2064,6 +2094,58 @@
             <p data-i18n="v46.reportsSubtitle">A simple summary generated only from documents and expenses you actually saved.</p>
           </div>
         </div>
+
+        <section class="card" style="margin-bottom:16px">
+          <div>
+            <div class="vision-tagline">V12.0 REPORTS</div>
+            <h2 data-i18n="v12.reportTitle">Monthly Business Snapshot</h2>
+            <p style="color:var(--muted);margin-top:6px" data-i18n="v12.reportSubtitle">Calculated only from information you actually saved in HEGEVA. It is not an accounting or tax report.</p>
+          </div>
+
+          <div class="v12-grid">
+            <div class="v12-stat"><span data-i18n="v12.monthDocs">Documents this month</span><strong id="v12MonthlyDocuments">0</strong></div>
+            <div class="v12-stat"><span data-i18n="v12.invoiceValue">Invoice value</span><strong id="v12InvoiceValue">—</strong></div>
+            <div class="v12-stat"><span data-i18n="v12.monthExpenses">Expenses this month</span><strong id="v12MonthlyExpenses">—</strong></div>
+            <div class="v12-stat"><span data-i18n="v12.customers">CRM customers</span><strong id="v12CustomerCount">0</strong></div>
+          </div>
+
+          <div class="v12-insights">
+            <div class="v12-panel">
+              <h3 data-i18n="v12.insights">Practical insights</h3>
+              <div id="v12Insights" class="v12-list"></div>
+            </div>
+            <div class="v12-panel">
+              <h3 data-i18n="v12.releaseStatus">Workspace readiness</h3>
+              <div class="v12-release">
+                <span class="v12-pill" id="v12AccountPill">Account —</span>
+                <span class="v12-pill" id="v12CloudPill">Cloud —</span>
+                <span class="v12-pill" id="v12ProfilePill">Profile —</span>
+                <span class="v12-pill" id="v12PlanPill">Plan —</span>
+              </div>
+              <div class="v12-export-row">
+                <button class="secondary-button" id="v12ExportSummary" type="button" data-i18n="v12.exportSummary">Export summary</button>
+                <button class="secondary-button" id="v12RefreshReports" type="button" data-i18n="v12.refresh">Refresh</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="v12-panel" style="margin-top:14px">
+            <h3 data-i18n="v12.recentDocuments">Recent saved documents</h3>
+            <div class="v12-table-wrap">
+              <table class="v12-table">
+                <thead><tr>
+                  <th data-i18n="v12.type">Type</th>
+                  <th data-i18n="v12.number">Number</th>
+                  <th data-i18n="v12.customer">Customer</th>
+                  <th data-i18n="v12.date">Date</th>
+                  <th data-i18n="v12.total">Total</th>
+                </tr></thead>
+                <tbody id="v12RecentDocs"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
 
         <div class="notice" data-i18n="v46.reportsNotice">
           This is an operational summary, not accounting, tax advice or a profit forecast.
@@ -2513,10 +2595,10 @@
         </div>
       </section>
     
-      <section id="page-customers" class="page">
+      <section id="customers" class="page">
         <div class="page-title">
           <div>
-            <div class="vision-tagline">V10.0 CRM</div>
+            <div class="vision-tagline">V12.0 CRM</div>
             <h1 data-i18n="crm.title">Customers & CRM</h1>
             <p data-i18n="crm.subtitle">Keep customer details, notes and document activity together in your HEGEVA workspace.</p>
           </div>
@@ -2576,6 +2658,23 @@
     const translations = {
       en: {
         "nav.customers": "Customers & CRM",
+        "v12.reportTitle": "Monthly Business Snapshot",
+        "v12.reportSubtitle": "Calculated only from information you actually saved in HEGEVA. It is not an accounting or tax report.",
+        "v12.monthDocs": "Documents this month",
+        "v12.invoiceValue": "Invoice value",
+        "v12.monthExpenses": "Expenses this month",
+        "v12.customers": "CRM customers",
+        "v12.insights": "Practical insights",
+        "v12.releaseStatus": "Workspace readiness",
+        "v12.exportSummary": "Export summary",
+        "v12.refresh": "Refresh",
+        "v12.recentDocuments": "Recent saved documents",
+        "v12.type": "Type",
+        "v12.number": "Number",
+        "v12.customer": "Customer",
+        "v12.date": "Date",
+        "v12.total": "Total",
+        "nav.customers": "Customers & CRM",
         "crm.title": "Customers & CRM",
         "crm.subtitle": "Keep customer details, notes and document activity together in your HEGEVA workspace.",
         "crm.totalCustomers": "Customers",
@@ -2623,7 +2722,7 @@
         "nav.expenses": "Expenses",
         "nav.reports": "Reports",
         "nav.settings": "Settings",
-        "home.badge": "HEGEVA AI V10.0",
+        "home.badge": "HEGEVA AI V12.0",
         "home.title1": "Build your business workspace",
         "home.title2": "without fake promises.",
         "home.subtitle": "Hegeva AI is a human-first business workspace designed to reduce admin, organize everyday work and give you more time to focus. Only working features are marked as available.",
@@ -2638,7 +2737,7 @@
         "cards.aiText": "The secure AI backend is not connected yet. This feature is clearly marked as Coming Soon until it is real.",
         "status.live": "● Working",
         "status.soon": "Coming Soon",
-        "home.footer": "Hegeva AI V10.0 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
+        "home.footer": "Hegeva AI V12.0 is an early working build. It does not provide financial, legal or tax advice, and it does not present sample figures as real business data.",
         "ai.title": "🤖 AI Assistant",
         "ai.subtitle": "Secure AI integration is the next development stage.",
         "ai.comingTitle": "Hegeva AI Assistant — Coming Soon",
@@ -2850,7 +2949,7 @@
         "v42.allDocs": "All documents",
         "v42.invoices": "Invoices",
         "v42.quotes": "Quotes",
-        "v43.eyebrow": "HEGEVA AI V10.0 • HUMAN-FIRST BUSINESS AI",
+        "v43.eyebrow": "HEGEVA AI V12.0 • HUMAN-FIRST BUSINESS AI",
         "v43.hero1": "Save time.",
         "v43.hero2": " Work smarter.",
         "v43.hero3": " Stay in control.",
@@ -3010,6 +3109,23 @@
 
       hu: {
         "nav.customers": "Ügyfelek & CRM",
+        "v12.reportTitle": "Havi üzleti összefoglaló",
+        "v12.reportSubtitle": "Kizárólag a HEGEVA-ban ténylegesen elmentett adatokból számolva. Nem könyvelési vagy adózási jelentés.",
+        "v12.monthDocs": "Dokumentumok ebben a hónapban",
+        "v12.invoiceValue": "Számlák értéke",
+        "v12.monthExpenses": "Kiadások ebben a hónapban",
+        "v12.customers": "CRM ügyfelek",
+        "v12.insights": "Gyakorlati meglátások",
+        "v12.releaseStatus": "Munkatér készültsége",
+        "v12.exportSummary": "Összefoglaló exportálása",
+        "v12.refresh": "Frissítés",
+        "v12.recentDocuments": "Legutóbbi mentett dokumentumok",
+        "v12.type": "Típus",
+        "v12.number": "Sorszám",
+        "v12.customer": "Ügyfél",
+        "v12.date": "Dátum",
+        "v12.total": "Összeg",
+        "nav.customers": "Ügyfelek & CRM",
         "crm.title": "Ügyfelek & CRM",
         "crm.subtitle": "Tartsd egy helyen az ügyféladatokat, jegyzeteket és dokumentumaktivitást.",
         "crm.totalCustomers": "Ügyfelek",
@@ -3057,7 +3173,7 @@
         "nav.expenses": "Kiadások",
         "nav.reports": "Riportok",
         "nav.settings": "Beállítások",
-        "home.badge": "HEGEVA AI V10.0",
+        "home.badge": "HEGEVA AI V12.0",
         "home.title1": "Építsd fel az üzleti munkateredet",
         "home.title2": "kamu ígéretek nélkül.",
         "home.subtitle": "A Hegeva AI lépésről lépésre épül. Csak a valóban működő funkciókat jelöljük elérhetőnek; ami még nincs kész, az egyértelműen Coming Soon.",
@@ -3072,7 +3188,7 @@
         "cards.aiText": "A biztonságos AI backend még nincs csatlakoztatva. Addig ez a funkció egyértelműen Coming Soon.",
         "status.live": "● Működik",
         "status.soon": "Hamarosan",
-        "home.footer": "A Hegeva AI V4.6 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
+        "home.footer": "A Hegeva AI V12.0 egy korai működő verzió. Nem ad pénzügyi, jogi vagy adótanácsot, és nem mutat mintaadatokat valódi üzleti adatként.",
         "ai.title": "🤖 AI Asszisztens",
         "ai.subtitle": "A biztonságos AI-integráció a következő fejlesztési szakasz.",
         "ai.comingTitle": "Hegeva AI Asszisztens — Hamarosan",
@@ -3284,7 +3400,7 @@
         "v42.allDocs": "Minden dokumentum",
         "v42.invoices": "Számlák",
         "v42.quotes": "Árajánlatok",
-        "v43.eyebrow": "HEGEVA AI V10.0 • EMBERKÖZPONTÚ ÜZLETI AI",
+        "v43.eyebrow": "HEGEVA AI V12.0 • EMBERKÖZPONTÚ ÜZLETI AI",
         "v43.hero1": "Spórolj időt.",
         "v43.hero2": " Dolgozz okosabban.",
         "v43.hero3": " Maradj irányításban.",
@@ -3444,6 +3560,23 @@
 
       de: {
         "nav.customers": "Kunden & CRM",
+        "v12.reportTitle": "Monatliche Geschäftsübersicht",
+        "v12.reportSubtitle": "Nur aus tatsächlich in HEGEVA gespeicherten Daten berechnet. Kein Buchhaltungs- oder Steuerbericht.",
+        "v12.monthDocs": "Dokumente diesen Monat",
+        "v12.invoiceValue": "Rechnungswert",
+        "v12.monthExpenses": "Ausgaben diesen Monat",
+        "v12.customers": "CRM-Kunden",
+        "v12.insights": "Praktische Hinweise",
+        "v12.releaseStatus": "Arbeitsbereich-Bereitschaft",
+        "v12.exportSummary": "Zusammenfassung exportieren",
+        "v12.refresh": "Aktualisieren",
+        "v12.recentDocuments": "Letzte gespeicherte Dokumente",
+        "v12.type": "Typ",
+        "v12.number": "Nummer",
+        "v12.customer": "Kunde",
+        "v12.date": "Datum",
+        "v12.total": "Summe",
+        "nav.customers": "Kunden & CRM",
         "crm.title": "Kunden & CRM",
         "crm.subtitle": "Kundendaten, Notizen und Dokumentaktivitäten an einem Ort.",
         "crm.totalCustomers": "Kunden",
@@ -3491,7 +3624,7 @@
         "nav.expenses": "Ausgaben",
         "nav.reports": "Berichte",
         "nav.settings": "Einstellungen",
-        "home.badge": "HEGEVA AI V10.0",
+        "home.badge": "HEGEVA AI V12.0",
         "home.title1": "Baue deinen Business-Arbeitsbereich",
         "home.title2": "ohne falsche Versprechen.",
         "home.subtitle": "Hegeva AI wird Schritt für Schritt entwickelt. Nur funktionierende Funktionen werden als verfügbar angezeigt; unfertige Werkzeuge sind klar als Coming Soon markiert.",
@@ -3506,7 +3639,7 @@
         "cards.aiText": "Das sichere KI-Backend ist noch nicht verbunden. Bis dahin ist diese Funktion klar als Coming Soon markiert.",
         "status.live": "● Funktioniert",
         "status.soon": "Demnächst",
-        "home.footer": "Hegeva AI V4.6 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
+        "home.footer": "Hegeva AI V12.0 ist eine frühe funktionierende Version. Sie bietet keine Finanz-, Rechts- oder Steuerberatung und stellt Beispieldaten nicht als echte Geschäftsdaten dar.",
         "ai.title": "🤖 KI-Assistent",
         "ai.subtitle": "Die sichere KI-Integration ist die nächste Entwicklungsstufe.",
         "ai.comingTitle": "Hegeva AI Assistent — Demnächst",
@@ -3718,7 +3851,7 @@
         "v42.allDocs": "Alle Dokumente",
         "v42.invoices": "Rechnungen",
         "v42.quotes": "Angebote",
-        "v43.eyebrow": "HEGEVA AI V10.0 • MENSCHENZENTRIERTE BUSINESS-KI",
+        "v43.eyebrow": "HEGEVA AI V12.0 • MENSCHENZENTRIERTE BUSINESS-KI",
         "v43.hero1": "Zeit sparen.",
         "v43.hero2": " Smarter arbeiten.",
         "v43.hero3": " Die Kontrolle behalten.",
@@ -3878,6 +4011,23 @@
 
       fr: {
         "nav.customers": "Clients & CRM",
+        "v12.reportTitle": "Aperçu mensuel de l’activité",
+        "v12.reportSubtitle": "Calculé uniquement à partir des données réellement enregistrées dans HEGEVA. Ce n’est pas un rapport comptable ou fiscal.",
+        "v12.monthDocs": "Documents ce mois-ci",
+        "v12.invoiceValue": "Valeur des factures",
+        "v12.monthExpenses": "Dépenses ce mois-ci",
+        "v12.customers": "Clients CRM",
+        "v12.insights": "Informations pratiques",
+        "v12.releaseStatus": "État de préparation",
+        "v12.exportSummary": "Exporter le résumé",
+        "v12.refresh": "Actualiser",
+        "v12.recentDocuments": "Documents récents enregistrés",
+        "v12.type": "Type",
+        "v12.number": "Numéro",
+        "v12.customer": "Client",
+        "v12.date": "Date",
+        "v12.total": "Total",
+        "nav.customers": "Clients & CRM",
         "crm.title": "Clients & CRM",
         "crm.subtitle": "Regroupez les coordonnées, notes et activités documentaires de vos clients.",
         "crm.totalCustomers": "Clients",
@@ -3925,7 +4075,7 @@
         "nav.expenses": "Dépenses",
         "nav.reports": "Rapports",
         "nav.settings": "Paramètres",
-        "home.badge": "HEGEVA AI V10.0",
+        "home.badge": "HEGEVA AI V12.0",
         "home.title1": "Construisez votre espace professionnel",
         "home.title2": "sans fausses promesses.",
         "home.subtitle": "Hegeva AI est développé étape par étape. Seules les fonctions réellement opérationnelles sont indiquées comme disponibles ; les outils non terminés sont clairement marqués Coming Soon.",
@@ -3940,7 +4090,7 @@
         "cards.aiText": "Le backend IA sécurisé n'est pas encore connecté. Cette fonction reste clairement marquée Coming Soon jusqu'à ce qu'elle soit réelle.",
         "status.live": "● Fonctionnel",
         "status.soon": "Bientôt",
-        "home.footer": "Hegeva AI V4.6 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
+        "home.footer": "Hegeva AI V12.0 est une première version fonctionnelle. Elle ne fournit pas de conseil financier, juridique ou fiscal et ne présente pas les données d'exemple comme de vraies données commerciales.",
         "ai.title": "🤖 Assistant IA",
         "ai.subtitle": "L'intégration sécurisée de l'IA est la prochaine étape.",
         "ai.comingTitle": "Assistant Hegeva AI — Bientôt",
@@ -4152,7 +4302,7 @@
         "v42.allDocs": "Tous les documents",
         "v42.invoices": "Factures",
         "v42.quotes": "Devis",
-        "v43.eyebrow": "HEGEVA AI V10.0 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
+        "v43.eyebrow": "HEGEVA AI V12.0 • IA PROFESSIONNELLE CENTRÉE SUR L'HUMAIN",
         "v43.hero1": "Gagnez du temps.",
         "v43.hero2": " Travaillez plus intelligemment.",
         "v43.hero3": " Gardez le contrôle.",
@@ -4312,6 +4462,23 @@
 
       es: {
         "nav.customers": "Clientes & CRM",
+        "v12.reportTitle": "Resumen mensual del negocio",
+        "v12.reportSubtitle": "Calculado solo con datos realmente guardados en HEGEVA. No es un informe contable ni fiscal.",
+        "v12.monthDocs": "Documentos este mes",
+        "v12.invoiceValue": "Valor de facturas",
+        "v12.monthExpenses": "Gastos este mes",
+        "v12.customers": "Clientes CRM",
+        "v12.insights": "Información práctica",
+        "v12.releaseStatus": "Preparación del espacio",
+        "v12.exportSummary": "Exportar resumen",
+        "v12.refresh": "Actualizar",
+        "v12.recentDocuments": "Documentos guardados recientes",
+        "v12.type": "Tipo",
+        "v12.number": "Número",
+        "v12.customer": "Cliente",
+        "v12.date": "Fecha",
+        "v12.total": "Total",
+        "nav.customers": "Clientes & CRM",
         "crm.title": "Clientes & CRM",
         "crm.subtitle": "Mantén juntos los datos, notas y actividad documental de tus clientes.",
         "crm.totalCustomers": "Clientes",
@@ -4359,7 +4526,7 @@
         "nav.expenses": "Gastos",
         "nav.reports": "Informes",
         "nav.settings": "Ajustes",
-        "home.badge": "HEGEVA AI V10.0",
+        "home.badge": "HEGEVA AI V12.0",
         "home.title1": "Construye tu espacio de negocio",
         "home.title2": "sin promesas falsas.",
         "home.subtitle": "Hegeva AI se está construyendo paso a paso. Solo las funciones que realmente funcionan se marcan como disponibles; las herramientas sin terminar se indican claramente como Coming Soon.",
@@ -4374,7 +4541,7 @@
         "cards.aiText": "El backend seguro de IA todavía no está conectado. Esta función se marca claramente como Coming Soon hasta que sea real.",
         "status.live": "● Funciona",
         "status.soon": "Próximamente",
-        "home.footer": "Hegeva AI V4.6 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
+        "home.footer": "Hegeva AI V12.0 es una versión funcional temprana. No ofrece asesoramiento financiero, legal ni fiscal y no presenta datos de ejemplo como datos comerciales reales.",
         "ai.title": "🤖 Asistente IA",
         "ai.subtitle": "La integración segura de IA es la siguiente fase de desarrollo.",
         "ai.comingTitle": "Asistente Hegeva AI — Próximamente",
@@ -4586,7 +4753,7 @@
         "v42.allDocs": "Todos los documentos",
         "v42.invoices": "Facturas",
         "v42.quotes": "Presupuestos",
-        "v43.eyebrow": "HEGEVA AI V10.0 • IA EMPRESARIAL CENTRADA EN PERSONAS",
+        "v43.eyebrow": "HEGEVA AI V12.0 • IA EMPRESARIAL CENTRADA EN PERSONAS",
         "v43.hero1": "Ahorra tiempo.",
         "v43.hero2": " Trabaja de forma más inteligente.",
         "v43.hero3": " Mantén el control.",
@@ -6219,7 +6386,7 @@
 
 
     // =========================================
-    // HEGEVA AI V10.0 — SHARED SESSION STATE
+    // HEGEVA AI V12.0 — SHARED SESSION STATE
     // =========================================
     let hegevaCurrentUser = null;
     let hegevaCurrentSession = null;
@@ -6374,7 +6541,7 @@
 
 
     // =========================================
-    // HEGEVA AI V10.0 - CLOUD WORKSPACE SYNC
+    // HEGEVA AI V12.0 - CLOUD WORKSPACE SYNC
     // =========================================
     const V46_SYNC_BUCKETS = {
       documents: ["hegeva_documents"],
@@ -6597,7 +6764,7 @@
 
 
     // =========================================
-    // V4.6.4 MESSAGE STUDIO CLOUD
+    // V12.0.4 MESSAGE STUDIO CLOUD
     // =========================================
     const V46_MESSAGE_KEY = "hegeva_message_studio";
 
@@ -6690,7 +6857,7 @@
     }
 
     // =========================================
-    // V4.6 EXPENSE TRACKER
+    // V12.0 EXPENSE TRACKER
     // =========================================
     const V46_EXPENSE_KEY = "hegeva_expenses";
 
@@ -6811,7 +6978,7 @@
     }
 
     // =========================================
-    // V4.6 REAL-DATA REPORTS
+    // V12.0 REAL-DATA REPORTS
     // =========================================
     function renderReportsV46() {
       if (!document.getElementById("reportDocumentCount")) return;
@@ -6865,7 +7032,7 @@
 
 
     // =========================================
-    // HEGEVA AI V10.0 - LIVE PLAN + USAGE STATUS
+    // HEGEVA AI V12.0 - LIVE PLAN + USAGE STATUS
     // =========================================
     function v48SetMeter(value, max) {
       const meter = document.getElementById("planAiMeter");
@@ -7158,7 +7325,7 @@
 
 
     // =========================================
-    // HEGEVA AI V10.0 — CUSTOMER CRM
+    // HEGEVA AI V12.0 — CUSTOMER CRM
     // Local-first, no paid API required.
     // =========================================
     const CRM_KEY="hegeva_v10_customers";
@@ -7315,6 +7482,142 @@
     });
     document.querySelector('[data-page="customers"]')?.addEventListener("click",()=>setTimeout(crmRender,50));
     setTimeout(crmRender,700);
+
+
+
+    // =========================================
+    // HEGEVA AI V12.0 — REPORTS + RELEASE POLISH
+    // =========================================
+    function v12ReadExpenses(){
+      try{
+        const x=JSON.parse(localStorage.getItem("hegeva_expenses")||"[]");
+        return Array.isArray(x)?x:[];
+      }catch{return [];}
+    }
+    function v12ReadCustomers(){
+      try{
+        const x=JSON.parse(localStorage.getItem("hegeva_v10_customers")||"[]");
+        return Array.isArray(x)?x:[];
+      }catch{return [];}
+    }
+    function v12MonthKey(dateValue){
+      const d=dateValue?new Date(dateValue):new Date();
+      if(Number.isNaN(d.getTime()))return "";
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+    }
+    function v12CurrentMonth(){return v12MonthKey(new Date());}
+    function v12Money(n){
+      if(typeof formatDocumentMoney==="function")return formatDocumentMoney(Number(n)||0);
+      return `£${(Number(n)||0).toFixed(2)}`;
+    }
+    async function v12Refresh(){
+      const docs=typeof readDocumentsV49==="function"?readDocumentsV49():[];
+      const expenses=v12ReadExpenses();
+      const customers=v12ReadCustomers();
+      const month=v12CurrentMonth();
+
+      const monthDocs=docs.filter(d=>v12MonthKey(d.date||d.savedAt||d.updatedAt)===month);
+      const invoices=monthDocs.filter(d=>String(d.type||"").toLowerCase()==="invoice");
+      const invoiceValue=invoices.reduce((s,d)=>s+Number(d.total||0),0);
+      const monthExpenses=expenses
+        .filter(e=>v12MonthKey(e.date||e.createdAt||e.updatedAt)===month)
+        .reduce((s,e)=>s+Number(e.amount||e.value||e.total||0),0);
+
+      const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+      set("v12MonthlyDocuments",monthDocs.length);
+      set("v12InvoiceValue",v12Money(invoiceValue));
+      set("v12MonthlyExpenses",v12Money(monthExpenses));
+      set("v12CustomerCount",customers.length);
+
+      const insights=[];
+      if(!customers.length)insights.push({kind:"warn",text:"No CRM customers are saved yet."});
+      if(customers.some(c=>c.followup))insights.push({kind:"warn",text:`${customers.filter(c=>c.followup).length} customer follow-up(s) are marked.`});
+      if(!monthDocs.length)insights.push({kind:"warn",text:"No documents have been saved for the current month."});
+      if(monthDocs.length)insights.push({kind:"good",text:`${monthDocs.length} document(s) are stored for the current month.`});
+      if(expenses.length)insights.push({kind:"good",text:`${expenses.length} expense entr${expenses.length===1?"y":"ies"} are currently stored.`});
+      if(!insights.length)insights.push({kind:"good",text:"No immediate issues detected from the stored workspace data."});
+
+      const box=document.getElementById("v12Insights");
+      if(box){
+        box.innerHTML="";
+        insights.forEach(x=>{
+          const el=document.createElement("div");
+          el.className=`v12-item ${x.kind}`;
+          el.textContent=x.text;
+          box.appendChild(el);
+        });
+      }
+
+      const tbody=document.getElementById("v12RecentDocs");
+      if(tbody){
+        tbody.innerHTML="";
+        docs.slice().sort((a,b)=>String(b.updatedAt||b.savedAt||b.date||"").localeCompare(String(a.updatedAt||a.savedAt||a.date||""))).slice(0,8).forEach(d=>{
+          const tr=document.createElement("tr");
+          [d.type||"—",d.number||"—",d.customer||"—",d.date||"—",v12Money(d.total||0)].forEach(v=>{
+            const td=document.createElement("td");td.textContent=v;tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+        if(!tbody.children.length){
+          const tr=document.createElement("tr"),td=document.createElement("td");
+          td.colSpan=5;td.textContent="No saved documents.";td.style.color="var(--muted)";
+          tr.appendChild(td);tbody.appendChild(tr);
+        }
+      }
+
+      const account=document.getElementById("v12AccountPill");
+      const cloud=document.getElementById("v12CloudPill");
+      const profile=document.getElementById("v12ProfilePill");
+      const plan=document.getElementById("v12PlanPill");
+
+      const signed=Boolean(hegevaCurrentUser);
+      if(account){account.textContent=signed?"Account Active":"Account Signed out";account.className=`v12-pill ${signed?"ok":""}`;}
+      if(cloud){cloud.textContent=signed?"Cloud Active":"Cloud Local only";cloud.className=`v12-pill ${signed?"ok":""}`;}
+
+      let settings={};try{settings=JSON.parse(localStorage.getItem("hegeva_settings")||"{}");}catch{}
+      const profileReady=Boolean(settings.businessName&&settings.businessEmail&&settings.country);
+      if(profile){profile.textContent=profileReady?"Profile Ready":"Profile Needs details";profile.className=`v12-pill ${profileReady?"ok":""}`;}
+
+      try{
+        const r=await fetch("/api/plan/status",{credentials:"include",headers:{"Accept":"application/json"}});
+        if(r.ok){
+          const data=await r.json();
+          if(plan){plan.textContent=`Plan ${String(data.plan||"basic").toUpperCase()}`;plan.className="v12-pill ok";}
+        }else if(plan){plan.textContent="Plan —";}
+      }catch{if(plan)plan.textContent="Plan —";}
+    }
+
+    function v12ExportSummary(){
+      const docs=typeof readDocumentsV49==="function"?readDocumentsV49():[];
+      const expenses=v12ReadExpenses();
+      const customers=v12ReadCustomers();
+      const month=v12CurrentMonth();
+      const monthDocs=docs.filter(d=>v12MonthKey(d.date||d.savedAt||d.updatedAt)===month);
+      const invoiceValue=monthDocs.filter(d=>String(d.type||"").toLowerCase()==="invoice").reduce((s,d)=>s+Number(d.total||0),0);
+      const monthExpenses=expenses.filter(e=>v12MonthKey(e.date||e.createdAt||e.updatedAt)===month).reduce((s,e)=>s+Number(e.amount||e.value||e.total||0),0);
+
+      const lines=[
+        "HEGEVA AI V12.0 — Monthly Business Snapshot",
+        `Period: ${month}`,
+        `Documents this month: ${monthDocs.length}`,
+        `Invoice value: ${v12Money(invoiceValue)}`,
+        `Expenses this month: ${v12Money(monthExpenses)}`,
+        `CRM customers: ${customers.length}`,
+        "",
+        "This export is generated only from saved HEGEVA workspace data.",
+        "It is not accounting, tax or legal advice."
+      ];
+      const blob=new Blob([lines.join("\n")],{type:"text/plain;charset=utf-8"});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      a.href=url;a.download=`hegeva-v12-summary-${month}.txt`;a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById("v12RefreshReports")?.addEventListener("click",v12Refresh);
+    document.getElementById("v12ExportSummary")?.addEventListener("click",v12ExportSummary);
+    document.querySelector('[data-page="reports"]')?.addEventListener("click",()=>setTimeout(v12Refresh,80));
+    setTimeout(v12Refresh,1000);
 
 
     const savedLanguage = localStorage.getItem("hegeva_language");
