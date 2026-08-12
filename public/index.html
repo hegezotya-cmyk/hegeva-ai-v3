@@ -1060,7 +1060,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name">Hegeva AI</div>
-          <div class="brand-subtitle">V4.6.3 PLANNER CLOUD RESTORE</div>
+          <div class="brand-subtitle">V4.6.4 MESSAGE STUDIO CLOUD</div>
         </div>
       </div>
 
@@ -1184,7 +1184,7 @@
       <section id="home" class="page active">
         <section class="v43-vision">
           <div class="v43-copy">
-            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.6.3 • HUMAN-FIRST BUSINESS AI</div>
+            <div class="v43-kicker" data-i18n="v43.eyebrow">HEGEVA AI V4.6.4 • HUMAN-FIRST BUSINESS AI</div>
             <h1>
               <span data-i18n="v43.hero1">Save time.</span>
               <span class="gradient-text" data-i18n="v43.hero2"> Work smarter.</span>
@@ -1794,6 +1794,7 @@
             <div class="hero-buttons">
               <button class="secondary-button" id="studioLocal" type="button" data-i18n="studio.local">Create local template</button>
               <button class="primary-button" id="studioAi" type="button" data-i18n="studio.ai">Improve with HEGEVA AI</button>
+              <button class="secondary-button" id="studioSaveCloud" type="button">Save draft to cloud</button>
             </div>
           </div>
 
@@ -4641,6 +4642,7 @@
       vault: ["hegeva_vault_note"],
       expenses: ["hegeva_expenses"],
       chats: ["hegeva_v41_saved_chats", "hegeva_v41_active_chat"],
+      messages: ["hegeva_message_studio"],
       business_tools: ["hegeva_v44_clients", "hegeva_v44_documents", "hegeva_v44_doc_counter"]
     };
 
@@ -4731,6 +4733,11 @@
           renderVaultDocuments();
         }
 
+        if (bucket === "messages") {
+          applyMessageStudioStateV46();
+          installMessageStudioCloudV46();
+        }
+
         return true;
       } catch (error) {
         console.warn(`HEGEVA ${bucket} cloud load failed`, error);
@@ -4799,6 +4806,8 @@
         if (typeof refreshCommandMetrics === "function") refreshCommandMetrics();
         if (typeof renderExpensesV46 === "function") renderExpensesV46();
         if (typeof renderReportsV46 === "function") renderReportsV46();
+        applyMessageStudioStateV46();
+        installMessageStudioCloudV46();
 
         const goal = localStorage.getItem("hegeva_business_goal") || "";
         const goalInput = document.getElementById("businessGoal");
@@ -4845,6 +4854,100 @@
     document.getElementById("clearCurrentChat")?.addEventListener("click", () => setTimeout(() => v46SaveBucket("chats"), 50));
     document.getElementById("renameCurrentChat")?.addEventListener("click", () => setTimeout(() => v46SaveBucket("chats"), 50));
     document.getElementById("deleteCurrentChat")?.addEventListener("click", () => setTimeout(() => v46SaveBucket("chats"), 50));
+
+
+    // =========================================
+    // V4.6.4 MESSAGE STUDIO CLOUD
+    // =========================================
+    const V46_MESSAGE_KEY = "hegeva_message_studio";
+
+    function readMessageStudioStateV46() {
+      try {
+        const value = JSON.parse(localStorage.getItem(V46_MESSAGE_KEY) || "{}");
+        return value && typeof value === "object" ? value : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function captureMessageStudioStateV46() {
+      const state = {
+        type: document.getElementById("studioType")?.value || "",
+        customerName: document.getElementById("studioName")?.value || "",
+        details: document.getElementById("studioDetails")?.value || "",
+        output: document.getElementById("studioOutput")?.value || "",
+        updatedAt: new Date().toISOString()
+      };
+      localStorage.setItem(V46_MESSAGE_KEY, JSON.stringify(state));
+      return state;
+    }
+
+    function applyMessageStudioStateV46() {
+      const state = readMessageStudioStateV46();
+      const type = document.getElementById("studioType");
+      const name = document.getElementById("studioName");
+      const details = document.getElementById("studioDetails");
+      const output = document.getElementById("studioOutput");
+
+      if (type && state.type !== undefined) type.value = state.type;
+      if (name && state.customerName !== undefined) name.value = state.customerName;
+      if (details && state.details !== undefined) details.value = state.details;
+      if (output && state.output !== undefined) output.value = state.output;
+    }
+
+    function installMessageStudioCloudV46() {
+      ["studioType", "studioName", "studioDetails", "studioOutput"].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el || el.dataset.v46CloudBound === "1") return;
+        el.dataset.v46CloudBound = "1";
+        el.addEventListener(el.tagName === "SELECT" ? "change" : "input", captureMessageStudioStateV46);
+      });
+
+      const localButton = document.getElementById("studioLocal");
+      if (localButton && localButton.dataset.v46CloudBound !== "1") {
+        localButton.dataset.v46CloudBound = "1";
+        localButton.addEventListener("click", () => {
+          setTimeout(() => {
+            captureMessageStudioStateV46();
+            v46SaveBucket("messages");
+          }, 100);
+        });
+      }
+
+      const aiButton = document.getElementById("studioAi");
+      if (aiButton && aiButton.dataset.v46CloudBound !== "1") {
+        aiButton.dataset.v46CloudBound = "1";
+        aiButton.addEventListener("click", () => {
+          setTimeout(() => {
+            captureMessageStudioStateV46();
+            v46SaveBucket("messages");
+          }, 1600);
+        });
+      }
+
+      const copyButton = document.getElementById("studioCopy");
+      if (copyButton && copyButton.dataset.v46CloudBound !== "1") {
+        copyButton.dataset.v46CloudBound = "1";
+        copyButton.addEventListener("click", () => {
+          captureMessageStudioStateV46();
+          v46SaveBucket("messages");
+        });
+      }
+
+      const saveButton = document.getElementById("studioSaveCloud");
+      if (saveButton && saveButton.dataset.v46CloudBound !== "1") {
+        saveButton.dataset.v46CloudBound = "1";
+        saveButton.addEventListener("click", async () => {
+          captureMessageStudioStateV46();
+          const ok = await v46SaveBucket("messages");
+          showToast(
+            ok
+              ? "Message draft saved to HEGEVA Cloud."
+              : "Draft saved locally. Sign in for cloud save."
+          );
+        });
+      }
+    }
 
     // =========================================
     // V4.6 EXPENSE TRACKER
@@ -5013,6 +5116,8 @@
 
     renderExpensesV46();
     renderReportsV46();
+    applyMessageStudioStateV46();
+    installMessageStudioCloudV46();
 
     // Restore cloud workspace after the page initializes. This does not overwrite
     // anything for signed-out users.
