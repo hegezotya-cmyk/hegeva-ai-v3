@@ -35,24 +35,44 @@ function createAuth(env, request) {
   });
 }
 
+async function getLoggedInUser(request, env) {
+  const auth = createAuth(env, request);
+
+  const session = await auth.api.getSession({
+    headers: request.headers
+  });
+
+  if (!session || !session.user) {
+    return null;
+  }
+
+  return session.user;
+}
+
+function validWorkspaceType(type) {
+  return /^[a-z0-9_-]{1,40}$/i.test(type);
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // =========================================
-    // HEGEVA AI V4.5 AUTH
-    // =========================================
+    // ==================================================
+    // HEGEVA AI V4.5 - BETTER AUTH
+    // ==================================================
 
     if (url.pathname.startsWith("/api/auth/")) {
       try {
         const auth = createAuth(env, request);
+
         return await auth.handler(request);
       } catch (error) {
         console.error("HEGEVA Auth error:", error);
 
         return Response.json(
           {
-            error: "Authentication service temporarily unavailable."
+            error:
+              "Authentication service temporarily unavailable."
           },
           {
             status: 500
@@ -61,9 +81,256 @@ export default {
       }
     }
 
-    // =========================================
+    // ==================================================
+    // HEGEVA AI V4.5 - CLOUD WORKSPACE
+    //
+    // GET /api/workspace/:type
+    // PUT /api/workspace/:type
+    //
+    // Each record is tied to the authenticated user ID.
+    // ==================================================
+
+    if (url.pathname.startsWith("/api/workspace/")) {
+      try {
+        const user = await getLoggedInUser(
+          request,
+          env
+        );
+
+        if (!user) {
+          return Response.json(
+            {
+              error: "Authentication required."
+            },
+            {
+              status: 401
+            }
+          );
+        }
+
+        const rawType =
+          url.pathname
+            .slice("/api/workspace/".length)
+            .trim();
+
+        let dataType;
+
+        try {
+          dataType = decodeURIComponent(rawType);
+        } catch {
+          return Response.json(
+            {
+              error: "Invalid workspace type."
+            },
+            {
+              status: 400
+            }
+          );
+        }
+
+        if (!validWorkspaceType(dataType)) {
+          return Response.json(
+            {
+              error: "Invalid workspace type."
+            },
+            {
+              status: 400
+            }
+          );
+        }
+
+        // ----------------------------------------------
+        // LOAD USER WORKSPACE DATA
+        // ----------------------------------------------
+
+        if (request.method === "GET") {
+          const row = await env.DB
+            .prepare(
+              `
+              SELECT
+                id,
+                dataType,
+                data,
+                createdAt,
+                updatedAt
+              FROM workspace_data
+              WHERE userId = ?
+                AND dataType = ?
+              LIMIT 1
+              `
+            )
+            .bind(
+              user.id,
+              dataType
+            )
+            .first();
+
+          if (!row) {
+            return Response.json({
+              found: false,
+              dataType,
+              data: null
+            });
+          }
+
+          let parsedData = null;
+
+          try {
+            parsedData = JSON.parse(row.data);
+          } catch {
+            parsedData = null;
+          }
+
+          return Response.json({
+            found: true,
+            id: row.id,
+            dataType: row.dataType,
+            data: parsedData,
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt
+          });
+        }
+
+        // ----------------------------------------------
+        // SAVE USER WORKSPACE DATA
+        // ----------------------------------------------
+
+        if (request.method === "PUT") {
+          let body;
+
+          try {
+            body = await request.json();
+          } catch {
+            return Response.json(
+              {
+                error: "Invalid JSON body."
+              },
+              {
+                status: 400
+              }
+            );
+          }
+
+          if (
+            !body ||
+            !Object.prototype.hasOwnProperty.call(
+              body,
+              "data"
+            )
+          ) {
+            return Response.json(
+              {
+                error:
+                  "The request must contain a data field."
+              },
+              {
+                status: 400
+              }
+            );
+          }
+
+          let serializedData;
+
+          try {
+            serializedData =
+              JSON.stringify(body.data);
+          } catch {
+            return Response.json(
+              {
+                error:
+                  "Workspace data could not be serialized."
+              },
+              {
+                status: 400
+              }
+            );
+          }
+
+          // Prevent accidentally storing very large
+          // browser payloads in one record.
+          if (serializedData.length > 250000) {
+            return Response.json(
+              {
+                error:
+                  "Workspace data is too large."
+              },
+              {
+                status: 413
+              }
+            );
+          }
+
+          const now =
+            new Date().toISOString();
+
+          const id =
+            crypto.randomUUID();
+
+          await env.DB
+            .prepare(
+              `
+              INSERT INTO workspace_data (
+                id,
+                userId,
+                dataType,
+                data,
+                createdAt,
+                updatedAt
+              )
+              VALUES (?, ?, ?, ?, ?, ?)
+
+              ON CONFLICT(userId, dataType)
+              DO UPDATE SET
+                data = excluded.data,
+                updatedAt = excluded.updatedAt
+              `
+            )
+            .bind(
+              id,
+              user.id,
+              dataType,
+              serializedData,
+              now,
+              now
+            )
+            .run();
+
+          return Response.json({
+            ok: true,
+            dataType,
+            updatedAt: now
+          });
+        }
+
+        return Response.json(
+          {
+            error: "Method not allowed."
+          },
+          {
+            status: 405
+          }
+        );
+      } catch (error) {
+        console.error(
+          "HEGEVA workspace error:",
+          error
+        );
+
+        return Response.json(
+          {
+            error:
+              "Cloud workspace is temporarily unavailable."
+          },
+          {
+            status: 500
+          }
+        );
+      }
+    }
+
+    // ==================================================
     // HEGEVA AI CHAT
-    // =========================================
+    // ==================================================
 
     if (url.pathname === "/api/chat") {
       if (request.method !== "POST") {
@@ -78,7 +345,8 @@ export default {
       }
 
       try {
-        const body = await request.json();
+        const body =
+          await request.json();
 
         const message =
           typeof body.message === "string"
@@ -88,7 +356,8 @@ export default {
         if (!message) {
           return Response.json(
             {
-              error: "Please enter a message."
+              error:
+                "Please enter a message."
             },
             {
               status: 400
@@ -99,7 +368,8 @@ export default {
         if (message.length > 2500) {
           return Response.json(
             {
-              error: "Message is too long."
+              error:
+                "Message is too long."
             },
             {
               status: 400
@@ -158,7 +428,8 @@ export default {
             : "en";
 
         const businessContext =
-          typeof body.businessContext === "string"
+          typeof body.businessContext ===
+          "string"
             ? body.businessContext
                 .slice(0, 500)
                 .trim()
@@ -175,20 +446,32 @@ export default {
         for (const item of rawHistory) {
           if (
             !item ||
-            !["user", "assistant"].includes(item.role) ||
-            typeof item.content !== "string"
+            ![
+              "user",
+              "assistant"
+            ].includes(item.role) ||
+            typeof item.content !==
+              "string"
           ) {
             continue;
           }
 
           const content =
-            item.content.slice(0, 1200);
+            item.content.slice(
+              0,
+              1200
+            );
 
-          if (totalChars + content.length > 7000) {
+          if (
+            totalChars +
+              content.length >
+            7000
+          ) {
             break;
           }
 
-          totalChars += content.length;
+          totalChars +=
+            content.length;
 
           safeHistory.push({
             role: item.role,
@@ -201,7 +484,8 @@ export default {
             .map(
               (item) =>
                 `${
-                  item.role === "assistant"
+                  item.role ===
+                  "assistant"
                     ? "HEGEVA AI"
                     : "User"
                 }: ${item.content}`
@@ -252,12 +536,13 @@ Latest message:
 ${message}
         `.trim();
 
-        const result = await env.AI.run(
-          "@cf/meta/llama-3.1-8b-instruct-fast",
-          {
-            prompt
-          }
-        );
+        const result =
+          await env.AI.run(
+            "@cf/meta/llama-3.1-8b-instruct-fast",
+            {
+              prompt
+            }
+          );
 
         return Response.json({
           response:
@@ -282,10 +567,12 @@ ${message}
       }
     }
 
-    // =========================================
+    // ==================================================
     // STATIC HEGEVA WEBSITE
-    // =========================================
+    // ==================================================
 
-    return env.ASSETS.fetch(request);
+    return env.ASSETS.fetch(
+      request
+    );
   }
 };
