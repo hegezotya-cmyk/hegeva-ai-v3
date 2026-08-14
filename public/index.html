@@ -1,12 +1,11 @@
-```
 <!DOCTYPE html>
 <html lang="en" class="notranslate" translate="no">
 <head>
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V30.0 — multilingual business workspace with live plan and AI usage status." />
-  <title>Hegeva AI V30.0</title>
+  <meta name="description" content="Hegeva AI V31.0 — multilingual business workspace with five-language UI stability improvements." />
+  <title>Hegeva AI V31.0</title>
 
   <style>
     :root {
@@ -10192,6 +10191,679 @@ Open planner tasks: ${s.openTasks}`;
 })();
 </script>
 
+
+<script>
+/* =========================================================
+   HEGEVA AI V31.0 — 5-LANGUAGE UI + DYNAMIC TEXT + AI FORMAT
+   Part 1: safe runtime localization layer
+   ========================================================= */
+(() => {
+  "use strict";
+
+  const V31 = {
+    en: {
+      navSupport: "Support",
+      navSystem: "System Check",
+      navLegal: "Legal & Privacy",
+      studioCustomer: "Customer",
+      studioSaveCloud: "Save draft to cloud",
+      complete: (a,b) => `${a} / ${b} complete`,
+      noPriorities: "No priorities added yet.",
+      noExpenses: "No expenses saved yet.",
+      noSavedDocs: "No saved documents.",
+      noBusinessDocs: "No saved business documents yet.",
+      noVaultDocs: "No locally saved invoices or quotes yet.",
+      linkedDocs: n => `Linked documents: ${n}`,
+      followUp: "Follow-up",
+      edit: "Edit",
+      useInDocument: "Use in document",
+      timeline: "Timeline",
+      delete: "Delete",
+      accountActive: "Account Active",
+      cloudActive: "Cloud Active",
+      profileNeeds: "Profile Needs details",
+      planBasic: "Plan BASIC",
+      customerFollowups: n => `${n} customer follow-up${n === 1 ? "" : "s"} marked.`,
+      noMonthDocs: "No documents have been saved for the current month.",
+      ready: "Ready",
+      needsSetup: "Needs setup",
+      active: "Active",
+      signedIn: "Signed in",
+      signedOut: "Signed out",
+      cloudReady: "Cloud-ready",
+      supportTitle: "🛟 Contact & Support",
+      supportSubtitle: "Prepare a support email using your own device. HEGEVA does not claim a ticket was sent unless your email app sends it.",
+      supportContact: "Support contact",
+      supportEmail: "Support email",
+      supportNotSet: "Set in Settings before launch",
+      currentSite: "Current site",
+      prepareSupport: "Prepare support message",
+      category: "Category",
+      subject: "Subject",
+      message: "Message",
+      shortSummary: "Short summary",
+      supportPlaceholder: "Describe what happened, what you expected, and any error message. Do not include passwords or API keys.",
+      openEmail: "Open email app",
+      copyMessage: "Copy message",
+      dataPrivacy: "Data & privacy requests",
+      dataPrivacyText: "You can use the same support address to request access, correction or deletion of personal information associated with your HEGEVA account. Identity verification may be required before account data is disclosed or deleted.",
+      supportWarning: "A public support email must be set in Settings before launch.",
+      diagTitle: "🩺 Full System Check",
+      diagSubtitle: "Checks the HEGEVA interface, workspace, launch setup, account state and reachable backend endpoints without inventing results.",
+      systemHealth: "System health",
+      systemHealthText: "Run this after each deployment or major configuration change.",
+      runCheck: "Run Full System Check",
+      overall: "Overall",
+      notRun: "Not run",
+      passed: "Passed",
+      warnings: "Warnings",
+      failed: "Failed",
+      diagnosticResults: "Diagnostic results",
+      waiting: "Diagnostics waiting",
+      pressRun: "Press Run Full System Check.",
+      diagnosticLog: "Diagnostic log",
+      copyReport: "Copy report",
+      planCurrent: "CURRENT",
+      teamEnterprise: "Team & Enterprise"
+    },
+
+    hu: {
+      navSupport: "Támogatás",
+      navSystem: "Rendszerellenőrzés",
+      navLegal: "Jogi és adatvédelem",
+      studioCustomer: "Ügyfél",
+      studioSaveCloud: "Piszkozat mentése a felhőbe",
+      complete: (a,b) => `${a} / ${b} kész`,
+      noPriorities: "Még nincs hozzáadott prioritás.",
+      noExpenses: "Még nincs mentett kiadás.",
+      noSavedDocs: "Nincs mentett dokumentum.",
+      noBusinessDocs: "Még nincs mentett üzleti dokumentum.",
+      noVaultDocs: "Még nincs helyben mentett számla vagy árajánlat.",
+      linkedDocs: n => `Kapcsolódó dokumentumok: ${n}`,
+      followUp: "Utánkövetés",
+      edit: "Szerkesztés",
+      useInDocument: "Használat dokumentumban",
+      timeline: "Idővonal",
+      delete: "Törlés",
+      accountActive: "Fiók aktív",
+      cloudActive: "Felhő aktív",
+      profileNeeds: "A profil adatai hiányosak",
+      planBasic: "BASIC csomag",
+      customerFollowups: n => `${n} ügyfél utánkövetésre van jelölve.`,
+      noMonthDocs: "Ebben a hónapban még nincs mentett dokumentum.",
+      ready: "Kész",
+      needsSetup: "Beállítás szükséges",
+      active: "Aktív",
+      signedIn: "Bejelentkezve",
+      signedOut: "Kijelentkezve",
+      cloudReady: "Felhő kész",
+      supportTitle: "🛟 Kapcsolat és támogatás",
+      supportSubtitle: "Készíts támogatási e-mailt a saját eszközödön. A HEGEVA csak akkor tekinti elküldöttnek, ha az e-mail alkalmazásod ténylegesen elküldi.",
+      supportContact: "Támogatási kapcsolat",
+      supportEmail: "Támogatási e-mail",
+      supportNotSet: "Indulás előtt állítsd be a Beállításokban",
+      currentSite: "Jelenlegi webhely",
+      prepareSupport: "Támogatási üzenet készítése",
+      category: "Kategória",
+      subject: "Tárgy",
+      message: "Üzenet",
+      shortSummary: "Rövid összefoglaló",
+      supportPlaceholder: "Írd le, mi történt, mit vártál, és milyen hibaüzenetet kaptál. Ne adj meg jelszót vagy API-kulcsot.",
+      openEmail: "E-mail alkalmazás megnyitása",
+      copyMessage: "Üzenet másolása",
+      dataPrivacy: "Adat- és adatvédelmi kérelmek",
+      dataPrivacyText: "Ugyanezen a támogatási címen kérheted a HEGEVA-fiókodhoz kapcsolódó személyes adatokhoz való hozzáférést, azok helyesbítését vagy törlését. Adatok kiadása vagy törlése előtt személyazonosság-ellenőrzésre lehet szükség.",
+      supportWarning: "Nyilvános indulás előtt érvényes támogatási e-mail címet kell beállítani a Beállításokban.",
+      diagTitle: "🩺 Teljes rendszerellenőrzés",
+      diagSubtitle: "Ellenőrzi a HEGEVA felületét, munkaterületét, indulási beállításait, fiókállapotát és az elérhető backend végpontokat valótlan eredmények nélkül.",
+      systemHealth: "Rendszerállapot",
+      systemHealthText: "Futtasd le minden telepítés vagy nagyobb konfigurációs módosítás után.",
+      runCheck: "Teljes rendszerellenőrzés futtatása",
+      overall: "Összesített",
+      notRun: "Nincs futtatva",
+      passed: "Sikeres",
+      warnings: "Figyelmeztetések",
+      failed: "Hibás",
+      diagnosticResults: "Diagnosztikai eredmények",
+      waiting: "A diagnosztika futtatásra vár",
+      pressRun: "Nyomd meg a Teljes rendszerellenőrzés futtatása gombot.",
+      diagnosticLog: "Diagnosztikai napló",
+      copyReport: "Jelentés másolása",
+      planCurrent: "JELENLEGI",
+      teamEnterprise: "Csapat és vállalati"
+    },
+
+    de: {
+      navSupport: "Support",
+      navSystem: "Systemprüfung",
+      navLegal: "Rechtliches & Datenschutz",
+      studioCustomer: "Kunde",
+      studioSaveCloud: "Entwurf in der Cloud speichern",
+      complete: (a,b) => `${a} / ${b} erledigt`,
+      noPriorities: "Noch keine Prioritäten hinzugefügt.",
+      noExpenses: "Noch keine Ausgaben gespeichert.",
+      noSavedDocs: "Keine gespeicherten Dokumente.",
+      noBusinessDocs: "Noch keine Geschäftsdokumente gespeichert.",
+      noVaultDocs: "Noch keine lokal gespeicherten Rechnungen oder Angebote.",
+      linkedDocs: n => `Verknüpfte Dokumente: ${n}`,
+      followUp: "Nachfassen",
+      edit: "Bearbeiten",
+      useInDocument: "Im Dokument verwenden",
+      timeline: "Zeitleiste",
+      delete: "Löschen",
+      accountActive: "Konto aktiv",
+      cloudActive: "Cloud aktiv",
+      profileNeeds: "Profil benötigt Angaben",
+      planBasic: "BASIC-Tarif",
+      customerFollowups: n => `${n} Kunde${n === 1 ? "" : "n"} zum Nachfassen markiert.`,
+      noMonthDocs: "Für den aktuellen Monat wurden noch keine Dokumente gespeichert.",
+      ready: "Bereit",
+      needsSetup: "Einrichtung erforderlich",
+      active: "Aktiv",
+      signedIn: "Angemeldet",
+      signedOut: "Abgemeldet",
+      cloudReady: "Cloud bereit",
+      supportTitle: "🛟 Kontakt & Support",
+      supportSubtitle: "Bereite eine Support-E-Mail auf deinem eigenen Gerät vor. HEGEVA behauptet nicht, dass ein Ticket gesendet wurde, solange deine E-Mail-App es nicht tatsächlich sendet.",
+      supportContact: "Supportkontakt",
+      supportEmail: "Support-E-Mail",
+      supportNotSet: "Vor dem Start in den Einstellungen festlegen",
+      currentSite: "Aktuelle Website",
+      prepareSupport: "Supportnachricht vorbereiten",
+      category: "Kategorie",
+      subject: "Betreff",
+      message: "Nachricht",
+      shortSummary: "Kurze Zusammenfassung",
+      supportPlaceholder: "Beschreibe, was passiert ist, was du erwartet hast und welche Fehlermeldung angezeigt wurde. Keine Passwörter oder API-Schlüssel eingeben.",
+      openEmail: "E-Mail-App öffnen",
+      copyMessage: "Nachricht kopieren",
+      dataPrivacy: "Daten- und Datenschutzanfragen",
+      dataPrivacyText: "Über dieselbe Supportadresse kannst du Zugriff, Berichtigung oder Löschung personenbezogener Daten zu deinem HEGEVA-Konto anfordern. Vor der Offenlegung oder Löschung kann eine Identitätsprüfung erforderlich sein.",
+      supportWarning: "Vor dem öffentlichen Start muss in den Einstellungen eine Support-E-Mail festgelegt werden.",
+      diagTitle: "🩺 Vollständige Systemprüfung",
+      diagSubtitle: "Prüft HEGEVA-Oberfläche, Arbeitsbereich, Startkonfiguration, Kontostatus und erreichbare Backend-Endpunkte, ohne Ergebnisse zu erfinden.",
+      systemHealth: "Systemzustand",
+      systemHealthText: "Nach jeder Bereitstellung oder größeren Konfigurationsänderung ausführen.",
+      runCheck: "Vollständige Systemprüfung starten",
+      overall: "Gesamt",
+      notRun: "Nicht ausgeführt",
+      passed: "Bestanden",
+      warnings: "Warnungen",
+      failed: "Fehlgeschlagen",
+      diagnosticResults: "Diagnoseergebnisse",
+      waiting: "Diagnose wartet",
+      pressRun: "Klicke auf Vollständige Systemprüfung starten.",
+      diagnosticLog: "Diagnoseprotokoll",
+      copyReport: "Bericht kopieren",
+      planCurrent: "AKTUELL",
+      teamEnterprise: "Team & Unternehmen"
+    },
+
+    fr: {
+      navSupport: "Assistance",
+      navSystem: "Vérification système",
+      navLegal: "Mentions légales et confidentialité",
+      studioCustomer: "Client",
+      studioSaveCloud: "Enregistrer le brouillon dans le cloud",
+      complete: (a,b) => `${a} / ${b} terminé(s)`,
+      noPriorities: "Aucune priorité ajoutée pour le moment.",
+      noExpenses: "Aucune dépense enregistrée pour le moment.",
+      noSavedDocs: "Aucun document enregistré.",
+      noBusinessDocs: "Aucun document professionnel enregistré pour le moment.",
+      noVaultDocs: "Aucune facture ni aucun devis enregistré localement pour le moment.",
+      linkedDocs: n => `Documents liés : ${n}`,
+      followUp: "Suivi",
+      edit: "Modifier",
+      useInDocument: "Utiliser dans le document",
+      timeline: "Chronologie",
+      delete: "Supprimer",
+      accountActive: "Compte actif",
+      cloudActive: "Cloud actif",
+      profileNeeds: "Profil à compléter",
+      planBasic: "Forfait BASIC",
+      customerFollowups: n => `${n} client${n === 1 ? "" : "s"} marqué${n === 1 ? "" : "s"} pour suivi.`,
+      noMonthDocs: "Aucun document n’a encore été enregistré pour le mois en cours.",
+      ready: "Prêt",
+      needsSetup: "Configuration requise",
+      active: "Actif",
+      signedIn: "Connecté",
+      signedOut: "Déconnecté",
+      cloudReady: "Cloud prêt",
+      supportTitle: "🛟 Contact et assistance",
+      supportSubtitle: "Préparez un e-mail d’assistance sur votre propre appareil. HEGEVA ne prétend pas qu’un ticket a été envoyé tant que votre application de messagerie ne l’a pas réellement envoyé.",
+      supportContact: "Contact d’assistance",
+      supportEmail: "E-mail d’assistance",
+      supportNotSet: "À définir dans les paramètres avant le lancement",
+      currentSite: "Site actuel",
+      prepareSupport: "Préparer un message d’assistance",
+      category: "Catégorie",
+      subject: "Objet",
+      message: "Message",
+      shortSummary: "Résumé court",
+      supportPlaceholder: "Décrivez ce qui s’est passé, ce que vous attendiez et tout message d’erreur. N’incluez aucun mot de passe ni clé API.",
+      openEmail: "Ouvrir l’application e-mail",
+      copyMessage: "Copier le message",
+      dataPrivacy: "Demandes relatives aux données et à la confidentialité",
+      dataPrivacyText: "Vous pouvez utiliser la même adresse d’assistance pour demander l’accès, la rectification ou la suppression des informations personnelles associées à votre compte HEGEVA. Une vérification d’identité peut être nécessaire avant toute divulgation ou suppression.",
+      supportWarning: "Une adresse e-mail d’assistance publique doit être définie dans les paramètres avant le lancement.",
+      diagTitle: "🩺 Vérification complète du système",
+      diagSubtitle: "Vérifie l’interface HEGEVA, l’espace de travail, la configuration de lancement, l’état du compte et les points de terminaison backend accessibles sans inventer de résultats.",
+      systemHealth: "État du système",
+      systemHealthText: "Exécutez cette vérification après chaque déploiement ou modification importante de configuration.",
+      runCheck: "Lancer la vérification complète",
+      overall: "Global",
+      notRun: "Non exécuté",
+      passed: "Réussi",
+      warnings: "Avertissements",
+      failed: "Échecs",
+      diagnosticResults: "Résultats du diagnostic",
+      waiting: "Diagnostic en attente",
+      pressRun: "Cliquez sur Lancer la vérification complète.",
+      diagnosticLog: "Journal de diagnostic",
+      copyReport: "Copier le rapport",
+      planCurrent: "ACTUEL",
+      teamEnterprise: "Équipe & Entreprise"
+    },
+
+    es: {
+      navSupport: "Soporte",
+      navSystem: "Comprobación del sistema",
+      navLegal: "Legal y privacidad",
+      studioCustomer: "Cliente",
+      studioSaveCloud: "Guardar borrador en la nube",
+      complete: (a,b) => `${a} / ${b} completado(s)`,
+      noPriorities: "Aún no se han añadido prioridades.",
+      noExpenses: "Aún no hay gastos guardados.",
+      noSavedDocs: "No hay documentos guardados.",
+      noBusinessDocs: "Aún no hay documentos empresariales guardados.",
+      noVaultDocs: "Aún no hay facturas ni presupuestos guardados localmente.",
+      linkedDocs: n => `Documentos vinculados: ${n}`,
+      followUp: "Seguimiento",
+      edit: "Editar",
+      useInDocument: "Usar en documento",
+      timeline: "Cronología",
+      delete: "Eliminar",
+      accountActive: "Cuenta activa",
+      cloudActive: "Nube activa",
+      profileNeeds: "Faltan datos del perfil",
+      planBasic: "Plan BASIC",
+      customerFollowups: n => `${n} cliente${n === 1 ? "" : "s"} marcado${n === 1 ? "" : "s"} para seguimiento.`,
+      noMonthDocs: "Todavía no se han guardado documentos para el mes actual.",
+      ready: "Listo",
+      needsSetup: "Requiere configuración",
+      active: "Activo",
+      signedIn: "Sesión iniciada",
+      signedOut: "Sesión cerrada",
+      cloudReady: "Nube lista",
+      supportTitle: "🛟 Contacto y soporte",
+      supportSubtitle: "Prepara un correo de soporte en tu propio dispositivo. HEGEVA no afirma que se haya enviado un ticket hasta que tu aplicación de correo lo envíe realmente.",
+      supportContact: "Contacto de soporte",
+      supportEmail: "Correo de soporte",
+      supportNotSet: "Configúralo en Ajustes antes del lanzamiento",
+      currentSite: "Sitio actual",
+      prepareSupport: "Preparar mensaje de soporte",
+      category: "Categoría",
+      subject: "Asunto",
+      message: "Mensaje",
+      shortSummary: "Resumen breve",
+      supportPlaceholder: "Describe qué ocurrió, qué esperabas y cualquier mensaje de error. No incluyas contraseñas ni claves API.",
+      openEmail: "Abrir aplicación de correo",
+      copyMessage: "Copiar mensaje",
+      dataPrivacy: "Solicitudes de datos y privacidad",
+      dataPrivacyText: "Puedes usar la misma dirección de soporte para solicitar acceso, corrección o eliminación de la información personal asociada a tu cuenta HEGEVA. Puede ser necesaria una verificación de identidad antes de divulgar o eliminar datos.",
+      supportWarning: "Debe configurarse un correo público de soporte en Ajustes antes del lanzamiento.",
+      diagTitle: "🩺 Comprobación completa del sistema",
+      diagSubtitle: "Comprueba la interfaz de HEGEVA, el espacio de trabajo, la configuración de lanzamiento, el estado de la cuenta y los endpoints backend accesibles sin inventar resultados.",
+      systemHealth: "Estado del sistema",
+      systemHealthText: "Ejecuta esta comprobación después de cada despliegue o cambio importante de configuración.",
+      runCheck: "Ejecutar comprobación completa",
+      overall: "General",
+      notRun: "No ejecutado",
+      passed: "Correctos",
+      warnings: "Advertencias",
+      failed: "Fallidos",
+      diagnosticResults: "Resultados del diagnóstico",
+      waiting: "Diagnóstico en espera",
+      pressRun: "Pulsa Ejecutar comprobación completa.",
+      diagnosticLog: "Registro de diagnóstico",
+      copyReport: "Copiar informe",
+      planCurrent: "ACTUAL",
+      teamEnterprise: "Equipo y empresa"
+    }
+  };
+
+  const currentLang = () => {
+    const select = document.getElementById("languageSelect");
+    const value = select?.value || document.documentElement.dataset.hegevaLanguage || "en";
+    return V31[value] ? value : "en";
+  };
+
+  const T = () => V31[currentLang()] || V31.en;
+
+  const setText = (selector, value) => {
+    const el = document.querySelector(selector);
+    if (el && value != null) el.textContent = value;
+  };
+
+  const setPlaceholder = (selector, value) => {
+    const el = document.querySelector(selector);
+    if (el && value != null) el.placeholder = value;
+  };
+
+  function v31TranslateSupport() {
+    const t = T();
+    setText('#support .page-heading h1', t.supportTitle);
+    setText('#support .page-heading p', t.supportSubtitle);
+
+    const cards = document.querySelectorAll("#support .legal-card");
+    if (cards[0]) {
+      const h2 = cards[0].querySelector("h2");
+      if (h2) h2.textContent = t.supportContact;
+      const spans = cards[0].querySelectorAll(".legal-meta span");
+      if (spans[0]) spans[0].textContent = t.supportEmail;
+      if (spans[1]) spans[1].textContent = t.currentSite;
+
+      const publicEmail = document.getElementById("publicSupportEmail");
+      if (publicEmail && /Set in Settings before launch|Indulás előtt|Vor dem Start|avant le lancement|antes del lanzamiento/i.test(publicEmail.textContent.trim())) {
+        publicEmail.textContent = t.supportNotSet;
+      }
+    }
+
+    if (cards[1]) {
+      const h2 = cards[1].querySelector("h2");
+      if (h2) h2.textContent = t.prepareSupport;
+      const labels = cards[1].querySelectorAll("label");
+      if (labels[0]) labels[0].textContent = t.category;
+      if (labels[1]) labels[1].textContent = t.subject;
+      if (labels[2]) labels[2].textContent = t.message;
+    }
+
+    if (cards[2]) {
+      const h2 = cards[2].querySelector("h2");
+      const p = cards[2].querySelector("p");
+      if (h2) h2.textContent = t.dataPrivacy;
+      if (p) p.textContent = t.dataPrivacyText;
+    }
+
+    setPlaceholder("#supportSubject", t.shortSummary);
+    setPlaceholder("#supportMessage", t.supportPlaceholder);
+    setText("#prepareSupportEmail", t.openEmail);
+    setText("#copySupportText", t.copyMessage);
+
+    const warning = document.getElementById("supportEmailWarning");
+    if (warning) warning.textContent = t.supportWarning;
+  }
+
+  function v31TranslateDiagnostics() {
+    const t = T();
+    setText('#diagnostics .page-heading h1', t.diagTitle);
+    setText('#diagnostics .page-heading p', t.diagSubtitle);
+    setText('#diagnostics .diag-hero h2', t.systemHealth);
+    setText('#diagnostics .diag-hero h2 + p', t.systemHealthText);
+    setText('#diagRunAll', t.runCheck);
+
+    const stats = document.querySelectorAll("#diagnostics .diag-stat span");
+    if (stats[0]) stats[0].textContent = t.overall;
+    if (stats[1]) stats[1].textContent = t.passed;
+    if (stats[2]) stats[2].textContent = t.warnings;
+    if (stats[3]) stats[3].textContent = t.failed;
+
+    const cards = document.querySelectorAll("#diagnostics .diag-card");
+    if (cards[0]) {
+      const h2 = cards[0].querySelector("h2");
+      if (h2) h2.textContent = t.diagnosticResults;
+    }
+    if (cards[1]) {
+      const h2 = cards[1].querySelector("h2");
+      if (h2) h2.textContent = t.diagnosticLog;
+    }
+
+    setText("#diagCopyReport", t.copyReport);
+
+    const overall = document.getElementById("diagOverall");
+    if (overall && /Not run|Nincs futtatva|Nicht ausgeführt|Non exécuté|No ejecutado/i.test(overall.textContent.trim())) {
+      overall.textContent = t.notRun;
+    }
+
+    const list = document.getElementById("diagResults");
+    if (list && list.children.length === 1) {
+      const txt = list.textContent;
+      if (/Diagnostics waiting|Press Run Full System Check/i.test(txt)) {
+        const strong = list.querySelector("strong");
+        const p = list.querySelector("p");
+        if (strong) strong.textContent = t.waiting;
+        if (p) p.textContent = t.pressRun;
+      }
+    }
+  }
+
+  function v31TranslateStaticObservedUI() {
+    const t = T();
+
+    setText('[data-page="support"] .nav-text', t.navSupport);
+    setText('[data-page="diagnostics"] .nav-text', t.navSystem);
+    setText('[data-page="legal"] .nav-text', t.navLegal);
+
+    setPlaceholder("#studioName", t.studioCustomer);
+    setText("#studioSaveCloud", t.studioSaveCloud);
+
+    document.querySelectorAll(".command-card h3").forEach(el => {
+      if (/^Team & Enterprise$|^Csapat és vállalati$|^Team & Unternehmen$|^Équipe & Entreprise$|^Equipo y empresa$/.test(el.textContent.trim())) {
+        el.textContent = t.teamEnterprise;
+      }
+    });
+
+    v31TranslateSupport();
+    v31TranslateDiagnostics();
+  }
+
+  function v31TranslateDynamicText(root = document) {
+    const t = T();
+    const walker = document.createTreeWalker(
+      root,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode(node) {
+          const parent = node.parentElement;
+          if (!parent) return NodeFilter.FILTER_REJECT;
+          if (parent.closest("#aiChatMessages")) return NodeFilter.FILTER_REJECT;
+          if (parent.closest("script,style,textarea,input")) return NodeFilter.FILTER_REJECT;
+          if (!parent.closest("#customers,#reports,#planner,#vault,#command,#studio,#pricing,#settings,#support,#diagnostics")) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          return node.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        }
+      }
+    );
+
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+
+    for (const node of nodes) {
+      const raw = node.nodeValue;
+      const s = raw.trim();
+      let replacement = null;
+
+      let m;
+      if ((m = s.match(/^(\d+)\s*\/\s*(\d+)\s+complete$/i))) replacement = t.complete(Number(m[1]), Number(m[2]));
+      else if (s === "No priorities added yet.") replacement = t.noPriorities;
+      else if (s === "No expenses saved yet.") replacement = t.noExpenses;
+      else if (s === "No saved documents.") replacement = t.noSavedDocs;
+      else if (s === "No saved business documents yet.") replacement = t.noBusinessDocs;
+      else if (s === "No locally saved invoices or quotes yet.") replacement = t.noVaultDocs;
+      else if ((m = s.match(/^Linked documents:\s*(\d+)$/i))) replacement = t.linkedDocs(Number(m[1]));
+      else if (s === "Follow-up") replacement = t.followUp;
+      else if (s === "Edit") replacement = t.edit;
+      else if (s === "Use in document") replacement = t.useInDocument;
+      else if (s === "Timeline") replacement = t.timeline;
+      else if (s === "Delete") replacement = t.delete;
+      else if (s === "Account Active") replacement = t.accountActive;
+      else if (s === "Cloud Active") replacement = t.cloudActive;
+      else if (s === "Profile Needs details") replacement = t.profileNeeds;
+      else if (s === "Plan BASIC") replacement = t.planBasic;
+      else if ((m = s.match(/^(\d+)\s+customer follow-up(?:\(s\)|s)?\s+(?:are\s+)?marked\.?$/i))) replacement = t.customerFollowups(Number(m[1]));
+      else if (s === "No documents have been saved for the current month.") replacement = t.noMonthDocs;
+      else if (s === "Cloud-ready") replacement = t.cloudReady;
+
+      if (replacement !== null) {
+        node.nodeValue = raw.replace(s, replacement);
+      }
+    }
+  }
+
+  // Safe AI markdown rendering enhancement.
+  // Converts visible assistant text only; never injects raw HTML.
+  function v31RenderAiMarkdown() {
+    document.querySelectorAll("#aiChatMessages .coming-item").forEach(box => {
+      const body = box.querySelector("div");
+      if (!body || body.dataset.v31Markdown === "1") return;
+
+      const text = body.innerText || body.textContent || "";
+      if (!/(^|\n)\s*(#{1,3}\s+|[-*]\s+|\d+\.\s+)/m.test(text)) return;
+
+      const frag = document.createDocumentFragment();
+      const lines = text.split(/\r?\n/);
+
+      const appendInline = (target, value) => {
+        const source = String(value ?? "");
+        const re = /\*\*([^*\n]+)\*\*/g;
+        let pos = 0;
+        let match;
+        while ((match = re.exec(source))) {
+          if (match.index > pos) target.appendChild(document.createTextNode(source.slice(pos, match.index)));
+          const strong = document.createElement("strong");
+          strong.textContent = match[1];
+          target.appendChild(strong);
+          pos = match.index + match[0].length;
+        }
+        if (pos < source.length) target.appendChild(document.createTextNode(source.slice(pos)));
+      };
+
+      let list = null;
+      let listType = "";
+
+      const closeList = () => {
+        if (list) {
+          frag.appendChild(list);
+          list = null;
+          listType = "";
+        }
+      };
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+
+        if (!trimmed) {
+          closeList();
+          const spacer = document.createElement("div");
+          spacer.style.height = "8px";
+          frag.appendChild(spacer);
+          continue;
+        }
+
+        const heading = trimmed.match(/^(#{1,3})\s+(.+)$/);
+        if (heading) {
+          closeList();
+          const h = document.createElement(heading[1].length === 1 ? "h3" : "h4");
+          h.style.margin = "10px 0 6px";
+          h.style.lineHeight = "1.35";
+          appendInline(h, heading[2]);
+          frag.appendChild(h);
+          continue;
+        }
+
+        const bullet = trimmed.match(/^[-*]\s+(.+)$/);
+        const ordered = trimmed.match(/^\d+\.\s+(.+)$/);
+
+        if (bullet || ordered) {
+          const type = ordered ? "ol" : "ul";
+          if (!list || listType !== type) {
+            closeList();
+            list = document.createElement(type);
+            list.style.margin = "6px 0 8px 22px";
+            list.style.display = "grid";
+            list.style.gap = "4px";
+            listType = type;
+          }
+          const li = document.createElement("li");
+          appendInline(li, (bullet || ordered)[1]);
+          list.appendChild(li);
+          continue;
+        }
+
+        closeList();
+        const p = document.createElement("p");
+        p.style.margin = "4px 0";
+        appendInline(p, trimmed);
+        frag.appendChild(p);
+      }
+
+      closeList();
+      body.replaceChildren(frag);
+      body.style.whiteSpace = "normal";
+      body.dataset.v31Markdown = "1";
+    });
+  }
+
+  let applying = false;
+
+  function v31ApplyAll() {
+    if (applying) return;
+    applying = true;
+    try {
+      v31TranslateStaticObservedUI();
+      v31TranslateDynamicText(document);
+      v31RenderAiMarkdown();
+    } finally {
+      applying = false;
+    }
+  }
+
+  const scheduleApply = (() => {
+    let timer = 0;
+    return () => {
+      clearTimeout(timer);
+      timer = setTimeout(v31ApplyAll, 40);
+    };
+  })();
+
+  document.getElementById("languageSelect")?.addEventListener("change", () => {
+    setTimeout(v31ApplyAll, 0);
+    setTimeout(v31ApplyAll, 160);
+  });
+
+  const observer = new MutationObserver((mutations) => {
+    if (applying) return;
+    if (mutations.some(m => m.type === "childList" || m.type === "characterData")) {
+      scheduleApply();
+    }
+  });
+
+  const start = () => {
+    v31ApplyAll();
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
+
+  window.hegevaV31LocalizationCheck = () => ({
+    version: "V31.0-part1",
+    language: currentLang(),
+    support: Boolean(document.getElementById("support")),
+    diagnostics: Boolean(document.getElementById("diagnostics")),
+    aiChat: Boolean(document.getElementById("aiChatMessages")),
+    timestamp: new Date().toISOString()
+  });
+})();
+</script>
+
 </body>
 </html>
-```
