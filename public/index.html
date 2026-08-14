@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V31.1 — multilingual business workspace with five-language UI stability improvements." />
-  <title>Hegeva AI V31.1</title>
+  <meta name="description" content="Hegeva AI V31.2 — multilingual business workspace with five-language UI stability improvements." />
+  <title>Hegeva AI V31.2</title>
 
   <style>
     :root {
@@ -11146,6 +11146,386 @@ Open planner tasks: ${s.openTasks}`;
   const observer=new MutationObserver(()=>setTimeout(apply,25));
   const legal=document.getElementById("legal");
   if(legal)observer.observe(legal,{childList:true,subtree:true,characterData:true});
+})();
+</script>
+
+
+<style>
+/* =========================================================
+   HEGEVA AI V31.2 — PREMIUM BUSINESS TOOLS + READINESS
+   ========================================================= */
+#businessTools44 .page-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:20px;
+}
+#businessTools44 .command-grid{
+  display:grid !important;
+  grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr) !important;
+  gap:18px !important;
+  margin-bottom:18px;
+}
+#businessTools44 .command-grid > .card{
+  min-width:0;
+  padding:24px;
+  border-radius:22px;
+  border:1px solid rgba(246,196,83,.22);
+  background:
+    radial-gradient(circle at 95% 5%,rgba(155,108,255,.11),transparent 28%),
+    linear-gradient(145deg,rgba(255,255,255,.055),rgba(55,200,255,.035));
+}
+#businessTools44 .command-grid > .card h3{
+  font-size:21px;
+  margin-bottom:8px;
+}
+#businessTools44 .command-grid .form-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:13px;
+}
+#businessTools44 .command-grid .form-group input,
+#businessTools44 .command-grid .form-group select{
+  min-height:46px;
+}
+#businessTools44 .tool-row{
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:10px !important;
+}
+#businessTools44 .tool-row button{
+  min-height:48px;
+  white-space:normal;
+  line-height:1.2;
+}
+#businessTools44 #btProfitResult,
+#businessTools44 #btDocPreview{
+  border-radius:15px;
+}
+#businessTools44 > .card{
+  border-radius:22px;
+  padding:22px;
+}
+#v312QuickActions{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin:0 0 18px;
+}
+.v312-quick{
+  min-height:76px;
+  text-align:left;
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:15px;
+  background:linear-gradient(145deg,rgba(246,196,83,.07),rgba(155,108,255,.08),rgba(55,200,255,.05));
+  color:var(--text);
+  font-weight:850;
+}
+.v312-quick:hover{
+  transform:translateY(-2px);
+  border-color:rgba(246,196,83,.42);
+}
+.v312-quick-icon{font-size:24px}
+#v312CrmMirror{
+  display:grid;
+  gap:9px;
+  margin-top:14px;
+}
+.v312-client-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:12px;
+  align-items:center;
+  padding:12px 13px;
+  border:1px solid var(--border);
+  border-radius:13px;
+  background:rgba(255,255,255,.025);
+}
+.v312-client-meta{
+  color:var(--muted);
+  font-size:12px;
+  margin-top:4px;
+  word-break:break-word;
+}
+#v312Readiness{
+  margin-top:18px;
+  padding:18px;
+  border:1px solid rgba(246,196,83,.24);
+  border-radius:18px;
+  background:linear-gradient(145deg,rgba(246,196,83,.075),rgba(55,200,255,.045),rgba(155,108,255,.06));
+}
+.v312-ready-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:14px;
+  margin-bottom:12px;
+}
+.v312-ready-percent{
+  font-size:28px;
+  font-weight:950;
+}
+.v312-ready-bar{
+  height:9px;
+  border-radius:999px;
+  overflow:hidden;
+  background:rgba(255,255,255,.08);
+}
+.v312-ready-bar i{
+  display:block;
+  width:0;
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg,#37c8ff,#9b6cff,#f6c453);
+  transition:width .25s ease;
+}
+.v312-ready-list{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  margin-top:12px;
+}
+.v312-ready-item{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:9px 10px;
+  border:1px solid var(--border);
+  border-radius:11px;
+  color:var(--muted);
+  font-size:12px;
+}
+.v312-ready-item strong.ok{color:#79eab1}
+.v312-ready-item strong.warn{color:#ffe19a}
+
+@media(max-width:1050px){
+  #businessTools44 .command-grid{grid-template-columns:1fr !important}
+  #v312QuickActions{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){
+  #businessTools44 .command-grid .form-grid,
+  #businessTools44 .tool-row,
+  #v312QuickActions,
+  .v312-ready-list{
+    grid-template-columns:1fr !important;
+  }
+  #businessTools44 .command-grid > .card,
+  #businessTools44 > .card{padding:16px}
+}
+</style>
+
+<script>
+/* =========================================================
+   HEGEVA AI V31.2 — PRODUCTIVITY + CRM + PROFILE SYNC
+   ========================================================= */
+(() => {
+  "use strict";
+
+  const I18N = {
+    en:{
+      quickTitle:"Quick actions",newInvoice:"New invoice",newQuote:"New quote",openCrm:"Open CRM",openReports:"Open reports",
+      crmTitle:"CRM customers",crmHint:"Uses the same saved customer list as Customers & CRM.",viewCrm:"Open CRM",none:"No CRM customers saved yet.",
+      readiness:"Profile & launch readiness",readyText:"Complete the core operator details used by documents, support and the legal page.",
+      businessName:"Business name",email:"Valid email",address:"Business address",country:"Country",ready:"Ready",missing:"Missing"
+    },
+    hu:{
+      quickTitle:"Gyors műveletek",newInvoice:"Új számla",newQuote:"Új árajánlat",openCrm:"CRM megnyitása",openReports:"Riportok megnyitása",
+      crmTitle:"CRM ügyfelek",crmHint:"Ugyanazt a mentett ügyféllistát használja, mint az Ügyfelek & CRM.",viewCrm:"CRM megnyitása",none:"Még nincs mentett CRM ügyfél.",
+      readiness:"Profil- és indulási készültség",readyText:"Töltsd ki azokat az alapvető üzemeltetői adatokat, amelyeket a dokumentumok, a támogatás és a jogi oldal is használ.",
+      businessName:"Vállalkozás neve",email:"Érvényes e-mail",address:"Üzleti cím",country:"Ország",ready:"Kész",missing:"Hiányzik"
+    },
+    de:{
+      quickTitle:"Schnellaktionen",newInvoice:"Neue Rechnung",newQuote:"Neues Angebot",openCrm:"CRM öffnen",openReports:"Berichte öffnen",
+      crmTitle:"CRM-Kunden",crmHint:"Verwendet dieselbe gespeicherte Kundenliste wie Kunden & CRM.",viewCrm:"CRM öffnen",none:"Noch keine CRM-Kunden gespeichert.",
+      readiness:"Profil- und Startbereitschaft",readyText:"Vervollständige die zentralen Betreiberangaben für Dokumente, Support und die rechtliche Seite.",
+      businessName:"Unternehmensname",email:"Gültige E-Mail",address:"Geschäftsadresse",country:"Land",ready:"Bereit",missing:"Fehlt"
+    },
+    fr:{
+      quickTitle:"Actions rapides",newInvoice:"Nouvelle facture",newQuote:"Nouveau devis",openCrm:"Ouvrir le CRM",openReports:"Ouvrir les rapports",
+      crmTitle:"Clients CRM",crmHint:"Utilise la même liste de clients enregistrée que Clients & CRM.",viewCrm:"Ouvrir le CRM",none:"Aucun client CRM enregistré.",
+      readiness:"Préparation du profil et du lancement",readyText:"Complétez les informations essentielles de l’exploitant utilisées par les documents, l’assistance et la page juridique.",
+      businessName:"Nom de l’entreprise",email:"E-mail valide",address:"Adresse professionnelle",country:"Pays",ready:"Prêt",missing:"Manquant"
+    },
+    es:{
+      quickTitle:"Acciones rápidas",newInvoice:"Nueva factura",newQuote:"Nuevo presupuesto",openCrm:"Abrir CRM",openReports:"Abrir informes",
+      crmTitle:"Clientes CRM",crmHint:"Utiliza la misma lista de clientes guardada que Clientes y CRM.",viewCrm:"Abrir CRM",none:"Aún no hay clientes CRM guardados.",
+      readiness:"Preparación del perfil y lanzamiento",readyText:"Completa los datos esenciales del operador utilizados por documentos, soporte y la página legal.",
+      businessName:"Nombre de la empresa",email:"Correo válido",address:"Dirección comercial",country:"País",ready:"Listo",missing:"Falta"
+    }
+  };
+
+  const lang=()=>{
+    const v=document.getElementById("languageSelect")?.value||document.documentElement.dataset.hegevaLanguage||"en";
+    return I18N[v]?v:"en";
+  };
+  const t=()=>I18N[lang()];
+  const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+
+  function showPageSafe(id){
+    if(typeof window.showPage==="function"){ window.showPage(id); return; }
+    document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===id));
+  }
+
+  function ensureQuickActions(){
+    const page=document.getElementById("businessTools44");
+    if(!page)return;
+    let root=document.getElementById("v312QuickActions");
+    if(!root){
+      root=document.createElement("div");
+      root.id="v312QuickActions";
+      const grid=page.querySelector(".command-grid");
+      page.insertBefore(root,grid||page.firstChild);
+    }
+    const x=t();
+    root.innerHTML=`
+      <button class="v312-quick" type="button" data-v312-action="invoice"><span class="v312-quick-icon">🧾</span><span>${esc(x.newInvoice)}</span></button>
+      <button class="v312-quick" type="button" data-v312-action="quote"><span class="v312-quick-icon">📄</span><span>${esc(x.newQuote)}</span></button>
+      <button class="v312-quick" type="button" data-v312-action="crm"><span class="v312-quick-icon">👥</span><span>${esc(x.openCrm)}</span></button>
+      <button class="v312-quick" type="button" data-v312-action="reports"><span class="v312-quick-icon">📈</span><span>${esc(x.openReports)}</span></button>`;
+  }
+
+  function settings(){
+    try{return JSON.parse(localStorage.getItem("hegeva_settings")||"{}")||{};}catch{return{};}
+  }
+  function isEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||"").trim());}
+
+  function ensureReadiness(){
+    const page=document.getElementById("settings");
+    const card=page?.querySelector(".card");
+    if(!card)return;
+    let root=document.getElementById("v312Readiness");
+    if(!root){
+      root=document.createElement("div");
+      root.id="v312Readiness";
+      card.prepend(root);
+    }
+    const s=settings(), x=t();
+    const checks=[
+      [x.businessName,Boolean(String(s.businessName||document.getElementById("businessName")?.value||"").trim())],
+      [x.email,isEmail(s.businessEmail||document.getElementById("businessEmail")?.value||"")],
+      [x.address,Boolean(String(s.address||document.getElementById("address")?.value||"").trim())],
+      [x.country,Boolean(String(s.country||document.getElementById("country")?.value||"").trim())]
+    ];
+    const pct=Math.round(checks.filter(i=>i[1]).length/checks.length*100);
+    root.innerHTML=`
+      <div class="v312-ready-head">
+        <div><h3 style="margin:0">${esc(x.readiness)}</h3><p style="margin:5px 0 0;color:var(--muted)">${esc(x.readyText)}</p></div>
+        <div class="v312-ready-percent">${pct}%</div>
+      </div>
+      <div class="v312-ready-bar"><i style="width:${pct}%"></i></div>
+      <div class="v312-ready-list">
+        ${checks.map(([label,ok])=>`<div class="v312-ready-item"><span>${esc(label)}</span><strong class="${ok?"ok":"warn"}">${esc(ok?x.ready:x.missing)}</strong></div>`).join("")}
+      </div>`;
+  }
+
+  function crmCustomers(){
+    try{
+      const v=JSON.parse(localStorage.getItem("hegeva_v10_customers")||"[]");
+      return Array.isArray(v)?v:[];
+    }catch{return[];}
+  }
+
+  function ensureCrmMirror(){
+    const page=document.getElementById("businessTools44");
+    const old=document.getElementById("btClientList");
+    if(!page||!old)return;
+    old.style.display="none";
+    let root=document.getElementById("v312CrmMirror");
+    if(!root){
+      root=document.createElement("div");
+      root.id="v312CrmMirror";
+      old.insertAdjacentElement("afterend",root);
+    }
+    const x=t(), list=crmCustomers().slice(0,8);
+    root.innerHTML=list.length?list.map(c=>`
+      <div class="v312-client-row">
+        <div><strong>${esc(c.name||"—")}</strong><div class="v312-client-meta">${esc(c.email||"")} ${c.phone?`• ${esc(c.phone)}`:""}</div></div>
+        <button class="mini-action" type="button" data-v312-open-crm>${esc(x.viewCrm)}</button>
+      </div>`).join(""):`<div class="coming-item">${esc(x.none)}</div>`;
+  }
+
+  function syncBusinessToolCustomerToCrm(){
+    const name=(document.getElementById("btClientName")?.value||"").trim();
+    const email=(document.getElementById("btClientEmail")?.value||"").trim();
+    if(!name)return;
+    let list=crmCustomers();
+    const same=list.find(c=>(c.email&&email&&c.email.toLowerCase()===email.toLowerCase())||(!email&&c.name?.toLowerCase()===name.toLowerCase()));
+    if(!same){
+      list.unshift({
+        id:crypto?.randomUUID?.()||`crm-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        name,email,phone:"",company:"",address:"",notes:"",followup:false,createdAt:new Date().toISOString()
+      });
+      localStorage.setItem("hegeva_v10_customers",JSON.stringify(list.slice(0,500)));
+      if(typeof window.v46SaveBucket==="function")setTimeout(()=>window.v46SaveBucket("crm"),80);
+    }
+    setTimeout(ensureCrmMirror,120);
+  }
+
+  function currencyInfo(){
+    const code=document.getElementById("currency")?.value||settings().currency||"GBP";
+    return {code,locale:({GBP:"en-GB",EUR:"de-DE",USD:"en-US",HUF:"hu-HU"})[code]||"en-GB"};
+  }
+
+  function patchCurrency(){
+    const {code,locale}=currencyInfo();
+    try{
+      window.bt44Money=(n)=>new Intl.NumberFormat(locale,{style:"currency",currency:code}).format(Number(n)||0);
+      if(typeof bt44Money!=="undefined") bt44Money=window.bt44Money;
+    }catch{}
+    document.querySelectorAll("#businessTools44 label").forEach(label=>{
+      label.textContent=label.textContent.replace(/\((£|€|\$|Ft)\)/g,`(${code})`);
+    });
+  }
+
+  function applyAll(){
+    ensureQuickActions();
+    ensureReadiness();
+    ensureCrmMirror();
+    patchCurrency();
+  }
+
+  document.addEventListener("click",e=>{
+    const b=e.target.closest("[data-v312-action]");
+    if(b){
+      const a=b.dataset.v312Action;
+      if(a==="invoice"||a==="quote"){
+        showPageSafe("businessTools44");
+        const type=document.getElementById("btDocType");
+        if(type){type.value=a==="quote"?"Quote":"Invoice";type.dispatchEvent(new Event("change",{bubbles:true}));}
+        setTimeout(()=>document.getElementById("btCustomer")?.focus(),80);
+      }
+      if(a==="crm")showPageSafe("customers");
+      if(a==="reports")showPageSafe("reports");
+    }
+    if(e.target.closest("[data-v312-open-crm]"))showPageSafe("customers");
+  });
+
+  // Capture before the older Business Tools handler clears the fields.
+  document.getElementById("btAddClient")?.addEventListener("click",syncBusinessToolCustomerToCrm,{capture:true});
+
+  ["businessName","businessEmail","address","country","currency"].forEach(id=>{
+    document.getElementById(id)?.addEventListener("input",()=>setTimeout(applyAll,50));
+    document.getElementById(id)?.addEventListener("change",()=>setTimeout(applyAll,50));
+  });
+
+  document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(applyAll,80));
+  window.addEventListener("storage",()=>setTimeout(applyAll,80));
+
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(applyAll,150),{once:true});
+  else setTimeout(applyAll,150);
+
+  window.hegevaV312Check=()=>({
+    version:"V31.2",
+    language:lang(),
+    crmCustomers:crmCustomers().length,
+    readiness:document.querySelector("#v312Readiness .v312-ready-percent")?.textContent||"—",
+    currency:currencyInfo().code,
+    time:new Date().toISOString()
+  });
 })();
 </script>
 
