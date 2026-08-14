@@ -1695,6 +1695,10 @@
           <option value="es">🇪🇸 Español</option>
         </select>
 
+        <button class="v322-search-trigger" id="v322SearchTrigger" type="button" aria-label="Search workspace" title="Search workspace">
+          <span>⌕</span><strong id="v322SearchTriggerText">Search</strong><kbd>Ctrl K</kbd>
+        </button>
+
         
         <button class="auth-button" id="authOpenButton" type="button" data-i18n="auth.account">Account</button>
         <div class="auth-user" id="authUserBox">
@@ -13987,6 +13991,462 @@ Open planner tasks: ${s.openTasks}`;
     audit:auditActivePage,
     translate:translateText,
     version:"V32.0"
+  };
+})();
+</script>
+
+
+<style>
+/* =========================================================
+   HEGEVA AI V32.2 — GLOBAL WORKSPACE SEARCH / COMMAND PALETTE
+   ========================================================= */
+.v322-search-trigger{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:44px;
+  padding:0 12px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:rgba(255,255,255,.045);
+  color:var(--text);
+  cursor:pointer;
+  font:inherit;
+  transition:.16s ease;
+}
+.v322-search-trigger:hover{
+  border-color:rgba(246,196,83,.38);
+  background:rgba(246,196,83,.07);
+  transform:translateY(-1px);
+}
+.v322-search-trigger > span{
+  font-size:20px;
+  line-height:1;
+}
+.v322-search-trigger strong{
+  font-size:12px;
+}
+.v322-search-trigger kbd{
+  padding:3px 6px;
+  border-radius:6px;
+  border:1px solid rgba(255,255,255,.13);
+  background:rgba(0,0,0,.16);
+  color:var(--muted);
+  font-size:9px;
+  font-family:inherit;
+}
+
+.v322-search-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:12000;
+  display:none;
+  align-items:flex-start;
+  justify-content:center;
+  padding:11vh 20px 30px;
+  background:rgba(3,8,18,.70);
+  backdrop-filter:blur(9px);
+}
+.v322-search-backdrop.open{display:flex}
+
+.v322-search-modal{
+  width:min(780px,100%);
+  overflow:hidden;
+  border-radius:22px;
+  border:1px solid rgba(255,255,255,.13);
+  background:
+    radial-gradient(circle at 100% 0%,rgba(155,108,255,.12),transparent 30%),
+    linear-gradient(155deg,rgba(17,28,48,.98),rgba(9,17,31,.985));
+  box-shadow:0 34px 110px rgba(0,0,0,.48);
+}
+.v322-search-head{
+  padding:18px;
+  border-bottom:1px solid rgba(255,255,255,.09);
+}
+.v322-search-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  margin-bottom:13px;
+}
+.v322-search-title h2{
+  margin:0;
+  font-size:19px;
+}
+.v322-search-title p{
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:12px;
+}
+.v322-close{
+  width:37px;
+  height:37px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.045);
+  color:var(--text);
+  cursor:pointer;
+  font-size:20px;
+}
+.v322-search-input-wrap{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:52px;
+  padding:0 14px;
+  border:1px solid rgba(246,196,83,.27);
+  border-radius:14px;
+  background:rgba(255,255,255,.045);
+}
+.v322-search-input-wrap > span{font-size:21px}
+#v322SearchInput{
+  flex:1;
+  min-width:0;
+  border:0!important;
+  outline:0;
+  background:transparent!important;
+  color:var(--text)!important;
+  font-size:15px;
+  box-shadow:none!important;
+}
+.v322-search-body{
+  max-height:min(60vh,570px);
+  overflow:auto;
+  padding:12px;
+}
+.v322-search-empty{
+  padding:32px 18px;
+  text-align:center;
+  color:var(--muted);
+}
+.v322-search-group-title{
+  padding:9px 8px 6px;
+  color:#f4d889;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.v322-result{
+  width:100%;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  gap:12px;
+  align-items:center;
+  margin:5px 0;
+  padding:12px 13px;
+  border:1px solid transparent;
+  border-radius:13px;
+  background:transparent;
+  color:var(--text);
+  text-align:left;
+  cursor:pointer;
+  font:inherit;
+}
+.v322-result:hover,
+.v322-result.active{
+  border-color:rgba(246,196,83,.28);
+  background:linear-gradient(135deg,rgba(246,196,83,.07),rgba(155,108,255,.07));
+}
+.v322-result-icon{
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  display:grid;
+  place-items:center;
+  background:rgba(255,255,255,.06);
+  font-size:17px;
+}
+.v322-result-copy{min-width:0}
+.v322-result-copy strong{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:13px;
+}
+.v322-result-copy small{
+  display:block;
+  margin-top:3px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--muted);
+  font-size:11px;
+}
+.v322-result-arrow{
+  color:var(--muted);
+  font-size:16px;
+}
+.v322-search-foot{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 17px;
+  border-top:1px solid rgba(255,255,255,.08);
+  color:var(--muted);
+  font-size:10px;
+}
+.v322-search-foot kbd{
+  padding:2px 5px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:5px;
+  background:rgba(255,255,255,.04);
+  font-family:inherit;
+}
+@media(max-width:800px){
+  .v322-search-trigger strong,.v322-search-trigger kbd{display:none}
+}
+</style>
+
+<div class="v322-search-backdrop" id="v322SearchBackdrop" aria-hidden="true">
+  <div class="v322-search-modal" role="dialog" aria-modal="true" aria-labelledby="v322SearchTitle">
+    <div class="v322-search-head">
+      <div class="v322-search-title">
+        <div>
+          <h2 id="v322SearchTitle">Search HEGEVA workspace</h2>
+          <p id="v322SearchSubtitle">Search your saved customers, documents, expenses, planner items and chats.</p>
+        </div>
+        <button class="v322-close" id="v322SearchClose" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="v322-search-input-wrap">
+        <span>⌕</span>
+        <input id="v322SearchInput" type="search" autocomplete="off" placeholder="Type to search…" />
+      </div>
+    </div>
+    <div class="v322-search-body" id="v322SearchResults"></div>
+    <div class="v322-search-foot">
+      <span><kbd>↑</kbd> <kbd>↓</kbd> <span id="v322MoveText">move</span> &nbsp; <kbd>Enter</kbd> <span id="v322OpenText">open</span></span>
+      <span><kbd>Esc</kbd> <span id="v322CloseText">close</span></span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   HEGEVA AI V32.2 — GLOBAL WORKSPACE SEARCH
+   Searches only data already stored in the HEGEVA workspace.
+   ========================================================= */
+(() => {
+  "use strict";
+
+  const I18N={
+    en:{trigger:"Search",title:"Search HEGEVA workspace",subtitle:"Search your saved customers, documents, expenses, planner items and chats.",placeholder:"Type to search…",empty:"Start typing to search your HEGEVA workspace.",none:"No matching workspace items found.",move:"move",open:"open",close:"close",groups:{customer:"Customers",document:"Documents",expense:"Expenses",planner:"Planner",chat:"Saved chats"},labels:{email:"Email",amount:"Amount",priority:"Priority",chat:"Saved conversation"}},
+    hu:{trigger:"Keresés",title:"Keresés a HEGEVA munkatérben",subtitle:"Keress a mentett ügyfelek, dokumentumok, kiadások, tervezőelemek és chatek között.",placeholder:"Írj be valamit a kereséshez…",empty:"Kezdj el gépelni a HEGEVA munkatér kereséséhez.",none:"Nincs megfelelő találat a munkatérben.",move:"lépés",open:"megnyitás",close:"bezárás",groups:{customer:"Ügyfelek",document:"Dokumentumok",expense:"Kiadások",planner:"Tervező",chat:"Mentett chatek"},labels:{email:"E-mail",amount:"Összeg",priority:"Prioritás",chat:"Mentett beszélgetés"}},
+    de:{trigger:"Suchen",title:"HEGEVA-Arbeitsbereich durchsuchen",subtitle:"Durchsuche gespeicherte Kunden, Dokumente, Ausgaben, Planer-Einträge und Chats.",placeholder:"Zum Suchen eingeben…",empty:"Tippe, um deinen HEGEVA-Arbeitsbereich zu durchsuchen.",none:"Keine passenden Arbeitsbereichseinträge gefunden.",move:"bewegen",open:"öffnen",close:"schließen",groups:{customer:"Kunden",document:"Dokumente",expense:"Ausgaben",planner:"Planer",chat:"Gespeicherte Chats"},labels:{email:"E-Mail",amount:"Betrag",priority:"Priorität",chat:"Gespeicherte Unterhaltung"}},
+    fr:{trigger:"Rechercher",title:"Rechercher dans l’espace HEGEVA",subtitle:"Recherchez dans vos clients, documents, dépenses, éléments du planificateur et chats enregistrés.",placeholder:"Saisissez votre recherche…",empty:"Commencez à saisir pour rechercher dans votre espace HEGEVA.",none:"Aucun élément correspondant trouvé.",move:"déplacer",open:"ouvrir",close:"fermer",groups:{customer:"Clients",document:"Documents",expense:"Dépenses",planner:"Planificateur",chat:"Chats enregistrés"},labels:{email:"E-mail",amount:"Montant",priority:"Priorité",chat:"Conversation enregistrée"}},
+    es:{trigger:"Buscar",title:"Buscar en el espacio HEGEVA",subtitle:"Busca entre clientes, documentos, gastos, elementos del planificador y chats guardados.",placeholder:"Escribe para buscar…",empty:"Empieza a escribir para buscar en tu espacio HEGEVA.",none:"No se encontraron elementos coincidentes.",move:"mover",open:"abrir",close:"cerrar",groups:{customer:"Clientes",document:"Documentos",expense:"Gastos",planner:"Planificador",chat:"Chats guardados"},labels:{email:"Correo",amount:"Importe",priority:"Prioridad",chat:"Conversación guardada"}}
+  };
+
+  const icons={customer:"👥",document:"🧾",expense:"💰",planner:"⏳",chat:"🤖"};
+  const routes={customer:"customers",document:"documents",expense:"expenses",planner:"planner",chat:"assistant"};
+  const lang=()=>{
+    const v=document.getElementById("languageSelect")?.value||"en";
+    return I18N[v]?v:"en";
+  };
+  const tx=()=>I18N[lang()];
+  const safeParse=(key,fallback=[])=>{
+    try{
+      const x=JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback));
+      return x??fallback;
+    }catch{return fallback}
+  };
+  const text=v=>String(v??"").trim();
+
+  function workspaceItems(){
+    const out=[];
+
+    const customers=safeParse("hegeva_v10_customers",[]);
+    if(Array.isArray(customers))customers.forEach(c=>{
+      out.push({
+        type:"customer",
+        title:text(c.name)||text(c.company)||"Customer",
+        subtitle:[text(c.company),text(c.email),text(c.phone)].filter(Boolean).join(" • "),
+        search:[c.name,c.company,c.email,c.phone,c.address,c.notes].map(text).join(" ")
+      });
+    });
+
+    const documents=safeParse("hegeva_documents",[]);
+    if(Array.isArray(documents))documents.forEach(d=>{
+      out.push({
+        type:"document",
+        title:[text(d.type),text(d.number)].filter(Boolean).join(" ")||"Document",
+        subtitle:[text(d.customerName||d.customer),text(d.description),text(d.total)].filter(Boolean).join(" • "),
+        search:[d.type,d.number,d.customerName,d.customer,d.description,d.notes,d.total].map(text).join(" ")
+      });
+    });
+
+    const expenses=safeParse("hegeva_expenses",[]);
+    if(Array.isArray(expenses))expenses.forEach(e=>{
+      out.push({
+        type:"expense",
+        title:text(e.note)||text(e.category)||"Expense",
+        subtitle:[text(e.category),text(e.amount),text(e.date)].filter(Boolean).join(" • "),
+        search:[e.category,e.note,e.amount,e.date].map(text).join(" ")
+      });
+    });
+
+    const planner=safeParse("hegeva_planner_tasks",[]);
+    if(Array.isArray(planner))planner.forEach(p=>{
+      out.push({
+        type:"planner",
+        title:text(p.text||p.task||p.title)||"Planner item",
+        subtitle:[text(p.priority),text(p.dueDate||p.date),p.done?"✓":""].filter(Boolean).join(" • "),
+        search:[p.text,p.task,p.title,p.priority,p.dueDate,p.date].map(text).join(" ")
+      });
+    });
+
+    const chats=safeParse("hegeva_v41_saved_chats",[]);
+    if(Array.isArray(chats))chats.forEach(c=>{
+      out.push({
+        type:"chat",
+        title:text(c.title)||tx().labels.chat,
+        subtitle:text(c.updatedAt||c.createdAt||""),
+        search:[c.title,JSON.stringify(c.messages||[])].map(text).join(" ")
+      });
+    });
+
+    return out;
+  }
+
+  let filtered=[];
+  let activeIndex=0;
+
+  const backdrop=document.getElementById("v322SearchBackdrop");
+  const input=document.getElementById("v322SearchInput");
+  const results=document.getElementById("v322SearchResults");
+
+  function localize(){
+    const x=tx();
+    document.getElementById("v322SearchTriggerText").textContent=x.trigger;
+    document.getElementById("v322SearchTrigger").setAttribute("aria-label",x.title);
+    document.getElementById("v322SearchTrigger").setAttribute("title",x.title);
+    document.getElementById("v322SearchTitle").textContent=x.title;
+    document.getElementById("v322SearchSubtitle").textContent=x.subtitle;
+    input.placeholder=x.placeholder;
+    document.getElementById("v322MoveText").textContent=x.move;
+    document.getElementById("v322OpenText").textContent=x.open;
+    document.getElementById("v322CloseText").textContent=x.close;
+    render();
+  }
+
+  function open(){
+    backdrop.classList.add("open");
+    backdrop.setAttribute("aria-hidden","false");
+    input.value="";
+    activeIndex=0;
+    render();
+    setTimeout(()=>input.focus(),20);
+  }
+
+  function close(){
+    backdrop.classList.remove("open");
+    backdrop.setAttribute("aria-hidden","true");
+    input.value="";
+  }
+
+  function navigate(type){
+    const page=routes[type];
+    if(typeof window.showPage==="function")window.showPage(page);
+    else{
+      document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===page));
+    }
+    close();
+  }
+
+  function render(){
+    const q=input.value.trim().toLowerCase();
+    const x=tx();
+    if(!q){
+      filtered=[];
+      results.innerHTML=`<div class="v322-search-empty">${x.empty}</div>`;
+      return;
+    }
+
+    const tokens=q.split(/\s+/).filter(Boolean);
+    filtered=workspaceItems()
+      .map(item=>{
+        const hay=`${item.title} ${item.subtitle} ${item.search}`.toLowerCase();
+        const score=tokens.reduce((s,t)=>s+(hay.includes(t)?1:0),0);
+        return {...item,score};
+      })
+      .filter(i=>i.score===tokens.length)
+      .slice(0,40);
+
+    if(!filtered.length){
+      results.innerHTML=`<div class="v322-search-empty">${x.none}</div>`;
+      return;
+    }
+
+    activeIndex=Math.max(0,Math.min(activeIndex,filtered.length-1));
+    let html="";
+    let lastType="";
+    filtered.forEach((item,i)=>{
+      if(item.type!==lastType){
+        html+=`<div class="v322-search-group-title">${x.groups[item.type]}</div>`;
+        lastType=item.type;
+      }
+      html+=`
+        <button class="v322-result ${i===activeIndex?"active":""}" type="button" data-v322-index="${i}">
+          <span class="v322-result-icon">${icons[item.type]}</span>
+          <span class="v322-result-copy">
+            <strong>${escapeHtml(item.title)}</strong>
+            <small>${escapeHtml(item.subtitle||x.groups[item.type])}</small>
+          </span>
+          <span class="v322-result-arrow">→</span>
+        </button>`;
+    });
+    results.innerHTML=html;
+    results.querySelector(".v322-result.active")?.scrollIntoView({block:"nearest"});
+  }
+
+  function escapeHtml(s){
+    return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+  }
+
+  document.getElementById("v322SearchTrigger").addEventListener("click",open);
+  document.getElementById("v322SearchClose").addEventListener("click",close);
+  backdrop.addEventListener("mousedown",e=>{if(e.target===backdrop)close()});
+  input.addEventListener("input",()=>{activeIndex=0;render()});
+  results.addEventListener("click",e=>{
+    const b=e.target.closest("[data-v322-index]");
+    if(!b)return;
+    const item=filtered[Number(b.dataset.v322Index)];
+    if(item)navigate(item.type);
+  });
+
+  document.addEventListener("keydown",e=>{
+    const shortcut=(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k";
+    if(shortcut){
+      e.preventDefault();
+      backdrop.classList.contains("open")?close():open();
+      return;
+    }
+    if(!backdrop.classList.contains("open"))return;
+    if(e.key==="Escape"){e.preventDefault();close();return}
+    if(e.key==="ArrowDown"){
+      e.preventDefault();
+      if(filtered.length){activeIndex=(activeIndex+1)%filtered.length;render()}
+    }
+    if(e.key==="ArrowUp"){
+      e.preventDefault();
+      if(filtered.length){activeIndex=(activeIndex-1+filtered.length)%filtered.length;render()}
+    }
+    if(e.key==="Enter"&&filtered[activeIndex]){
+      e.preventDefault();navigate(filtered[activeIndex].type);
+    }
+  });
+
+  document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(localize,50));
+
+  localize();
+
+  window.hegevaV322Search={
+    open,
+    refresh:render,
+    index:workspaceItems,
+    version:"V32.2"
   };
 })();
 </script>
