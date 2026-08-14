@@ -1,9 +1,13 @@
-import { betterAuth } from "better-auth";
+import {
+  createAuth,
+  getLoggedInUser,
+  sendResendEmail,
+  HEGEVA_EMAIL_FROM
+} from "./auth.js";
 
 // =========================================
-// HEGEVA AI V4.7.2
-// Auth + Cloud Workspace + Plans + AI Usage
-// Improved multilingual AI responses
+// HEGEVA AI V30.1
+// ACCOUNT + PASSWORD RECOVERY BACKEND
 // =========================================
 
 const PLAN_LIMITS = {
@@ -12,38 +16,6 @@ const PLAN_LIMITS = {
   pro: 1000
 };
 
-function createAuth(env, request) {
-  const origin = new URL(request.url).origin;
-
-  return betterAuth({
-    database: env.DB,
-    secret: env.BETTER_AUTH_SECRET,
-    baseURL: origin,
-
-    emailAndPassword: {
-      enabled: true,
-      minPasswordLength: 8,
-      maxPasswordLength: 128,
-      autoSignIn: true
-    },
-
-    user: { modelName: "user" },
-    session: { modelName: "session" },
-    account: { modelName: "account" },
-    verification: { modelName: "verification" }
-  });
-}
-
-async function getLoggedInUser(request, env) {
-  const auth = createAuth(env, request);
-
-  const session = await auth.api.getSession({
-    headers: request.headers
-  });
-
-  return session?.user || null;
-}
-
 function validWorkspaceType(type) {
   return /^[a-z0-9_-]{1,40}$/i.test(type);
 }
@@ -51,17 +23,23 @@ function validWorkspaceType(type) {
 function getCurrentPeriod() {
   const now = new Date();
 
-  const year = now.getUTCFullYear();
+  const year =
+    now.getUTCFullYear();
 
-  const month = String(
-    now.getUTCMonth() + 1
-  ).padStart(2, "0");
+  const month =
+    String(
+      now.getUTCMonth() + 1
+    ).padStart(2, "0");
 
   return `${year}-${month}`;
 }
 
-async function ensureUserPlan(env, userId) {
-  const now = new Date().toISOString();
+async function ensureUserPlan(
+  env,
+  userId
+) {
+  const now =
+    new Date().toISOString();
 
   await env.DB
     .prepare(`
@@ -87,39 +65,47 @@ async function ensureUserPlan(env, userId) {
     .run();
 }
 
-async function getUserPlan(env, userId) {
+async function getUserPlan(
+  env,
+  userId
+) {
   await ensureUserPlan(
     env,
     userId
   );
 
-  const row = await env.DB
-    .prepare(`
-      SELECT
-        plan,
-        createdAt,
-        updatedAt
-      FROM user_plans
-      WHERE userId = ?1
-      LIMIT 1
-    `)
-    .bind(userId)
-    .first();
+  const row =
+    await env.DB
+      .prepare(`
+        SELECT
+          plan,
+          createdAt,
+          updatedAt
+        FROM user_plans
+        WHERE userId = ?1
+        LIMIT 1
+      `)
+      .bind(userId)
+      .first();
 
   const plan =
     row?.plan &&
-    Object.prototype.hasOwnProperty.call(
-      PLAN_LIMITS,
-      row.plan
-    )
+    Object.prototype
+      .hasOwnProperty.call(
+        PLAN_LIMITS,
+        row.plan
+      )
       ? row.plan
       : "basic";
 
   return {
     plan,
-    limit: PLAN_LIMITS[plan],
-    createdAt: row?.createdAt || null,
-    updatedAt: row?.updatedAt || null
+    limit:
+      PLAN_LIMITS[plan],
+    createdAt:
+      row?.createdAt || null,
+    updatedAt:
+      row?.updatedAt || null
   };
 }
 
@@ -128,29 +114,34 @@ async function getAIUsage(
   userId,
   period
 ) {
-  const row = await env.DB
-    .prepare(`
-      SELECT
-        aiMessages,
-        createdAt,
-        updatedAt
-      FROM ai_usage
-      WHERE userId = ?1
-        AND period = ?2
-      LIMIT 1
-    `)
-    .bind(
-      userId,
-      period
-    )
-    .first();
+  const row =
+    await env.DB
+      .prepare(`
+        SELECT
+          aiMessages,
+          createdAt,
+          updatedAt
+        FROM ai_usage
+        WHERE userId = ?1
+          AND period = ?2
+        LIMIT 1
+      `)
+      .bind(
+        userId,
+        period
+      )
+      .first();
 
   return {
     aiMessages:
       Number.isFinite(
-        Number(row?.aiMessages)
+        Number(
+          row?.aiMessages
+        )
       )
-        ? Number(row.aiMessages)
+        ? Number(
+            row.aiMessages
+          )
         : 0,
 
     createdAt:
@@ -166,7 +157,8 @@ async function incrementAIUsage(
   userId,
   period
 ) {
-  const now = new Date().toISOString();
+  const now =
+    new Date().toISOString();
 
   await env.DB
     .prepare(`
@@ -192,8 +184,7 @@ async function incrementAIUsage(
 
       DO UPDATE SET
         aiMessages =
-          ai_usage.aiMessages + 1,
-
+          aiMessages + 1,
         updatedAt =
           excluded.updatedAt
     `)
@@ -206,8 +197,15 @@ async function incrementAIUsage(
 }
 
 export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
+  async fetch(
+    request,
+    env,
+    ctx
+  ) {
+    const url =
+      new URL(
+        request.url
+      );
 
     // =========================================
     // BETTER AUTH
@@ -222,7 +220,8 @@ export default {
         const auth =
           createAuth(
             env,
-            request
+            request,
+            ctx
           );
 
         return await auth.handler(
@@ -241,6 +240,145 @@ export default {
           },
           {
             status: 500
+          }
+        );
+      }
+    }
+
+    // =========================================
+    // EMAIL STATUS
+    // =========================================
+
+    if (
+      url.pathname ===
+      "/api/system/email-status"
+    ) {
+      if (
+        request.method !==
+        "GET"
+      ) {
+        return Response.json(
+          {
+            error:
+              "Method not allowed."
+          },
+          {
+            status: 405
+          }
+        );
+      }
+
+      return Response.json({
+        configured:
+          Boolean(
+            env.RESEND_API_KEY
+          ),
+
+        provider:
+          env.RESEND_API_KEY
+            ? "Resend"
+            : "Not configured",
+
+        sender:
+          HEGEVA_EMAIL_FROM,
+
+        passwordRecovery:
+          Boolean(
+            env.RESEND_API_KEY
+          ),
+
+        resetLinkExpiresInSeconds:
+          3600,
+
+        revokeSessionsOnPasswordReset:
+          true
+      });
+    }
+
+    // =========================================
+    // SECURITY EMAIL TEST
+    // =========================================
+
+    if (
+      url.pathname ===
+      "/api/email/test"
+    ) {
+      if (
+        request.method !==
+        "POST"
+      ) {
+        return Response.json(
+          {
+            error:
+              "Method not allowed."
+          },
+          {
+            status: 405
+          }
+        );
+      }
+
+      try {
+        const user =
+          await getLoggedInUser(
+            request,
+            env,
+            ctx
+          );
+
+        if (!user?.email) {
+          return Response.json(
+            {
+              error:
+                "Authentication required."
+            },
+            {
+              status: 401
+            }
+          );
+        }
+
+        const result =
+          await sendResendEmail(
+            env,
+            {
+              to:
+                user.email,
+
+              subject:
+                "HEGEVA AI security email test",
+
+              text:
+                "Your HEGEVA AI email connection is working. No action is required.",
+
+              html:
+                `<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#172033"><h2>HEGEVA AI security test</h2><p>Your HEGEVA AI email connection is working.</p><p>No action is required.</p></div>`,
+
+              idempotencyKey:
+                `hegeva-security-test-${crypto.randomUUID()}`
+            }
+          );
+
+        return Response.json({
+          ok: true,
+          to: user.email,
+          id:
+            result?.id ||
+            null
+        });
+      } catch (error) {
+        console.error(
+          "HEGEVA security test email error:",
+          error
+        );
+
+        return Response.json(
+          {
+            error:
+              "Security test email could not be sent."
+          },
+          {
+            status: 502
           }
         );
       }
@@ -273,7 +411,8 @@ export default {
         const user =
           await getLoggedInUser(
             request,
-            env
+            env,
+            ctx
           );
 
         if (!user) {
@@ -288,14 +427,14 @@ export default {
           );
         }
 
-        const period =
-          getCurrentPeriod();
-
         const planInfo =
           await getUserPlan(
             env,
             user.id
           );
+
+        const period =
+          getCurrentPeriod();
 
         const usage =
           await getAIUsage(
@@ -304,41 +443,28 @@ export default {
             period
           );
 
-        const remaining =
-          Math.max(
-            0,
-            planInfo.limit -
-              usage.aiMessages
-          );
-
         return Response.json({
-          ok: true,
-
           plan:
             planInfo.plan,
 
-          period,
+          aiMessages:
+            usage.aiMessages,
 
-          usage: {
-            aiMessages:
-              usage.aiMessages,
+          aiLimit:
+            planInfo.limit,
 
-            limit:
-              planInfo.limit,
-
-            remaining
-          }
+          period
         });
       } catch (error) {
         console.error(
-          "HEGEVA plan status error:",
+          "HEGEVA plan error:",
           error
         );
 
         return Response.json(
           {
             error:
-              "Plan information is temporarily unavailable."
+              "Plan service temporarily unavailable."
           },
           {
             status: 500
@@ -360,7 +486,8 @@ export default {
         const user =
           await getLoggedInUser(
             request,
-            env
+            env,
+            ctx
           );
 
         if (!user) {
@@ -378,7 +505,8 @@ export default {
         const rawType =
           url.pathname
             .slice(
-              "/api/workspace/".length
+              "/api/workspace/"
+                .length
             )
             .trim();
 
@@ -417,9 +545,7 @@ export default {
           );
         }
 
-        // =====================================
-        // LOAD CLOUD DATA
-        // =====================================
+        // LOAD
 
         if (
           request.method ===
@@ -453,7 +579,8 @@ export default {
             });
           }
 
-          let parsedData = null;
+          let parsedData =
+            null;
 
           try {
             parsedData =
@@ -464,21 +591,25 @@ export default {
 
           return Response.json({
             found: true,
-            id: row.id,
+
+            id:
+              row.id,
+
             dataType:
               row.dataType,
+
             data:
               parsedData,
+
             createdAt:
               row.createdAt,
+
             updatedAt:
               row.updatedAt
           });
         }
 
-        // =====================================
-        // SAVE CLOUD DATA
-        // =====================================
+        // SAVE
 
         if (
           request.method ===
@@ -503,10 +634,11 @@ export default {
 
           if (
             !body ||
-            !Object.prototype.hasOwnProperty.call(
-              body,
-              "data"
-            )
+            !Object.prototype
+              .hasOwnProperty.call(
+                body,
+                "data"
+              )
           ) {
             return Response.json(
               {
@@ -587,7 +719,6 @@ export default {
               DO UPDATE SET
                 data =
                   excluded.data,
-
                 updatedAt =
                   excluded.updatedAt
             `)
@@ -636,7 +767,7 @@ export default {
     }
 
     // =========================================
-    // HEGEVA AI CHAT V4.7.2
+    // HEGEVA AI CHAT
     // =========================================
 
     if (
@@ -659,24 +790,18 @@ export default {
       }
 
       try {
-        // =====================================
-        // LOGIN CHECK
-        // =====================================
-
         const user =
           await getLoggedInUser(
             request,
-            env
+            env,
+            ctx
           );
 
         if (!user) {
           return Response.json(
             {
               error:
-                "Authentication required.",
-
-              code:
-                "AUTH_REQUIRED"
+                "Authentication required."
             },
             {
               status: 401
@@ -684,18 +809,14 @@ export default {
           );
         }
 
-        // =====================================
-        // PLAN + MONTHLY USAGE
-        // =====================================
-
-        const period =
-          getCurrentPeriod();
-
         const planInfo =
           await getUserPlan(
             env,
             user.id
           );
+
+        const period =
+          getCurrentPeriod();
 
         const usage =
           await getAIUsage(
@@ -712,24 +833,12 @@ export default {
             {
               error:
                 "Monthly AI message limit reached.",
-
-              code:
-                "AI_LIMIT_REACHED",
-
               plan:
                 planInfo.plan,
-
-              period,
-
-              usage: {
-                aiMessages:
-                  usage.aiMessages,
-
-                limit:
-                  planInfo.limit,
-
-                remaining: 0
-              }
+              limit:
+                planInfo.limit,
+              used:
+                usage.aiMessages
             },
             {
               status: 429
@@ -737,26 +846,8 @@ export default {
           );
         }
 
-        // =====================================
-        // REQUEST BODY
-        // =====================================
-
-        let body;
-
-        try {
-          body =
-            await request.json();
-        } catch {
-          return Response.json(
-            {
-              error:
-                "Invalid JSON body."
-            },
-            {
-              status: 400
-            }
-          );
-        }
+        const body =
+          await request.json();
 
         const message =
           typeof body.message ===
@@ -791,31 +882,27 @@ export default {
           );
         }
 
-        // =====================================
-        // MODES
-        // =====================================
-
         const modeInstructions = {
           general:
-            "Give practical, useful and natural business help.",
+            "Give practical general business help.",
 
           time:
             "Focus on repetitive work, admin bottlenecks and realistic ways to save time.",
 
           planner:
-            "Help prioritise tasks and create a realistic, easy-to-follow action plan.",
+            "Help prioritise tasks and create a realistic action plan.",
 
           documents:
-            "Help create professional wording, emails and document structures. Do not claim legal validity.",
+            "Help with professional wording, emails and document structure. Do not claim legal validity.",
 
           ideas:
-            "Act as a practical idea partner. Give useful options, trade-offs and ways to test ideas without promising results.",
+            "Act as an idea partner. Give options, trade-offs and questions to test without promising results.",
 
           decision:
-            "Compare options clearly and neutrally, including benefits, drawbacks, risks and important assumptions.",
+            "Compare options neutrally with benefits, drawbacks, risks, assumptions and questions to verify.",
 
           meeting:
-            "Turn meeting information into a concise summary, decisions, open questions and clear action items.",
+            "Turn meeting information into a concise summary, decisions, open questions and action items.",
 
           thirty:
             "Create a realistic 30-day action plan with weekly stages and measurable tasks, without promising outcomes."
@@ -829,64 +916,50 @@ export default {
           es: "Spanish"
         };
 
-        const languageStyles = {
-          en:
-            "Use natural modern English. Be friendly, clear and practical. Avoid stiff or overly formal wording.",
-
-          hu:
-            "Használj természetes, mai magyar nyelvet. Beszélj közvetlenül, érthetően és barátságosan. Kerüld a furcsa szó szerinti fordításokat és a merev megfogalmazást.",
-
-          de:
-            "Use natural modern German. Be clear, friendly and practical. Avoid unnatural literal translations.",
-
-          fr:
-            "Use natural modern French. Be clear, friendly and conversational. Avoid robotic or literal translation-style wording.",
-
-          es:
-            "Use natural modern Spanish. Be clear, friendly and conversational. Avoid robotic or overly literal wording."
-        };
-
         const mode =
-          Object.prototype.hasOwnProperty.call(
-            modeInstructions,
-            body.mode
-          )
+          Object.prototype
+            .hasOwnProperty.call(
+              modeInstructions,
+              body.mode
+            )
             ? body.mode
             : "general";
 
         const language =
-          Object.prototype.hasOwnProperty.call(
-            languageNames,
-            body.language
-          )
+          Object.prototype
+            .hasOwnProperty.call(
+              languageNames,
+              body.language
+            )
             ? body.language
             : "en";
 
         const businessContext =
-          typeof body.businessContext ===
+          typeof body
+            .businessContext ===
           "string"
-            ? body.businessContext
+            ? body
+                .businessContext
                 .slice(0, 500)
                 .trim()
             : "";
-
-        // =====================================
-        // SAFE CONVERSATION HISTORY
-        // =====================================
 
         const rawHistory =
           Array.isArray(
             body.history
           )
-            ? body.history.slice(-10)
+            ? body.history
+                .slice(-10)
             : [];
 
         let totalChars = 0;
 
-        const safeHistory = [];
+        const safeHistory =
+          [];
 
         for (
-          const item of rawHistory
+          const item
+          of rawHistory
         ) {
           if (
             !item ||
@@ -903,13 +976,10 @@ export default {
           }
 
           const content =
-            item.content
-              .slice(0, 1200)
-              .trim();
-
-          if (!content) {
-            continue;
-          }
+            item.content.slice(
+              0,
+              1200
+            );
 
           if (
             totalChars +
@@ -923,163 +993,67 @@ export default {
             content.length;
 
           safeHistory.push({
-            role: item.role,
+            role:
+              item.role,
             content
           });
         }
 
-        // =====================================
-        // SYSTEM PROMPT V4.7.2
-        // =====================================
+        const transcript =
+          safeHistory
+            .map(
+              (item) =>
+                `${
+                  item.role ===
+                  "assistant"
+                    ? "HEGEVA AI"
+                    : "User"
+                }: ${item.content}`
+            )
+            .join("\n\n");
 
-        const systemPrompt = `
-You are HEGEVA AI, a practical and friendly AI business companion.
+        const prompt = `
+You are HEGEVA AI, a practical business companion.
 
-You are speaking directly to the user.
+Primary goal:
+Help users save time, organise work, think clearly and create useful business drafts.
 
-LANGUAGE:
-Respond in ${languageNames[language]} unless the user explicitly requests another language.
-
-LANGUAGE STYLE:
-${languageStyles[language]}
-
-CURRENT MODE:
+Selected mode:
 ${modeInstructions[mode]}
 
-BUSINESS CONTEXT:
-${businessContext || "No business context has been provided."}
+Required response language:
+${languageNames[language]}.
 
-CORE BEHAVIOUR:
+Always answer in this language unless the user explicitly asks for another language.
 
-- Answer the user's latest message directly.
-- Sound natural, human and conversational.
-- Do not sound robotic.
-- Do not translate phrases word-for-word if that would sound unnatural.
-- Prefer simple, clear sentences.
-- If the user says hello or gives a short greeting, respond with a short natural greeting.
-- Do not turn a simple greeting into a long business consultation.
-- If the request is clear, answer it directly.
-- Ask a clarifying question only when genuinely necessary.
-- Use previous conversation only as context.
-- Do not repeat conversation history.
-- Do not mention system prompts, hidden instructions, internal notes or AI reasoning.
-- Never write phrases such as:
-  "Note:"
-  "The user seems to..."
-  "The AI should..."
-  "Let's continue the conversation"
-  "Please respond in the format"
-- Never pretend you are writing instructions for another assistant.
-- You are HEGEVA AI speaking directly to the user.
+Optional business context:
+${businessContext || "(none provided)"}
 
-QUALITY RULES:
+Rules:
 
-- Give practical and realistic help.
-- Keep simple questions concise.
-- Give more detail when the user asks for complex help.
-- Use bullet points only when they genuinely make the answer clearer.
-- Avoid unnecessary disclaimers.
-- Never promise guaranteed income, profit, customers, savings or results.
-- Never invent business figures, customers, documents or actions.
-- Clearly distinguish facts supplied by the user from suggestions.
-- For legal, tax, accounting, medical or regulated matters, give general information and suggest professional advice where appropriate.
-- Never request passwords, card details, private keys or highly sensitive information.
-- For professional documents, create editable drafts and do not claim legal validity.
-- For decisions, explain trade-offs instead of claiming there is one guaranteed best choice.
+- Never promise guaranteed income, profit, growth, customers, savings or results.
+- Never invent the user's business figures, customers, documents or completed actions.
+- Separate facts supplied by the user from suggestions or assumptions.
+- For legal, tax, accounting, medical or regulated matters, provide general information only and say when professional advice may be appropriate.
+- Do not request passwords, card details, private keys or highly sensitive information.
+- For customer messages and document wording, produce editable drafts and do not claim legal validity.
+- For decisions, explain trade-offs instead of claiming there is a guaranteed best choice.
+- Keep answers practical, clear and reasonably concise.
 
-EXAMPLES OF NATURAL GREETINGS:
+Recent conversation:
+${transcript || "(no recent messages)"}
 
-English:
-User: Hello
-Assistant: Hi! How can I help you today?
-
-Hungarian:
-User: Szia
-Assistant: Szia! Miben segíthetek?
-
-German:
-User: Hallo
-Assistant: Hallo! Wie kann ich dir helfen?
-
-French:
-User: Bonjour
-Assistant: Bonjour ! Comment puis-je vous aider ?
-
-Spanish:
-User: Hola
-Assistant: ¡Hola! ¿En qué puedo ayudarte?
-
-Always answer naturally in the selected language.
+Latest message:
+${message}
         `.trim();
-
-        // =====================================
-        // STRUCTURED CHAT
-        // =====================================
-
-        const messages = [
-          {
-            role: "system",
-            content:
-              systemPrompt
-          },
-
-          ...safeHistory,
-
-          {
-            role: "user",
-            content:
-              message
-          }
-        ];
-
-        // =====================================
-        // RUN CLOUDFLARE AI
-        // =====================================
 
         const result =
           await env.AI.run(
             "@cf/meta/llama-3.1-8b-instruct-fast",
             {
-              messages,
-              max_tokens: 700,
-              temperature: 0.55
+              prompt
             }
           );
-
-        let aiResponse =
-          typeof result?.response ===
-          "string"
-            ? result.response.trim()
-            : "";
-
-        if (!aiResponse) {
-          const fallbackMessages = {
-            en:
-              "Sorry, I could not generate a response. Please try again.",
-
-            hu:
-              "Sajnálom, most nem sikerült választ generálnom. Kérlek, próbáld újra.",
-
-            de:
-              "Entschuldigung, ich konnte gerade keine Antwort erstellen. Bitte versuche es erneut.",
-
-            fr:
-              "Désolé, je n'ai pas pu générer de réponse. Veuillez réessayer.",
-
-            es:
-              "Lo siento, no pude generar una respuesta. Inténtalo de nuevo."
-          };
-
-          aiResponse =
-            fallbackMessages[
-              language
-            ] ||
-            fallbackMessages.en;
-        }
-
-        // =====================================
-        // COUNT SUCCESSFUL AI MESSAGE
-        // =====================================
 
         await incrementAIUsage(
           env,
@@ -1087,38 +1061,10 @@ Always answer naturally in the selected language.
           period
         );
 
-        const newUsed =
-          usage.aiMessages + 1;
-
-        const remaining =
-          Math.max(
-            0,
-            planInfo.limit -
-              newUsed
-          );
-
-        // =====================================
-        // RESPONSE
-        // =====================================
-
         return Response.json({
           response:
-            aiResponse,
-
-          plan:
-            planInfo.plan,
-
-          usage: {
-            period,
-
-            aiMessages:
-              newUsed,
-
-            limit:
-              planInfo.limit,
-
-            remaining
-          }
+            result?.response ||
+            "HEGEVA AI could not generate a response."
         });
       } catch (error) {
         console.error(
@@ -1139,7 +1085,7 @@ Always answer naturally in the selected language.
     }
 
     // =========================================
-    // STATIC WEBSITE
+    // STATIC HEGEVA WEBSITE
     // =========================================
 
     return env.ASSETS.fetch(
