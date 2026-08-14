@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V31.6 — secure cloud-first workspace migration with protected local fallback." />
-  <title>Hegeva AI V31.6</title>
+  <meta name="description" content="Hegeva AI V31.8 — secure cloud-first workspace migration with protected local fallback." />
+  <title>Hegeva AI V31.8</title>
 
   <style>
     :root {
@@ -7771,7 +7771,7 @@
 
 
     // =========================================
-    // HEGEVA AI V31.6 — SECURE CLOUD DATA MIGRATION
+    // HEGEVA AI V31.8 — SECURE CLOUD DATA MIGRATION
     // Cloud-first for signed-in users.
     // Existing cloud data is NEVER overwritten by an automatic migration.
     // Browser data is used only as a migration source / local working cache.
@@ -11752,7 +11752,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V31.6 — LAUNCH & PROTECTION CHECK
+   HEGEVA AI V31.8 — LAUNCH & PROTECTION CHECK
    ========================================================= */
 #v313ProtectionCard{
   margin-top:16px;
@@ -11841,7 +11841,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V31.6 — TRANSPARENT LAUNCH & PROTECTION CHECK
+   HEGEVA AI V31.8 — TRANSPARENT LAUNCH & PROTECTION CHECK
    Browser-verifiable checks only. No invented legal/security claims.
    ========================================================= */
 (() => {
@@ -12161,7 +12161,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V31.6 — PROFESSIONAL UI + 5-LANGUAGE POLISH
+   HEGEVA AI V31.8 — PROFESSIONAL UI + 5-LANGUAGE POLISH
    Visual-only enhancement. Existing backend/auth/cloud logic preserved.
    ========================================================= */
 
@@ -12412,7 +12412,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V31.6 — 5-LANGUAGE PROFESSIONAL LOCALIZATION
+   HEGEVA AI V31.8 — 5-LANGUAGE PROFESSIONAL LOCALIZATION
    Covers newer assistant/release/diagnostic blocks and dynamic labels.
    ========================================================= */
 (() => {
@@ -12761,7 +12761,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V31.6 — LANGUAGE GUARD + PROFESSIONAL POLISH
+   HEGEVA AI V31.8 — LANGUAGE GUARD + PROFESSIONAL POLISH
    ========================================================= */
 #v316LangGuard{
   position:fixed;
@@ -12838,7 +12838,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V31.6 — GLOBAL 5-LANGUAGE GUARD
+   HEGEVA AI V31.8 — GLOBAL 5-LANGUAGE GUARD
    One translation layer for static + dynamic UI text.
    ========================================================= */
 (() => {
@@ -13110,6 +13110,516 @@ Open planner tasks: ${s.openTasks}`;
   window.hegevaV316LanguageAudit=()=>{
     apply();
     return {version:"V31.6",language:lang(),time:new Date().toISOString()};
+  };
+})();
+</script>
+
+
+<script>
+/* =========================================================
+   HEGEVA AI V31.8 — COMPLETE LEGAL / PRIVACY / TERMS I18N
+   Full-page renderer for EN / HU / DE / FR / ES.
+   ========================================================= */
+(() => {
+  "use strict";
+
+  const T = {
+    en:{
+      kicker:"V31.7 PUBLIC LAUNCH LEGAL",
+      title:"⚖️ Legal, Privacy & Service Terms",
+      subtitle:"Launch documents tailored to the current HEGEVA build. Operator details must be completed before public launch.",
+      blocker:"Public launch blocker: complete the business/operator name, valid support email, business address and country in Settings.",
+      operator:"Service operator", business:"Trading / business name", email:"Contact email", address:"Business address", country:"Country", company:"Company number", vat:"VAT number",
+      notSet:"Not set", notProvided:"Not provided", operatorMissing:"HEGEVA AI — operator name not completed",
+      privacy:"Privacy Policy", updated:"Last updated:", pIntro:"This policy explains how HEGEVA AI handles personal information when you create an account or use the workspace.",
+      p1h:"Information we may process", p1:[
+        "Account information such as name, email address and authentication/session data.",
+        "Business profile information you choose to save, such as business name, address, company number and VAT number.",
+        "Workspace information you enter, including customer details, documents, expenses, planner items, notes and saved AI chats.",
+        "AI messages and business context that you choose to send to the HEGEVA AI backend.",
+        "Technical/security information necessary to operate the service, such as session, request and error information."
+      ],
+      why:"Why we use information", whyL:[
+        "To create and maintain your account and authenticated workspace.",
+        "To provide features you request, including cloud workspace sync and AI responses.",
+        "To protect the service, prevent abuse, enforce usage limits and diagnose faults.",
+        "To respond to support, privacy and account requests."
+      ],
+      storageH:"Local browser storage and essential session technology",
+      storageP:"HEGEVA uses browser storage for supported local workspace features. Signed-in features may also use essential authentication/session technology so the service can keep you signed in and protect account access. Non-essential advertising or analytics cookies are not enabled by this build.",
+      aiH:"AI processing",
+      aiP:"When you send a message to HEGEVA AI, the message, selected language, recent chat context and any business context you provide may be sent to the secure backend and its AI infrastructure solely to generate the requested response and operate usage controls. Do not enter information you are not authorised to process.",
+      customerH:"Customer data you enter",
+      customerP:"If you enter information about your own customers or contacts, you are responsible for having an appropriate reason and lawful basis to use that information. HEGEVA provides workspace tools; it does not determine whether your customer data collection is lawful.",
+      sharingH:"Data sharing",
+      sharingP:"Information may be processed by infrastructure or AI service providers used to operate HEGEVA, and may be disclosed where required by law or necessary to protect the service. A production launch should maintain an up-to-date list of material service providers and international transfer safeguards where applicable.",
+      retentionH:"Retention",
+      retentionP:"Workspace data is retained for as long as needed to provide the account/service or until it is deleted, subject to security, backup and legal retention needs. Local browser copies remain on the device until cleared by the user or browser.",
+      rightsH:"Your rights",
+      rightsP:"Depending on applicable data-protection law, you may have rights to request access, correction, deletion, restriction, portability or objection, and to complain to the relevant data-protection regulator. Contact HEGEVA using the support email shown above.",
+      securityH:"Security",
+      securityP:"HEGEVA uses authenticated backend routes for account, cloud and AI functions. No online system can guarantee absolute security. Protect your password and do not share credentials or secret keys through workspace fields or support messages.",
+      changesH:"Changes",
+      changesP:"This policy may be updated when HEGEVA adds new processing, payment providers, analytics, integrations or other material functionality. Material changes should be communicated appropriately before they take effect.",
+      terms:"Terms of Service",
+      termSections:[
+        ["1. Service","HEGEVA AI provides business productivity tools including AI assistance, CRM, document creation, expense tracking, planning, reports and supported cloud workspace functions. Features may change as the service develops."],
+        ["2. No professional advice","HEGEVA AI is not a solicitor, accountant, tax adviser, financial adviser or regulated financial service. AI and workspace outputs are informational and administrative assistance. You remain responsible for checking legal, tax, VAT, accounting, payment and customer-facing information before relying on or sending it."],
+        ["3. Accounts","You are responsible for providing accurate registration information, protecting your login credentials and activity carried out through your account. Do not share passwords or attempt to access another user’s workspace."],
+        ["4. Your content and customer information","You retain responsibility for information you enter into HEGEVA. You must have the rights and permissions needed to use and process that information, including personal information relating to customers or other individuals."],
+        ["5. AI output","AI-generated content can be incomplete or incorrect. HEGEVA does not guarantee that AI output is accurate, legally compliant, tax-compliant or suitable for a particular purpose. Important decisions and customer documents should be checked by a qualified person where appropriate."],
+        ["6. Acceptable use","You must not misuse the service, attempt unauthorised access, interfere with security or usage controls, upload unlawful content, use the service to violate another person’s rights, or use HEGEVA in a way prohibited by applicable law."],
+        ["7. Availability and changes","Cloud, network and AI-provider availability can affect parts of the service. HEGEVA may maintain, modify or temporarily suspend functionality for security, reliability or product changes. Local-only features may continue to work when the network is unavailable."],
+        ["8. Plans and payment status","In this build, payment processing is disabled. Premium or Pro access must not be treated as purchased unless a future payment system and the backend both confirm the entitlement. Before paid subscriptions are enabled, HEGEVA must clearly show the price, taxes where applicable, billing period, renewal/cancellation terms and any applicable cancellation/refund rights before the user pays."],
+        ["9. Cancellation and refunds","Because paid checkout is not enabled in this build, no paid subscription cancellation or refund process is currently active. When paid subscriptions are introduced, the checkout and confirmation flow must state the applicable cancellation rights and refund rules and provide the required contract information in a form the customer can keep."],
+        ["10. Liability","Nothing in these terms excludes liability that cannot legally be excluded. Subject to applicable law, HEGEVA is not intended to replace professional verification of business, legal, tax, VAT, financial or accounting matters."],
+        ["11. Ending access","You may stop using the service at any time. HEGEVA may restrict or suspend access where reasonably necessary for security, abuse prevention, legal compliance or serious breach of these terms."],
+        ["12. Governing terms","The final governing-law and jurisdiction wording should match the legal entity operating HEGEVA and the markets in which it is offered. Complete the operator details before public launch and obtain professional legal review if selling subscriptions to consumers or internationally."]
+      ],
+      cookie:"Cookie & Device Storage Notice",
+      cookie1:"This build uses local browser storage for supported workspace functionality and may use essential authentication/session technology for signed-in account security. It does not intentionally enable advertising or non-essential analytics cookies.",
+      cookie2:"If analytics, advertising, tracking pixels or other non-essential storage technologies are added later, HEGEVA must update this notice and implement appropriate consent controls before those technologies run where consent is required."
+    },
+    hu:{
+      kicker:"V31.7 NYILVÁNOS INDULÁS — JOGI INFORMÁCIÓK",
+      title:"⚖️ Jogi, adatvédelmi és szolgáltatási feltételek",
+      subtitle:"Az aktuális HEGEVA-verzióhoz igazított indulási dokumentumok. A nyilvános indulás előtt az üzemeltető adatait ki kell tölteni.",
+      blocker:"Nyilvános indulást blokkoló hiányosság: töltsd ki a vállalkozás/üzemeltető nevét, az érvényes támogatási e-mail címet, az üzleti címet és az országot a Beállításokban.",
+      operator:"Szolgáltatás üzemeltetője", business:"Kereskedelmi / vállalkozás neve", email:"Kapcsolattartó e-mail", address:"Üzleti cím", country:"Ország", company:"Cégjegyzékszám", vat:"ÁFA / VAT szám",
+      notSet:"Nincs beállítva", notProvided:"Nincs megadva", operatorMissing:"HEGEVA AI — az üzemeltető neve nincs kitöltve",
+      privacy:"Adatvédelmi irányelvek", updated:"Utolsó frissítés:", pIntro:"Ez az irányelv ismerteti, hogyan kezeli a HEGEVA AI a személyes adatokat fiók létrehozásakor és a munkatér használatakor.",
+      p1h:"Milyen adatokat kezelhetünk", p1:[
+        "Fiókadatok, például név, e-mail cím és hitelesítési/munkamenet-adatok.",
+        "Az általad mentett üzleti profiladatok, például a vállalkozás neve, címe, cégjegyzékszáma és ÁFA/VAT száma.",
+        "A munkatérben megadott adatok, beleértve az ügyféladatokat, dokumentumokat, kiadásokat, tervezőelemeket, jegyzeteket és mentett AI-chateket.",
+        "AI-üzenetek és üzleti kontextus, amelyeket te küldesz a HEGEVA AI backendnek.",
+        "A szolgáltatás működéséhez szükséges technikai és biztonsági adatok, például munkamenet-, kérés- és hibainformációk."
+      ],
+      why:"Miért használjuk az adatokat", whyL:[
+        "A fiókod és hitelesített munkaterületed létrehozásához és fenntartásához.",
+        "Az általad kért funkciók biztosításához, beleértve a felhőszinkront és az AI-válaszokat.",
+        "A szolgáltatás védelméhez, visszaélések megelőzéséhez, használati limitek betartatásához és hibák diagnosztizálásához.",
+        "Támogatási, adatvédelmi és fiókkérések megválaszolásához."
+      ],
+      storageH:"Helyi böngészőtárolás és alapvető munkamenet-technológia",
+      storageP:"A HEGEVA böngészőtárolást használ a támogatott helyi munkatérfunkciókhoz. A bejelentkezett funkciók alapvető hitelesítési és munkamenet-technológiát is használhatnak a bejelentkezés fenntartásához és a fiókhozzáférés védelméhez. Ez a build nem használ nem alapvető reklám- vagy analitikai cookie-kat.",
+      aiH:"AI adatfeldolgozás",
+      aiP:"Amikor üzenetet küldesz a HEGEVA AI-nak, az üzenet, a kiválasztott nyelv, a közelmúltbeli chatkörnyezet és az általad megadott üzleti kontextus a biztonságos backendhez és annak AI-infrastruktúrájához kerülhet kizárólag a kért válasz létrehozása és a használati korlátok működtetése céljából. Ne adj meg olyan adatot, amelynek kezelésére nem vagy jogosult.",
+      customerH:"Az általad megadott ügyféladatok",
+      customerP:"Ha saját ügyfeleidről vagy kapcsolataidról adsz meg információt, neked kell rendelkezned megfelelő indokkal és jogalappal ezen adatok használatához. A HEGEVA munkatér-eszközöket biztosít; nem dönti el helyetted, hogy az ügyféladatok gyűjtése jogszerű-e.",
+      sharingH:"Adatmegosztás",
+      sharingP:"Az adatokat a HEGEVA működtetéséhez használt infrastruktúra- vagy AI-szolgáltatók kezelhetik, illetve jogszabályi kötelezettség vagy a szolgáltatás védelme esetén átadhatók. Éles induláskor naprakész listát kell vezetni a lényeges szolgáltatókról és — ahol szükséges — a nemzetközi adattovábbítás garanciáiról.",
+      retentionH:"Adatmegőrzés",
+      retentionP:"A munkatéradatokat addig őrizzük meg, ameddig a fiók vagy szolgáltatás biztosításához szükséges, illetve amíg azokat nem törlik, figyelembe véve a biztonsági, mentési és jogszabályi megőrzési kötelezettségeket. A helyi böngészőpéldányok addig maradnak az eszközön, amíg a felhasználó vagy a böngésző nem törli őket.",
+      rightsH:"A jogaid",
+      rightsP:"Az alkalmazandó adatvédelmi jogszabályoktól függően jogosult lehetsz hozzáférést, helyesbítést, törlést, korlátozást, adathordozhatóságot vagy tiltakozást kérni, illetve panaszt tenni az illetékes adatvédelmi hatóságnál. Kapcsolatfelvételhez használd a fent megadott HEGEVA támogatási e-mail címet.",
+      securityH:"Biztonság",
+      securityP:"A HEGEVA hitelesített backend útvonalakat használ a fiók-, felhő- és AI-funkciókhoz. Egyetlen online rendszer sem garantálhat abszolút biztonságot. Védd a jelszavadat, és ne ossz meg belépési adatokat vagy titkos kulcsokat a munkatér mezőiben vagy támogatási üzenetekben.",
+      changesH:"Módosítások",
+      changesP:"Ez az irányelv frissülhet, ha a HEGEVA új adatkezelést, fizetési szolgáltatót, analitikát, integrációt vagy más lényeges funkciót vezet be. A lényeges változásokat megfelelően közölni kell azok hatálybalépése előtt.",
+      terms:"Szolgáltatási feltételek",
+      termSections:[
+        ["1. Szolgáltatás","A HEGEVA AI üzleti produktivitási eszközöket biztosít, többek között AI-segítséget, CRM-et, dokumentumkészítést, kiadáskövetést, tervezést, riportokat és támogatott felhős munkatérfunkciókat. A funkciók a szolgáltatás fejlődésével változhatnak."],
+        ["2. Nem minősül szakmai tanácsadásnak","A HEGEVA AI nem ügyvéd, könyvelő, adótanácsadó, pénzügyi tanácsadó vagy szabályozott pénzügyi szolgáltatás. Az AI- és munkatérkimenetek tájékoztató és adminisztratív segítséget nyújtanak. A jogi, adózási, ÁFA-, könyvelési, fizetési és ügyfeleknek küldött információk ellenőrzéséért továbbra is te felelsz."],
+        ["3. Fiókok","Te felelsz a pontos regisztrációs adatok megadásáért, a belépési adataid védelméért és a fiókodon keresztül végzett tevékenységért. Ne oszd meg a jelszavadat, és ne próbálj hozzáférni más felhasználó munkaterületéhez."],
+        ["4. Saját tartalmad és ügyféladataid","Továbbra is te felelsz a HEGEVA rendszerébe bevitt információkért. Rendelkezned kell az adatok használatához és kezeléséhez szükséges jogokkal és engedélyekkel, ideértve az ügyfelekre vagy más személyekre vonatkozó személyes adatokat is."],
+        ["5. AI-kimenet","Az AI által generált tartalom lehet hiányos vagy hibás. A HEGEVA nem garantálja, hogy az AI-kimenet pontos, jogszerű, adózási szempontból megfelelő vagy egy adott célra alkalmas. A fontos döntéseket és ügyféldokumentumokat szükség esetén megfelelő képesítésű szakemberrel ellenőrizni kell."],
+        ["6. Elfogadható használat","Tilos a szolgáltatással visszaélni, jogosulatlan hozzáférést megkísérelni, biztonsági vagy használati korlátokat megkerülni, jogellenes tartalmat feltölteni, más jogait megsérteni, illetve a HEGEVA-t az alkalmazandó jog által tiltott módon használni."],
+        ["7. Elérhetőség és változások","A felhő, a hálózat és az AI-szolgáltatók elérhetősége befolyásolhatja a szolgáltatás egyes részeit. A HEGEVA biztonsági, megbízhatósági vagy termékfejlesztési okból karbantarthatja, módosíthatja vagy ideiglenesen felfüggesztheti a funkciókat. A csak helyben működő funkciók hálózati kieséskor is működhetnek."],
+        ["8. Csomagok és fizetési állapot","Ebben a buildben a fizetésfeldolgozás ki van kapcsolva. A Premium vagy Pro hozzáférés csak akkor tekinthető megvásároltnak, ha egy jövőbeni fizetési rendszer és a backend is igazolja a jogosultságot. Fizetős előfizetés bevezetése előtt egyértelműen fel kell tüntetni az árat, az alkalmazandó adókat, a számlázási időszakot, a megújítási és lemondási feltételeket, valamint az alkalmazandó elállási vagy visszatérítési jogokat."],
+        ["9. Lemondás és visszatérítés","Mivel ebben a buildben nincs aktív fizetős checkout, jelenleg nincs működő fizetős előfizetés-lemondási vagy visszatérítési folyamat. Fizetős előfizetések bevezetésekor a checkout és visszaigazolási folyamatnak tartalmaznia kell az alkalmazandó lemondási jogokat, visszatérítési szabályokat és a felhasználó által megőrizhető szerződéses információkat."],
+        ["10. Felelősség","E feltételek semmit nem zárnak ki abból a felelősségből, amely jogilag nem zárható ki. Az alkalmazandó jog keretei között a HEGEVA nem helyettesíti az üzleti, jogi, adózási, ÁFA-, pénzügyi vagy könyvelési kérdések szakmai ellenőrzését."],
+        ["11. Hozzáférés megszüntetése","A szolgáltatás használatát bármikor abbahagyhatod. A HEGEVA biztonsági okból, visszaélések megelőzése, jogszabályi megfelelés vagy e feltételek súlyos megsértése esetén indokolt mértékben korlátozhatja vagy felfüggesztheti a hozzáférést."],
+        ["12. Irányadó feltételek","A végleges irányadó jogra és joghatóságra vonatkozó szövegnek meg kell felelnie a HEGEVA-t üzemeltető jogi személynek és azoknak a piacoknak, ahol a szolgáltatást kínálják. Nyilvános indulás előtt töltsd ki az üzemeltetői adatokat, és fogyasztói vagy nemzetközi előfizetés értékesítése esetén kérj szakmai jogi felülvizsgálatot."]
+      ],
+      cookie:"Cookie- és eszköztárolási tájékoztató",
+      cookie1:"Ez a build helyi böngészőtárolást használ a támogatott munkatérfunkciókhoz, és alapvető hitelesítési/munkamenet-technológiát használhat a bejelentkezett fiókok biztonságához. Szándékosan nem engedélyez reklám- vagy nem alapvető analitikai cookie-kat.",
+      cookie2:"Ha később analitika, reklám, követőpixelek vagy más nem alapvető tárolási technológiák kerülnek bevezetésre, a HEGEVA-nak frissítenie kell ezt a tájékoztatót, és — ahol hozzájárulás szükséges — megfelelő hozzájárulás-kezelést kell biztosítania azok működése előtt."
+    },
+    de:{
+      kicker:"V31.7 ÖFFENTLICHER START — RECHTLICH", title:"⚖️ Rechtliches, Datenschutz & Nutzungsbedingungen",
+      subtitle:"Startdokumente passend zur aktuellen HEGEVA-Version. Betreiberangaben müssen vor dem öffentlichen Start vollständig sein.",
+      blocker:"Startblocker: Unternehmens-/Betreibername, gültige Support-E-Mail, Geschäftsadresse und Land in den Einstellungen vervollständigen.",
+      operator:"Dienstbetreiber",business:"Handels-/Unternehmensname",email:"Kontakt-E-Mail",address:"Geschäftsadresse",country:"Land",company:"Unternehmensnummer",vat:"USt-IdNr.",notSet:"Nicht festgelegt",notProvided:"Nicht angegeben",operatorMissing:"HEGEVA AI — Betreibername nicht vervollständigt",
+      privacy:"Datenschutzerklärung",updated:"Zuletzt aktualisiert:",pIntro:"Diese Richtlinie erklärt, wie HEGEVA AI personenbezogene Daten beim Erstellen eines Kontos oder bei der Nutzung des Arbeitsbereichs verarbeitet.",
+      p1h:"Informationen, die wir verarbeiten können",p1:["Kontoinformationen wie Name, E-Mail-Adresse und Authentifizierungs-/Sitzungsdaten.","Geschäftsprofildaten, die du speicherst, z. B. Unternehmensname, Adresse, Unternehmensnummer und USt-IdNr.","Arbeitsbereichsdaten wie Kundendetails, Dokumente, Ausgaben, Planer-Einträge, Notizen und gespeicherte AI-Chats.","AI-Nachrichten und Geschäftskontext, die du an das HEGEVA-AI-Backend sendest.","Technische/Sicherheitsinformationen, die für den Betrieb erforderlich sind, z. B. Sitzungs-, Anfrage- und Fehlerdaten."],
+      why:"Warum wir Informationen verwenden",whyL:["Zum Erstellen und Verwalten deines Kontos und authentifizierten Arbeitsbereichs.","Zur Bereitstellung angeforderter Funktionen einschließlich Cloud-Synchronisierung und AI-Antworten.","Zum Schutz des Dienstes, zur Missbrauchsprävention, Durchsetzung von Nutzungslimits und Fehlerdiagnose.","Zur Bearbeitung von Support-, Datenschutz- und Kontoanfragen."],
+      storageH:"Lokaler Browserspeicher und notwendige Sitzungstechnologie",storageP:"HEGEVA verwendet Browserspeicher für unterstützte lokale Arbeitsbereichsfunktionen. Angemeldete Funktionen können notwendige Authentifizierungs-/Sitzungstechnologie nutzen, um die Anmeldung aufrechtzuerhalten und den Kontozugriff zu schützen. Nicht notwendige Werbe- oder Analyse-Cookies sind in diesem Build nicht aktiviert.",
+      aiH:"AI-Verarbeitung",aiP:"Wenn du HEGEVA AI eine Nachricht sendest, können Nachricht, gewählte Sprache, jüngerer Chat-Kontext und bereitgestellter Geschäftskontext an das sichere Backend und dessen AI-Infrastruktur gesendet werden, ausschließlich um die gewünschte Antwort zu erzeugen und Nutzungskontrollen zu betreiben. Gib keine Daten ein, die du nicht verarbeiten darfst.",
+      customerH:"Von dir eingegebene Kundendaten",customerP:"Wenn du Informationen über eigene Kunden oder Kontakte eingibst, bist du dafür verantwortlich, einen geeigneten Grund und eine rechtmäßige Grundlage für deren Nutzung zu haben. HEGEVA stellt Arbeitsbereichswerkzeuge bereit und entscheidet nicht, ob deine Datenerhebung rechtmäßig ist.",
+      sharingH:"Datenweitergabe",sharingP:"Informationen können von Infrastruktur- oder AI-Dienstleistern verarbeitet werden, die HEGEVA betreiben, und offengelegt werden, wenn dies gesetzlich vorgeschrieben oder zum Schutz des Dienstes erforderlich ist. Für den Produktivstart sollte eine aktuelle Liste wesentlicher Dienstleister und gegebenenfalls internationaler Transfergarantien geführt werden.",
+      retentionH:"Aufbewahrung",retentionP:"Arbeitsbereichsdaten werden so lange aufbewahrt, wie sie zur Bereitstellung von Konto/Dienst benötigt werden oder bis sie gelöscht werden, vorbehaltlich Sicherheits-, Backup- und gesetzlicher Aufbewahrungsanforderungen. Lokale Browserkopien bleiben auf dem Gerät, bis sie vom Nutzer oder Browser gelöscht werden.",
+      rightsH:"Deine Rechte",rightsP:"Je nach anwendbarem Datenschutzrecht kannst du Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit oder Widerspruch haben und dich bei der zuständigen Datenschutzbehörde beschweren. Kontaktiere HEGEVA über die oben angezeigte Support-E-Mail.",
+      securityH:"Sicherheit",securityP:"HEGEVA verwendet authentifizierte Backend-Routen für Konto-, Cloud- und AI-Funktionen. Kein Online-System kann absolute Sicherheit garantieren. Schütze dein Passwort und teile keine Zugangsdaten oder geheimen Schlüssel über Arbeitsbereichsfelder oder Supportnachrichten.",
+      changesH:"Änderungen",changesP:"Diese Richtlinie kann aktualisiert werden, wenn HEGEVA neue Verarbeitung, Zahlungsanbieter, Analysen, Integrationen oder andere wesentliche Funktionen hinzufügt. Wesentliche Änderungen sollten vor ihrem Inkrafttreten angemessen kommuniziert werden.",
+      terms:"Nutzungsbedingungen",
+      termSections:[
+        ["1. Dienst","HEGEVA AI stellt Produktivitätswerkzeuge für Unternehmen bereit, darunter AI-Unterstützung, CRM, Dokumenterstellung, Ausgabenerfassung, Planung, Berichte und unterstützte Cloud-Arbeitsbereichsfunktionen. Funktionen können sich mit der Entwicklung des Dienstes ändern."],
+        ["2. Keine professionelle Beratung","HEGEVA AI ist weder Rechtsanwalt noch Buchhalter, Steuerberater, Finanzberater oder regulierter Finanzdienst. AI- und Arbeitsbereichsausgaben dienen der Information und administrativen Unterstützung. Du bleibst für die Prüfung rechtlicher, steuerlicher, USt-, buchhalterischer, Zahlungs- und kundenbezogener Angaben verantwortlich."],
+        ["3. Konten","Du bist für korrekte Registrierungsdaten, den Schutz deiner Zugangsdaten und Aktivitäten über dein Konto verantwortlich. Teile keine Passwörter und versuche nicht, auf den Arbeitsbereich anderer Nutzer zuzugreifen."],
+        ["4. Deine Inhalte und Kundendaten","Du bleibst für Informationen verantwortlich, die du in HEGEVA eingibst. Du musst über die notwendigen Rechte und Berechtigungen verfügen, einschließlich für personenbezogene Kundendaten."],
+        ["5. AI-Ausgaben","AI-generierte Inhalte können unvollständig oder falsch sein. HEGEVA garantiert nicht, dass AI-Ausgaben korrekt, rechtlich oder steuerlich konform oder für einen bestimmten Zweck geeignet sind. Wichtige Entscheidungen und Kundendokumente sollten gegebenenfalls fachlich geprüft werden."],
+        ["6. Zulässige Nutzung","Der Dienst darf nicht missbraucht werden. Unbefugter Zugriff, Eingriffe in Sicherheits- oder Nutzungskontrollen, rechtswidrige Inhalte, Rechtsverletzungen oder gesetzlich verbotene Nutzung sind untersagt."],
+        ["7. Verfügbarkeit und Änderungen","Cloud-, Netzwerk- und AI-Anbieter-Verfügbarkeit kann Teile des Dienstes beeinflussen. HEGEVA kann Funktionen aus Sicherheits-, Zuverlässigkeits- oder Produktgründen warten, ändern oder vorübergehend aussetzen. Lokale Funktionen können bei Netzwerkausfall weiterarbeiten."],
+        ["8. Tarife und Zahlungsstatus","In diesem Build ist Zahlungsabwicklung deaktiviert. Premium/Pro gilt nur dann als gekauft, wenn ein zukünftiges Zahlungssystem und das Backend die Berechtigung bestätigen. Vor kostenpflichtigen Abos müssen Preis, Steuern, Abrechnungszeitraum, Verlängerung/Kündigung und geltende Widerrufs-/Erstattungsrechte klar angezeigt werden."],
+        ["9. Kündigung und Erstattung","Da kostenpflichtiger Checkout nicht aktiviert ist, gibt es derzeit keinen aktiven Kündigungs- oder Erstattungsprozess. Bei Einführung kostenpflichtiger Abos müssen Checkout und Bestätigung die geltenden Rechte, Erstattungsregeln und speicherbare Vertragsinformationen enthalten."],
+        ["10. Haftung","Diese Bedingungen schließen keine Haftung aus, die gesetzlich nicht ausgeschlossen werden darf. Im Rahmen des anwendbaren Rechts ersetzt HEGEVA keine professionelle Prüfung geschäftlicher, rechtlicher, steuerlicher, USt-, finanzieller oder buchhalterischer Fragen."],
+        ["11. Beendigung des Zugangs","Du kannst die Nutzung jederzeit beenden. HEGEVA kann Zugriff aus Sicherheitsgründen, zur Missbrauchsprävention, Rechtskonformität oder bei schwerem Verstoß gegen diese Bedingungen angemessen einschränken oder aussetzen."],
+        ["12. Anwendbare Bedingungen","Die endgültige Formulierung zu Recht und Gerichtsstand sollte zur juristischen Person passen, die HEGEVA betreibt, und zu den Märkten, in denen der Dienst angeboten wird. Betreiberangaben vor dem Start vervollständigen und bei Verbraucher- oder internationalen Abos professionelle Rechtsprüfung einholen."]
+      ],
+      cookie:"Cookie- & Gerätespeicher-Hinweis",cookie1:"Dieser Build verwendet lokalen Browserspeicher für unterstützte Arbeitsbereichsfunktionen und kann notwendige Authentifizierungs-/Sitzungstechnologie für die Sicherheit angemeldeter Konten nutzen. Werbe- oder nicht notwendige Analyse-Cookies werden nicht absichtlich aktiviert.",cookie2:"Wenn später Analysen, Werbung, Tracking-Pixel oder andere nicht notwendige Speichertechnologien hinzukommen, muss HEGEVA diesen Hinweis aktualisieren und gegebenenfalls Einwilligungssteuerungen implementieren, bevor diese Technologien ausgeführt werden."
+    },
+    fr:{
+      kicker:"V31.7 LANCEMENT PUBLIC — JURIDIQUE",title:"⚖️ Mentions légales, confidentialité et conditions de service",
+      subtitle:"Documents de lancement adaptés à la version actuelle de HEGEVA. Les informations de l’exploitant doivent être complétées avant le lancement public.",
+      blocker:"Blocage du lancement public : complétez le nom de l’entreprise/de l’exploitant, un e-mail d’assistance valide, l’adresse professionnelle et le pays dans les Paramètres.",
+      operator:"Exploitant du service",business:"Nom commercial / entreprise",email:"E-mail de contact",address:"Adresse professionnelle",country:"Pays",company:"Numéro d’entreprise",vat:"Numéro de TVA",notSet:"Non défini",notProvided:"Non renseigné",operatorMissing:"HEGEVA AI — nom de l’exploitant non complété",
+      privacy:"Politique de confidentialité",updated:"Dernière mise à jour :",pIntro:"Cette politique explique comment HEGEVA AI traite les informations personnelles lors de la création d’un compte ou de l’utilisation de l’espace de travail.",
+      p1h:"Informations que nous pouvons traiter",p1:["Informations de compte telles que le nom, l’adresse e-mail et les données d’authentification/session.","Informations de profil professionnel que vous choisissez d’enregistrer, telles que le nom de l’entreprise, l’adresse, le numéro d’entreprise et le numéro de TVA.","Informations saisies dans l’espace de travail, notamment les clients, documents, dépenses, éléments du planificateur, notes et chats AI enregistrés.","Messages AI et contexte professionnel que vous choisissez d’envoyer au backend HEGEVA AI.","Informations techniques/de sécurité nécessaires au fonctionnement du service, telles que les données de session, requête et erreur."],
+      why:"Pourquoi nous utilisons les informations",whyL:["Créer et maintenir votre compte et votre espace de travail authentifié.","Fournir les fonctions demandées, notamment la synchronisation cloud et les réponses AI.","Protéger le service, prévenir les abus, appliquer les limites d’utilisation et diagnostiquer les erreurs.","Répondre aux demandes d’assistance, de confidentialité et de compte."],
+      storageH:"Stockage local du navigateur et technologie de session essentielle",storageP:"HEGEVA utilise le stockage du navigateur pour les fonctions locales prises en charge. Les fonctions connectées peuvent également utiliser une technologie essentielle d’authentification/session pour maintenir la connexion et protéger l’accès au compte. Les cookies publicitaires ou analytiques non essentiels ne sont pas activés dans cette version.",
+      aiH:"Traitement AI",aiP:"Lorsque vous envoyez un message à HEGEVA AI, le message, la langue sélectionnée, le contexte récent du chat et tout contexte professionnel fourni peuvent être envoyés au backend sécurisé et à son infrastructure AI uniquement afin de générer la réponse demandée et d’appliquer les contrôles d’utilisation. Ne saisissez pas d’informations que vous n’êtes pas autorisé à traiter.",
+      customerH:"Données client que vous saisissez",customerP:"Si vous saisissez des informations sur vos propres clients ou contacts, vous êtes responsable de disposer d’un motif approprié et d’une base légale pour les utiliser. HEGEVA fournit des outils d’espace de travail ; il ne détermine pas si votre collecte de données clients est légale.",
+      sharingH:"Partage des données",sharingP:"Les informations peuvent être traitées par des prestataires d’infrastructure ou d’AI utilisés pour exploiter HEGEVA, et divulguées lorsque la loi l’exige ou lorsque cela est nécessaire pour protéger le service. Un lancement en production doit maintenir une liste à jour des prestataires importants et des garanties de transfert international applicables.",
+      retentionH:"Conservation",retentionP:"Les données de l’espace de travail sont conservées aussi longtemps que nécessaire pour fournir le compte/service ou jusqu’à leur suppression, sous réserve des besoins de sécurité, de sauvegarde et de conservation légale. Les copies locales restent sur l’appareil jusqu’à leur suppression par l’utilisateur ou le navigateur.",
+      rightsH:"Vos droits",rightsP:"Selon la législation applicable en matière de protection des données, vous pouvez disposer de droits d’accès, de rectification, d’effacement, de limitation, de portabilité ou d’opposition, et du droit de saisir l’autorité compétente. Contactez HEGEVA via l’e-mail d’assistance indiqué ci-dessus.",
+      securityH:"Sécurité",securityP:"HEGEVA utilise des routes backend authentifiées pour les fonctions de compte, cloud et AI. Aucun système en ligne ne peut garantir une sécurité absolue. Protégez votre mot de passe et ne partagez pas d’identifiants ou de clés secrètes dans les champs de l’espace de travail ou les messages d’assistance.",
+      changesH:"Modifications",changesP:"Cette politique peut être mise à jour lorsque HEGEVA ajoute de nouveaux traitements, prestataires de paiement, analyses, intégrations ou autres fonctions importantes. Les changements importants doivent être communiqués de manière appropriée avant leur entrée en vigueur.",
+      terms:"Conditions de service",
+      termSections:[
+        ["1. Service","HEGEVA AI fournit des outils de productivité professionnelle, notamment assistance AI, CRM, création de documents, suivi des dépenses, planification, rapports et fonctions cloud prises en charge. Les fonctions peuvent évoluer."],
+        ["2. Pas de conseil professionnel","HEGEVA AI n’est ni avocat, ni comptable, ni conseiller fiscal ou financier, ni service financier réglementé. Les sorties AI et de l’espace de travail sont informatives et administratives. Vous restez responsable de la vérification des informations juridiques, fiscales, TVA, comptables, de paiement et destinées aux clients."],
+        ["3. Comptes","Vous êtes responsable de l’exactitude des informations d’inscription, de la protection de vos identifiants et de l’activité effectuée via votre compte. Ne partagez pas vos mots de passe et n’essayez pas d’accéder à l’espace d’un autre utilisateur."],
+        ["4. Votre contenu et les données clients","Vous restez responsable des informations saisies dans HEGEVA et devez disposer des droits et autorisations nécessaires pour les utiliser et les traiter, y compris les données personnelles de clients ou d’autres personnes."],
+        ["5. Sorties AI","Le contenu généré par AI peut être incomplet ou incorrect. HEGEVA ne garantit pas son exactitude, sa conformité juridique ou fiscale ni son adéquation à un usage particulier. Les décisions importantes et documents clients doivent être vérifiés par une personne qualifiée lorsque nécessaire."],
+        ["6. Utilisation acceptable","Vous ne devez pas détourner le service, tenter un accès non autorisé, contourner les contrôles de sécurité ou d’utilisation, téléverser du contenu illégal, violer les droits d’autrui ou utiliser HEGEVA en violation de la loi applicable."],
+        ["7. Disponibilité et changements","La disponibilité du cloud, du réseau et des fournisseurs AI peut affecter certaines parties du service. HEGEVA peut maintenir, modifier ou suspendre temporairement des fonctions pour des raisons de sécurité, fiabilité ou évolution du produit. Les fonctions locales peuvent continuer hors ligne."],
+        ["8. Forfaits et état des paiements","Le traitement des paiements est désactivé dans cette version. Premium/Pro ne doit pas être considéré comme acheté tant qu’un futur système de paiement et le backend n’ont pas confirmé le droit. Avant les abonnements payants, le prix, les taxes, la période de facturation, le renouvellement/l’annulation et les droits applicables doivent être affichés clairement."],
+        ["9. Annulation et remboursements","Aucun checkout payant n’étant actif, aucun processus d’annulation ou remboursement d’abonnement payant n’est actuellement actif. Lors de leur introduction, le checkout et la confirmation devront préciser les droits applicables, les règles de remboursement et fournir les informations contractuelles conservables."],
+        ["10. Responsabilité","Rien dans ces conditions n’exclut une responsabilité qui ne peut légalement l’être. Sous réserve de la loi applicable, HEGEVA ne remplace pas la vérification professionnelle des questions commerciales, juridiques, fiscales, TVA, financières ou comptables."],
+        ["11. Fin d’accès","Vous pouvez cesser d’utiliser le service à tout moment. HEGEVA peut limiter ou suspendre l’accès lorsque cela est raisonnablement nécessaire pour la sécurité, la prévention des abus, la conformité légale ou une violation grave de ces conditions."],
+        ["12. Conditions applicables","Le texte final relatif au droit applicable et à la juridiction doit correspondre à l’entité juridique exploitant HEGEVA et aux marchés desservis. Complétez les informations de l’exploitant avant le lancement public et obtenez un avis juridique professionnel en cas d’abonnements consommateurs ou internationaux."]
+      ],
+      cookie:"Avis sur les cookies et le stockage de l’appareil",cookie1:"Cette version utilise le stockage local du navigateur pour les fonctions d’espace de travail prises en charge et peut utiliser une technologie essentielle d’authentification/session pour la sécurité des comptes connectés. Elle n’active pas intentionnellement de cookies publicitaires ou analytiques non essentiels.",cookie2:"Si des analyses, publicités, pixels de suivi ou autres technologies de stockage non essentielles sont ajoutés plus tard, HEGEVA doit mettre à jour cet avis et mettre en œuvre les contrôles de consentement appropriés avant leur exécution lorsque le consentement est requis."
+    },
+    es:{
+      kicker:"V31.7 LANZAMIENTO PÚBLICO — LEGAL",title:"⚖️ Aviso legal, privacidad y condiciones del servicio",
+      subtitle:"Documentos de lanzamiento adaptados a la versión actual de HEGEVA. Los datos del operador deben completarse antes del lanzamiento público.",
+      blocker:"Bloqueo del lanzamiento público: completa el nombre de la empresa/operador, un correo de soporte válido, la dirección comercial y el país en Ajustes.",
+      operator:"Operador del servicio",business:"Nombre comercial / empresa",email:"Correo de contacto",address:"Dirección comercial",country:"País",company:"Número de empresa",vat:"Número de IVA",notSet:"No configurado",notProvided:"No proporcionado",operatorMissing:"HEGEVA AI — nombre del operador sin completar",
+      privacy:"Política de privacidad",updated:"Última actualización:",pIntro:"Esta política explica cómo HEGEVA AI gestiona la información personal cuando creas una cuenta o utilizas el espacio de trabajo.",
+      p1h:"Información que podemos tratar",p1:["Información de la cuenta, como nombre, correo electrónico y datos de autenticación/sesión.","Información del perfil empresarial que decidas guardar, como nombre de la empresa, dirección, número de empresa y número de IVA.","Información del espacio de trabajo, incluidos clientes, documentos, gastos, elementos del planificador, notas y chats AI guardados.","Mensajes AI y contexto empresarial que decidas enviar al backend de HEGEVA AI.","Información técnica/de seguridad necesaria para operar el servicio, como datos de sesión, solicitudes y errores."],
+      why:"Por qué usamos la información",whyL:["Crear y mantener tu cuenta y espacio de trabajo autenticado.","Proporcionar las funciones que solicitas, incluida la sincronización cloud y las respuestas AI.","Proteger el servicio, prevenir abusos, aplicar límites de uso y diagnosticar fallos.","Responder a solicitudes de soporte, privacidad y cuenta."],
+      storageH:"Almacenamiento local del navegador y tecnología esencial de sesión",storageP:"HEGEVA utiliza almacenamiento del navegador para funciones locales compatibles. Las funciones con sesión iniciada también pueden utilizar tecnología esencial de autenticación/sesión para mantener la sesión y proteger el acceso a la cuenta. Esta versión no activa cookies publicitarias ni analíticas no esenciales.",
+      aiH:"Procesamiento AI",aiP:"Cuando envías un mensaje a HEGEVA AI, el mensaje, el idioma seleccionado, el contexto reciente del chat y cualquier contexto empresarial proporcionado pueden enviarse al backend seguro y a su infraestructura AI únicamente para generar la respuesta solicitada y aplicar controles de uso. No introduzcas información que no estés autorizado a tratar.",
+      customerH:"Datos de clientes que introduces",customerP:"Si introduces información sobre tus propios clientes o contactos, eres responsable de contar con un motivo adecuado y una base legal para usarla. HEGEVA proporciona herramientas de espacio de trabajo; no determina si tu recopilación de datos de clientes es legal.",
+      sharingH:"Compartición de datos",sharingP:"La información puede ser tratada por proveedores de infraestructura o AI utilizados para operar HEGEVA y puede divulgarse cuando lo exija la ley o sea necesario para proteger el servicio. Un lanzamiento en producción debe mantener una lista actualizada de proveedores relevantes y las garantías aplicables para transferencias internacionales.",
+      retentionH:"Conservación",retentionP:"Los datos del espacio de trabajo se conservan mientras sean necesarios para prestar la cuenta/servicio o hasta que se eliminen, sujetos a necesidades de seguridad, copias de seguridad y conservación legal. Las copias locales permanecen en el dispositivo hasta que el usuario o el navegador las eliminen.",
+      rightsH:"Tus derechos",rightsP:"Según la legislación de protección de datos aplicable, puedes tener derechos de acceso, rectificación, supresión, limitación, portabilidad u oposición, y a reclamar ante la autoridad correspondiente. Contacta con HEGEVA mediante el correo de soporte mostrado arriba.",
+      securityH:"Seguridad",securityP:"HEGEVA utiliza rutas backend autenticadas para funciones de cuenta, cloud y AI. Ningún sistema online puede garantizar seguridad absoluta. Protege tu contraseña y no compartas credenciales o claves secretas mediante campos del espacio de trabajo o mensajes de soporte.",
+      changesH:"Cambios",changesP:"Esta política puede actualizarse cuando HEGEVA añada nuevos tratamientos, proveedores de pago, analítica, integraciones u otras funciones importantes. Los cambios materiales deben comunicarse adecuadamente antes de entrar en vigor.",
+      terms:"Condiciones del servicio",
+      termSections:[
+        ["1. Servicio","HEGEVA AI proporciona herramientas de productividad empresarial, incluida asistencia AI, CRM, creación de documentos, seguimiento de gastos, planificación, informes y funciones cloud compatibles. Las funciones pueden cambiar a medida que evoluciona el servicio."],
+        ["2. No es asesoramiento profesional","HEGEVA AI no es abogado, contable, asesor fiscal, asesor financiero ni servicio financiero regulado. Las salidas de AI y del espacio son ayuda informativa y administrativa. Sigues siendo responsable de comprobar la información legal, fiscal, IVA, contable, de pagos y dirigida a clientes."],
+        ["3. Cuentas","Eres responsable de proporcionar datos de registro correctos, proteger tus credenciales y la actividad realizada mediante tu cuenta. No compartas contraseñas ni intentes acceder al espacio de otro usuario."],
+        ["4. Tu contenido e información de clientes","Sigues siendo responsable de la información que introduces en HEGEVA. Debes tener los derechos y permisos necesarios para usarla y tratarla, incluidos los datos personales de clientes u otras personas."],
+        ["5. Salida AI","El contenido generado por AI puede ser incompleto o incorrecto. HEGEVA no garantiza que sea exacto, legalmente o fiscalmente conforme ni adecuado para un fin específico. Las decisiones importantes y documentos de clientes deben revisarse por una persona cualificada cuando corresponda."],
+        ["6. Uso aceptable","No debes usar indebidamente el servicio, intentar acceso no autorizado, interferir con controles de seguridad o uso, subir contenido ilegal, vulnerar derechos ajenos ni usar HEGEVA de forma prohibida por la ley aplicable."],
+        ["7. Disponibilidad y cambios","La disponibilidad del cloud, red y proveedores AI puede afectar partes del servicio. HEGEVA puede mantener, modificar o suspender temporalmente funciones por seguridad, fiabilidad o cambios de producto. Las funciones locales pueden seguir funcionando sin red."],
+        ["8. Planes y estado de pagos","El procesamiento de pagos está desactivado en esta versión. Premium o Pro no debe considerarse comprado hasta que un futuro sistema de pago y el backend confirmen el derecho. Antes de activar suscripciones de pago deben mostrarse claramente precio, impuestos, periodo de facturación, renovación/cancelación y derechos aplicables de desistimiento o reembolso."],
+        ["9. Cancelación y reembolsos","Como el checkout de pago no está activo, actualmente no existe un proceso activo de cancelación o reembolso de suscripciones. Cuando se introduzcan, checkout y confirmación deberán indicar los derechos aplicables, reglas de reembolso y proporcionar información contractual que el cliente pueda conservar."],
+        ["10. Responsabilidad","Nada en estas condiciones excluye responsabilidad que legalmente no pueda excluirse. Sujeto a la ley aplicable, HEGEVA no sustituye la verificación profesional de asuntos empresariales, legales, fiscales, IVA, financieros o contables."],
+        ["11. Finalización del acceso","Puedes dejar de usar el servicio en cualquier momento. HEGEVA puede limitar o suspender el acceso cuando sea razonablemente necesario por seguridad, prevención de abusos, cumplimiento legal o incumplimiento grave de estas condiciones."],
+        ["12. Condiciones aplicables","El texto final sobre ley aplicable y jurisdicción debe corresponder a la entidad jurídica que opera HEGEVA y a los mercados en los que se ofrece. Completa los datos del operador antes del lanzamiento público y obtén revisión jurídica profesional si vendes suscripciones a consumidores o internacionalmente."]
+      ],
+      cookie:"Aviso de cookies y almacenamiento del dispositivo",cookie1:"Esta versión utiliza almacenamiento local del navegador para funciones compatibles del espacio de trabajo y puede utilizar tecnología esencial de autenticación/sesión para la seguridad de cuentas con sesión iniciada. No activa intencionadamente cookies publicitarias ni analíticas no esenciales.",cookie2:"Si más adelante se añaden analítica, publicidad, píxeles de seguimiento u otras tecnologías de almacenamiento no esenciales, HEGEVA deberá actualizar este aviso e implementar controles de consentimiento adecuados antes de que dichas tecnologías se ejecuten cuando el consentimiento sea obligatorio."
+    }
+  };
+
+  const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+  const lang=()=>{
+    const v=document.getElementById("languageSelect")?.value||document.documentElement.dataset.hegevaLanguage||"en";
+    return T[v]?v:"en";
+  };
+
+  function settings(){
+    let local={};
+    try{local=JSON.parse(localStorage.getItem("hegeva_settings")||"{}")||{}}catch{}
+    const val=(id,key)=>String(document.getElementById(id)?.value||local[key]||"").trim();
+    return {
+      businessName:val("businessName","businessName"),
+      businessEmail:val("businessEmail","businessEmail"),
+      address:val("address","address"),
+      country:val("country","country")||"United Kingdom",
+      companyNumber:val("companyNumber","companyNumber"),
+      vatNumber:val("vatNumber","vatNumber")
+    };
+  }
+
+  function bullets(arr){return `<ul>${arr.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`}
+  function sections(arr){return arr.map(([h,p])=>`<h3>${esc(h)}</h3><p>${esc(p)}</p>`).join("")}
+
+  let rendering=false;
+  function render(){
+    const page=document.getElementById("legal");
+    if(!page||rendering)return;
+    rendering=true;
+    try{
+      const x=T[lang()],s=settings();
+      const complete=Boolean(s.businessName&&s.businessEmail&&s.address&&s.country);
+
+      page.innerHTML=`
+        <div class="page-heading">
+          <div>
+            <div class="vision-tagline">${esc(x.kicker)}</div>
+            <h1>${esc(x.title)}</h1>
+            <p>${esc(x.subtitle)}</p>
+          </div>
+        </div>
+
+        <div class="legal-shell">
+          <div id="legalOperatorWarning" class="legal-warning" style="${complete?"display:none":""}">
+            ${esc(x.blocker)}
+          </div>
+
+          <div class="legal-card">
+            <h2>${esc(x.operator)}</h2>
+            <div class="legal-meta">
+              <div><span>${esc(x.business)}</span><strong id="legalBusinessName">${esc(s.businessName||x.operatorMissing)}</strong></div>
+              <div><span>${esc(x.email)}</span><strong id="legalBusinessEmail">${esc(s.businessEmail||x.notSet)}</strong></div>
+              <div><span>${esc(x.address)}</span><strong id="legalBusinessAddress">${esc(s.address||x.notSet)}</strong></div>
+              <div><span>${esc(x.country)}</span><strong id="legalBusinessCountry">${esc(s.country||x.notSet)}</strong></div>
+              <div><span>${esc(x.company)}</span><strong id="legalCompanyNumber">${esc(s.companyNumber||x.notProvided)}</strong></div>
+              <div><span>${esc(x.vat)}</span><strong id="legalVatNumber">${esc(s.vatNumber||x.notProvided)}</strong></div>
+            </div>
+          </div>
+
+          <div class="legal-card" id="privacyPolicy">
+            <h2>${esc(x.privacy)}</h2>
+            <p><strong>${esc(x.updated)}</strong> 12 August 2026.</p>
+            <p>${esc(x.pIntro)}</p>
+            <h3>${esc(x.p1h)}</h3>${bullets(x.p1)}
+            <h3>${esc(x.why)}</h3>${bullets(x.whyL)}
+            <h3>${esc(x.storageH)}</h3><p>${esc(x.storageP)}</p>
+            <h3>${esc(x.aiH)}</h3><p>${esc(x.aiP)}</p>
+            <h3>${esc(x.customerH)}</h3><p>${esc(x.customerP)}</p>
+            <h3>${esc(x.sharingH)}</h3><p>${esc(x.sharingP)}</p>
+            <h3>${esc(x.retentionH)}</h3><p>${esc(x.retentionP)}</p>
+            <h3>${esc(x.rightsH)}</h3><p>${esc(x.rightsP)}</p>
+            <h3>${esc(x.securityH)}</h3><p>${esc(x.securityP)}</p>
+            <h3>${esc(x.changesH)}</h3><p>${esc(x.changesP)}</p>
+          </div>
+
+          <div class="legal-card" id="termsOfService">
+            <h2>${esc(x.terms)}</h2>
+            <p><strong>${esc(x.updated)}</strong> 12 August 2026.</p>
+            ${sections(x.termSections)}
+          </div>
+
+          <div class="legal-card" id="cookieNotice">
+            <h2>${esc(x.cookie)}</h2>
+            <p>${esc(x.cookie1)}</p>
+            <p>${esc(x.cookie2)}</p>
+          </div>
+        </div>`;
+    } finally {
+      rendering=false;
+    }
+  }
+
+  document.getElementById("languageSelect")?.addEventListener("change",()=>{
+    setTimeout(render,0);
+    setTimeout(render,180);
+  });
+
+  ["businessName","businessEmail","address","country","companyNumber","vatNumber"].forEach(id=>{
+    document.getElementById(id)?.addEventListener("input",()=>setTimeout(render,40));
+    document.getElementById(id)?.addEventListener("change",()=>setTimeout(render,40));
+  });
+
+  const legal=document.getElementById("legal");
+  if(legal){
+    const obs=new MutationObserver(()=>{ if(!rendering) setTimeout(render,70); });
+    obs.observe(legal,{subtree:true,childList:true,characterData:true});
+  }
+
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",render,{once:true});
+  else render();
+
+  window.hegevaV317LegalI18n=render;
+})();
+</script>
+
+
+<script>
+/* =========================================================
+   HEGEVA AI V31.8 — FULL NAVIGATION + GLOBAL I18N CONSISTENCY
+   Covers entire sidebar/menu, hidden menu items, dynamic labels, and
+   common status language across EN / HU / DE / FR / ES.
+   ========================================================= */
+(() => {
+  "use strict";
+
+  const NAV = {
+    en:{
+      home:"Home",assistant:"AI Assistant",customers:"Customers & CRM",documents:"Documents",
+      expenses:"Expenses",reports:"Reports",planner:"Time Saver",vault:"Vault & Templates",
+      command:"Command Center",messages:"Message Studio",check:"Business Check",
+      tools:"Business Tools",plans:"Plans",settings:"Settings",support:"Support",
+      diagnostics:"System Check",legal:"Legal & Privacy"
+    },
+    hu:{
+      home:"Kezdőlap",assistant:"AI Asszisztens",customers:"Ügyfelek & CRM",documents:"Dokumentumok",
+      expenses:"Kiadások",reports:"Riportok",planner:"Időspóroló",vault:"Széf és sablonok",
+      command:"Irányítóközpont",messages:"Üzenet Stúdió",check:"Üzleti ellenőrzés",
+      tools:"Üzleti eszközök",plans:"Csomagok",settings:"Beállítások",support:"Támogatás",
+      diagnostics:"Rendszerellenőrzés",legal:"Jogi és adatvédelem"
+    },
+    de:{
+      home:"Startseite",assistant:"AI-Assistent",customers:"Kunden & CRM",documents:"Dokumente",
+      expenses:"Ausgaben",reports:"Berichte",planner:"Zeitsparer",vault:"Tresor & Vorlagen",
+      command:"Steuerzentrale",messages:"Nachrichtenstudio",check:"Geschäftsprüfung",
+      tools:"Geschäftswerkzeuge",plans:"Tarife",settings:"Einstellungen",support:"Support",
+      diagnostics:"Systemprüfung",legal:"Recht & Datenschutz"
+    },
+    fr:{
+      home:"Accueil",assistant:"Assistant AI",customers:"Clients & CRM",documents:"Documents",
+      expenses:"Dépenses",reports:"Rapports",planner:"Gain de temps",vault:"Coffre & modèles",
+      command:"Centre de commande",messages:"Studio de messages",check:"Contrôle d’entreprise",
+      tools:"Outils d’entreprise",plans:"Forfaits",settings:"Paramètres",support:"Assistance",
+      diagnostics:"Vérification système",legal:"Juridique & confidentialité"
+    },
+    es:{
+      home:"Inicio",assistant:"Asistente AI",customers:"Clientes y CRM",documents:"Documentos",
+      expenses:"Gastos",reports:"Informes",planner:"Ahorro de tiempo",vault:"Bóveda y plantillas",
+      command:"Centro de control",messages:"Estudio de mensajes",check:"Comprobación empresarial",
+      tools:"Herramientas empresariales",plans:"Planes",settings:"Ajustes",support:"Soporte",
+      diagnostics:"Comprobación del sistema",legal:"Legal y privacidad"
+    }
+  };
+
+  const PAGE_KEYS = {
+    home:"home", assistant:"assistant", customers:"customers", documents:"documents",
+    expenses:"expenses", reports:"reports", planner:"planner", vault:"vault", command:"command",
+    messages:"messages", check:"check", businessTools44:"tools", plans:"plans", settings:"settings",
+    support:"support", diagnostics:"diagnostics", legal:"legal"
+  };
+
+  const STATUS = {
+    en:{active:"Active",ready:"Ready",connected:"Connected",online:"Online",disabled:"Disabled",verified:"Verified",open:"Open",prepare:"Prepare",refresh:"Refresh",needs:"Needs setup"},
+    hu:{active:"Aktív",ready:"Kész",connected:"Csatlakoztatva",online:"Online",disabled:"Kikapcsolva",verified:"Ellenőrzött",open:"Megnyitás",prepare:"Előkészítés",refresh:"Frissítés",needs:"Beállítás szükséges"},
+    de:{active:"Aktiv",ready:"Bereit",connected:"Verbunden",online:"Online",disabled:"Deaktiviert",verified:"Verifiziert",open:"Öffnen",prepare:"Vorbereiten",refresh:"Aktualisieren",needs:"Einrichtung nötig"},
+    fr:{active:"Actif",ready:"Prêt",connected:"Connecté",online:"En ligne",disabled:"Désactivé",verified:"Vérifié",open:"Ouvrir",prepare:"Préparer",refresh:"Actualiser",needs:"Configuration requise"},
+    es:{active:"Activo",ready:"Listo",connected:"Conectado",online:"En línea",disabled:"Desactivado",verified:"Verificado",open:"Abrir",prepare:"Preparar",refresh:"Actualizar",needs:"Requiere configuración"}
+  };
+
+  const lang=()=>{
+    const v=document.getElementById("languageSelect")?.value||document.documentElement.dataset.hegevaLanguage||"en";
+    return NAV[v]?v:"en";
+  };
+
+  function translateNav(){
+    const l=lang(),dict=NAV[l];
+    document.querySelectorAll(".nav-button").forEach(btn=>{
+      const page=btn.dataset.page;
+      const key=PAGE_KEYS[page];
+      if(!key||!dict[key])return;
+      const textEl=btn.querySelector(".nav-text") || [...btn.childNodes].find(n=>n.nodeType===Node.TEXT_NODE && n.nodeValue.trim());
+      if(textEl instanceof Element){
+        textEl.textContent=dict[key];
+      }else if(textEl){
+        textEl.nodeValue=" "+dict[key];
+      }else{
+        const icon=btn.querySelector(".nav-icon");
+        if(icon)icon.insertAdjacentText("afterend"," "+dict[key]);
+        else btn.appendChild(document.createTextNode(dict[key]));
+      }
+      btn.setAttribute("aria-label",dict[key]);
+      btn.setAttribute("title",dict[key]);
+    });
+  }
+
+  const exactMap = {
+    hu:{
+      "Active":"Aktív","Ready":"Kész","Connected":"Csatlakoztatva","Online":"Online","Disabled":"Kikapcsolva","Verified":"Ellenőrzött",
+      "Open":"Megnyitás","Prepare":"Előkészítés","Refresh":"Frissítés","Needs setup":"Beállítás szükséges",
+      "BASIC connected":"BASIC csatlakoztatva","Signed in":"Bejelentkezve","Session active":"Munkamenet aktív"
+    },
+    de:{
+      "Active":"Aktiv","Ready":"Bereit","Connected":"Verbunden","Online":"Online","Disabled":"Deaktiviert","Verified":"Verifiziert",
+      "Open":"Öffnen","Prepare":"Vorbereiten","Refresh":"Aktualisieren","Needs setup":"Einrichtung nötig",
+      "BASIC connected":"BASIC verbunden","Signed in":"Angemeldet","Session active":"Sitzung aktiv"
+    },
+    fr:{
+      "Active":"Actif","Ready":"Prêt","Connected":"Connecté","Online":"En ligne","Disabled":"Désactivé","Verified":"Vérifié",
+      "Open":"Ouvrir","Prepare":"Préparer","Refresh":"Actualiser","Needs setup":"Configuration requise",
+      "BASIC connected":"BASIC connecté","Signed in":"Connecté","Session active":"Session active"
+    },
+    es:{
+      "Active":"Activo","Ready":"Listo","Connected":"Conectado","Online":"En línea","Disabled":"Desactivado","Verified":"Verificado",
+      "Open":"Abrir","Prepare":"Preparar","Refresh":"Actualizar","Needs setup":"Requiere configuración",
+      "BASIC connected":"BASIC conectado","Signed in":"Sesión iniciada","Session active":"Sesión activa"
+    }
+  };
+
+  function translateCommon(){
+    const l=lang();
+    if(l==="en")return;
+    const map=exactMap[l]||{};
+    const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{
+      acceptNode(node){
+        const p=node.parentElement;
+        if(!p||["SCRIPT","STYLE","TEXTAREA"].includes(p.tagName))return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    const nodes=[];
+    while(walker.nextNode())nodes.push(walker.currentNode);
+    for(const node of nodes){
+      const raw=node.nodeValue, t=raw?.trim();
+      if(!t||map[t]===undefined)continue;
+      const lead=raw.match(/^\s*/)?.[0]||"",trail=raw.match(/\s*$/)?.[0]||"";
+      node.nodeValue=lead+map[t]+trail;
+    }
+  }
+
+  function auditNavigation(){
+    const l=lang(),dict=NAV[l];
+    const expected=Object.values(dict);
+    const navText=[...document.querySelectorAll(".nav-button")].map(b=>b.textContent.trim());
+    const missing=expected.filter(x=>!navText.some(t=>t.includes(x)));
+    return {language:l,missing,ok:missing.length===0,total:expected.length};
+  }
+
+  let running=false;
+  function apply(){
+    if(running)return;
+    running=true;
+    try{
+      translateNav();
+      translateCommon();
+    }finally{running=false}
+  }
+
+  document.getElementById("languageSelect")?.addEventListener("change",()=>{
+    setTimeout(apply,0);setTimeout(apply,150);setTimeout(apply,500);
+  });
+
+  const observer=new MutationObserver(()=>{if(!running)setTimeout(apply,70)});
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",()=>{
+      apply();
+      observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+    },{once:true});
+  }else{
+    apply();
+    observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+  }
+
+  window.hegevaV318NavigationAudit=()=>{
+    apply();
+    return auditNavigation();
   };
 })();
 </script>
