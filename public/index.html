@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V31.5 — secure cloud-first workspace migration with protected local fallback." />
-  <title>Hegeva AI V31.5</title>
+  <meta name="description" content="Hegeva AI V31.6 — secure cloud-first workspace migration with protected local fallback." />
+  <title>Hegeva AI V31.6</title>
 
   <style>
     :root {
@@ -7771,7 +7771,7 @@
 
 
     // =========================================
-    // HEGEVA AI V31.5 — SECURE CLOUD DATA MIGRATION
+    // HEGEVA AI V31.6 — SECURE CLOUD DATA MIGRATION
     // Cloud-first for signed-in users.
     // Existing cloud data is NEVER overwritten by an automatic migration.
     // Browser data is used only as a migration source / local working cache.
@@ -11752,7 +11752,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V31.5 — LAUNCH & PROTECTION CHECK
+   HEGEVA AI V31.6 — LAUNCH & PROTECTION CHECK
    ========================================================= */
 #v313ProtectionCard{
   margin-top:16px;
@@ -11841,7 +11841,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V31.5 — TRANSPARENT LAUNCH & PROTECTION CHECK
+   HEGEVA AI V31.6 — TRANSPARENT LAUNCH & PROTECTION CHECK
    Browser-verifiable checks only. No invented legal/security claims.
    ========================================================= */
 (() => {
@@ -12161,7 +12161,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V31.5 — PROFESSIONAL UI + 5-LANGUAGE POLISH
+   HEGEVA AI V31.6 — PROFESSIONAL UI + 5-LANGUAGE POLISH
    Visual-only enhancement. Existing backend/auth/cloud logic preserved.
    ========================================================= */
 
@@ -12412,7 +12412,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V31.5 — 5-LANGUAGE PROFESSIONAL LOCALIZATION
+   HEGEVA AI V31.6 — 5-LANGUAGE PROFESSIONAL LOCALIZATION
    Covers newer assistant/release/diagnostic blocks and dynamic labels.
    ========================================================= */
 (() => {
@@ -12755,6 +12755,362 @@ Open planner tasks: ${s.openTasks}`;
     diagnostics:Boolean(document.getElementById("diagnostics")),
     time:new Date().toISOString()
   });
+})();
+</script>
+
+
+<style>
+/* =========================================================
+   HEGEVA AI V31.6 — LANGUAGE GUARD + PROFESSIONAL POLISH
+   ========================================================= */
+#v316LangGuard{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  z-index:9997;
+  min-width:180px;
+  max-width:300px;
+  padding:10px 12px;
+  border-radius:13px;
+  border:1px solid rgba(255,255,255,.13);
+  background:rgba(8,15,29,.88);
+  backdrop-filter:blur(16px);
+  box-shadow:0 18px 50px rgba(0,0,0,.28);
+  color:var(--text);
+  font-size:11px;
+  display:none;
+}
+#v316LangGuard.show{display:block}
+#v316LangGuard strong{display:block;font-size:12px;margin-bottom:2px}
+#v316LangGuard.ok strong{color:#79eab1}
+#v316LangGuard.warn strong{color:#ffe19a}
+
+.v316-pro-section{
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:18px;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(55,200,255,.05),transparent 28%),
+    linear-gradient(145deg,rgba(255,255,255,.035),rgba(155,108,255,.03));
+}
+
+.page .notice,
+.page .footer-note{
+  border-radius:14px;
+}
+
+.page .status,
+.page .v25-status,
+.page .metric-mini,
+.page .v43-real-card,
+.page .v50-card{
+  transition:transform .15s ease,border-color .15s ease,background .15s ease;
+}
+.page .status:hover,
+.page .v25-status:hover,
+.page .metric-mini:hover,
+.page .v43-real-card:hover,
+.page .v50-card:hover{
+  transform:translateY(-1px);
+  border-color:rgba(246,196,83,.24);
+}
+
+/* cleaner legal typography */
+#legal .legal-card{
+  line-height:1.62;
+}
+#legal .legal-card h2,
+#legal .legal-card h3{
+  letter-spacing:-.25px;
+}
+#legal .legal-card ul{
+  padding-left:20px;
+}
+#legal .legal-card li{
+  margin:5px 0;
+}
+
+/* security / settings polish */
+#securityCenter .card,
+#settings .card{
+  border-radius:20px;
+}
+</style>
+
+<script>
+/* =========================================================
+   HEGEVA AI V31.6 — GLOBAL 5-LANGUAGE GUARD
+   One translation layer for static + dynamic UI text.
+   ========================================================= */
+(() => {
+  "use strict";
+
+  const languages = ["en","hu","de","fr","es"];
+  const lang = () => {
+    const v=document.getElementById("languageSelect")?.value||document.documentElement.dataset.hegevaLanguage||"en";
+    return languages.includes(v)?v:"en";
+  };
+
+  const D = {
+    hu:{
+      "V29.0 GROWTH & INTELLIGENCE":"V31.6 NÖVEKEDÉS ÉS ÜZLETI INTELLIGENCIA",
+      "GUIDED ONBOARDING":"IRÁNYÍTOTT BEÁLLÍTÁS",
+      "SMART WORKFLOW":"OKOS MUNKAFOLYAMAT",
+      "BUSINESS PULSE":"ÜZLETI PULZUS",
+      "NEXT BEST ACTIONS":"KÖVETKEZŐ LEGJOBB LÉPÉSEK",
+      "V29.0 SMART BUSINESS AUTOMATION":"V31.6 OKOS ÜZLETI AUTOMATIZÁLÁS",
+      "V29.0 EXECUTIVE BRIEFING":"V31.6 VEZETŐI ÁTTEKINTÉS",
+      "REAL WORKSPACE SIGNALS":"VALÓS MUNKATÉR-JELZÉSEK",
+      "V29.0 ACCOUNT SECURITY & EMAIL":"V31.6 FIÓKBIZTONSÁG ÉS E-MAIL",
+      "V29.0 SECURITY & DATA CONTROL":"V31.6 BIZTONSÁG ÉS ADATKEZELÉS",
+      "V29.0 DATA SAFETY":"V31.6 ADATBIZTONSÁG",
+      "V29.0 STABLE RELEASE":"V31.6 STABIL KIADÁS",
+      "Business Autopilot":"Üzleti autopilóta",
+      "Turns your existing HEGEVA workspace data into practical next actions without inventing figures or making changes without your approval.":"A meglévő HEGEVA munkatéradataidból gyakorlati következő lépéseket készít, kitalált számok és jóváhagyás nélküli módosítások nélkül.",
+      "Customers":"Ügyfelek","Documents":"Dokumentumok","Open tasks":"Nyitott feladatok","Follow-ups":"Utánkövetések",
+      "Business readiness":"Üzleti készültség",
+      "Generate Smart Action Plan":"Okos cselekvési terv készítése",
+      "Ask AI about my business":"Kérdezd az AI-t a vállalkozásomról",
+      "Refresh":"Frissítés","Open":"Megnyitás","Prepare":"Előkészítés",
+      "What should happen next?":"Mi legyen a következő lépés?",
+      "Customer follow-ups need attention":"Az ügyfél-utánkövetések figyelmet igényelnek",
+      "1 customer follow-up(s) are currently recorded.":"Jelenleg 1 ügyfél-utánkövetés van rögzítve.",
+      "Create your first business document":"Készítsd el az első üzleti dokumentumodat",
+      "No saved quote, invoice or receipt is currently available.":"Jelenleg nincs mentett árajánlat, számla vagy nyugta.",
+      "Start expense tracking":"Kezdd el a kiadások követését",
+      "No expenses are recorded yet, so reports cannot show a meaningful cost picture.":"Még nincs rögzített kiadás, ezért a riportok nem tudnak érdemi költségképet mutatni.",
+      "One-click business helpers":"Egykattintásos üzleti segédek",
+      "Create a customer follow-up prompt from real CRM data.":"Készíts ügyfél-utánkövetési promptot valódi CRM-adatokból.",
+      "Create a weekly business review from workspace facts.":"Készíts heti üzleti áttekintést a munkatér tényeiből.",
+      "Create an invoice chase message using saved invoice facts.":"Készíts számlaemlékeztető üzenetet a mentett számlaadatokból.",
+      "Create a task-priority prompt from open planner items.":"Készíts feladatprioritási promptot a nyitott tervezőelemekből.",
+      "Current workspace signals":"Aktuális munkatér-jelzések",
+      "Invoice value":"Számlák értéke","Expenses":"Kiadások","Signed-in account":"Bejelentkezett fiók","Cloud workspace":"Felhő munkatér",
+      "Active":"Aktív","Connected":"Csatlakoztatva","Online":"Online","Ready":"Kész","Disabled":"Kikapcsolva","Verified":"Ellenőrzött",
+      "Today's Business Control":"Mai üzleti irányítás",
+      "Builds a concise operating view from your saved HEGEVA workspace. No invented revenue, customers or completed work.":"Tömör működési áttekintést készít a mentett HEGEVA munkatérből. Nem talál ki bevételt, ügyfeleket vagy elvégzett munkát.",
+      "Today focus":"Mai fókusz","Risk signals":"Kockázati jelzések","Security":"Biztonság","Session active":"Munkamenet aktív",
+      "Build Today Plan":"Mai terv készítése","Open Security Center":"Biztonsági központ megnyitása","Refresh Briefing":"Áttekintés frissítése",
+      "Attention radar":"Figyelmi radar","Customer follow-ups":"Ügyfél-utánkövetések","Document pipeline":"Dokumentumfolyamat","Expense visibility":"Kiadások láthatósága",
+      "No saved business documents are currently recorded.":"Jelenleg nincs mentett üzleti dokumentum.",
+      "No expense records are available for reporting.":"Nincs elérhető kiadási adat a riportokhoz.",
+      "Workspace readiness":"Munkatér készültsége",
+      "Business profile":"Üzleti profil","Customer added":"Ügyfél hozzáadva","Document saved":"Dokumentum mentve","Expense tracking":"Kiadáskövetés","Planner in use":"Tervező használatban",
+      "Current workspace:":"Aktuális munkatér:",
+      "Security Center":"Biztonsági központ",
+      "Password recovery uses the authenticated HEGEVA backend and the verified hegevaai.co.uk email domain. Secrets stay in Cloudflare, not in this page.":"A jelszó-visszaállítás a hitelesített HEGEVA backendet és az ellenőrzött hegevaai.co.uk e-mail domaint használja. A titkos adatok a Cloudflare-ben maradnak, nem ezen az oldalon.",
+      "Account session":"Fiókmunkamenet","Password recovery email":"Jelszó-visszaállító e-mail","Reset security":"Visszaállítás biztonsága",
+      "Signed in":"Bejelentkezve","1-hour link":"1 órás link",
+      "Change password":"Jelszó módosítása","Current password":"Jelenlegi jelszó","New password":"Új jelszó","Confirm new password":"Új jelszó megerősítése",
+      "Sign out other sessions after changing password":"Más munkamenetek kijelentkeztetése jelszóváltás után",
+      "Change password securely":"Jelszó biztonságos módosítása",
+      "Email security test":"E-mail biztonsági teszt",
+      "Send one fixed HEGEVA security test message to the currently signed-in account email. The recipient cannot be changed here.":"Egy rögzített HEGEVA biztonsági tesztüzenetet küld a jelenleg bejelentkezett fiók e-mail címére. A címzett itt nem módosítható.",
+      "Send security test email":"Biztonsági teszt e-mail küldése","Send password-reset email":"Jelszó-visszaállító e-mail küldése",
+      "Provider:":"Szolgáltató:","Sender:":"Feladó:",
+      "Account isolation & safe reset":"Fiókelkülönítés és biztonságos visszaállítás",
+      "Signed-in users keep supported workspace data isolated through the authenticated HEGEVA cloud workspace. Local reset only affects this browser.":"A bejelentkezett felhasználók támogatott munkatéradatai a hitelesített HEGEVA felhőben elkülönítve maradnak. A helyi visszaállítás csak ezt a böngészőt érinti.",
+      "Resync cloud workspace":"Felhő munkatér újraszinkronizálása","Clear local workspace only":"Csak a helyi munkatér törlése",
+      "Workspace backup & restore":"Munkatér biztonsági mentése és visszaállítása",
+      "Restore accepts only HEGEVA-owned storage keys. Unknown keys are ignored.":"A visszaállítás csak HEGEVA által kezelt tárolási kulcsokat fogad el. Az ismeretlen kulcsokat figyelmen kívül hagyja.",
+      "Export backup":"Biztonsági mentés exportálása","Restore backup":"Biztonsági mentés visszaállítása","Clear activity history":"Tevékenységtörténet törlése",
+      "AI Assistant page available":"AI Asszisztens oldal elérhető","Customers & CRM page available":"Ügyfelek & CRM oldal elérhető",
+      "Documents page available":"Dokumentumok oldal elérhető","Reports page available":"Riportok oldal elérhető","Plans page available":"Csomagok oldal elérhető","Settings page available":"Beállítások oldal elérhető",
+      "Document storage ready":"Dokumentumtár készen áll","CRM storage readable":"CRM-tároló olvasható",
+      "Why we use information":"Miért használjuk az adatokat",
+      "To create and maintain your account and authenticated workspace.":"A fiókod és hitelesített munkaterületed létrehozásához és fenntartásához.",
+      "To provide features you request, including cloud workspace sync and AI responses.":"Az általad kért funkciók biztosításához, beleértve a felhőszinkront és az AI-válaszokat.",
+      "To protect the service, prevent abuse, enforce usage limits and diagnose faults.":"A szolgáltatás védelméhez, visszaélések megelőzéséhez, használati limitek betartatásához és hibák diagnosztizálásához.",
+      "To respond to support, privacy and account requests.":"Támogatási, adatvédelmi és fiókkérések megválaszolásához.",
+      "Local browser storage and essential session technology":"Helyi böngészőtárolás és alapvető munkamenet-technológia",
+      "HEGEVA uses browser storage for supported local workspace features. Signed-in features may also use essential authentication/session technology so the service can keep you signed in and protect account access. Non-essential advertising or analytics cookies are not enabled by this build.":"A HEGEVA böngészőtárolást használ a támogatott helyi munkatérfunkciókhoz. A bejelentkezett funkciók alapvető hitelesítési/munkamenet-technológiát is használhatnak a bejelentkezés fenntartásához és a fiókhozzáférés védelméhez. Ez a build nem használ nem alapvető reklám- vagy analitikai cookie-kat.",
+      "AI processing":"AI adatfeldolgozás",
+      "When you send a message to HEGEVA AI, the message, selected language, recent chat context and any business context you provide may be sent to the secure backend and its AI infrastructure solely to generate the requested response and operate usage controls. Do not enter information you are not authorised to process.":"Amikor üzenetet küldesz a HEGEVA AI-nak, az üzenet, a kiválasztott nyelv, a közelmúltbeli chatkörnyezet és az általad megadott üzleti kontextus a biztonságos backendhez és annak AI-infrastruktúrájához kerülhet kizárólag a kért válasz létrehozása és a használati korlátok működtetése céljából. Ne adj meg olyan adatot, amelynek kezelésére nem vagy jogosult.",
+      "Customer data you enter":"Az általad megadott ügyféladatok",
+      "At least one saved document":"Legalább egy mentett dokumentum",
+      "Expense tracking started":"Kiadáskövetés elkezdve","Planner is in use":"A tervező használatban van",
+      "Business profile complete":"Üzleti profil kitöltve","At least one CRM customer":"Legalább egy CRM ügyfél",
+      "Needs setup":"Beállítás szükséges",
+      "Launch: Public operator name":"Indulás: Nyilvános üzemeltető neve",
+      "Launch: Public support email":"Indulás: Nyilvános támogatási e-mail",
+      "Launch: Business address & country":"Indulás: Üzleti cím és ország",
+      "Launch: Privacy Policy available":"Indulás: Adatvédelmi irányelvek elérhetők",
+      "Launch: Terms of Service available":"Indulás: Szolgáltatási feltételek elérhetők",
+      "Launch: Support page available":"Indulás: Támogatási oldal elérhető"
+    },
+    de:{},fr:{},es:{}
+  };
+
+  // Reuse Hungarian as a complete reference; non-HU languages are populated
+  // with the most important recurring professional UI terms below.
+  Object.assign(D.de,{
+    "Active":"Aktiv","Connected":"Verbunden","Ready":"Bereit","Disabled":"Deaktiviert","Verified":"Verifiziert","Open":"Öffnen","Prepare":"Vorbereiten","Refresh":"Aktualisieren",
+    "Customers":"Kunden","Documents":"Dokumente","Open tasks":"Offene Aufgaben","Follow-ups":"Nachfassaktionen","Business readiness":"Geschäftsbereitschaft",
+    "Signed-in account":"Angemeldetes Konto","Cloud workspace":"Cloud-Arbeitsbereich","Expenses":"Ausgaben","Invoice value":"Rechnungswert",
+    "Needs setup":"Einrichtung nötig","Business profile":"Geschäftsprofil","Customer added":"Kunde hinzugefügt","Document saved":"Dokument gespeichert","Expense tracking":"Ausgabenerfassung","Planner in use":"Planer in Verwendung",
+    "Security Center":"Sicherheitszentrum","Change password":"Passwort ändern","Current password":"Aktuelles Passwort","New password":"Neues Passwort","Confirm new password":"Neues Passwort bestätigen",
+    "Workspace backup & restore":"Arbeitsbereich sichern & wiederherstellen","Export backup":"Backup exportieren","Restore backup":"Backup wiederherstellen","Clear activity history":"Aktivitätsverlauf löschen",
+    "Why we use information":"Warum wir Informationen verwenden","AI processing":"AI-Verarbeitung","Customer data you enter":"Von dir eingegebene Kundendaten",
+    "At least one saved document":"Mindestens ein gespeichertes Dokument","Expense tracking started":"Ausgabenerfassung begonnen","Planner is in use":"Planer wird verwendet","Business profile complete":"Geschäftsprofil vollständig","At least one CRM customer":"Mindestens ein CRM-Kunde"
+  });
+  Object.assign(D.fr,{
+    "Active":"Actif","Connected":"Connecté","Ready":"Prêt","Disabled":"Désactivé","Verified":"Vérifié","Open":"Ouvrir","Prepare":"Préparer","Refresh":"Actualiser",
+    "Customers":"Clients","Documents":"Documents","Open tasks":"Tâches ouvertes","Follow-ups":"Suivis","Business readiness":"Préparation de l’entreprise",
+    "Signed-in account":"Compte connecté","Cloud workspace":"Espace cloud","Expenses":"Dépenses","Invoice value":"Valeur des factures",
+    "Needs setup":"Configuration requise","Business profile":"Profil professionnel","Customer added":"Client ajouté","Document saved":"Document enregistré","Expense tracking":"Suivi des dépenses","Planner in use":"Planificateur utilisé",
+    "Security Center":"Centre de sécurité","Change password":"Modifier le mot de passe","Current password":"Mot de passe actuel","New password":"Nouveau mot de passe","Confirm new password":"Confirmer le nouveau mot de passe",
+    "Workspace backup & restore":"Sauvegarde et restauration de l’espace","Export backup":"Exporter la sauvegarde","Restore backup":"Restaurer la sauvegarde","Clear activity history":"Effacer l’historique d’activité",
+    "Why we use information":"Pourquoi nous utilisons les informations","AI processing":"Traitement AI","Customer data you enter":"Données client que vous saisissez",
+    "At least one saved document":"Au moins un document enregistré","Expense tracking started":"Suivi des dépenses commencé","Planner is in use":"Planificateur utilisé","Business profile complete":"Profil professionnel complet","At least one CRM customer":"Au moins un client CRM"
+  });
+  Object.assign(D.es,{
+    "Active":"Activo","Connected":"Conectado","Ready":"Listo","Disabled":"Desactivado","Verified":"Verificado","Open":"Abrir","Prepare":"Preparar","Refresh":"Actualizar",
+    "Customers":"Clientes","Documents":"Documentos","Open tasks":"Tareas abiertas","Follow-ups":"Seguimientos","Business readiness":"Preparación del negocio",
+    "Signed-in account":"Cuenta iniciada","Cloud workspace":"Espacio cloud","Expenses":"Gastos","Invoice value":"Valor de facturas",
+    "Needs setup":"Requiere configuración","Business profile":"Perfil empresarial","Customer added":"Cliente añadido","Document saved":"Documento guardado","Expense tracking":"Seguimiento de gastos","Planner in use":"Planificador en uso",
+    "Security Center":"Centro de seguridad","Change password":"Cambiar contraseña","Current password":"Contraseña actual","New password":"Nueva contraseña","Confirm new password":"Confirmar nueva contraseña",
+    "Workspace backup & restore":"Copia y restauración del espacio","Export backup":"Exportar copia","Restore backup":"Restaurar copia","Clear activity history":"Borrar historial de actividad",
+    "Why we use information":"Por qué usamos la información","AI processing":"Procesamiento AI","Customer data you enter":"Datos de clientes que introduces",
+    "At least one saved document":"Al menos un documento guardado","Expense tracking started":"Seguimiento de gastos iniciado","Planner is in use":"Planificador en uso","Business profile complete":"Perfil empresarial completo","At least one CRM customer":"Al menos un cliente CRM"
+  });
+
+  const regex = {
+    hu:[
+      [/^Workspace facts used:\s*(\d+) customer\(s\),\s*(\d+) document\(s\),\s*(\d+) expense record\(s\),\s*(\d+) open task\(s\)\.?$/i,
+       (_,a,b,c,d)=>`Felhasznált munkatéradatok: ${a} ügyfél, ${b} dokumentum, ${c} kiadási bejegyzés, ${d} nyitott feladat.`],
+      [/^Workspace facts:\s*(\d+) customer\(s\),\s*(\d+) saved document\(s\),\s*(\d+) expense record\(s\),\s*(\d+) open task\(s\),\s*(\d+) follow-up\(s\)\.?$/i,
+       (_,a,b,c,d,e)=>`Munkatéradatok: ${a} ügyfél, ${b} mentett dokumentum, ${c} kiadási bejegyzés, ${d} nyitott feladat, ${e} utánkövetés.`],
+      [/^Current workspace:\s*(\d+) customer\(s\),\s*(\d+) saved document\(s\),\s*(\d+) open planner task\(s\),\s*(\d+) customer follow-up\(s\)\.\s*Saved invoice value:\s*(.+)\.\s*Recorded expenses:\s*(.+)\.$/i,
+       (_,a,b,c,d,e,f)=>`Aktuális munkatér: ${a} ügyfél, ${b} mentett dokumentum, ${c} nyitott tervezőfeladat, ${d} ügyfél-utánkövetés. Mentett számlaérték: ${e}. Rögzített kiadások: ${f}.`],
+      [/^Document storage ready\s*\((\d+)\)$/i,(_,n)=>`Dokumentumtár készen áll (${n})`],
+      [/^CRM storage readable\s*\((\d+)\)$/i,(_,n)=>`CRM-tároló olvasható (${n})`],
+      [/^(\d+) follow-up\(s\) need attention\.$/i,(_,n)=>`${n} utánkövetés igényel figyelmet.`]
+    ]
+  };
+
+  function translateExact(text){
+    const l=lang();
+    if(l==="en")return text;
+    const dict=D[l]||{};
+    if(dict[text]!==undefined)return dict[text];
+    const arr=regex[l]||[];
+    for(const [r,fn] of arr){
+      if(r.test(text)){
+        r.lastIndex=0;
+        return text.replace(r,fn);
+      }
+    }
+    return text;
+  }
+
+  function translateTextNode(node){
+    if(!node || node.nodeType!==Node.TEXT_NODE)return;
+    const raw=node.nodeValue;
+    if(!raw || !raw.trim())return;
+    const trimmed=raw.trim();
+    const translated=translateExact(trimmed);
+    if(translated!==trimmed){
+      const lead=raw.match(/^\s*/)?.[0]||"";
+      const trail=raw.match(/\s*$/)?.[0]||"";
+      node.nodeValue=lead+translated+trail;
+    }
+  }
+
+  function walk(root=document.body){
+    if(!root)return;
+    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{
+      acceptNode(node){
+        const p=node.parentElement;
+        if(!p)return NodeFilter.FILTER_REJECT;
+        if(["SCRIPT","STYLE","TEXTAREA","OPTION"].includes(p.tagName))return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    const nodes=[];
+    while(walker.nextNode())nodes.push(walker.currentNode);
+    nodes.forEach(translateTextNode);
+
+    // select options + placeholders/titles
+    root.querySelectorAll?.("option").forEach(o=>{
+      const t=o.textContent.trim(),v=translateExact(t);
+      if(v!==t)o.textContent=v;
+    });
+    root.querySelectorAll?.("[placeholder]").forEach(el=>{
+      const p=el.getAttribute("placeholder");
+      const v=translateExact(p);
+      if(v!==p)el.setAttribute("placeholder",v);
+    });
+  }
+
+  function addLangGuard(){
+    let box=document.getElementById("v316LangGuard");
+    if(!box){
+      box=document.createElement("div");
+      box.id="v316LangGuard";
+      document.body.appendChild(box);
+    }
+    return box;
+  }
+
+  const knownEnglishMarkers=[
+    "Business Autopilot","One-click business helpers","Current workspace signals",
+    "Today's Business Control","Attention radar","Workspace backup & restore",
+    "Why we use information","AI processing","Security Center","Change password",
+    "At least one saved document","Expense tracking started","Planner is in use"
+  ];
+
+  function audit(){
+    const l=lang(),box=addLangGuard();
+    if(l==="en"){box.className="";return;}
+    const active=document.querySelector(".page.active")||document.body;
+    const text=active.innerText||"";
+    const leftovers=knownEnglishMarkers.filter(x=>text.includes(x));
+    if(leftovers.length){
+      box.className="show warn";
+      box.innerHTML=`<strong>⚠ Localization Guard</strong><span>${leftovers.length} known untranslated UI phrase(s) detected.</span>`;
+    }else{
+      box.className="show ok";
+      box.innerHTML=`<strong>✓ Localization Guard</strong><span>Active page passed the known-language scan.</span>`;
+      clearTimeout(window.__v316GuardHide);
+      window.__v316GuardHide=setTimeout(()=>box.className="",2200);
+    }
+  }
+
+  let running=false;
+  function apply(){
+    if(running)return;
+    running=true;
+    try{
+      walk(document.body);
+      audit();
+    }finally{running=false}
+  }
+
+  function schedule(){
+    clearTimeout(window.__v316Timer);
+    window.__v316Timer=setTimeout(apply,80);
+  }
+
+  document.getElementById("languageSelect")?.addEventListener("change",()=>{
+    setTimeout(apply,0);
+    setTimeout(apply,180);
+    setTimeout(apply,600);
+  });
+
+  const observer=new MutationObserver(()=>{if(!running)schedule()});
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",()=>{
+      apply();
+      observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+    },{once:true});
+  }else{
+    apply();
+    observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+  }
+
+  window.hegevaV316LanguageAudit=()=>{
+    apply();
+    return {version:"V31.6",language:lang(),time:new Date().toISOString()};
+  };
 })();
 </script>
 
