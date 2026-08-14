@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V31.2 — multilingual business workspace with five-language UI stability improvements." />
-  <title>Hegeva AI V31.2</title>
+  <meta name="description" content="Hegeva AI V31.3 — multilingual business workspace with five-language UI stability improvements." />
+  <title>Hegeva AI V31.3</title>
 
   <style>
     :root {
@@ -11526,6 +11526,415 @@ Open planner tasks: ${s.openTasks}`;
     currency:currencyInfo().code,
     time:new Date().toISOString()
   });
+})();
+</script>
+
+
+<style>
+/* =========================================================
+   HEGEVA AI V31.3 — LAUNCH & PROTECTION CHECK
+   ========================================================= */
+#v313ProtectionCard{
+  margin-top:16px;
+  border:1px solid rgba(246,196,83,.25);
+  background:
+    radial-gradient(circle at 95% 0%,rgba(246,196,83,.08),transparent 28%),
+    linear-gradient(145deg,rgba(55,200,255,.045),rgba(155,108,255,.055),rgba(246,196,83,.035));
+}
+#v313ProtectionHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+  flex-wrap:wrap;
+}
+#v313ProtectionSummary{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:9px;
+  margin-top:14px;
+}
+.v313-stat{
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:rgba(255,255,255,.025);
+}
+.v313-stat span{
+  display:block;
+  color:var(--muted);
+  font-size:11px;
+}
+.v313-stat strong{
+  display:block;
+  font-size:19px;
+  margin-top:5px;
+}
+#v313ProtectionResults{
+  display:grid;
+  gap:9px;
+  margin-top:14px;
+}
+.v313-check-row{
+  display:grid;
+  grid-template-columns:minmax(170px,.8fr) minmax(0,1.7fr) auto;
+  gap:12px;
+  align-items:start;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:13px;
+  background:rgba(255,255,255,.02);
+}
+.v313-check-row strong{
+  font-size:13px;
+}
+.v313-check-row p{
+  margin:2px 0 0;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
+.v313-check-badge{
+  padding:5px 9px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.03em;
+  white-space:nowrap;
+}
+.v313-ok{color:#79eab1;background:rgba(121,234,177,.10);border:1px solid rgba(121,234,177,.28)}
+.v313-warn{color:#ffe19a;background:rgba(255,225,154,.09);border:1px solid rgba(255,225,154,.24)}
+.v313-manual{color:#a9c8ff;background:rgba(169,200,255,.08);border:1px solid rgba(169,200,255,.22)}
+.v313-fail{color:#ff9f9f;background:rgba(255,120,120,.08);border:1px solid rgba(255,120,120,.24)}
+#v313ProtectionNote{
+  margin-top:12px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+}
+@media(max-width:820px){
+  #v313ProtectionSummary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .v313-check-row{grid-template-columns:1fr}
+  .v313-check-badge{justify-self:start}
+}
+</style>
+
+<script>
+/* =========================================================
+   HEGEVA AI V31.3 — TRANSPARENT LAUNCH & PROTECTION CHECK
+   Browser-verifiable checks only. No invented legal/security claims.
+   ========================================================= */
+(() => {
+  "use strict";
+
+  const TX = {
+    en:{
+      title:"🛡️ HEGEVA AI Launch & Protection Check",
+      subtitle:"Checks launch readiness, obvious frontend secret exposure and browser-verifiable security signals. Items that cannot be verified from the website are clearly marked for manual review.",
+      run:"Run Launch & Protection Check",
+      total:"Checks",pass:"Passed",warn:"Warnings",manual:"Manual",
+      waiting:"Protection check has not been run yet.",
+      note:"This diagnostic does not certify legal ownership, trademark registration, repository privacy or complete cybersecurity. It only reports what the browser can verify and marks the rest for manual review.",
+      status:{pass:"PASS",warn:"WARNING",manual:"MANUAL",fail:"FAIL"},
+      names:{
+        https:"HTTPS / secure context",
+        domain:"Custom public domain",
+        operator:"Operator / business details",
+        support:"Public support email",
+        legal:"Legal & privacy page",
+        obviousSecrets:"Obvious frontend secret scan",
+        localStorage:"Sensitive data storage notice",
+        auth:"Account authentication present",
+        repo:"GitHub repository privacy",
+        trademark:"HEGEVA name / trademark protection",
+        backups:"Backend/database backup policy"
+      },
+      detail:{
+        httpsOk:"The current page is running in a secure HTTPS context.",
+        httpsBad:"The current page is not running in a secure HTTPS context.",
+        domainOk:"The site is using a custom public domain.",
+        domainWarn:"The site appears to be using a workers.dev or local/development address.",
+        operatorOk:"Core operator details appear to be completed.",
+        operatorWarn:"One or more core operator details are missing.",
+        supportOk:"A valid-looking support email is configured.",
+        supportWarn:"A valid public support email is not configured.",
+        legalOk:"A Legal / Privacy page is present.",
+        legalWarn:"The Legal / Privacy page could not be found.",
+        secretsOk:"No obvious API-key/secret pattern was found in the public HTML fetched by this browser.",
+        secretsWarn:"A string resembling a secret/API key was found in public HTML. Review immediately.",
+        secretsManual:"The public HTML could not be fetched for scanning. Review frontend source manually.",
+        storageWarn:"The app still contains local-browser storage for some business data. Do not treat browser storage as a secure backup.",
+        storageOk:"No obvious local-only storage notice was detected in the visible build.",
+        authOk:"Account authentication UI/API references are present in this build.",
+        authWarn:"Authentication could not be confirmed from the visible frontend.",
+        repo:"Website code cannot reliably verify whether the GitHub repository is Private. Check GitHub repository visibility manually.",
+        trademark:"Website code cannot verify trademark registration or exclusive ownership of the HEGEVA name. Check the relevant trademark registry/legal position manually.",
+        backups:"Website code cannot verify Cloudflare/D1 backup, recovery and retention policy. Confirm this in the backend/Cloudflare configuration."
+      }
+    },
+    hu:{
+      title:"🛡️ HEGEVA AI Indulási és Védelmi Ellenőrzés",
+      subtitle:"Ellenőrzi az indulási készültséget, a nyilvános frontendben felismerhető titkos kulcsokat és a böngészőből ténylegesen ellenőrizhető biztonsági jeleket. Amit a weboldal nem tud hitelesen ellenőrizni, azt kézi ellenőrzésként jelöli.",
+      run:"Indulási és védelmi ellenőrzés futtatása",
+      total:"Ellenőrzések",pass:"Sikeres",warn:"Figyelmeztetés",manual:"Kézi",
+      waiting:"A védelmi ellenőrzés még nem futott le.",
+      note:"Ez a diagnosztika nem igazolja a jogi tulajdonjogot, a védjegybejegyzést, a GitHub repository privát állapotát vagy a teljes kiberbiztonságot. Csak azt jelzi biztosként, amit a böngésző ténylegesen ellenőrizni tud.",
+      status:{pass:"SIKERES",warn:"FIGYELEM",manual:"KÉZI",fail:"HIBA"},
+      names:{
+        https:"HTTPS / biztonságos kapcsolat",
+        domain:"Saját nyilvános domain",
+        operator:"Üzemeltetői / vállalkozási adatok",
+        support:"Nyilvános támogatási e-mail",
+        legal:"Jogi és adatvédelmi oldal",
+        obviousSecrets:"Nyilvános titkos kulcsok ellenőrzése",
+        localStorage:"Érzékeny adatok tárolása",
+        auth:"Fiókhitelesítés",
+        repo:"GitHub repository láthatósága",
+        trademark:"HEGEVA név / védjegy",
+        backups:"Backend / adatbázis mentési szabályzat"
+      },
+      detail:{
+        httpsOk:"Az oldal biztonságos HTTPS-kapcsolaton fut.",
+        httpsBad:"Az oldal nem biztonságos HTTPS-kapcsolaton fut.",
+        domainOk:"A szolgáltatás saját nyilvános domaint használ.",
+        domainWarn:"Az oldal workers.dev vagy helyi/fejlesztői címet használhat.",
+        operatorOk:"Az alapvető üzemeltetői adatok ki vannak töltve.",
+        operatorWarn:"Egy vagy több alapvető üzemeltetői adat hiányzik.",
+        supportOk:"Érvényes formátumú támogatási e-mail van beállítva.",
+        supportWarn:"Nincs érvényes nyilvános támogatási e-mail beállítva.",
+        legalOk:"A Jogi / Adatvédelmi oldal megtalálható.",
+        legalWarn:"A Jogi / Adatvédelmi oldal nem található.",
+        secretsOk:"A böngésző által letöltött nyilvános HTML-ben nem találtam egyértelmű API-kulcs/titok mintát.",
+        secretsWarn:"A nyilvános HTML-ben titkos kulcsra/API-kulcsra hasonlító érték található. Ezt azonnal ellenőrizni kell.",
+        secretsManual:"A nyilvános HTML nem volt letölthető az automatikus ellenőrzéshez. A frontend forrását kézzel kell ellenőrizni.",
+        storageWarn:"Az alkalmazás egyes üzleti adatokat még helyi böngészőtárolásban tart. A böngészőtárolást ne kezeld biztonságos biztonsági mentésként.",
+        storageOk:"A látható buildben nem találtam egyértelmű helyi-tárolási figyelmeztetést.",
+        authOk:"A buildben megtalálható a fiókhitelesítés felülete/API-hivatkozása.",
+        authWarn:"A fiókhitelesítést a látható frontendből nem sikerült megerősíteni.",
+        repo:"A weboldal nem tudja megbízhatóan ellenőrizni, hogy a GitHub repository Private-e. A repository láthatóságát a GitHubon kézzel ellenőrizd.",
+        trademark:"A weboldal nem tudja igazolni a HEGEVA név védjegybejegyzését vagy kizárólagos jogi tulajdonát. Ezt a megfelelő védjegynyilvántartásban/jogi ellenőrzéssel kell megerősíteni.",
+        backups:"A weboldal nem tudja ellenőrizni a Cloudflare/D1 mentési, visszaállítási és adatmegőrzési szabályokat. Ezt a backend/Cloudflare beállításokban kell megerősíteni."
+      }
+    },
+    de:{
+      title:"🛡️ HEGEVA AI Start- & Schutzprüfung",
+      subtitle:"Prüft Startbereitschaft, offensichtliche Secret-Exposition im Frontend und browserseitig überprüfbare Sicherheitssignale. Nicht überprüfbare Punkte werden klar als manuell markiert.",
+      run:"Start- & Schutzprüfung ausführen",
+      total:"Prüfungen",pass:"Bestanden",warn:"Warnungen",manual:"Manuell",
+      waiting:"Die Schutzprüfung wurde noch nicht ausgeführt.",
+      note:"Diese Diagnose bestätigt weder rechtliches Eigentum noch Markenregistrierung, Repository-Privatsphäre oder vollständige Cybersicherheit.",
+      status:{pass:"OK",warn:"WARNUNG",manual:"MANUELL",fail:"FEHLER"},
+      names:{https:"HTTPS / sicherer Kontext",domain:"Eigene öffentliche Domain",operator:"Betreiber-/Unternehmensdaten",support:"Öffentliche Support-E-Mail",legal:"Recht & Datenschutz",obviousSecrets:"Frontend-Secret-Prüfung",localStorage:"Datenspeicherung",auth:"Konto-Authentifizierung",repo:"GitHub-Repository-Sichtbarkeit",trademark:"HEGEVA Name / Marke",backups:"Backend-/Datenbank-Backups"},
+      detail:{
+        httpsOk:"Die Seite läuft über eine sichere HTTPS-Verbindung.",httpsBad:"Die Seite läuft nicht über eine sichere HTTPS-Verbindung.",
+        domainOk:"Die Seite verwendet eine eigene öffentliche Domain.",domainWarn:"Die Seite scheint workers.dev oder eine Entwicklungsadresse zu verwenden.",
+        operatorOk:"Die wichtigsten Betreiberangaben sind vollständig.",operatorWarn:"Mindestens eine wichtige Betreiberangabe fehlt.",
+        supportOk:"Eine gültig aussehende Support-E-Mail ist eingerichtet.",supportWarn:"Keine gültige öffentliche Support-E-Mail eingerichtet.",
+        legalOk:"Eine Seite für Recht/Datenschutz ist vorhanden.",legalWarn:"Die Seite für Recht/Datenschutz wurde nicht gefunden.",
+        secretsOk:"Im öffentlich geladenen HTML wurde kein offensichtliches Secret-/API-Key-Muster gefunden.",secretsWarn:"Im öffentlichen HTML wurde ein möglicher Secret/API-Key gefunden. Sofort prüfen.",secretsManual:"Öffentliches HTML konnte nicht automatisch geprüft werden.",
+        storageWarn:"Einige Geschäftsdaten werden noch lokal im Browser gespeichert. Das ist kein sicherer Backup-Ersatz.",storageOk:"Kein offensichtlicher Hinweis auf ausschließlich lokale Speicherung erkannt.",
+        authOk:"Authentifizierungs-UI/API-Referenzen sind vorhanden.",authWarn:"Authentifizierung konnte im sichtbaren Frontend nicht bestätigt werden.",
+        repo:"Die Website kann nicht zuverlässig prüfen, ob das GitHub-Repository privat ist. In GitHub manuell prüfen.",
+        trademark:"Die Website kann Markenregistrierung oder exklusive Rechte am Namen HEGEVA nicht bestätigen. Manuell/rechtlich prüfen.",
+        backups:"Die Website kann Cloudflare/D1-Backup-, Recovery- und Aufbewahrungsregeln nicht bestätigen. Backend-Konfiguration manuell prüfen."
+      }
+    },
+    fr:{
+      title:"🛡️ Vérification lancement & protection HEGEVA AI",
+      subtitle:"Vérifie la préparation au lancement, l’exposition évidente de secrets dans le frontend et les signaux de sécurité réellement vérifiables depuis le navigateur.",
+      run:"Lancer la vérification protection",
+      total:"Vérifications",pass:"Réussies",warn:"Avertissements",manual:"Manuel",
+      waiting:"La vérification de protection n’a pas encore été exécutée.",
+      note:"Ce diagnostic ne certifie ni la propriété juridique, ni une marque déposée, ni la confidentialité du dépôt, ni une cybersécurité complète.",
+      status:{pass:"RÉUSSI",warn:"ATTENTION",manual:"MANUEL",fail:"ÉCHEC"},
+      names:{https:"HTTPS / contexte sécurisé",domain:"Domaine public personnalisé",operator:"Données de l’exploitant",support:"E-mail public d’assistance",legal:"Page juridique et confidentialité",obviousSecrets:"Recherche de secrets frontend",localStorage:"Stockage des données",auth:"Authentification du compte",repo:"Visibilité du dépôt GitHub",trademark:"Nom / marque HEGEVA",backups:"Sauvegardes backend/base de données"},
+      detail:{
+        httpsOk:"La page utilise une connexion HTTPS sécurisée.",httpsBad:"La page n’utilise pas de connexion HTTPS sécurisée.",
+        domainOk:"Le site utilise un domaine public personnalisé.",domainWarn:"Le site semble utiliser workers.dev ou une adresse de développement.",
+        operatorOk:"Les informations essentielles de l’exploitant semblent complètes.",operatorWarn:"Une ou plusieurs informations essentielles de l’exploitant manquent.",
+        supportOk:"Un e-mail d’assistance au format valide est configuré.",supportWarn:"Aucun e-mail public d’assistance valide n’est configuré.",
+        legalOk:"La page juridique/confidentialité est présente.",legalWarn:"La page juridique/confidentialité est introuvable.",
+        secretsOk:"Aucun motif évident de clé API/secret n’a été trouvé dans le HTML public.",secretsWarn:"Une chaîne ressemblant à une clé/secret a été trouvée dans le HTML public. Vérification immédiate requise.",secretsManual:"Le HTML public n’a pas pu être analysé automatiquement.",
+        storageWarn:"Certaines données professionnelles sont encore stockées localement dans le navigateur. Ce stockage ne constitue pas une sauvegarde sécurisée.",storageOk:"Aucun avertissement évident de stockage local uniquement détecté.",
+        authOk:"Des références UI/API d’authentification sont présentes.",authWarn:"L’authentification n’a pas pu être confirmée depuis le frontend visible.",
+        repo:"Le site ne peut pas vérifier de manière fiable si le dépôt GitHub est privé. Vérifiez-le manuellement dans GitHub.",
+        trademark:"Le site ne peut pas confirmer l’enregistrement de la marque ou les droits exclusifs sur le nom HEGEVA. Vérification juridique/manuelle nécessaire.",
+        backups:"Le site ne peut pas vérifier la politique de sauvegarde/récupération/rétention Cloudflare/D1. Vérifiez la configuration backend."
+      }
+    },
+    es:{
+      title:"🛡️ Comprobación de lanzamiento y protección HEGEVA AI",
+      subtitle:"Comprueba la preparación para el lanzamiento, la exposición evidente de secretos en el frontend y las señales de seguridad que el navegador puede verificar realmente.",
+      run:"Ejecutar comprobación de protección",
+      total:"Comprobaciones",pass:"Correctas",warn:"Advertencias",manual:"Manual",
+      waiting:"La comprobación de protección todavía no se ha ejecutado.",
+      note:"Este diagnóstico no certifica propiedad legal, registro de marca, privacidad del repositorio ni ciberseguridad completa.",
+      status:{pass:"CORRECTO",warn:"ATENCIÓN",manual:"MANUAL",fail:"FALLO"},
+      names:{https:"HTTPS / contexto seguro",domain:"Dominio público personalizado",operator:"Datos del operador",support:"Correo público de soporte",legal:"Página legal y privacidad",obviousSecrets:"Escaneo de secretos frontend",localStorage:"Almacenamiento de datos",auth:"Autenticación de cuenta",repo:"Visibilidad del repositorio GitHub",trademark:"Nombre / marca HEGEVA",backups:"Copias backend/base de datos"},
+      detail:{
+        httpsOk:"La página funciona mediante una conexión HTTPS segura.",httpsBad:"La página no funciona mediante una conexión HTTPS segura.",
+        domainOk:"El sitio utiliza un dominio público personalizado.",domainWarn:"El sitio parece utilizar workers.dev o una dirección de desarrollo.",
+        operatorOk:"Los datos esenciales del operador parecen completos.",operatorWarn:"Falta uno o más datos esenciales del operador.",
+        supportOk:"Hay configurado un correo de soporte con formato válido.",supportWarn:"No hay configurado un correo público de soporte válido.",
+        legalOk:"Existe una página Legal/Privacidad.",legalWarn:"No se encontró la página Legal/Privacidad.",
+        secretsOk:"No se encontró un patrón evidente de clave API/secreto en el HTML público.",secretsWarn:"Se encontró una cadena similar a una clave/secreto en el HTML público. Revisar inmediatamente.",secretsManual:"No se pudo analizar automáticamente el HTML público.",
+        storageWarn:"Algunos datos empresariales todavía se almacenan localmente en el navegador. No lo trates como una copia de seguridad segura.",storageOk:"No se detectó un aviso evidente de almacenamiento solo local.",
+        authOk:"Hay referencias de UI/API de autenticación en esta versión.",authWarn:"No se pudo confirmar la autenticación desde el frontend visible.",
+        repo:"El sitio no puede verificar de forma fiable si el repositorio GitHub es privado. Compruébalo manualmente en GitHub.",
+        trademark:"El sitio no puede confirmar el registro de marca ni derechos exclusivos sobre el nombre HEGEVA. Requiere comprobación manual/legal.",
+        backups:"El sitio no puede confirmar la política de copias, recuperación y retención de Cloudflare/D1. Comprueba la configuración backend."
+      }
+    }
+  };
+
+  const lang=()=>{
+    const v=document.getElementById("languageSelect")?.value||document.documentElement.dataset.hegevaLanguage||"en";
+    return TX[v]?v:"en";
+  };
+  const t=()=>TX[lang()];
+  const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+
+  function ensureCard(){
+    const page=document.getElementById("diagnostics");
+    if(!page)return null;
+    let card=document.getElementById("v313ProtectionCard");
+    if(card)return card;
+    card=document.createElement("div");
+    card.id="v313ProtectionCard";
+    card.className="diag-card";
+    page.appendChild(card);
+    return card;
+  }
+
+  function renderWaiting(){
+    const x=t(), card=ensureCard();
+    if(!card)return;
+    card.innerHTML=`
+      <div id="v313ProtectionHead">
+        <div>
+          <h2 style="margin:0">${esc(x.title)}</h2>
+          <p style="margin:6px 0 0;color:var(--muted);line-height:1.55">${esc(x.subtitle)}</p>
+        </div>
+        <button class="primary-button" id="v313RunProtection" type="button">${esc(x.run)}</button>
+      </div>
+      <div id="v313ProtectionResults"><div class="coming-item">${esc(x.waiting)}</div></div>
+      <div id="v313ProtectionNote">${esc(x.note)}</div>`;
+  }
+
+  function settings(){
+    const ids={
+      businessName:"businessName",
+      businessEmail:"businessEmail",
+      address:"address",
+      country:"country"
+    };
+    const out={};
+    for(const [k,id] of Object.entries(ids)) out[k]=(document.getElementById(id)?.value||"").trim();
+    try{
+      const raw=JSON.parse(localStorage.getItem("hegeva_settings")||"{}")||{};
+      for(const k of Object.keys(ids)) if(!out[k])out[k]=String(raw[k]||"").trim();
+    }catch{}
+    return out;
+  }
+
+  const isEmail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||"").trim());
+
+  async function scanPublicHtml(){
+    try{
+      const r=await fetch(location.href,{cache:"no-store"});
+      if(!r.ok)throw new Error("fetch");
+      const source=await r.text();
+
+      // Obvious secret patterns only; this intentionally avoids reporting normal public identifiers.
+      const patterns=[
+        /\bsk-[A-Za-z0-9_-]{20,}\b/g,
+        /\bre_[A-Za-z0-9_-]{20,}\b/g,
+        /\bAIza[0-9A-Za-z_-]{30,}\b/g,
+        /\bghp_[A-Za-z0-9]{30,}\b/g,
+        /\bgithub_pat_[A-Za-z0-9_]{20,}\b/g,
+        /\bAKIA[0-9A-Z]{16}\b/g
+      ];
+      return {ok:!patterns.some(p=>p.test(source)),source};
+    }catch{
+      return {ok:null,source:""};
+    }
+  }
+
+  function statusClass(s){
+    return s==="pass"?"v313-ok":s==="warn"?"v313-warn":s==="fail"?"v313-fail":"v313-manual";
+  }
+
+  async function run(){
+    const x=t(), card=ensureCard();
+    if(!card)return;
+
+    const s=settings();
+    const host=location.hostname.toLowerCase();
+    const secure=location.protocol==="https:" && window.isSecureContext;
+    const customDomain=host && !/workers\.dev$|localhost$|127\.0\.0\.1$/.test(host);
+    const operator=Boolean(s.businessName&&s.address&&s.country);
+    const support=isEmail(s.businessEmail);
+    const legal=Boolean(document.getElementById("legal")&&document.getElementById("privacyPolicy"));
+    const auth=Boolean(
+      document.querySelector("#accountButton,#logoutButton,#authModal") ||
+      [...document.scripts].some(s=>/\/api\/auth\//.test(s.textContent||""))
+    );
+    const localOnly=/csak ebben a böngészőben|local browser|local storage|helyi böngész/i.test(document.body.innerText||"");
+    const secretScan=await scanPublicHtml();
+
+    const checks=[
+      {name:x.names.https,status:secure?"pass":"fail",detail:secure?x.detail.httpsOk:x.detail.httpsBad},
+      {name:x.names.domain,status:customDomain?"pass":"warn",detail:customDomain?x.detail.domainOk:x.detail.domainWarn},
+      {name:x.names.operator,status:operator?"pass":"warn",detail:operator?x.detail.operatorOk:x.detail.operatorWarn},
+      {name:x.names.support,status:support?"pass":"warn",detail:support?x.detail.supportOk:x.detail.supportWarn},
+      {name:x.names.legal,status:legal?"pass":"warn",detail:legal?x.detail.legalOk:x.detail.legalWarn},
+      {name:x.names.obviousSecrets,status:secretScan.ok===true?"pass":secretScan.ok===false?"fail":"manual",detail:secretScan.ok===true?x.detail.secretsOk:secretScan.ok===false?x.detail.secretsWarn:x.detail.secretsManual},
+      {name:x.names.localStorage,status:localOnly?"warn":"pass",detail:localOnly?x.detail.storageWarn:x.detail.storageOk},
+      {name:x.names.auth,status:auth?"pass":"warn",detail:auth?x.detail.authOk:x.detail.authWarn},
+      {name:x.names.repo,status:"manual",detail:x.detail.repo},
+      {name:x.names.trademark,status:"manual",detail:x.detail.trademark},
+      {name:x.names.backups,status:"manual",detail:x.detail.backups}
+    ];
+
+    const count=s=>checks.filter(c=>c.status===s).length;
+    card.innerHTML=`
+      <div id="v313ProtectionHead">
+        <div>
+          <h2 style="margin:0">${esc(x.title)}</h2>
+          <p style="margin:6px 0 0;color:var(--muted);line-height:1.55">${esc(x.subtitle)}</p>
+        </div>
+        <button class="primary-button" id="v313RunProtection" type="button">${esc(x.run)}</button>
+      </div>
+      <div id="v313ProtectionSummary">
+        <div class="v313-stat"><span>${esc(x.total)}</span><strong>${checks.length}</strong></div>
+        <div class="v313-stat"><span>${esc(x.pass)}</span><strong>${count("pass")}</strong></div>
+        <div class="v313-stat"><span>${esc(x.warn)}</span><strong>${count("warn")+count("fail")}</strong></div>
+        <div class="v313-stat"><span>${esc(x.manual)}</span><strong>${count("manual")}</strong></div>
+      </div>
+      <div id="v313ProtectionResults">
+        ${checks.map(c=>`
+          <div class="v313-check-row">
+            <strong>${esc(c.name)}</strong>
+            <p>${esc(c.detail)}</p>
+            <span class="v313-check-badge ${statusClass(c.status)}">${esc(x.status[c.status])}</span>
+          </div>`).join("")}
+      </div>
+      <div id="v313ProtectionNote">${esc(x.note)}</div>`;
+  }
+
+  document.addEventListener("click",e=>{
+    if(e.target.closest("#v313RunProtection"))run();
+  });
+
+  document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(renderWaiting,60));
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",()=>setTimeout(renderWaiting,180),{once:true});
+  }else{
+    setTimeout(renderWaiting,180);
+  }
+
+  window.hegevaV313ProtectionCheck=run;
 })();
 </script>
 
