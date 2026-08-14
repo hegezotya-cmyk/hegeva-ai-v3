@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V31.4 — secure cloud-first workspace migration with protected local fallback." />
-  <title>Hegeva AI V31.4</title>
+  <meta name="description" content="Hegeva AI V31.5 — secure cloud-first workspace migration with protected local fallback." />
+  <title>Hegeva AI V31.5</title>
 
   <style>
     :root {
@@ -7771,7 +7771,7 @@
 
 
     // =========================================
-    // HEGEVA AI V31.4 — SECURE CLOUD DATA MIGRATION
+    // HEGEVA AI V31.5 — SECURE CLOUD DATA MIGRATION
     // Cloud-first for signed-in users.
     // Existing cloud data is NEVER overwritten by an automatic migration.
     // Browser data is used only as a migration source / local working cache.
@@ -11752,7 +11752,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V31.4 — LAUNCH & PROTECTION CHECK
+   HEGEVA AI V31.5 — LAUNCH & PROTECTION CHECK
    ========================================================= */
 #v313ProtectionCard{
   margin-top:16px;
@@ -11841,7 +11841,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V31.4 — TRANSPARENT LAUNCH & PROTECTION CHECK
+   HEGEVA AI V31.5 — TRANSPARENT LAUNCH & PROTECTION CHECK
    Browser-verifiable checks only. No invented legal/security claims.
    ========================================================= */
 (() => {
@@ -12155,6 +12155,606 @@ Open planner tasks: ${s.openTasks}`;
   }
 
   window.hegevaV313ProtectionCheck=run;
+})();
+</script>
+
+
+<style>
+/* =========================================================
+   HEGEVA AI V31.5 — PROFESSIONAL UI + 5-LANGUAGE POLISH
+   Visual-only enhancement. Existing backend/auth/cloud logic preserved.
+   ========================================================= */
+
+:root{
+  --v315-surface:rgba(12,22,40,.72);
+  --v315-surface-2:rgba(20,31,54,.78);
+  --v315-line:rgba(255,255,255,.11);
+  --v315-gold:rgba(246,196,83,.95);
+  --v315-blue:rgba(55,200,255,.95);
+  --v315-purple:rgba(155,108,255,.95);
+  --v315-shadow:0 24px 70px rgba(0,0,0,.24);
+}
+
+.main{
+  max-width:1240px;
+  margin:0 auto;
+  width:100%;
+}
+
+.page > .page-heading{
+  margin-bottom:22px;
+  padding-bottom:4px;
+}
+
+.page-heading h1{
+  font-size:clamp(27px,3vw,38px);
+  letter-spacing:-.9px;
+}
+
+.page-heading p{
+  max-width:850px;
+  font-size:14px;
+  line-height:1.65;
+}
+
+.card,
+.v22-card,
+.v25-card,
+.v27-card,
+.v28-card,
+.v10-card,
+.v12-panel,
+.diag-card,
+.diag-hero{
+  border-color:var(--v315-line) !important;
+  box-shadow:var(--v315-shadow);
+}
+
+.card,
+.v22-card,
+.v25-card,
+.v27-card,
+.v28-card,
+.diag-card{
+  backdrop-filter:blur(16px);
+}
+
+.vision-tagline{
+  letter-spacing:.08em;
+  font-size:10px;
+  font-weight:900;
+  color:#f4d889;
+}
+
+/* ---- AI Assistant: premium workspace ---- */
+#assistant .page-heading{
+  padding:22px 24px;
+  border:1px solid rgba(246,196,83,.18);
+  border-radius:20px;
+  background:
+    radial-gradient(circle at 85% 10%,rgba(55,200,255,.09),transparent 27%),
+    linear-gradient(135deg,rgba(246,196,83,.055),rgba(155,108,255,.055),rgba(255,255,255,.025));
+}
+
+#assistant > .v27-card,
+#assistant > .v22-card{
+  border-radius:20px;
+  padding:22px;
+}
+
+#assistant #v22Templates{
+  gap:12px;
+}
+
+#assistant .v22-template{
+  min-height:82px;
+  padding:16px;
+  border-radius:14px;
+  text-align:left;
+  transition:.18s ease;
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.045),rgba(55,200,255,.025));
+}
+
+#assistant .v22-template:hover{
+  transform:translateY(-2px);
+  border-color:rgba(246,196,83,.38);
+  background:
+    linear-gradient(145deg,rgba(246,196,83,.08),rgba(155,108,255,.07));
+}
+
+#assistant .v22-template strong{
+  font-size:14px;
+}
+
+#assistant .v22-template small{
+  display:inline-block;
+  margin-top:5px;
+  color:var(--muted);
+  line-height:1.35;
+}
+
+#assistant .metric-strip{
+  gap:11px;
+}
+
+#assistant .metric-mini{
+  min-height:92px;
+  padding:16px;
+  border-radius:15px;
+  border:1px solid var(--v315-line);
+  background:
+    linear-gradient(145deg,rgba(55,200,255,.065),rgba(155,108,255,.055),rgba(255,255,255,.025));
+}
+
+#assistant .chat-shell{
+  gap:14px;
+}
+
+#assistant .chat-sidebar,
+#assistant .chat-main{
+  box-shadow:var(--v315-shadow);
+  background:linear-gradient(155deg,rgba(17,29,50,.78),rgba(12,20,37,.74));
+}
+
+/* ---- Release readiness: dashboard grade ---- */
+#v25ReleaseCenter{
+  gap:16px;
+}
+
+#v25ReleaseCenter .v25-card{
+  border-radius:20px;
+  padding:22px;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(155,108,255,.10),transparent 30%),
+    linear-gradient(145deg,rgba(255,255,255,.045),rgba(55,200,255,.025));
+}
+
+#v25ReleaseCenter .v25-status-grid{
+  gap:10px;
+  margin-top:15px;
+}
+
+#v25ReleaseCenter .v25-status{
+  min-height:76px;
+  padding:13px;
+  border-radius:13px;
+  background:rgba(255,255,255,.028);
+}
+
+#v25ReleaseCenter .v25-progress{
+  height:9px;
+  border-radius:999px;
+}
+
+#v25ReleaseCenter .v25-row{
+  padding:11px 12px;
+  border-radius:11px;
+  background:rgba(255,255,255,.022);
+}
+
+#v25ReleaseCenter .v25-actions{
+  margin-top:16px;
+  gap:9px;
+}
+
+/* ---- Diagnostics: launch-grade presentation ---- */
+#diagnostics .page-heading{
+  padding:22px 24px;
+  border-radius:20px;
+  border:1px solid rgba(55,200,255,.17);
+  background:
+    radial-gradient(circle at 90% 10%,rgba(55,200,255,.10),transparent 28%),
+    linear-gradient(145deg,rgba(155,108,255,.055),rgba(255,255,255,.02));
+}
+
+#diagnostics .diag-shell{
+  gap:15px;
+}
+
+#diagnostics .diag-hero,
+#diagnostics .diag-card{
+  border-radius:20px;
+  padding:20px;
+}
+
+#diagnostics .diag-summary{
+  gap:10px;
+}
+
+#diagnostics .diag-stat{
+  min-height:82px;
+  padding:13px;
+  border-radius:13px;
+  background:rgba(255,255,255,.025);
+}
+
+#diagnostics .diag-row{
+  padding:12px 13px;
+  border-radius:12px;
+  background:rgba(255,255,255,.022);
+}
+
+#diagnostics .diag-badge{
+  min-width:64px;
+  text-align:center;
+}
+
+/* ---- Common professional button language ---- */
+.primary-button,
+.secondary-button{
+  min-height:43px;
+  border-radius:11px;
+}
+
+.primary-button{
+  font-weight:850;
+}
+
+.secondary-button{
+  font-weight:750;
+}
+
+/* ---- Responsive polish ---- */
+@media(max-width:900px){
+  .main{max-width:none}
+  #assistant .metric-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media(max-width:620px){
+  #assistant .metric-strip{grid-template-columns:1fr}
+  #assistant .page-heading,
+  #diagnostics .page-heading{
+    padding:17px;
+  }
+}
+</style>
+
+<script>
+/* =========================================================
+   HEGEVA AI V31.5 — 5-LANGUAGE PROFESSIONAL LOCALIZATION
+   Covers newer assistant/release/diagnostic blocks and dynamic labels.
+   ========================================================= */
+(() => {
+  "use strict";
+
+  const L = {
+    en:{
+      aiContextTag:"V31.5 BUSINESS CONTEXT",
+      useWorkspace:"Use my real HEGEVA workspace",
+      useWorkspaceDesc:"Build a prompt from saved customers, documents, expenses and planner data. Nothing is sent until you press the normal AI send button.",
+      loadContext:"Load business context into AI",
+      clearAi:"Clear AI input",
+      templatesTag:"V31.5 SMART TEMPLATES",
+      templateTitle:"Business-specific AI starters",
+      templates:{
+        freelancer:["Freelancer","Clients, quotes, invoices, follow-ups"],
+        retail:["Retail","Sales, stock, customers, expenses"],
+        construction:["Construction","Quotes, jobs, materials, payments"],
+        cleaning:["Cleaning","Recurring clients, jobs, invoices"],
+        consultant:["Consultant","Projects, proposals, clients, actions"],
+        general:["General business","Priorities and next actions"]
+      },
+      modeGeneral:"General",
+      releaseTag:"V31.5 RELEASE READINESS",
+      releaseTitle:"Release Readiness Center",
+      releaseDesc:"Verify account, cloud, AI plan, workspace data and setup before public use.",
+      account:"Account",cloud:"Cloud workspace",plan:"Plan backend",network:"Network",
+      releaseReady:"Release readiness",runRelease:"Run release check",finishSetup:"Finish setup",
+      onboardingTag:"SMART ONBOARDING",nextSteps:"Next setup steps",
+      onboardingDesc:"HEGEVA suggests only actions that are actually missing from your workspace.",
+      entitlements:"PLAN ENTITLEMENTS",currentPlan:"Current plan",aiAllowance:"AI allowance",payments:"Payments",
+      disabled:"Disabled",
+      entitlementNote:"Premium/Pro features are marked active only when the backend confirms entitlement. Payments remain disabled until a real payment provider is connected.",
+      readiness:{
+        signed:"Signed-in account",profile:"Business profile complete",crm:"At least one CRM customer",
+        document:"At least one saved document",expense:"Expense tracking started",planner:"Planner is in use",
+        ready:"✓ Ready",needs:"Needs setup",complete:"Core workspace setup is complete."
+      },
+      diagTag:"V31.5 SELF-CHECK & LAUNCH DIAGNOSTICS",
+      diagTitle:"🩺 Full System Check",
+      diagDesc:"Checks the HEGEVA interface, workspace, launch setup, account state and reachable backend endpoints without inventing results.",
+      systemHealth:"System health",
+      diagHelp:"Run this after each deployment or major configuration change.",
+      runDiag:"Run Full System Check",
+      overall:"Overall",passed:"Passed",warnings:"Warnings",failed:"Failed",
+      notRun:"Not run",results:"Diagnostic results",waiting:"Diagnostics waiting",
+      pressRun:"Press Run Full System Check.",log:"Diagnostic log",copy:"Copy report",
+      noRun:"No diagnostic run yet.",open:"Open"
+    },
+    hu:{
+      aiContextTag:"V31.5 ÜZLETI KONTEXTUS",
+      useWorkspace:"Saját HEGEVA munkaterületem használata",
+      useWorkspaceDesc:"A mentett ügyfelekből, dokumentumokból, kiadásokból és tervezőadatokból készít AI-kontextust. Semmit nem küld el addig, amíg meg nem nyomod a normál AI küldés gombot.",
+      loadContext:"Üzleti kontextus betöltése az AI-ba",
+      clearAi:"AI mező törlése",
+      templatesTag:"V31.5 OKOS SABLONOK",
+      templateTitle:"Üzlettípushoz igazított AI indítás",
+      templates:{
+        freelancer:["Szabadúszó","Ügyfelek, árajánlatok, számlák, utánkövetések"],
+        retail:["Kiskereskedelem","Értékesítés, készlet, ügyfelek, kiadások"],
+        construction:["Építőipar","Árajánlatok, munkák, anyagok, fizetések"],
+        cleaning:["Takarítás","Visszatérő ügyfelek, munkák, számlák"],
+        consultant:["Tanácsadó","Projektek, ajánlatok, ügyfelek, teendők"],
+        general:["Általános vállalkozás","Prioritások és következő lépések"]
+      },
+      modeGeneral:"Általános",
+      releaseTag:"V31.5 INDULÁSI KÉSZÜLTSÉG",
+      releaseTitle:"Indulási készültségi központ",
+      releaseDesc:"Egy helyen ellenőrizheted a fiókot, felhőt, AI csomagot, munkaterületet és a nyilvános induláshoz szükséges beállításokat.",
+      account:"Fiók",cloud:"Felhő munkatér",plan:"Csomag backend",network:"Hálózat",
+      releaseReady:"Indulási készültség",runRelease:"Indulási ellenőrzés futtatása",finishSetup:"Beállítás befejezése",
+      onboardingTag:"OKOS BEÁLLÍTÁS",nextSteps:"Következő beállítási lépések",
+      onboardingDesc:"A HEGEVA csak azt javasolja, ami ténylegesen hiányzik a munkaterületedből.",
+      entitlements:"CSOMAGJOGOSULTSÁGOK",currentPlan:"Jelenlegi csomag",aiAllowance:"AI keret",payments:"Fizetések",
+      disabled:"Kikapcsolva",
+      entitlementNote:"A Premium/Pro funkciók csak akkor jelennek meg aktívként, ha a backend igazolja a jogosultságot. A fizetés addig kikapcsolva marad, amíg valódi fizetési szolgáltató nincs csatlakoztatva.",
+      readiness:{
+        signed:"Bejelentkezett fiók",profile:"Üzleti profil kitöltve",crm:"Legalább egy CRM ügyfél",
+        document:"Legalább egy mentett dokumentum",expense:"Kiadáskövetés elkezdve",planner:"A tervező használatban van",
+        ready:"✓ Kész",needs:"Beállítás szükséges",complete:"Az alap munkaterület beállítása kész."
+      },
+      diagTag:"V31.5 ÖNELLENŐRZÉS ÉS INDULÁSI DIAGNOSZTIKA",
+      diagTitle:"🩺 Teljes rendszerellenőrzés",
+      diagDesc:"Ellenőrzi a HEGEVA felületét, munkaterületét, indulási beállításait, fiókállapotát és az elérhető backend végpontokat anélkül, hogy eredményeket találna ki.",
+      systemHealth:"Rendszerállapot",
+      diagHelp:"Futtasd minden deploy vagy nagyobb konfigurációs módosítás után.",
+      runDiag:"Teljes rendszerellenőrzés futtatása",
+      overall:"Összesített",passed:"Sikeres",warnings:"Figyelmeztetések",failed:"Hibás",
+      notRun:"Nincs futtatva",results:"Diagnosztikai eredmények",waiting:"A diagnosztika futtatásra vár",
+      pressRun:"Nyomd meg a Teljes rendszerellenőrzés futtatása gombot.",log:"Diagnosztikai napló",copy:"Jelentés másolása",
+      noRun:"Még nem futott diagnosztika.",open:"Megnyitás"
+    },
+    de:{
+      aiContextTag:"V31.5 GESCHÄFTSKONTEXT",useWorkspace:"Meinen echten HEGEVA-Arbeitsbereich verwenden",
+      useWorkspaceDesc:"Erstellt AI-Kontext aus gespeicherten Kunden, Dokumenten, Ausgaben und Planerdaten. Es wird nichts gesendet, bis du die normale AI-Senden-Schaltfläche drückst.",
+      loadContext:"Geschäftskontext in AI laden",clearAi:"AI-Eingabe leeren",templatesTag:"V31.5 INTELLIGENTE VORLAGEN",templateTitle:"AI-Starts nach Geschäftstyp",
+      templates:{freelancer:["Freiberufler","Kunden, Angebote, Rechnungen, Nachfassaktionen"],retail:["Einzelhandel","Verkäufe, Bestand, Kunden, Ausgaben"],construction:["Baugewerbe","Angebote, Aufträge, Materialien, Zahlungen"],cleaning:["Reinigung","Wiederkehrende Kunden, Aufträge, Rechnungen"],consultant:["Beratung","Projekte, Vorschläge, Kunden, Aktionen"],general:["Allgemeines Geschäft","Prioritäten und nächste Schritte"]},
+      modeGeneral:"Allgemein",releaseTag:"V31.5 STARTBEREITSCHAFT",releaseTitle:"Zentrum für Startbereitschaft",releaseDesc:"Prüft Konto, Cloud, AI-Tarif, Arbeitsbereich und Einrichtung vor dem öffentlichen Start.",
+      account:"Konto",cloud:"Cloud-Arbeitsbereich",plan:"Tarif-Backend",network:"Netzwerk",releaseReady:"Startbereitschaft",runRelease:"Startprüfung ausführen",finishSetup:"Einrichtung abschließen",
+      onboardingTag:"INTELLIGENTES ONBOARDING",nextSteps:"Nächste Einrichtungsschritte",onboardingDesc:"HEGEVA schlägt nur tatsächlich fehlende Schritte vor.",
+      entitlements:"TARIFBERECHTIGUNGEN",currentPlan:"Aktueller Tarif",aiAllowance:"AI-Kontingent",payments:"Zahlungen",disabled:"Deaktiviert",
+      entitlementNote:"Premium/Pro-Funktionen werden nur aktiv angezeigt, wenn das Backend die Berechtigung bestätigt. Zahlungen bleiben deaktiviert, bis ein echter Zahlungsanbieter verbunden ist.",
+      readiness:{signed:"Angemeldetes Konto",profile:"Geschäftsprofil vollständig",crm:"Mindestens ein CRM-Kunde",document:"Mindestens ein gespeichertes Dokument",expense:"Ausgabenerfassung begonnen",planner:"Planer wird verwendet",ready:"✓ Bereit",needs:"Einrichtung nötig",complete:"Die Grundeinrichtung des Arbeitsbereichs ist abgeschlossen."},
+      diagTag:"V31.5 SELBSTPRÜFUNG & STARTDIAGNOSE",diagTitle:"🩺 Vollständige Systemprüfung",diagDesc:"Prüft HEGEVA-Oberfläche, Arbeitsbereich, Startkonfiguration, Kontostatus und erreichbare Backend-Endpunkte ohne erfundene Ergebnisse.",
+      systemHealth:"Systemzustand",diagHelp:"Nach jedem Deployment oder größeren Konfigurationswechsel ausführen.",runDiag:"Vollständige Systemprüfung starten",
+      overall:"Gesamt",passed:"Bestanden",warnings:"Warnungen",failed:"Fehlgeschlagen",notRun:"Nicht ausgeführt",results:"Diagnoseergebnisse",waiting:"Diagnose wartet",pressRun:"Klicke auf Vollständige Systemprüfung starten.",log:"Diagnoseprotokoll",copy:"Bericht kopieren",noRun:"Noch keine Diagnose ausgeführt.",open:"Öffnen"
+    },
+    fr:{
+      aiContextTag:"V31.5 CONTEXTE PROFESSIONNEL",useWorkspace:"Utiliser mon véritable espace HEGEVA",
+      useWorkspaceDesc:"Crée un contexte AI à partir des clients, documents, dépenses et données du planificateur enregistrés. Rien n’est envoyé avant d’appuyer sur le bouton d’envoi AI.",
+      loadContext:"Charger le contexte professionnel dans l’AI",clearAi:"Effacer l’entrée AI",templatesTag:"V31.5 MODÈLES INTELLIGENTS",templateTitle:"Démarrages AI adaptés au type d’activité",
+      templates:{freelancer:["Indépendant","Clients, devis, factures, suivis"],retail:["Commerce de détail","Ventes, stock, clients, dépenses"],construction:["Construction","Devis, chantiers, matériaux, paiements"],cleaning:["Nettoyage","Clients récurrents, missions, factures"],consultant:["Consultant","Projets, propositions, clients, actions"],general:["Entreprise générale","Priorités et prochaines actions"]},
+      modeGeneral:"Général",releaseTag:"V31.5 PRÉPARATION AU LANCEMENT",releaseTitle:"Centre de préparation au lancement",releaseDesc:"Vérifiez le compte, le cloud, le forfait AI, les données de l’espace et la configuration avant l’utilisation publique.",
+      account:"Compte",cloud:"Espace cloud",plan:"Backend du forfait",network:"Réseau",releaseReady:"Préparation au lancement",runRelease:"Lancer la vérification",finishSetup:"Terminer la configuration",
+      onboardingTag:"INTÉGRATION INTELLIGENTE",nextSteps:"Prochaines étapes",onboardingDesc:"HEGEVA ne propose que les actions réellement manquantes.",
+      entitlements:"DROITS DU FORFAIT",currentPlan:"Forfait actuel",aiAllowance:"Quota AI",payments:"Paiements",disabled:"Désactivés",
+      entitlementNote:"Les fonctions Premium/Pro ne sont actives que si le backend confirme les droits. Les paiements restent désactivés jusqu’à la connexion d’un véritable prestataire.",
+      readiness:{signed:"Compte connecté",profile:"Profil professionnel complet",crm:"Au moins un client CRM",document:"Au moins un document enregistré",expense:"Suivi des dépenses commencé",planner:"Planificateur utilisé",ready:"✓ Prêt",needs:"Configuration requise",complete:"La configuration de base est terminée."},
+      diagTag:"V31.5 AUTO-VÉRIFICATION & DIAGNOSTIC",diagTitle:"🩺 Vérification complète du système",diagDesc:"Vérifie l’interface HEGEVA, l’espace de travail, la configuration de lancement, le compte et les endpoints backend accessibles sans inventer de résultats.",
+      systemHealth:"État du système",diagHelp:"À exécuter après chaque déploiement ou modification importante.",runDiag:"Lancer la vérification complète",
+      overall:"Global",passed:"Réussi",warnings:"Avertissements",failed:"Échec",notRun:"Non exécuté",results:"Résultats du diagnostic",waiting:"Diagnostic en attente",pressRun:"Cliquez sur Lancer la vérification complète.",log:"Journal de diagnostic",copy:"Copier le rapport",noRun:"Aucun diagnostic exécuté.",open:"Ouvrir"
+    },
+    es:{
+      aiContextTag:"V31.5 CONTEXTO EMPRESARIAL",useWorkspace:"Usar mi espacio HEGEVA real",
+      useWorkspaceDesc:"Crea contexto AI con clientes, documentos, gastos y datos del planificador guardados. No se envía nada hasta que pulses el botón normal de envío AI.",
+      loadContext:"Cargar contexto empresarial en AI",clearAi:"Borrar entrada AI",templatesTag:"V31.5 PLANTILLAS INTELIGENTES",templateTitle:"Inicios AI adaptados al tipo de negocio",
+      templates:{freelancer:["Autónomo","Clientes, presupuestos, facturas, seguimientos"],retail:["Comercio minorista","Ventas, inventario, clientes, gastos"],construction:["Construcción","Presupuestos, trabajos, materiales, pagos"],cleaning:["Limpieza","Clientes recurrentes, trabajos, facturas"],consultant:["Consultor","Proyectos, propuestas, clientes, acciones"],general:["Negocio general","Prioridades y próximos pasos"]},
+      modeGeneral:"General",releaseTag:"V31.5 PREPARACIÓN DEL LANZAMIENTO",releaseTitle:"Centro de preparación del lanzamiento",releaseDesc:"Verifica cuenta, nube, plan AI, datos del espacio y configuración antes del uso público.",
+      account:"Cuenta",cloud:"Espacio cloud",plan:"Backend del plan",network:"Red",releaseReady:"Preparación del lanzamiento",runRelease:"Ejecutar comprobación",finishSetup:"Finalizar configuración",
+      onboardingTag:"INCORPORACIÓN INTELIGENTE",nextSteps:"Próximos pasos",onboardingDesc:"HEGEVA solo sugiere acciones que realmente faltan.",
+      entitlements:"DERECHOS DEL PLAN",currentPlan:"Plan actual",aiAllowance:"Cuota AI",payments:"Pagos",disabled:"Desactivados",
+      entitlementNote:"Las funciones Premium/Pro solo se muestran activas cuando el backend confirma el derecho. Los pagos siguen desactivados hasta conectar un proveedor real.",
+      readiness:{signed:"Cuenta iniciada",profile:"Perfil empresarial completo",crm:"Al menos un cliente CRM",document:"Al menos un documento guardado",expense:"Seguimiento de gastos iniciado",planner:"Planificador en uso",ready:"✓ Listo",needs:"Requiere configuración",complete:"La configuración básica del espacio está completa."},
+      diagTag:"V31.5 AUTOCOMPROBACIÓN Y DIAGNÓSTICO",diagTitle:"🩺 Comprobación completa del sistema",diagDesc:"Comprueba interfaz HEGEVA, espacio de trabajo, configuración de lanzamiento, estado de cuenta y endpoints backend accesibles sin inventar resultados.",
+      systemHealth:"Estado del sistema",diagHelp:"Ejecuta esto después de cada despliegue o cambio importante.",runDiag:"Ejecutar comprobación completa",
+      overall:"General",passed:"Correctos",warnings:"Advertencias",failed:"Fallidos",notRun:"No ejecutado",results:"Resultados del diagnóstico",waiting:"Diagnóstico en espera",pressRun:"Pulsa Ejecutar comprobación completa.",log:"Registro de diagnóstico",copy:"Copiar informe",noRun:"Aún no se ha ejecutado diagnóstico.",open:"Abrir"
+    }
+  };
+
+  const language=()=>{
+    const v=document.getElementById("languageSelect")?.value||document.documentElement.dataset.hegevaLanguage||"en";
+    return L[v]?v:"en";
+  };
+  const tx=()=>L[language()];
+
+  function setText(el,value){ if(el && value!=null) el.textContent=value; }
+
+  function localizeAssistant(){
+    const x=tx();
+    const cards=document.querySelectorAll("#assistant > .v27-card, #assistant > .v22-card");
+    if(cards[0]){
+      setText(cards[0].querySelector(".vision-tagline"),x.aiContextTag);
+      setText(cards[0].querySelector("h3"),x.useWorkspace);
+      setText(cards[0].querySelector("p"),x.useWorkspaceDesc);
+    }
+    setText(document.getElementById("v27LoadBusinessContext"),x.loadContext);
+    setText(document.getElementById("v27ClearBusinessContext"),x.clearAi);
+
+    if(cards[1]){
+      setText(cards[1].querySelector(".vision-tagline"),x.templatesTag);
+      setText(cards[1].querySelector("h3"),x.templateTitle);
+    }
+
+    document.querySelectorAll("#v22Templates [data-v22-template]").forEach(btn=>{
+      const key=btn.dataset.v22Template;
+      const pair=x.templates[key];
+      if(!pair)return;
+      setText(btn.querySelector("strong"),pair[0]);
+      setText(btn.querySelector("small"),pair[1]);
+    });
+
+    const badge=document.getElementById("aiModeBadge");
+    if(badge && /^(General|Általános|Allgemein|Général)$/i.test(badge.textContent.trim())){
+      badge.textContent=x.modeGeneral;
+    }
+  }
+
+  function readinessTranslation(label){
+    const r=tx().readiness;
+    const map={
+      "Signed-in account":r.signed,
+      "Business profile complete":r.profile,
+      "At least one CRM customer":r.crm,
+      "At least one saved document":r.document,
+      "Expense tracking started":r.expense,
+      "Planner is in use":r.planner
+    };
+    return map[label]||label;
+  }
+
+  function localizeRelease(){
+    const x=tx();
+    const root=document.getElementById("v25ReleaseCenter");
+    if(!root)return;
+    const cards=root.querySelectorAll(".v25-card");
+
+    if(cards[0]){
+      setText(cards[0].querySelector(".vision-tagline"),x.releaseTag);
+      setText(cards[0].querySelector("h2"),x.releaseTitle);
+      setText(cards[0].querySelector(":scope > p"),x.releaseDesc);
+
+      const stats=cards[0].querySelectorAll(".v25-status span");
+      [x.account,x.cloud,x.plan,x.network].forEach((v,i)=>setText(stats[i],v));
+
+      const readyLabel=[...cards[0].querySelectorAll("strong")].find(el=>el.textContent.trim()==="Release readiness");
+      if(readyLabel)setText(readyLabel,x.releaseReady);
+
+      setText(document.getElementById("v25RunReleaseCheck"),x.runRelease);
+      setText(document.getElementById("v25OpenOnboarding"),x.finishSetup);
+    }
+
+    if(cards[1]){
+      const tags=cards[1].querySelectorAll(".vision-tagline");
+      setText(tags[0],x.onboardingTag);
+      setText(cards[1].querySelector("h3"),x.nextSteps);
+      setText(cards[1].querySelector(":scope > p"),x.onboardingDesc);
+      setText(tags[1],x.entitlements);
+
+      const ent=cards[1].querySelectorAll(".v25-ent-card span");
+      [x.currentPlan,x.aiAllowance,x.payments].forEach((v,i)=>setText(ent[i],v));
+
+      const payment=document.getElementById("v25Payments");
+      if(payment && /^(Disabled|Kikapcsolva|Deaktiviert|Désactivés|Desactivados)$/i.test(payment.textContent.trim())){
+        payment.textContent=x.disabled;
+      }
+
+      setText(cards[1].querySelector(".v25-inline-note"),x.entitlementNote);
+    }
+
+    document.querySelectorAll("#v25ReadyList .v25-row").forEach(row=>{
+      const a=row.querySelector("span"),b=row.querySelector("strong");
+      if(a)a.textContent=readinessTranslation(a.textContent.trim());
+      if(b){
+        if(/Ready|Kész|Bereit|Prêt|Listo/i.test(b.textContent)) b.textContent=x.readiness.ready;
+        else b.textContent=x.readiness.needs;
+      }
+    });
+
+    document.querySelectorAll("#v25Onboarding button").forEach(btn=>{
+      let label=btn.textContent.replace(/^→\s*/,"").trim();
+      btn.textContent="→ "+readinessTranslation(label);
+    });
+
+    const complete=document.querySelector("#v25Onboarding .v25-row span");
+    if(complete && /Core workspace setup is complete/i.test(complete.textContent)){
+      complete.textContent=x.readiness.complete;
+    }
+  }
+
+  function localizeDiagnostics(){
+    const x=tx(),page=document.getElementById("diagnostics");
+    if(!page)return;
+    setText(page.querySelector(".page-heading .vision-tagline"),x.diagTag);
+    setText(page.querySelector(".page-heading h1"),x.diagTitle);
+    setText(page.querySelector(".page-heading p"),x.diagDesc);
+
+    const hero=page.querySelector(".diag-hero");
+    if(hero){
+      setText(hero.querySelector("h2"),x.systemHealth);
+      const p=hero.querySelector("h2 + p");
+      if(p)setText(p,x.diagHelp);
+    }
+    setText(document.getElementById("diagRunAll"),x.runDiag);
+
+    const statLabels=page.querySelectorAll(".diag-summary .diag-stat span");
+    [x.overall,x.passed,x.warnings,x.failed].forEach((v,i)=>setText(statLabels[i],v));
+
+    const overall=document.getElementById("diagOverall");
+    if(overall && /Not run|Nincs futtatva|Nicht ausgeführt|Non exécuté|No ejecutado/i.test(overall.textContent)){
+      overall.textContent=x.notRun;
+    }
+
+    const cards=page.querySelectorAll(".diag-card");
+    if(cards[0]) setText(cards[0].querySelector("h3"),x.results);
+    if(cards[1]) setText(cards[1].querySelector("h3"),x.log);
+
+    const waiting=document.querySelector("#diagResults .diag-row strong");
+    const press=document.querySelector("#diagResults .diag-row p");
+    if(waiting && /Diagnostics waiting|diagnosztika|Diagnose|Diagnostic|Diagnóstico/i.test(waiting.textContent)){
+      waiting.textContent=x.waiting;
+    }
+    if(press && /Press Run Full System Check|Teljes rendszerellenőrzés|Vollständige Systemprüfung|vérification complète|comprobación completa/i.test(press.textContent)){
+      press.textContent=x.pressRun;
+    }
+
+    setText(document.getElementById("diagCopyReport"),x.copy);
+
+    const log=document.getElementById("diagLog");
+    if(log && /No diagnostic run yet|Még nem futott|Noch keine Diagnose|Aucun diagnostic|Aún no se ha ejecutado/i.test(log.textContent.trim())){
+      log.textContent=x.noRun;
+    }
+
+    document.querySelectorAll("#diagResults button").forEach(b=>{
+      if(/^(Open|Megnyitás|Öffnen|Ouvrir|Abrir)$/i.test(b.textContent.trim())) b.textContent=x.open;
+    });
+  }
+
+  let active=false;
+  function apply(){
+    if(active)return;
+    active=true;
+    try{
+      localizeAssistant();
+      localizeRelease();
+      localizeDiagnostics();
+    }finally{
+      active=false;
+    }
+  }
+
+  const schedule=()=>{
+    clearTimeout(window.__hegevaV315Timer);
+    window.__hegevaV315Timer=setTimeout(apply,50);
+  };
+
+  document.getElementById("languageSelect")?.addEventListener("change",()=>{
+    setTimeout(apply,0);
+    setTimeout(apply,180);
+  });
+
+  const obs=new MutationObserver(()=>{
+    if(!active)schedule();
+  });
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",()=>{
+      apply();
+      obs.observe(document.body,{subtree:true,childList:true,characterData:true});
+    },{once:true});
+  }else{
+    apply();
+    obs.observe(document.body,{subtree:true,childList:true,characterData:true});
+  }
+
+  window.hegevaV315Check=()=>({
+    version:"V31.5",
+    language:language(),
+    assistant:Boolean(document.getElementById("assistant")),
+    release:Boolean(document.getElementById("v25ReleaseCenter")),
+    diagnostics:Boolean(document.getElementById("diagnostics")),
+    time:new Date().toISOString()
+  });
 })();
 </script>
 
