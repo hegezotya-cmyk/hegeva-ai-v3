@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V31.0 — multilingual business workspace with five-language UI stability improvements." />
-  <title>Hegeva AI V31.0</title>
+  <meta name="description" content="Hegeva AI V31.1 — multilingual business workspace with five-language UI stability improvements." />
+  <title>Hegeva AI V31.1</title>
 
   <style>
     :root {
@@ -10862,6 +10862,290 @@ Open planner tasks: ${s.openTasks}`;
     aiChat: Boolean(document.getElementById("aiChatMessages")),
     timestamp: new Date().toISOString()
   });
+})();
+</script>
+
+
+<style>
+/* =========================================================
+   HEGEVA AI V31.1 — BUSINESS TOOLS PREMIUM LAYOUT
+   ========================================================= */
+#businessTools44 .page-heading{
+  margin-bottom:18px;
+}
+#businessTools44 .grid{
+  grid-template-columns:minmax(0,1.05fr) minmax(0,1.15fr);
+  align-items:stretch;
+  gap:18px;
+}
+#businessTools44 .grid > .card{
+  padding:24px;
+  border-radius:22px;
+  min-height:100%;
+}
+#businessTools44 .grid > .card h3{
+  font-size:22px;
+  margin-bottom:14px;
+}
+#businessTools44 .form-grid{
+  gap:14px;
+}
+#businessTools44 .form-group input,
+#businessTools44 .form-group select,
+#businessTools44 .form-group textarea{
+  min-height:46px;
+}
+#businessTools44 .hero-buttons{
+  margin-top:18px;
+  gap:10px;
+}
+#businessTools44 .hero-buttons .primary-button,
+#businessTools44 .hero-buttons .secondary-button{
+  min-height:46px;
+  flex:1 1 160px;
+  white-space:normal;
+  line-height:1.25;
+}
+#businessTools44 .metric-strip{
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:12px;
+}
+#businessTools44 .metric-mini{
+  min-height:102px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+#businessTools44 .metric-mini strong{
+  font-size:26px;
+}
+#businessTools44 .v10-card,
+#businessTools44 .card[style*="margin-top"]{
+  border-radius:22px;
+}
+#businessTools44 #localCustomerList,
+#businessTools44 .v10-customer-list{
+  max-height:none;
+}
+@media(max-width:980px){
+  #businessTools44 .grid{
+    grid-template-columns:1fr;
+  }
+}
+@media(max-width:620px){
+  #businessTools44 .grid > .card{
+    padding:16px;
+  }
+  #businessTools44 .hero-buttons{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+}
+</style>
+
+<script>
+/* =========================================================
+   HEGEVA AI V31.1 — LEGAL 5-LANGUAGE LOCALIZATION
+   ========================================================= */
+(() => {
+  "use strict";
+
+  const LEGAL = {
+    en: {
+      kicker:"V29.0 PUBLIC LAUNCH LEGAL",
+      title:"⚖️ Legal, Privacy & Service Terms",
+      subtitle:"Launch documents tailored to the current HEGEVA build. Operator details must be completed before public launch.",
+      blocker:"Public launch blocker: complete the business/operator name, valid support email, business address and country in Settings.",
+      serviceOperator:"Service operator",
+      businessName:"Trading / business name",
+      contactEmail:"Contact email",
+      businessAddress:"Business address",
+      country:"Country",
+      companyNumber:"Company number",
+      vatNumber:"VAT number",
+      notSet:"Not set",
+      notProvided:"Not provided",
+      operatorMissing:"HEGEVA AI — operator name not completed",
+      privacyTitle:"Privacy Policy",
+      lastUpdated:"Last updated:",
+      privacyIntro:"This policy explains how HEGEVA AI handles personal information when you create an account or use the workspace.",
+      infoTitle:"Information we may process",
+      i1:"Account information such as name, email address and authentication/session data.",
+      i2:"Business profile information you choose to save, such as business name, address, company number and VAT number.",
+      i3:"Workspace information you enter, including customer details, documents, expenses, planner items, notes and saved AI chats.",
+      i4:"AI messages and business context that you choose to send to the HEGEVA AI backend.",
+      i5:"Technical/security information necessary to operate the service, such as session, request and error information."
+    },
+    hu: {
+      kicker:"V29.0 NYILVÁNOS INDULÁS — JOGI INFORMÁCIÓK",
+      title:"⚖️ Jogi, adatvédelmi és szolgáltatási feltételek",
+      subtitle:"Az aktuális HEGEVA-verzióhoz igazított indulási dokumentumok. A nyilvános indulás előtt az üzemeltető adatait ki kell tölteni.",
+      blocker:"Nyilvános indulást blokkoló hiányosság: töltsd ki a vállalkozás/üzemeltető nevét, az érvényes támogatási e-mail címet, az üzleti címet és az országot a Beállításokban.",
+      serviceOperator:"Szolgáltatás üzemeltetője",
+      businessName:"Kereskedelmi / vállalkozás neve",
+      contactEmail:"Kapcsolattartó e-mail",
+      businessAddress:"Üzleti cím",
+      country:"Ország",
+      companyNumber:"Cégjegyzékszám",
+      vatNumber:"ÁFA / VAT szám",
+      notSet:"Nincs beállítva",
+      notProvided:"Nincs megadva",
+      operatorMissing:"HEGEVA AI — az üzemeltető neve nincs kitöltve",
+      privacyTitle:"Adatvédelmi irányelvek",
+      lastUpdated:"Utolsó frissítés:",
+      privacyIntro:"Ez az irányelv ismerteti, hogyan kezeli a HEGEVA AI a személyes adatokat fiók létrehozásakor és a munkatér használatakor.",
+      infoTitle:"Milyen adatokat kezelhetünk",
+      i1:"Fiókadatok, például név, e-mail cím és hitelesítési/munkamenet-adatok.",
+      i2:"Az általad mentett üzleti profiladatok, például vállalkozás neve, címe, cégjegyzékszáma és ÁFA/VAT száma.",
+      i3:"A munkatérben megadott adatok, beleértve az ügyféladatokat, dokumentumokat, kiadásokat, tervezőelemeket, jegyzeteket és mentett AI-chateket.",
+      i4:"AI-üzenetek és üzleti kontextus, amelyeket te küldesz a HEGEVA AI backendnek.",
+      i5:"A szolgáltatás működéséhez szükséges technikai/biztonsági adatok, például munkamenet-, kérés- és hibainformációk."
+    },
+    de: {
+      kicker:"V29.0 ÖFFENTLICHER START — RECHTLICH",
+      title:"⚖️ Rechtliches, Datenschutz & Nutzungsbedingungen",
+      subtitle:"Startdokumente passend zur aktuellen HEGEVA-Version. Betreiberangaben müssen vor dem öffentlichen Start vollständig sein.",
+      blocker:"Startblocker: Unternehmens-/Betreibername, gültige Support-E-Mail, Geschäftsadresse und Land in den Einstellungen vervollständigen.",
+      serviceOperator:"Dienstbetreiber",
+      businessName:"Handels-/Unternehmensname",
+      contactEmail:"Kontakt-E-Mail",
+      businessAddress:"Geschäftsadresse",
+      country:"Land",
+      companyNumber:"Unternehmensnummer",
+      vatNumber:"USt-IdNr.",
+      notSet:"Nicht festgelegt",
+      notProvided:"Nicht angegeben",
+      operatorMissing:"HEGEVA AI — Betreibername nicht vervollständigt",
+      privacyTitle:"Datenschutzerklärung",
+      lastUpdated:"Zuletzt aktualisiert:",
+      privacyIntro:"Diese Richtlinie erklärt, wie HEGEVA AI personenbezogene Daten beim Erstellen eines Kontos oder bei der Nutzung des Arbeitsbereichs verarbeitet.",
+      infoTitle:"Informationen, die wir verarbeiten können",
+      i1:"Kontoinformationen wie Name, E-Mail-Adresse und Authentifizierungs-/Sitzungsdaten.",
+      i2:"Geschäftsprofildaten, die du speicherst, z. B. Unternehmensname, Adresse, Unternehmensnummer und USt-IdNr.",
+      i3:"Arbeitsbereichsdaten wie Kundendetails, Dokumente, Ausgaben, Planer-Einträge, Notizen und gespeicherte AI-Chats.",
+      i4:"AI-Nachrichten und Geschäftskontext, die du an das HEGEVA-AI-Backend sendest.",
+      i5:"Technische/Sicherheitsinformationen, die für den Betrieb erforderlich sind, z. B. Sitzungs-, Anfrage- und Fehlerdaten."
+    },
+    fr: {
+      kicker:"V29.0 LANCEMENT PUBLIC — JURIDIQUE",
+      title:"⚖️ Mentions légales, confidentialité et conditions de service",
+      subtitle:"Documents de lancement adaptés à la version actuelle de HEGEVA. Les informations de l’exploitant doivent être complétées avant le lancement public.",
+      blocker:"Blocage du lancement public : complétez le nom de l’entreprise/de l’exploitant, un e-mail d’assistance valide, l’adresse professionnelle et le pays dans les Paramètres.",
+      serviceOperator:"Exploitant du service",
+      businessName:"Nom commercial / entreprise",
+      contactEmail:"E-mail de contact",
+      businessAddress:"Adresse professionnelle",
+      country:"Pays",
+      companyNumber:"Numéro d’entreprise",
+      vatNumber:"Numéro de TVA",
+      notSet:"Non défini",
+      notProvided:"Non renseigné",
+      operatorMissing:"HEGEVA AI — nom de l’exploitant non complété",
+      privacyTitle:"Politique de confidentialité",
+      lastUpdated:"Dernière mise à jour :",
+      privacyIntro:"Cette politique explique comment HEGEVA AI traite les informations personnelles lors de la création d’un compte ou de l’utilisation de l’espace de travail.",
+      infoTitle:"Informations que nous pouvons traiter",
+      i1:"Informations de compte telles que le nom, l’adresse e-mail et les données d’authentification/session.",
+      i2:"Informations de profil professionnel que vous choisissez d’enregistrer, telles que le nom de l’entreprise, l’adresse, le numéro d’entreprise et le numéro de TVA.",
+      i3:"Informations saisies dans l’espace de travail, notamment les clients, documents, dépenses, éléments du planificateur, notes et chats AI enregistrés.",
+      i4:"Messages AI et contexte professionnel que vous choisissez d’envoyer au backend HEGEVA AI.",
+      i5:"Informations techniques/de sécurité nécessaires au fonctionnement du service, telles que les données de session, requête et erreur."
+    },
+    es: {
+      kicker:"V29.0 LANZAMIENTO PÚBLICO — LEGAL",
+      title:"⚖️ Aviso legal, privacidad y condiciones del servicio",
+      subtitle:"Documentos de lanzamiento adaptados a la versión actual de HEGEVA. Los datos del operador deben completarse antes del lanzamiento público.",
+      blocker:"Bloqueo del lanzamiento público: completa el nombre de la empresa/operador, un correo de soporte válido, la dirección comercial y el país en Ajustes.",
+      serviceOperator:"Operador del servicio",
+      businessName:"Nombre comercial / empresa",
+      contactEmail:"Correo de contacto",
+      businessAddress:"Dirección comercial",
+      country:"País",
+      companyNumber:"Número de empresa",
+      vatNumber:"Número de IVA",
+      notSet:"No configurado",
+      notProvided:"No proporcionado",
+      operatorMissing:"HEGEVA AI — nombre del operador sin completar",
+      privacyTitle:"Política de privacidad",
+      lastUpdated:"Última actualización:",
+      privacyIntro:"Esta política explica cómo HEGEVA AI gestiona la información personal cuando creas una cuenta o utilizas el espacio de trabajo.",
+      infoTitle:"Información que podemos tratar",
+      i1:"Información de la cuenta, como nombre, correo electrónico y datos de autenticación/sesión.",
+      i2:"Información del perfil empresarial que decidas guardar, como nombre de la empresa, dirección, número de empresa y número de IVA.",
+      i3:"Información del espacio de trabajo, incluidos clientes, documentos, gastos, elementos del planificador, notas y chats AI guardados.",
+      i4:"Mensajes AI y contexto empresarial que decidas enviar al backend de HEGEVA AI.",
+      i5:"Información técnica/de seguridad necesaria para operar el servicio, como datos de sesión, solicitudes y errores."
+    }
+  };
+
+  function lang(){
+    const s=document.getElementById("languageSelect");
+    const v=s?.value||document.documentElement.dataset.hegevaLanguage||"en";
+    return LEGAL[v]?v:"en";
+  }
+  function t(){return LEGAL[lang()];}
+  function set(selector,value){
+    const el=document.querySelector(selector);
+    if(el&&value!=null)el.textContent=value;
+  }
+
+  function translateLegal(){
+    const x=t();
+    set("#legal .vision-tagline",x.kicker);
+    set("#legal .page-heading h1",x.title);
+    set("#legal .page-heading p",x.subtitle);
+    set("#legalOperatorWarning",x.blocker);
+
+    const cards=[...document.querySelectorAll("#legal .legal-card")];
+    if(cards[0]){
+      const h=cards[0].querySelector("h2");
+      if(h)h.textContent=x.serviceOperator;
+      const rows=cards[0].querySelectorAll(".legal-meta > div");
+      const labels=[x.businessName,x.contactEmail,x.businessAddress,x.country,x.companyNumber,x.vatNumber];
+      rows.forEach((row,i)=>{
+        const span=row.querySelector("span");
+        if(span&&labels[i])span.textContent=labels[i];
+      });
+      const bn=document.getElementById("legalBusinessName");
+      if(bn&&/operator name not completed|az üzemeltető neve nincs kitöltve|Betreibername nicht|nom de l’exploitant|nombre del operador/i.test(bn.textContent)){
+        bn.textContent=x.operatorMissing;
+      }
+      const email=document.getElementById("legalBusinessEmail");
+      if(email&&/Not set|Nincs beállítva|Nicht festgelegt|Non défini|No configurado/i.test(email.textContent))email.textContent=x.notSet;
+      const address=document.getElementById("legalBusinessAddress");
+      if(address&&/Not set|Nincs beállítva|Nicht festgelegt|Non défini|No configurado/i.test(address.textContent))address.textContent=x.notSet;
+      const company=document.getElementById("legalCompanyNumber");
+      if(company&&/Not provided|Nincs megadva|Nicht angegeben|Non renseigné|No proporcionado/i.test(company.textContent))company.textContent=x.notProvided;
+      const vat=document.getElementById("legalVatNumber");
+      if(vat&&/Not provided|Nincs megadva|Nicht angegeben|Non renseigné|No proporcionado/i.test(vat.textContent))vat.textContent=x.notProvided;
+    }
+
+    const privacy=document.getElementById("privacyPolicy");
+    if(privacy){
+      const h2=privacy.querySelector("h2");
+      if(h2)h2.textContent=x.privacyTitle;
+      const ps=privacy.querySelectorAll("p");
+      if(ps[0]){
+        const strong=ps[0].querySelector("strong");
+        if(strong)strong.textContent=x.lastUpdated+" ";
+      }
+      if(ps[1])ps[1].textContent=x.privacyIntro;
+
+      const heading=[...privacy.querySelectorAll("h3,h4,strong")].find(el=>/Information we may process|Milyen adatokat|Informationen, die wir|Informations que nous|Información que podemos/i.test(el.textContent));
+      if(heading)heading.textContent=x.infoTitle;
+
+      const lis=privacy.querySelectorAll("li");
+      [x.i1,x.i2,x.i3,x.i4,x.i5].forEach((v,i)=>{if(lis[i])lis[i].textContent=v;});
+    }
+  }
+
+  const apply=()=>translateLegal();
+  document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(apply,0));
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",apply,{once:true});else apply();
+
+  const observer=new MutationObserver(()=>setTimeout(apply,25));
+  const legal=document.getElementById("legal");
+  if(legal)observer.observe(legal,{childList:true,subtree:true,characterData:true});
 })();
 </script>
 
