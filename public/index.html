@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V31.3 — multilingual business workspace with five-language UI stability improvements." />
-  <title>Hegeva AI V31.3</title>
+  <meta name="description" content="Hegeva AI V31.4 — secure cloud-first workspace migration with protected local fallback." />
+  <title>Hegeva AI V31.4</title>
 
   <style>
     :root {
@@ -7711,10 +7711,10 @@
       }
       setAuthStatus(authMessage({en:"Creating your account...",hu:"Fiók létrehozása...",de:"Konto wird erstellt...",fr:"Création du compte...",es:"Creando tu cuenta..."}));
       try{
+        const v314LocalSnapshot = v314CaptureLocalWorkspace();
         await authRequest("sign-up/email",{method:"POST",body:JSON.stringify({name,email,password})});
         await refreshAuthSession();
-        v46ClearUserWorkspaceLocalData();
-        await v46RestoreWorkspace();
+        await v314RestoreOrMigrateWorkspace(v314LocalSnapshot);
 
         // One final planner refresh after login avoids a startup/render race
         // on a brand-new browser or incognito session.
@@ -7733,10 +7733,10 @@
       const password=document.getElementById("authLoginPassword").value;
       setAuthStatus(authMessage({en:"Signing in...",hu:"Bejelentkezés...",de:"Anmeldung...",fr:"Connexion...",es:"Iniciando sesión..."}));
       try{
+        const v314LocalSnapshot = v314CaptureLocalWorkspace();
         await authRequest("sign-in/email",{method:"POST",body:JSON.stringify({email,password,rememberMe:true})});
         await refreshAuthSession();
-        v46ClearUserWorkspaceLocalData();
-        await v46RestoreWorkspace();
+        await v314RestoreOrMigrateWorkspace(v314LocalSnapshot);
         setAuthStatus(authMessage({en:"Login successful.",hu:"Sikeres bejelentkezés.",de:"Anmeldung erfolgreich.",fr:"Connexion réussie.",es:"Inicio de sesión correcto."}),"success");
         authLoginForm.reset(); setTimeout(closeAuthModal,500);
       }catch(error){setAuthStatus(error.message||"Login failed.","error");}
@@ -7768,6 +7768,226 @@
       crm: ["hegeva_v10_customers"],
       activity: ["hegeva_v22_activity"]
     };
+
+
+    // =========================================
+    // HEGEVA AI V31.4 — SECURE CLOUD DATA MIGRATION
+    // Cloud-first for signed-in users.
+    // Existing cloud data is NEVER overwritten by an automatic migration.
+    // Browser data is used only as a migration source / local working cache.
+    // =========================================
+    const V314_MIGRATION_VERSION = "31.4";
+
+    function v314SafeRead(key) {
+      const raw = localStorage.getItem(key);
+      if (raw === null) return null;
+      try { return JSON.parse(raw); } catch { return raw; }
+    }
+
+    function v314HasMeaningfulValue(value) {
+      if (value === null || value === undefined) return false;
+      if (typeof value === "string") return value.trim().length > 0;
+      if (Array.isArray(value)) return value.length > 0;
+      if (typeof value === "object") return Object.keys(value).length > 0;
+      return true;
+    }
+
+    function v314CaptureLocalWorkspace() {
+      const snapshot = { settings: {}, buckets: {}, capturedAt: new Date().toISOString() };
+
+      try {
+        const settings = JSON.parse(localStorage.getItem("hegeva_settings") || "{}");
+        snapshot.settings = settings && typeof settings === "object" ? settings : {};
+      } catch {
+        snapshot.settings = {};
+      }
+
+      Object.entries(V46_SYNC_BUCKETS).forEach(([bucket, keys]) => {
+        const data = {};
+        keys.forEach(key => { data[key] = v314SafeRead(key); });
+        snapshot.buckets[bucket] = data;
+      });
+
+      return snapshot;
+    }
+
+    function v314SnapshotHasData(data) {
+      return data && typeof data === "object" &&
+        Object.values(data).some(v314HasMeaningfulValue);
+    }
+
+    async function v314GetCloud(path) {
+      const response = await fetch(path, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Accept": "application/json" }
+      });
+
+      if (response.status === 401) return { authenticated: false, found: false, data: null };
+      if (!response.ok) throw new Error(`HTTP ${response.status} GET ${path}`);
+
+      const result = await response.json().catch(() => ({}));
+      return {
+        authenticated: true,
+        found: Boolean(result && result.found && result.data && typeof result.data === "object"),
+        data: result?.data && typeof result.data === "object" ? result.data : null
+      };
+    }
+
+    async function v314PutCloud(path, data) {
+      const response = await fetch(path, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data })
+      });
+
+      if (response.status === 401) return false;
+      if (!response.ok) throw new Error(`HTTP ${response.status} PUT ${path}`);
+      return true;
+    }
+
+    function v314ApplySettings(data) {
+      const safe = data && typeof data === "object" ? data : {};
+      localStorage.setItem("hegeva_settings", JSON.stringify(safe));
+
+      if (typeof settingsFields === "object" && settingsFields) {
+        Object.entries(settingsFields).forEach(([key, field]) => {
+          if (field && safe[key] !== undefined && safe[key] !== null) {
+            field.value = safe[key];
+          }
+        });
+      }
+    }
+
+    function v314ApplyBucket(bucket, data) {
+      if (!data || typeof data !== "object") return;
+      const allowed = V46_SYNC_BUCKETS[bucket] || [];
+      Object.entries(data).forEach(([key, value]) => {
+        if (allowed.includes(key)) v46WriteLocalValue(key, value);
+      });
+    }
+
+    function v314RefreshWorkspaceUi() {
+      if (typeof renderPlanner === "function") renderPlanner();
+      if (typeof renderVaultDocuments === "function") renderVaultDocuments();
+      if (typeof renderSavedChats === "function") renderSavedChats();
+      if (typeof renderCurrentChat === "function") renderCurrentChat();
+      if (typeof refreshCommandMetrics === "function") refreshCommandMetrics();
+      if (typeof renderExpensesV46 === "function") renderExpensesV46();
+      if (typeof renderReportsV46 === "function") renderReportsV46();
+      if (typeof renderTasks === "function") renderTasks();
+      if (typeof crmRender === "function") crmRender();
+      if (typeof applyMessageStudioStateV46 === "function") applyMessageStudioStateV46();
+      if (typeof installMessageStudioCloudV46 === "function") installMessageStudioCloudV46();
+      if (typeof refreshV43VisionMetrics === "function") refreshV43VisionMetrics();
+      if (typeof refreshV50Dashboard === "function") refreshV50Dashboard();
+      if (typeof refreshV70CommandCenter === "function") refreshV70CommandCenter();
+
+      const goal = localStorage.getItem("hegeva_business_goal") || "";
+      const goalInput = document.getElementById("businessGoal");
+      const goalDisplay = document.getElementById("goalDisplay");
+      const repeat = document.getElementById("repeatWork");
+      const vaultNote = document.getElementById("vaultNote");
+
+      if (goalInput) goalInput.value = goal;
+      if (goalDisplay) {
+        goalDisplay.textContent = goal || "No goal saved.";
+        goalDisplay.style.display = goal ? "inline-flex" : "none";
+      }
+      if (repeat) repeat.value = localStorage.getItem("hegeva_repeat_work") || "";
+      if (vaultNote) vaultNote.value = localStorage.getItem("hegeva_vault_note") || "";
+    }
+
+    async function v314RestoreOrMigrateWorkspace(snapshot) {
+      const session = hegevaCurrentSession || await refreshAuthSession();
+      if (!session || !hegevaCurrentUser) return false;
+
+      const local = snapshot || v314CaptureLocalWorkspace();
+      let migrated = 0;
+      let restored = 0;
+
+      // SETTINGS: cloud wins if it already exists. Local is uploaded only
+      // when the signed-in account has no cloud settings yet.
+      try {
+        const cloudSettings = await v314GetCloud("/api/workspace/settings");
+        if (!cloudSettings.authenticated) return false;
+
+        if (cloudSettings.found) {
+          v314ApplySettings(cloudSettings.data);
+          restored++;
+        } else if (v314SnapshotHasData(local.settings)) {
+          await v314PutCloud("/api/workspace/settings", local.settings);
+          v314ApplySettings(local.settings);
+          migrated++;
+        } else {
+          v314ApplySettings({});
+        }
+      } catch (error) {
+        console.warn("HEGEVA V31.4 settings migration failed safely.", error);
+        // Do not destroy the local snapshot if cloud is temporarily unavailable.
+        if (v314SnapshotHasData(local.settings)) v314ApplySettings(local.settings);
+      }
+
+      // WORKSPACE BUCKETS: same non-destructive rule.
+      for (const bucket of Object.keys(V46_SYNC_BUCKETS)) {
+        const localBucket = local.buckets?.[bucket] || {};
+        try {
+          const cloud = await v314GetCloud(`/api/workspace/${bucket}`);
+
+          if (!cloud.authenticated) return false;
+
+          if (cloud.found) {
+            v314ApplyBucket(bucket, cloud.data);
+            restored++;
+          } else if (v314SnapshotHasData(localBucket)) {
+            await v314PutCloud(`/api/workspace/${bucket}`, localBucket);
+            v314ApplyBucket(bucket, localBucket);
+            migrated++;
+          } else {
+            // No cloud data and no meaningful local data: keep bucket empty.
+            (V46_SYNC_BUCKETS[bucket] || []).forEach(key => localStorage.removeItem(key));
+          }
+        } catch (error) {
+          console.warn(`HEGEVA V31.4 ${bucket} migration failed safely.`, error);
+          // Preserve local data on network/backend failure.
+          if (v314SnapshotHasData(localBucket)) v314ApplyBucket(bucket, localBucket);
+        }
+      }
+
+      try {
+        localStorage.setItem("hegeva_v314_migration_state", JSON.stringify({
+          version: V314_MIGRATION_VERSION,
+          migratedBuckets: migrated,
+          restoredBuckets: restored,
+          completedAt: new Date().toISOString()
+        }));
+      } catch {}
+
+      v314RefreshWorkspaceUi();
+      setTimeout(v314RefreshWorkspaceUi, 350);
+
+      if (typeof showToast === "function") {
+        const message = migrated > 0
+          ? authMessage({
+              en: "Your existing workspace was safely connected to your HEGEVA cloud account.",
+              hu: "A meglévő munkaterületed biztonságosan hozzá lett kapcsolva a HEGEVA felhőfiókodhoz.",
+              de: "Dein vorhandener Arbeitsbereich wurde sicher mit deinem HEGEVA-Cloud-Konto verbunden.",
+              fr: "Votre espace de travail existant a été relié en toute sécurité à votre compte cloud HEGEVA.",
+              es: "Tu espacio de trabajo existente se conectó de forma segura a tu cuenta HEGEVA en la nube."
+            })
+          : authMessage({
+              en: "Your HEGEVA cloud workspace is ready.",
+              hu: "A HEGEVA felhő munkaterületed készen áll.",
+              de: "Dein HEGEVA-Cloud-Arbeitsbereich ist bereit.",
+              fr: "Votre espace de travail cloud HEGEVA est prêt.",
+              es: "Tu espacio de trabajo HEGEVA en la nube está listo."
+            });
+        showToast(message);
+      }
+
+      return true;
+    }
 
     function v46ReadLocalValue(key) {
       const raw = localStorage.getItem(key);
@@ -11532,7 +11752,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V31.3 — LAUNCH & PROTECTION CHECK
+   HEGEVA AI V31.4 — LAUNCH & PROTECTION CHECK
    ========================================================= */
 #v313ProtectionCard{
   margin-top:16px;
@@ -11621,7 +11841,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V31.3 — TRANSPARENT LAUNCH & PROTECTION CHECK
+   HEGEVA AI V31.4 — TRANSPARENT LAUNCH & PROTECTION CHECK
    Browser-verifiable checks only. No invented legal/security claims.
    ========================================================= */
 (() => {
