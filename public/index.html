@@ -1661,6 +1661,17 @@
     .v28-good{color:#72f1b8}.v28-warn{color:#ffd36b}.v28-bad{color:#ff7b86}
     @media(max-width:900px){.v28-grid,.v28-security-grid{grid-template-columns:1fr}.v28-status-grid{grid-template-columns:1fr}}
 
+
+/* V32.1 NAV DUPLICATE LABEL FIX */
+.sidebar .nav-button[data-page="businessTools44"]{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.sidebar .nav-button[data-page="businessTools44"] .nav-text{
+  display:inline-block;
+  white-space:normal;
+}
 </style>
 </head>
 
@@ -1800,7 +1811,7 @@
           <span class="nav-icon">🩺</span>
           <span class="nav-text" data-i18n="nav.health">Business Check</span>
         </button>
-        <button class="nav-button" data-page="businessTools44" type="button">🧰 <span data-i18n="nav.businessTools">Business Tools</span></button>
+        <button class="nav-button" data-page="businessTools44" type="button"><span class="nav-icon">🧰</span><span class="nav-text" data-i18n="nav.businessTools44">Business Tools</span></button>
         <button class="nav-button" data-page="pricing" type="button">
           <span class="nav-icon">💳</span>
           <span class="nav-text" data-i18n="nav.pricing">Plans</span>
