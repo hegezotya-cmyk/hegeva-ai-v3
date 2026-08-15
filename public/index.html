@@ -13998,7 +13998,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.6 — GLOBAL WORKSPACE SEARCH / COMMAND PALETTE
+   HEGEVA AI V32.7 — GLOBAL WORKSPACE SEARCH / COMMAND PALETTE
    ========================================================= */
 .v322-search-trigger{
   display:flex;
@@ -14225,7 +14225,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.6 — GLOBAL WORKSPACE SEARCH
+   HEGEVA AI V32.7 — GLOBAL WORKSPACE SEARCH
    Searches only data already stored in the HEGEVA workspace.
    ========================================================= */
 (() => {
@@ -14454,7 +14454,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.6 — BUSINESS COMMAND SUITE
+   HEGEVA AI V32.7 — BUSINESS COMMAND SUITE
    Multi-feature upgrade: Today Center, KPI Pulse, Quick Create,
    Smart Focus, Backup Status.
    ========================================================= */
@@ -14601,7 +14601,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.6 — BUSINESS COMMAND SUITE
+   HEGEVA AI V32.7 — BUSINESS COMMAND SUITE
    Uses only existing HEGEVA workspace data. No invented metrics.
    ========================================================= */
 (() => {
@@ -14901,7 +14901,7 @@ Open planner tasks: ${s.openTasks}`;
 
 
 <style>
-/* HEGEVA AI V32.6 — Productivity Pack */
+/* HEGEVA AI V32.7 — Productivity Pack */
 .v324-panel{margin:18px 0;padding:20px;border:1px solid rgba(255,255,255,.10);border-radius:20px;background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(155,108,255,.025))}
 .v324-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
 .v324-head h3{margin:0 0 5px;font-size:19px}.v324-head p{margin:0;color:var(--muted);font-size:12px}
@@ -14969,7 +14969,7 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.6 — SALES & CUSTOMER OPERATIONS PACK
+   HEGEVA AI V32.7 — SALES & CUSTOMER OPERATIONS PACK
    ========================================================= */
 #v325OpsPack{
   margin:18px 0 24px;
@@ -15019,7 +15019,7 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.6 — SALES & CUSTOMER OPERATIONS
+   HEGEVA AI V32.7 — SALES & CUSTOMER OPERATIONS
    Follow-up queue + invoice chase center + customer health.
    Uses saved HEGEVA data only.
    ========================================================= */
@@ -15180,7 +15180,7 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.6 — REPORTING & OPERATIONS PACK
+   HEGEVA AI V32.7 — REPORTING & OPERATIONS PACK
    Monthly snapshot + due-date radar + CSV export + follow-up helper
    ========================================================= */
 #v326OpsReporting{
@@ -15251,7 +15251,7 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.6 — REPORTING & OPERATIONS PACK
+   HEGEVA AI V32.7 — REPORTING & OPERATIONS PACK
    Uses saved workspace data only. No invented values.
    ========================================================= */
 (() => {
@@ -15468,6 +15468,316 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>render(),{once:true});else render();
 
   window.hegevaV326ReportingOps={render,dueDocs,version:"V32.6"};
+})();
+</script>
+
+
+<style>
+/* =========================================================
+   HEGEVA AI V32.7 — BUSINESS INTELLIGENCE PACK
+   Health Score + Document Aging + Expense Mix + Summary Export
+   ========================================================= */
+#v327IntelligencePack{
+  margin:18px 0 26px;
+}
+.v327-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+.v327-card{
+  padding:19px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:19px;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(155,108,255,.07),transparent 30%),
+    linear-gradient(145deg,rgba(255,255,255,.035),rgba(55,200,255,.022));
+  box-shadow:0 18px 50px rgba(0,0,0,.18);
+}
+.v327-card h3{margin:0 0 5px;font-size:18px}
+.v327-card p{margin:0 0 13px;color:var(--muted);font-size:11px;line-height:1.55}
+.v327-score-wrap{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:14px;
+  align-items:center;
+}
+.v327-score{
+  width:88px;height:88px;border-radius:50%;
+  display:grid;place-items:center;
+  border:8px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.025);
+  font-size:22px;font-weight:900
+}
+.v327-bar{
+  height:10px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:8px
+}
+.v327-bar i{
+  display:block;height:100%;width:0;border-radius:inherit;
+  background:linear-gradient(90deg,#37c8ff,#9b6cff,#f6c453);
+}
+.v327-mini-grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px
+}
+.v327-mini{
+  padding:11px;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(255,255,255,.022)
+}
+.v327-mini span{display:block;color:var(--muted);font-size:10px}
+.v327-mini strong{display:block;margin-top:4px;font-size:16px}
+.v327-list{display:grid;gap:9px}
+.v327-row{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:11px;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(255,255,255,.022)
+}
+.v327-row strong{display:block;font-size:12px}
+.v327-row small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.v327-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.v327-btn{
+  min-height:36px;padding:0 10px;border-radius:9px;border:1px solid var(--border);
+  background:rgba(255,255,255,.05);color:var(--text);font-weight:800;cursor:pointer
+}
+.v327-btn:hover{border-color:rgba(246,196,83,.35);transform:translateY(-1px)}
+.v327-output{
+  margin-top:11px;padding:11px;border-radius:11px;border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.02);color:var(--muted);font-size:11px;line-height:1.55;white-space:pre-wrap
+}
+@media(max-width:980px){.v327-grid{grid-template-columns:1fr}}
+@media(max-width:650px){.v327-mini-grid{grid-template-columns:1fr}.v327-score-wrap{grid-template-columns:1fr}}
+</style>
+
+<script>
+/* =========================================================
+   HEGEVA AI V32.7 — BUSINESS INTELLIGENCE PACK
+   Uses only saved HEGEVA workspace data.
+   ========================================================= */
+(() => {
+  "use strict";
+
+  const T={
+    en:{
+      healthTitle:"Workspace Health Score",healthDesc:"A transparent score based only on whether key business records exist in your HEGEVA workspace.",
+      healthLabel:"Workspace health",profile:"Profile",crm:"CRM",docs:"Documents",expenses:"Expenses",planner:"Planner",
+      agingTitle:"Document Aging",agingDesc:"Groups saved documents by how old they are, using their stored date.",
+      fresh:"0–30 days",mid:"31–90 days",old:"90+ days",
+      expenseTitle:"Expense Mix",expenseDesc:"Shows the most common saved expense categories. No estimates are added.",
+      noExpenses:"No expense categories are available yet.",
+      summaryTitle:"Business Summary Export",summaryDesc:"Build a plain-text business snapshot from your real workspace and export it for your own records.",
+      build:"Build summary",download:"Download TXT",copy:"Copy summary",copied:"Summary copied.",
+      noDate:"No dated documents",unknown:"Uncategorised",
+      summaryReady:"Summary prepared from current HEGEVA workspace facts.",
+      customers:"Customers",documents:"Documents",openTasks:"Open tasks",followups:"Follow-ups",expenseRecords:"Expense records"
+    },
+    hu:{
+      healthTitle:"Munkatér állapotpontszám",healthDesc:"Átlátható pontszám kizárólag az alapján, hogy a fontos üzleti adatok ténylegesen megtalálhatók-e a HEGEVA munkatérben.",
+      healthLabel:"Munkatér állapota",profile:"Profil",crm:"CRM",docs:"Dokumentumok",expenses:"Kiadások",planner:"Tervező",
+      agingTitle:"Dokumentumok életkora",agingDesc:"A mentett dokumentumokat a tárolt dátumuk alapján életkor szerint csoportosítja.",
+      fresh:"0–30 nap",mid:"31–90 nap",old:"90+ nap",
+      expenseTitle:"Kiadási összetétel",expenseDesc:"Megmutatja a leggyakoribb mentett kiadási kategóriákat. Nem ad hozzá becsült adatokat.",
+      noExpenses:"Még nincs elérhető kiadási kategória.",
+      summaryTitle:"Üzleti összefoglaló export",summaryDesc:"Készíts egyszerű szöveges üzleti pillanatképet a valós munkatérből, és exportáld saját nyilvántartásodhoz.",
+      build:"Összefoglaló készítése",download:"TXT letöltése",copy:"Összefoglaló másolása",copied:"Az összefoglaló kimásolva.",
+      noDate:"Nincs dátummal rendelkező dokumentum",unknown:"Nincs kategorizálva",
+      summaryReady:"Az összefoglaló elkészült az aktuális HEGEVA munkatér tényeiből.",
+      customers:"Ügyfelek",documents:"Dokumentumok",openTasks:"Nyitott feladatok",followups:"Utánkövetések",expenseRecords:"Kiadási bejegyzések"
+    },
+    de:{
+      healthTitle:"Arbeitsbereich-Gesundheitswert",healthDesc:"Transparenter Wert ausschließlich danach, ob wichtige Geschäftsdaten im HEGEVA-Arbeitsbereich vorhanden sind.",
+      healthLabel:"Arbeitsbereich-Zustand",profile:"Profil",crm:"CRM",docs:"Dokumente",expenses:"Ausgaben",planner:"Planer",
+      agingTitle:"Dokumentenalter",agingDesc:"Gruppiert gespeicherte Dokumente anhand ihres gespeicherten Datums.",
+      fresh:"0–30 Tage",mid:"31–90 Tage",old:"90+ Tage",
+      expenseTitle:"Ausgabenmix",expenseDesc:"Zeigt die häufigsten gespeicherten Ausgabenkategorien. Keine Schätzwerte.",
+      noExpenses:"Noch keine Ausgabenkategorien verfügbar.",
+      summaryTitle:"Geschäftszusammenfassung exportieren",summaryDesc:"Erstellt eine einfache Textübersicht aus echten Arbeitsbereichsdaten.",
+      build:"Zusammenfassung erstellen",download:"TXT herunterladen",copy:"Zusammenfassung kopieren",copied:"Zusammenfassung kopiert.",
+      noDate:"Keine datierten Dokumente",unknown:"Nicht kategorisiert",
+      summaryReady:"Zusammenfassung aus aktuellen HEGEVA-Arbeitsbereichsdaten erstellt.",
+      customers:"Kunden",documents:"Dokumente",openTasks:"Offene Aufgaben",followups:"Nachfassaktionen",expenseRecords:"Ausgabeneinträge"
+    },
+    fr:{
+      healthTitle:"Score de santé de l’espace",healthDesc:"Score transparent basé uniquement sur la présence réelle des principaux enregistrements dans HEGEVA.",
+      healthLabel:"Santé de l’espace",profile:"Profil",crm:"CRM",docs:"Documents",expenses:"Dépenses",planner:"Planificateur",
+      agingTitle:"Ancienneté des documents",agingDesc:"Regroupe les documents enregistrés selon leur date stockée.",
+      fresh:"0–30 jours",mid:"31–90 jours",old:"90+ jours",
+      expenseTitle:"Répartition des dépenses",expenseDesc:"Affiche les catégories de dépenses enregistrées les plus fréquentes. Aucun chiffre estimé.",
+      noExpenses:"Aucune catégorie de dépense disponible.",
+      summaryTitle:"Export du résumé d’entreprise",summaryDesc:"Créez un instantané texte à partir des données réelles de l’espace.",
+      build:"Créer le résumé",download:"Télécharger TXT",copy:"Copier le résumé",copied:"Résumé copié.",
+      noDate:"Aucun document daté",unknown:"Non catégorisé",
+      summaryReady:"Résumé créé à partir des données HEGEVA actuelles.",
+      customers:"Clients",documents:"Documents",openTasks:"Tâches ouvertes",followups:"Suivis",expenseRecords:"Dépenses enregistrées"
+    },
+    es:{
+      healthTitle:"Puntuación de salud del espacio",healthDesc:"Puntuación transparente basada únicamente en la presencia real de registros clave en HEGEVA.",
+      healthLabel:"Salud del espacio",profile:"Perfil",crm:"CRM",docs:"Documentos",expenses:"Gastos",planner:"Planificador",
+      agingTitle:"Antigüedad de documentos",agingDesc:"Agrupa documentos guardados según su fecha almacenada.",
+      fresh:"0–30 días",mid:"31–90 días",old:"90+ días",
+      expenseTitle:"Composición de gastos",expenseDesc:"Muestra las categorías de gasto guardadas más frecuentes. No añade estimaciones.",
+      noExpenses:"Aún no hay categorías de gasto disponibles.",
+      summaryTitle:"Exportar resumen empresarial",summaryDesc:"Crea una instantánea de texto a partir de datos reales del espacio.",
+      build:"Crear resumen",download:"Descargar TXT",copy:"Copiar resumen",copied:"Resumen copiado.",
+      noDate:"No hay documentos con fecha",unknown:"Sin categoría",
+      summaryReady:"Resumen creado con los datos actuales de HEGEVA.",
+      customers:"Clientes",documents:"Documentos",openTasks:"Tareas abiertas",followups:"Seguimientos",expenseRecords:"Registros de gastos"
+    }
+  };
+
+  const lang=()=>{const v=document.getElementById("languageSelect")?.value||"en";return T[v]?v:"en"};
+  const tx=()=>T[lang()];
+  const read=(k,f=[])=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))??f}catch{return f}};
+  const arr=k=>{const x=read(k,[]);return Array.isArray(x)?x:[]};
+  const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+
+  function customers(){return arr("hegeva_v10_customers")}
+  function documents(){return arr("hegeva_documents")}
+  function expenses(){return arr("hegeva_expenses")}
+  function tasks(){return arr("hegeva_planner_tasks")}
+
+  function profileReady(){
+    let s={};
+    try{s=JSON.parse(localStorage.getItem("hegeva_settings")||"{}")||{}}catch{}
+    return ["businessName","businessEmail","address","country"].every(k=>String(s[k]||document.getElementById(k)?.value||"").trim());
+  }
+
+  function health(){
+    const checks=[
+      profileReady(),
+      customers().length>0,
+      documents().length>0,
+      expenses().length>0,
+      tasks().length>0
+    ];
+    return {checks,score:Math.round(checks.filter(Boolean).length/checks.length*100)};
+  }
+
+  function aging(){
+    const now=Date.now();
+    const out={fresh:0,mid:0,old:0,dated:0};
+    documents().forEach(d=>{
+      const raw=d.date||d.createdAt||d.issueDate||"";
+      const dt=new Date(raw);
+      if(Number.isNaN(dt.getTime()))return;
+      out.dated++;
+      const days=Math.max(0,Math.floor((now-dt.getTime())/86400000));
+      if(days<=30)out.fresh++;else if(days<=90)out.mid++;else out.old++;
+    });
+    return out;
+  }
+
+  function expenseMix(){
+    const map={};
+    expenses().forEach(e=>{
+      const key=String(e.category||tx().unknown).trim()||tx().unknown;
+      map[key]=(map[key]||0)+1;
+    });
+    return Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  }
+
+  function summaryText(){
+    const x=tx(),cs=customers(),ds=documents(),es=expenses(),ts=tasks();
+    const followups=cs.filter(c=>c&&c.followup).length;
+    const openTasks=ts.filter(t=>t&&!t.done).length;
+    return [
+      x.summaryReady,
+      `${x.customers}: ${cs.length}`,
+      `${x.documents}: ${ds.length}`,
+      `${x.expenseRecords}: ${es.length}`,
+      `${x.openTasks}: ${openTasks}`,
+      `${x.followups}: ${followups}`,
+      `${x.healthLabel}: ${health().score}%`
+    ].join("\n");
+  }
+
+  function root(){
+    const home=document.getElementById("home");if(!home)return null;
+    let r=document.getElementById("v327IntelligencePack");
+    if(!r){
+      r=document.createElement("section");
+      r.id="v327IntelligencePack";
+      const anchor=document.getElementById("v326OpsReporting")||document.getElementById("v325OpsPack");
+      if(anchor)anchor.insertAdjacentElement("afterend",r);else home.appendChild(r);
+    }
+    return r;
+  }
+
+  function render(customSummary=""){
+    const r=root();if(!r)return;
+    const x=tx(),h=health(),a=aging(),mix=expenseMix();
+    const labels=[x.profile,x.crm,x.docs,x.expenses,x.planner];
+
+    r.innerHTML=`
+      <div class="v327-grid">
+        <div class="v327-card">
+          <h3>🧠 ${x.healthTitle}</h3><p>${x.healthDesc}</p>
+          <div class="v327-score-wrap">
+            <div class="v327-score">${h.score}%</div>
+            <div>
+              <strong>${x.healthLabel}</strong>
+              <div class="v327-bar"><i style="width:${h.score}%"></i></div>
+              <div class="v327-mini-grid">
+                ${h.checks.map((ok,i)=>`<div class="v327-mini"><span>${labels[i]}</span><strong>${ok?"✓":"—"}</strong></div>`).join("")}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="v327-card">
+          <h3>🗂️ ${x.agingTitle}</h3><p>${x.agingDesc}</p>
+          ${a.dated?`
+            <div class="v327-mini-grid">
+              <div class="v327-mini"><span>${x.fresh}</span><strong>${a.fresh}</strong></div>
+              <div class="v327-mini"><span>${x.mid}</span><strong>${a.mid}</strong></div>
+              <div class="v327-mini"><span>${x.old}</span><strong>${a.old}</strong></div>
+            </div>`:`<div class="v327-row"><div><strong>${x.noDate}</strong></div></div>`}
+        </div>
+
+        <div class="v327-card">
+          <h3>💸 ${x.expenseTitle}</h3><p>${x.expenseDesc}</p>
+          <div class="v327-list">
+            ${mix.length?mix.map(([name,count])=>`
+              <div class="v327-row"><div><strong>${esc(name)}</strong></div><strong>${count}</strong></div>
+            `).join(""):`<div class="v327-row"><div><strong>${x.noExpenses}</strong></div></div>`}
+          </div>
+        </div>
+
+        <div class="v327-card">
+          <h3>📄 ${x.summaryTitle}</h3><p>${x.summaryDesc}</p>
+          <div class="v327-actions">
+            <button class="v327-btn" data-v327="build">${x.build}</button>
+            <button class="v327-btn" data-v327="download">${x.download}</button>
+            <button class="v327-btn" data-v327="copy">${x.copy}</button>
+          </div>
+          <div class="v327-output" id="v327SummaryOutput">${esc(customSummary||summaryText())}</div>
+        </div>
+      </div>`;
+  }
+
+  function downloadTxt(){
+    const content=document.getElementById("v327SummaryOutput")?.textContent||summaryText();
+    const blob=new Blob([content],{type:"text/plain;charset=utf-8"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download="hegeva-business-summary.txt";a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+
+  document.addEventListener("click",async e=>{
+    const action=e.target.closest("[data-v327]")?.dataset.v327;
+    if(action==="build")render(summaryText());
+    if(action==="download")downloadTxt();
+    if(action==="copy"){
+      try{
+        await navigator.clipboard.writeText(document.getElementById("v327SummaryOutput")?.textContent||summaryText());
+        if(typeof showToast==="function")showToast(tx().copied);
+      }catch{}
+    }
+  });
+
+  document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(()=>render(),80));
+  window.addEventListener("storage",()=>setTimeout(()=>render(),80));
+
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>render(),{once:true});else render();
+
+  window.hegevaV327Intelligence={render,health,aging,expenseMix,version:"V32.7"};
 })();
 </script>
 
