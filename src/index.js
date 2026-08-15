@@ -6,7 +6,7 @@ import {
 } from "./auth.js";
 
 // =========================================
-// HEGEVA AI V34.9
+// HEGEVA AI V35.0
 // ACCOUNT + PASSWORD RECOVERY BACKEND
 // =========================================
 
@@ -251,6 +251,533 @@ function isStripeTestSecret(
   );
 }
 
+function isStripeWebhookSecret(
+  value
+) {
+  return (
+    typeof value === "string" &&
+    value.startsWith("whsec_")
+  );
+}
+
+function hexToBytes(
+  hex
+) {
+  if (
+    typeof hex !== "string" ||
+    hex.length % 2 !== 0 ||
+    !/^[0-9a-f]+$/i.test(hex)
+  ) {
+    return null;
+  }
+
+  const bytes =
+    new Uint8Array(
+      hex.length / 2
+    );
+
+  for (
+    let i = 0;
+    i < bytes.length;
+    i += 1
+  ) {
+    bytes[i] =
+      Number.parseInt(
+        hex.slice(
+          i * 2,
+          i * 2 + 2
+        ),
+        16
+      );
+  }
+
+  return bytes;
+}
+
+function timingSafeEqualBytes(
+  a,
+  b
+) {
+  if (
+    !(a instanceof Uint8Array) ||
+    !(b instanceof Uint8Array) ||
+    a.length !== b.length
+  ) {
+    return false;
+  }
+
+  let diff = 0;
+
+  for (
+    let i = 0;
+    i < a.length;
+    i += 1
+  ) {
+    diff |=
+      a[i] ^
+      b[i];
+  }
+
+  return diff === 0;
+}
+
+function parseStripeSignatureHeader(
+  header
+) {
+  const result = {
+    timestamp: null,
+    v1: []
+  };
+
+  if (
+    typeof header !== "string"
+  ) {
+    return result;
+  }
+
+  for (
+    const part
+    of header.split(",")
+  ) {
+    const [
+      key,
+      value
+    ] =
+      part
+        .trim()
+        .split("=");
+
+    if (
+      key === "t" &&
+      /^\d+$/.test(
+        value || ""
+      )
+    ) {
+      result.timestamp =
+        Number(value);
+    }
+
+    if (
+      key === "v1" &&
+      value
+    ) {
+      result.v1.push(
+        value
+      );
+    }
+  }
+
+  return result;
+}
+
+async function verifyStripeWebhookSignature(
+  rawBodyBytes,
+  signatureHeader,
+  webhookSecret,
+  toleranceSeconds = 300
+) {
+  if (
+    !(rawBodyBytes instanceof Uint8Array) ||
+    !isStripeWebhookSecret(
+      webhookSecret
+    )
+  ) {
+    return false;
+  }
+
+  const parsed =
+    parseStripeSignatureHeader(
+      signatureHeader
+    );
+
+  if (
+    !Number.isFinite(
+      parsed.timestamp
+    ) ||
+    parsed.v1.length === 0
+  ) {
+    return false;
+  }
+
+  const nowSeconds =
+    Math.floor(
+      Date.now() / 1000
+    );
+
+  if (
+    Math.abs(
+      nowSeconds -
+      parsed.timestamp
+    ) >
+    toleranceSeconds
+  ) {
+    return false;
+  }
+
+  const encoder =
+    new TextEncoder();
+
+  const prefixBytes =
+    encoder.encode(
+      `${parsed.timestamp}.`
+    );
+
+  const signedPayload =
+    new Uint8Array(
+      prefixBytes.length +
+      rawBodyBytes.length
+    );
+
+  signedPayload.set(
+    prefixBytes,
+    0
+  );
+
+  signedPayload.set(
+    rawBodyBytes,
+    prefixBytes.length
+  );
+
+  const key =
+    await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(
+        webhookSecret
+      ),
+      {
+        name: "HMAC",
+        hash: "SHA-256"
+      },
+      false,
+      [
+        "sign"
+      ]
+    );
+
+  const signature =
+    new Uint8Array(
+      await crypto.subtle.sign(
+        "HMAC",
+        key,
+        signedPayload
+      )
+    );
+
+  for (
+    const candidateHex
+    of parsed.v1
+  ) {
+    const candidateBytes =
+      hexToBytes(
+        candidateHex
+      );
+
+    if (
+      candidateBytes &&
+      timingSafeEqualBytes(
+        signature,
+        candidateBytes
+      )
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function validStripePlan(
+  plan
+) {
+  return [
+    "premium",
+    "pro"
+  ].includes(
+    plan
+  );
+}
+
+function getStripeEventMetadata(
+  eventType,
+  object
+) {
+  if (
+    !object ||
+    typeof object !== "object"
+  ) {
+    return {};
+  }
+
+  if (
+    eventType ===
+    "checkout.session.completed"
+  ) {
+    return object.metadata || {};
+  }
+
+  if (
+    eventType ===
+      "invoice.paid" ||
+    eventType ===
+      "invoice.payment_failed"
+  ) {
+    return (
+      object.parent
+        ?.subscription_details
+        ?.metadata ||
+      object.subscription_details
+        ?.metadata ||
+      {}
+    );
+  }
+
+  if (
+    eventType ===
+    "customer.subscription.deleted"
+  ) {
+    return object.metadata || {};
+  }
+
+  return {};
+}
+
+function stripeEventTimeIso(
+  event
+) {
+  const seconds =
+    Number(
+      event?.created
+    );
+
+  if (
+    Number.isFinite(
+      seconds
+    ) &&
+    seconds > 0
+  ) {
+    return new Date(
+      seconds * 1000
+    ).toISOString();
+  }
+
+  return new Date()
+    .toISOString();
+}
+
+async function applyStripePlanEvent(
+  env,
+  userId,
+  plan,
+  event
+) {
+  if (
+    typeof userId !== "string" ||
+    !userId.trim() ||
+    ![
+      "basic",
+      "premium",
+      "pro"
+    ].includes(
+      plan
+    )
+  ) {
+    return false;
+  }
+
+  const eventTime =
+    stripeEventTimeIso(
+      event
+    );
+
+  await env.DB
+    .prepare(`
+      INSERT INTO user_plans (
+        userId,
+        plan,
+        createdAt,
+        updatedAt
+      )
+      VALUES (
+        ?1,
+        ?2,
+        ?3,
+        ?3
+      )
+
+      ON CONFLICT(userId)
+
+      DO UPDATE SET
+        plan =
+          excluded.plan,
+        updatedAt =
+          excluded.updatedAt
+
+      WHERE
+        user_plans.updatedAt IS NULL
+        OR user_plans.updatedAt <= excluded.updatedAt
+    `)
+    .bind(
+      userId.trim(),
+      plan,
+      eventTime
+    )
+    .run();
+
+  return true;
+}
+
+async function markStripeWebhookVerified(
+  env,
+  userId,
+  event
+) {
+  if (
+    typeof userId !== "string" ||
+    !userId.trim()
+  ) {
+    return;
+  }
+
+  const now =
+    new Date()
+      .toISOString();
+
+  const eventTime =
+    stripeEventTimeIso(
+      event
+    );
+
+  const payload =
+    JSON.stringify({
+      verified: true,
+      lastEventId:
+        event?.id || null,
+      lastEventType:
+        event?.type || null,
+      lastEventCreatedAt:
+        eventTime,
+      receivedAt:
+        now,
+      livemode:
+        Boolean(
+          event?.livemode
+        )
+    });
+
+  await env.DB
+    .prepare(`
+      INSERT INTO workspace_data (
+        id,
+        userId,
+        dataType,
+        data,
+        createdAt,
+        updatedAt
+      )
+      VALUES (
+        ?1,
+        ?2,
+        'billing_webhook_status',
+        ?3,
+        ?4,
+        ?4
+      )
+
+      ON CONFLICT(
+        userId,
+        dataType
+      )
+
+      DO UPDATE SET
+        data =
+          excluded.data,
+        updatedAt =
+          excluded.updatedAt
+    `)
+    .bind(
+      crypto.randomUUID(),
+      userId.trim(),
+      payload,
+      now
+    )
+    .run();
+}
+
+async function getStripeWebhookStatus(
+  env,
+  userId
+) {
+  const configured =
+    isStripeWebhookSecret(
+      env.STRIPE_WEBHOOK_SECRET
+    );
+
+  if (
+    !configured ||
+    !userId
+  ) {
+    return {
+      configured,
+      verified: false,
+      lastEventType: null,
+      lastEventCreatedAt: null
+    };
+  }
+
+  const row =
+    await env.DB
+      .prepare(`
+        SELECT
+          data,
+          updatedAt
+        FROM workspace_data
+        WHERE userId = ?1
+          AND dataType =
+            'billing_webhook_status'
+        LIMIT 1
+      `)
+      .bind(
+        userId
+      )
+      .first();
+
+  if (!row?.data) {
+    return {
+      configured,
+      verified: false,
+      lastEventType: null,
+      lastEventCreatedAt: null
+    };
+  }
+
+  try {
+    const parsed =
+      JSON.parse(
+        row.data
+      );
+
+    return {
+      configured,
+      verified:
+        parsed?.verified ===
+        true,
+      lastEventType:
+        parsed?.lastEventType ||
+        null,
+      lastEventCreatedAt:
+        parsed?.lastEventCreatedAt ||
+        null
+    };
+  } catch {
+    return {
+      configured,
+      verified: false,
+      lastEventType: null,
+      lastEventCreatedAt: null
+    };
+  }
+}
+
 async function createStripeCheckoutSession(
   request,
   env,
@@ -304,10 +831,6 @@ async function createStripeCheckoutSession(
     "subscription"
   );
 
-  // V34.9:
-  // Managed Payments is disabled for this Stripe Sandbox
-  // Checkout session because HEGEVA uses the standard
-  // Stripe Checkout integration in this test flow.
   form.set(
     "managed_payments[enabled]",
     "false"
@@ -356,6 +879,18 @@ async function createStripeCheckoutSession(
 
   form.set(
     "metadata[hegevaPlan]",
+    plan
+  );
+
+  form.set(
+    "subscription_data[metadata][userId]",
+    String(
+      user.id
+    )
+  );
+
+  form.set(
+    "subscription_data[metadata][hegevaPlan]",
     plan
   );
 
@@ -708,8 +1243,357 @@ export default {
     }
 
     // =========================================
-    // HEGEVA AI V34.9
-    // STRIPE TEST CHECKOUT BACKEND
+    // HEGEVA AI V35.0
+    // STRIPE WEBHOOK
+    // =========================================
+
+    if (
+      url.pathname ===
+      "/api/billing/webhook"
+    ) {
+      if (
+        request.method !==
+        "POST"
+      ) {
+        return Response.json(
+          {
+            error:
+              "Method not allowed."
+          },
+          {
+            status: 405
+          }
+        );
+      }
+
+      const webhookSecret =
+        typeof env.STRIPE_WEBHOOK_SECRET ===
+          "string"
+          ? env.STRIPE_WEBHOOK_SECRET.trim()
+          : "";
+
+      if (
+        !isStripeWebhookSecret(
+          webhookSecret
+        )
+      ) {
+        return Response.json(
+          {
+            error:
+              "Stripe webhook secret is not configured."
+          },
+          {
+            status: 503
+          }
+        );
+      }
+
+      const signatureHeader =
+        request.headers.get(
+          "Stripe-Signature"
+        );
+
+      if (!signatureHeader) {
+        return Response.json(
+          {
+            error:
+              "Stripe-Signature header is missing."
+          },
+          {
+            status: 400
+          }
+        );
+      }
+
+      let rawBytes;
+
+      try {
+        rawBytes =
+          new Uint8Array(
+            await request.arrayBuffer()
+          );
+      } catch {
+        return Response.json(
+          {
+            error:
+              "Webhook body could not be read."
+          },
+          {
+            status: 400
+          }
+        );
+      }
+
+      let signatureValid =
+        false;
+
+      try {
+        signatureValid =
+          await verifyStripeWebhookSignature(
+            rawBytes,
+            signatureHeader,
+            webhookSecret
+          );
+      } catch (error) {
+        console.error(
+          "HEGEVA Stripe webhook signature error:",
+          error
+        );
+      }
+
+      if (!signatureValid) {
+        return Response.json(
+          {
+            error:
+              "Invalid Stripe webhook signature."
+          },
+          {
+            status: 400
+          }
+        );
+      }
+
+      let event;
+
+      try {
+        const bodyText =
+          new TextDecoder()
+            .decode(
+              rawBytes
+            );
+
+        event =
+          JSON.parse(
+            bodyText
+          );
+      } catch {
+        return Response.json(
+          {
+            error:
+              "Invalid Stripe webhook JSON."
+          },
+          {
+            status: 400
+          }
+        );
+      }
+
+      if (
+        !event ||
+        event.object !== "event" ||
+        typeof event.type !== "string"
+      ) {
+        return Response.json(
+          {
+            error:
+              "Invalid Stripe event."
+          },
+          {
+            status: 400
+          }
+        );
+      }
+
+      if (
+        event.livemode === true
+      ) {
+        return Response.json(
+          {
+            error:
+              "Live Stripe events are not accepted by this test build."
+          },
+          {
+            status: 400
+          }
+        );
+      }
+
+      const object =
+        event.data?.object;
+
+      const metadata =
+        getStripeEventMetadata(
+          event.type,
+          object
+        );
+
+      const userId =
+        typeof metadata?.userId ===
+          "string"
+          ? metadata.userId.trim()
+          : "";
+
+      const hegevaPlan =
+        typeof metadata?.hegevaPlan ===
+          "string"
+          ? metadata.hegevaPlan
+              .trim()
+              .toLowerCase()
+          : "";
+
+      let entitlementChanged =
+        false;
+
+      let resultingPlan =
+        null;
+
+      let ignored =
+        false;
+
+      try {
+        if (
+          event.type ===
+          "checkout.session.completed"
+        ) {
+          const subscriptionMode =
+            object?.mode ===
+            "subscription";
+
+          const paymentComplete =
+            [
+              "paid",
+              "no_payment_required"
+            ].includes(
+              object?.payment_status
+            );
+
+          if (
+            userId &&
+            validStripePlan(
+              hegevaPlan
+            ) &&
+            subscriptionMode &&
+            paymentComplete
+          ) {
+            entitlementChanged =
+              await applyStripePlanEvent(
+                env,
+                userId,
+                hegevaPlan,
+                event
+              );
+
+            resultingPlan =
+              hegevaPlan;
+          } else {
+            ignored =
+              true;
+          }
+        }
+
+        else if (
+          event.type ===
+          "invoice.paid"
+        ) {
+          if (
+            userId &&
+            validStripePlan(
+              hegevaPlan
+            ) &&
+            object?.status === "paid"
+          ) {
+            entitlementChanged =
+              await applyStripePlanEvent(
+                env,
+                userId,
+                hegevaPlan,
+                event
+              );
+
+            resultingPlan =
+              hegevaPlan;
+          } else {
+            ignored =
+              true;
+          }
+        }
+
+        else if (
+          event.type ===
+          "invoice.payment_failed"
+        ) {
+          ignored =
+            true;
+        }
+
+        else if (
+          event.type ===
+          "customer.subscription.deleted"
+        ) {
+          if (userId) {
+            entitlementChanged =
+              await applyStripePlanEvent(
+                env,
+                userId,
+                "basic",
+                event
+              );
+
+            resultingPlan =
+              "basic";
+          } else {
+            ignored =
+              true;
+          }
+        }
+
+        else {
+          ignored =
+            true;
+        }
+
+        if (userId) {
+          await markStripeWebhookVerified(
+            env,
+            userId,
+            event
+          );
+        }
+      } catch (error) {
+        console.error(
+          "HEGEVA Stripe webhook processing error:",
+          error
+        );
+
+        return Response.json(
+          {
+            error:
+              "Stripe webhook processing failed."
+          },
+          {
+            status: 500
+          }
+        );
+      }
+
+      return Response.json({
+        received:
+          true,
+
+        verified:
+          true,
+
+        eventId:
+          event.id || null,
+
+        eventType:
+          event.type,
+
+        ignored,
+
+        entitlementChanged,
+
+        resultingPlan,
+
+        userMapped:
+          Boolean(
+            userId
+          )
+      });
+    }
+
+    // =========================================
+    // BILLING STATUS
     // =========================================
 
     if (
@@ -806,6 +1690,12 @@ export default {
           premiumPriceReady &&
           proPriceReady;
 
+        const webhookStatus =
+          await getStripeWebhookStatus(
+            env,
+            user.id
+          );
+
         return Response.json({
           available:
             true,
@@ -822,8 +1712,17 @@ export default {
 
           checkoutEnabled,
 
+          webhookConfigured:
+            webhookStatus.configured,
+
           webhookVerified:
-            false,
+            webhookStatus.verified,
+
+          lastWebhookEventType:
+            webhookStatus.lastEventType,
+
+          lastWebhookEventCreatedAt:
+            webhookStatus.lastEventCreatedAt,
 
           entitlementSource:
             "backend",
@@ -847,7 +1746,7 @@ export default {
 
           message:
             checkoutEnabled
-              ? "Stripe test checkout is configured. Managed Payments is disabled for the HEGEVA Sandbox checkout. Entitlement remains unchanged until a verified webhook flow is implemented."
+              ? "Stripe test checkout is configured. Managed Payments is disabled for the HEGEVA Sandbox checkout. Verified Stripe webhooks control paid entitlement."
               : "Billing API is available, but Stripe test checkout setup is incomplete."
         });
       } catch (error) {
@@ -867,6 +1766,10 @@ export default {
         );
       }
     }
+
+    // =========================================
+    // STRIPE CHECKOUT
+    // =========================================
 
     if (
       url.pathname ===
@@ -1095,7 +1998,7 @@ export default {
             false,
 
           message:
-            "Stripe test checkout session created. Managed Payments is disabled. No HEGEVA entitlement has been changed."
+            "Stripe test checkout session created. Managed Payments is disabled. Paid entitlement changes only after verified Stripe webhook events."
         });
       } catch (error) {
         console.error(
@@ -1187,8 +2090,6 @@ export default {
           );
         }
 
-        // LOAD
-
         if (
           request.method ===
           "GET"
@@ -1255,8 +2156,6 @@ export default {
               row.updatedAt
           });
         }
-
-        // SAVE
 
         if (
           request.method ===
