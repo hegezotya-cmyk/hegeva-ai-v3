@@ -13998,7 +13998,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.2 — GLOBAL WORKSPACE SEARCH / COMMAND PALETTE
+   HEGEVA AI V32.3 — GLOBAL WORKSPACE SEARCH / COMMAND PALETTE
    ========================================================= */
 .v322-search-trigger{
   display:flex;
@@ -14225,7 +14225,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.2 — GLOBAL WORKSPACE SEARCH
+   HEGEVA AI V32.3 — GLOBAL WORKSPACE SEARCH
    Searches only data already stored in the HEGEVA workspace.
    ========================================================= */
 (() => {
@@ -14448,6 +14448,454 @@ Open planner tasks: ${s.openTasks}`;
     index:workspaceItems,
     version:"V32.2"
   };
+})();
+</script>
+
+
+<style>
+/* =========================================================
+   HEGEVA AI V32.3 — BUSINESS COMMAND SUITE
+   Multi-feature upgrade: Today Center, KPI Pulse, Quick Create,
+   Smart Focus, Backup Status.
+   ========================================================= */
+#v323CommandSuite{
+  margin:18px 0 24px;
+  display:grid;
+  gap:16px;
+}
+.v323-hero{
+  padding:22px;
+  border:1px solid rgba(246,196,83,.22);
+  border-radius:22px;
+  background:
+    radial-gradient(circle at 92% 8%,rgba(55,200,255,.10),transparent 27%),
+    radial-gradient(circle at 10% 100%,rgba(155,108,255,.10),transparent 30%),
+    linear-gradient(145deg,rgba(255,255,255,.04),rgba(246,196,83,.035));
+  box-shadow:0 24px 70px rgba(0,0,0,.22);
+}
+.v323-hero-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  flex-wrap:wrap;
+}
+.v323-hero h2{margin:3px 0 5px;font-size:23px}
+.v323-hero p{margin:0;color:var(--muted);line-height:1.55;max-width:760px}
+.v323-live-badge{
+  padding:7px 10px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:900;
+  border:1px solid rgba(121,234,177,.28);
+  background:rgba(121,234,177,.08);
+  color:#79eab1;
+}
+.v323-kpis{
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:10px;
+  margin-top:17px;
+}
+.v323-kpi{
+  min-height:92px;
+  padding:14px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:14px;
+  background:rgba(255,255,255,.025);
+}
+.v323-kpi span{display:block;color:var(--muted);font-size:11px}
+.v323-kpi strong{display:block;font-size:22px;margin-top:7px}
+.v323-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);
+  gap:16px;
+}
+.v323-card{
+  min-width:0;
+  padding:20px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:20px;
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.035),rgba(55,200,255,.025));
+  box-shadow:0 18px 55px rgba(0,0,0,.18);
+}
+.v323-card h3{margin:0 0 5px;font-size:18px}
+.v323-card > p{margin:0 0 14px;color:var(--muted);font-size:12px;line-height:1.5}
+.v323-actions{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:9px;
+}
+.v323-action{
+  min-height:88px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:flex-start;
+  gap:5px;
+  padding:13px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:14px;
+  background:linear-gradient(145deg,rgba(246,196,83,.055),rgba(155,108,255,.045));
+  color:var(--text);
+  cursor:pointer;
+  text-align:left;
+  font:inherit;
+}
+.v323-action:hover{transform:translateY(-2px);border-color:rgba(246,196,83,.35)}
+.v323-action b{font-size:13px}
+.v323-action small{color:var(--muted);line-height:1.3}
+.v323-action-icon{font-size:22px}
+.v323-focus-list{display:grid;gap:9px}
+.v323-focus{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  gap:11px;
+  align-items:center;
+  padding:12px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:13px;
+  background:rgba(255,255,255,.02);
+}
+.v323-focus-icon{
+  width:34px;height:34px;border-radius:10px;
+  display:grid;place-items:center;background:rgba(255,255,255,.06)
+}
+.v323-focus strong{display:block;font-size:13px}
+.v323-focus small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+.v323-mini-button{
+  min-height:36px;padding:0 10px;border-radius:9px;border:1px solid var(--border);
+  background:rgba(255,255,255,.05);color:var(--text);font-weight:800;cursor:pointer
+}
+.v323-status-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;
+}
+.v323-status{
+  padding:12px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:12px;
+  background:rgba(255,255,255,.025);
+}
+.v323-status span{display:block;color:var(--muted);font-size:10px}
+.v323-status strong{display:block;margin-top:5px;font-size:13px}
+.v323-ok{color:#79eab1}
+.v323-warn{color:#ffe19a}
+.v323-backup-row{
+  display:flex;gap:9px;flex-wrap:wrap;margin-top:13px
+}
+@media(max-width:1150px){
+  .v323-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .v323-grid{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  .v323-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .v323-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:480px){
+  .v323-kpis,.v323-actions,.v323-status-grid{grid-template-columns:1fr}
+}
+</style>
+
+<script>
+/* =========================================================
+   HEGEVA AI V32.3 — BUSINESS COMMAND SUITE
+   Uses only existing HEGEVA workspace data. No invented metrics.
+   ========================================================= */
+(() => {
+  "use strict";
+
+  const TXT={
+    en:{
+      kicker:"V32.3 BUSINESS COMMAND SUITE",title:"Today’s Business Command Center",
+      desc:"A live operating view built only from your saved HEGEVA workspace data.",
+      live:"LIVE WORKSPACE",customers:"Customers",documents:"Documents",expenses:"Expenses",
+      tasks:"Open tasks",followups:"Follow-ups",chats:"Saved chats",
+      quick:"Quick create",quickDesc:"Jump straight into the work you do most often.",
+      invoice:"New invoice",invoiceS:"Create a business document",customer:"New customer",customerS:"Open CRM entry",
+      expense:"Add expense",expenseS:"Record a real cost",task:"New priority",taskS:"Add a planner task",
+      focus:"Smart focus",focusDesc:"Next actions based only on what is currently missing or marked in your workspace.",
+      noFocus:"Your core workspace has no immediate missing-data signal.",
+      followupTitle:"Customer follow-up needs attention",followupBody:"At least one CRM customer is marked for follow-up.",
+      documentTitle:"Create your first saved document",documentBody:"No saved business document is currently available.",
+      expenseTitle:"Start expense tracking",expenseBody:"No expense record has been saved yet.",
+      plannerTitle:"Use the planner",plannerBody:"No open planner task is currently recorded.",
+      open:"Open",system:"Workspace status",systemDesc:"Useful technical and data-layer signals before you continue working.",
+      account:"Account",cloud:"Cloud workspace",search:"Global search",backup:"Local backup tools",
+      active:"Active",connected:"Connected",ready:"Ready",available:"Available",
+      backupNow:"Export backup",searchNow:"Search workspace",refresh:"Refresh dashboard",
+      currency:"Currency"
+    },
+    hu:{
+      kicker:"V32.3 ÜZLETI IRÁNYÍTÓCSOMAG",title:"Mai üzleti irányítóközpont",
+      desc:"Élő működési áttekintés kizárólag a HEGEVA munkaterületedben ténylegesen mentett adatokból.",
+      live:"ÉLŐ MUNKATÉR",customers:"Ügyfelek",documents:"Dokumentumok",expenses:"Kiadások",
+      tasks:"Nyitott feladatok",followups:"Utánkövetések",chats:"Mentett chatek",
+      quick:"Gyors létrehozás",quickDesc:"Ugorj közvetlenül a leggyakoribb üzleti feladatokhoz.",
+      invoice:"Új számla",invoiceS:"Üzleti dokumentum készítése",customer:"Új ügyfél",customerS:"CRM-bejegyzés megnyitása",
+      expense:"Kiadás hozzáadása",expenseS:"Valós költség rögzítése",task:"Új prioritás",taskS:"Feladat hozzáadása a tervezőhöz",
+      focus:"Okos fókusz",focusDesc:"Következő lépések kizárólag a munkatérben ténylegesen hiányzó vagy megjelölt adatok alapján.",
+      noFocus:"Az alap munkatérben jelenleg nincs azonnali hiányjelzés.",
+      followupTitle:"Ügyfél-utánkövetés figyelmet igényel",followupBody:"Legalább egy CRM ügyfél utánkövetésre van megjelölve.",
+      documentTitle:"Készítsd el az első mentett dokumentumot",documentBody:"Jelenleg nincs mentett üzleti dokumentum.",
+      expenseTitle:"Kezdd el a kiadások követését",expenseBody:"Még nincs mentett kiadási bejegyzés.",
+      plannerTitle:"Használd a tervezőt",plannerBody:"Jelenleg nincs nyitott tervezőfeladat.",
+      open:"Megnyitás",system:"Munkatér állapota",systemDesc:"Hasznos technikai és adatréteg-jelzések a munka folytatása előtt.",
+      account:"Fiók",cloud:"Felhő munkatér",search:"Globális keresés",backup:"Helyi biztonsági mentés",
+      active:"Aktív",connected:"Csatlakoztatva",ready:"Kész",available:"Elérhető",
+      backupNow:"Biztonsági mentés exportálása",searchNow:"Keresés a munkatérben",refresh:"Irányítópult frissítése",
+      currency:"Pénznem"
+    },
+    de:{
+      kicker:"V32.3 BUSINESS COMMAND SUITE",title:"Heutige Geschäftszentrale",
+      desc:"Live-Betriebsübersicht ausschließlich aus tatsächlich gespeicherten HEGEVA-Arbeitsbereichsdaten.",
+      live:"LIVE-ARBEITSBEREICH",customers:"Kunden",documents:"Dokumente",expenses:"Ausgaben",
+      tasks:"Offene Aufgaben",followups:"Nachfassaktionen",chats:"Gespeicherte Chats",
+      quick:"Schnell erstellen",quickDesc:"Direkt zu den häufigsten Geschäftsaufgaben springen.",
+      invoice:"Neue Rechnung",invoiceS:"Geschäftsdokument erstellen",customer:"Neuer Kunde",customerS:"CRM-Eintrag öffnen",
+      expense:"Ausgabe hinzufügen",expenseS:"Echte Kosten erfassen",task:"Neue Priorität",taskS:"Planer-Aufgabe hinzufügen",
+      focus:"Intelligenter Fokus",focusDesc:"Nächste Schritte nur auf Basis tatsächlich fehlender oder markierter Arbeitsbereichsdaten.",
+      noFocus:"Der Kern-Arbeitsbereich zeigt aktuell keinen unmittelbaren fehlenden Punkt.",
+      followupTitle:"Kunden-Nachfassaktion benötigt Aufmerksamkeit",followupBody:"Mindestens ein CRM-Kunde ist zur Nachverfolgung markiert.",
+      documentTitle:"Erstes gespeichertes Dokument erstellen",documentBody:"Derzeit ist kein gespeichertes Geschäftsdokument verfügbar.",
+      expenseTitle:"Ausgabenerfassung starten",expenseBody:"Es wurde noch kein Ausgabeneintrag gespeichert.",
+      plannerTitle:"Planer verwenden",plannerBody:"Derzeit ist keine offene Planer-Aufgabe erfasst.",
+      open:"Öffnen",system:"Arbeitsbereichsstatus",systemDesc:"Nützliche technische und Datenschicht-Signale vor der weiteren Arbeit.",
+      account:"Konto",cloud:"Cloud-Arbeitsbereich",search:"Globale Suche",backup:"Lokale Backup-Werkzeuge",
+      active:"Aktiv",connected:"Verbunden",ready:"Bereit",available:"Verfügbar",
+      backupNow:"Backup exportieren",searchNow:"Arbeitsbereich durchsuchen",refresh:"Dashboard aktualisieren",currency:"Währung"
+    },
+    fr:{
+      kicker:"V32.3 SUITE DE COMMANDE",title:"Centre de commande du jour",
+      desc:"Vue opérationnelle en direct construite uniquement à partir des données réellement enregistrées dans votre espace HEGEVA.",
+      live:"ESPACE EN DIRECT",customers:"Clients",documents:"Documents",expenses:"Dépenses",
+      tasks:"Tâches ouvertes",followups:"Suivis",chats:"Chats enregistrés",
+      quick:"Création rapide",quickDesc:"Accédez directement aux tâches professionnelles les plus fréquentes.",
+      invoice:"Nouvelle facture",invoiceS:"Créer un document professionnel",customer:"Nouveau client",customerS:"Ouvrir une entrée CRM",
+      expense:"Ajouter une dépense",expenseS:"Enregistrer un coût réel",task:"Nouvelle priorité",taskS:"Ajouter une tâche au planificateur",
+      focus:"Focus intelligent",focusDesc:"Prochaines actions basées uniquement sur les données réellement manquantes ou marquées.",
+      noFocus:"L’espace principal ne présente actuellement aucun signal de donnée manquante immédiate.",
+      followupTitle:"Un suivi client nécessite une attention",followupBody:"Au moins un client CRM est marqué pour suivi.",
+      documentTitle:"Créez votre premier document enregistré",documentBody:"Aucun document professionnel enregistré n’est disponible.",
+      expenseTitle:"Commencez le suivi des dépenses",expenseBody:"Aucune dépense n’a encore été enregistrée.",
+      plannerTitle:"Utilisez le planificateur",plannerBody:"Aucune tâche ouverte n’est actuellement enregistrée.",
+      open:"Ouvrir",system:"État de l’espace",systemDesc:"Signaux techniques et de données utiles avant de poursuivre votre travail.",
+      account:"Compte",cloud:"Espace cloud",search:"Recherche globale",backup:"Outils de sauvegarde locale",
+      active:"Actif",connected:"Connecté",ready:"Prêt",available:"Disponible",
+      backupNow:"Exporter la sauvegarde",searchNow:"Rechercher dans l’espace",refresh:"Actualiser le tableau de bord",currency:"Devise"
+    },
+    es:{
+      kicker:"V32.3 SUITE DE CONTROL",title:"Centro de control de hoy",
+      desc:"Vista operativa en vivo construida únicamente con datos realmente guardados en tu espacio HEGEVA.",
+      live:"ESPACIO EN VIVO",customers:"Clientes",documents:"Documentos",expenses:"Gastos",
+      tasks:"Tareas abiertas",followups:"Seguimientos",chats:"Chats guardados",
+      quick:"Creación rápida",quickDesc:"Ve directamente a las tareas empresariales más frecuentes.",
+      invoice:"Nueva factura",invoiceS:"Crear documento empresarial",customer:"Nuevo cliente",customerS:"Abrir entrada CRM",
+      expense:"Añadir gasto",expenseS:"Registrar un coste real",task:"Nueva prioridad",taskS:"Añadir tarea al planificador",
+      focus:"Foco inteligente",focusDesc:"Próximas acciones basadas únicamente en datos realmente ausentes o marcados en tu espacio.",
+      noFocus:"El espacio principal no muestra actualmente ninguna señal inmediata de datos faltantes.",
+      followupTitle:"Un seguimiento de cliente necesita atención",followupBody:"Al menos un cliente CRM está marcado para seguimiento.",
+      documentTitle:"Crea tu primer documento guardado",documentBody:"Actualmente no hay ningún documento empresarial guardado.",
+      expenseTitle:"Comienza el seguimiento de gastos",expenseBody:"Aún no se ha guardado ningún gasto.",
+      plannerTitle:"Usa el planificador",plannerBody:"Actualmente no hay tareas abiertas registradas.",
+      open:"Abrir",system:"Estado del espacio",systemDesc:"Señales técnicas y de datos útiles antes de continuar trabajando.",
+      account:"Cuenta",cloud:"Espacio cloud",search:"Búsqueda global",backup:"Herramientas de copia local",
+      active:"Activo",connected:"Conectado",ready:"Listo",available:"Disponible",
+      backupNow:"Exportar copia",searchNow:"Buscar en el espacio",refresh:"Actualizar panel",currency:"Moneda"
+    }
+  };
+
+  const lang=()=>{
+    const v=document.getElementById("languageSelect")?.value||"en";
+    return TXT[v]?v:"en";
+  };
+  const tx=()=>TXT[lang()];
+  const parse=(k,f=[])=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))??f}catch{return f}};
+  const arr=k=>{const x=parse(k,[]);return Array.isArray(x)?x:[]};
+
+  function metrics(){
+    const customers=arr("hegeva_v10_customers");
+    const docs=arr("hegeva_documents");
+    const expenses=arr("hegeva_expenses");
+    const planner=arr("hegeva_planner_tasks");
+    const chats=arr("hegeva_v41_saved_chats");
+    const followups=customers.filter(c=>c&&c.followup).length;
+    const openTasks=planner.filter(p=>p&&!p.done).length;
+    return {customers:customers.length,documents:docs.length,expenses:expenses.length,tasks:openTasks,followups,chats:chats.length};
+  }
+
+  function currency(){
+    try{
+      const s=JSON.parse(localStorage.getItem("hegeva_settings")||"{}")||{};
+      return s.currency||document.getElementById("currency")?.value||"GBP";
+    }catch{return "GBP"}
+  }
+
+  function route(page){
+    if(typeof window.showPage==="function")window.showPage(page);
+    else document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===page));
+  }
+
+  function ensureRoot(){
+    const home=document.getElementById("home");
+    if(!home)return null;
+    let root=document.getElementById("v323CommandSuite");
+    if(!root){
+      root=document.createElement("div");
+      root.id="v323CommandSuite";
+      const heading=home.querySelector(".page-heading");
+      if(heading)heading.insertAdjacentElement("afterend",root);
+      else home.prepend(root);
+    }
+    return root;
+  }
+
+  function focusItems(m,x){
+    const out=[];
+    if(m.followups>0)out.push(["👥",x.followupTitle,x.followupBody,"customers"]);
+    if(m.documents===0)out.push(["🧾",x.documentTitle,x.documentBody,"documents"]);
+    if(m.expenses===0)out.push(["💰",x.expenseTitle,x.expenseBody,"expenses"]);
+    if(m.tasks===0)out.push(["⏳",x.plannerTitle,x.plannerBody,"planner"]);
+    return out.slice(0,4);
+  }
+
+  function render(){
+    const root=ensureRoot();
+    if(!root)return;
+    const x=tx(),m=metrics(),focus=focusItems(m,x);
+
+    root.innerHTML=`
+      <section class="v323-hero">
+        <div class="v323-hero-head">
+          <div>
+            <div class="vision-tagline">${x.kicker}</div>
+            <h2>${x.title}</h2>
+            <p>${x.desc}</p>
+          </div>
+          <div class="v323-live-badge">● ${x.live}</div>
+        </div>
+        <div class="v323-kpis">
+          <div class="v323-kpi"><span>${x.customers}</span><strong>${m.customers}</strong></div>
+          <div class="v323-kpi"><span>${x.documents}</span><strong>${m.documents}</strong></div>
+          <div class="v323-kpi"><span>${x.expenses}</span><strong>${m.expenses}</strong></div>
+          <div class="v323-kpi"><span>${x.tasks}</span><strong>${m.tasks}</strong></div>
+          <div class="v323-kpi"><span>${x.followups}</span><strong>${m.followups}</strong></div>
+          <div class="v323-kpi"><span>${x.chats}</span><strong>${m.chats}</strong></div>
+        </div>
+      </section>
+
+      <div class="v323-grid">
+        <section class="v323-card">
+          <h3>${x.quick}</h3>
+          <p>${x.quickDesc}</p>
+          <div class="v323-actions">
+            <button class="v323-action" data-v323-action="invoice"><span class="v323-action-icon">🧾</span><b>${x.invoice}</b><small>${x.invoiceS}</small></button>
+            <button class="v323-action" data-v323-action="customer"><span class="v323-action-icon">👥</span><b>${x.customer}</b><small>${x.customerS}</small></button>
+            <button class="v323-action" data-v323-action="expense"><span class="v323-action-icon">💰</span><b>${x.expense}</b><small>${x.expenseS}</small></button>
+            <button class="v323-action" data-v323-action="task"><span class="v323-action-icon">⏳</span><b>${x.task}</b><small>${x.taskS}</small></button>
+          </div>
+        </section>
+
+        <section class="v323-card">
+          <h3>${x.focus}</h3>
+          <p>${x.focusDesc}</p>
+          <div class="v323-focus-list">
+            ${focus.length?focus.map(([ic,t,b,p])=>`
+              <div class="v323-focus">
+                <span class="v323-focus-icon">${ic}</span>
+                <span><strong>${t}</strong><small>${b}</small></span>
+                <button class="v323-mini-button" type="button" data-v323-route="${p}">${x.open}</button>
+              </div>`).join(""):`<div class="v323-focus"><span class="v323-focus-icon">✓</span><span><strong>${x.noFocus}</strong></span></div>`}
+          </div>
+        </section>
+      </div>
+
+      <div class="v323-grid">
+        <section class="v323-card">
+          <h3>${x.system}</h3>
+          <p>${x.systemDesc}</p>
+          <div class="v323-status-grid">
+            <div class="v323-status"><span>${x.account}</span><strong class="v323-ok">${window.hegevaCurrentUser?x.active:x.ready}</strong></div>
+            <div class="v323-status"><span>${x.cloud}</span><strong class="v323-ok">${window.hegevaCurrentUser?x.connected:x.ready}</strong></div>
+            <div class="v323-status"><span>${x.search}</span><strong class="v323-ok">${window.hegevaV322Search?x.available:x.ready}</strong></div>
+            <div class="v323-status"><span>${x.currency}</span><strong>${currency()}</strong></div>
+          </div>
+          <div class="v323-backup-row">
+            <button class="secondary-button" type="button" data-v323-action="backup">${x.backupNow}</button>
+            <button class="secondary-button" type="button" data-v323-action="search">${x.searchNow}</button>
+            <button class="secondary-button" type="button" data-v323-action="refresh">${x.refresh}</button>
+          </div>
+        </section>
+
+        <section class="v323-card">
+          <h3>${x.backup}</h3>
+          <p>${x.systemDesc}</p>
+          <div class="v323-status-grid">
+            <div class="v323-status"><span>${x.documents}</span><strong>${m.documents}</strong></div>
+            <div class="v323-status"><span>${x.customers}</span><strong>${m.customers}</strong></div>
+            <div class="v323-status"><span>${x.tasks}</span><strong>${m.tasks}</strong></div>
+            <div class="v323-status"><span>${x.followups}</span><strong>${m.followups}</strong></div>
+          </div>
+        </section>
+      </div>`;
+  }
+
+  document.addEventListener("click",e=>{
+    const routeBtn=e.target.closest("[data-v323-route]");
+    if(routeBtn){route(routeBtn.dataset.v323Route);return}
+
+    const action=e.target.closest("[data-v323-action]")?.dataset.v323Action;
+    if(!action)return;
+
+    if(action==="invoice"){
+      route("businessTools44");
+      setTimeout(()=>document.getElementById("btCustomer")?.focus(),80);
+    }
+    if(action==="customer"){
+      route("customers");
+      setTimeout(()=>document.getElementById("crmCustomerName")?.focus(),80);
+    }
+    if(action==="expense"){
+      route("expenses");
+      setTimeout(()=>document.getElementById("expenseAmount")?.focus(),80);
+    }
+    if(action==="task"){
+      route("planner");
+      setTimeout(()=>document.getElementById("plannerTask")?.focus(),80);
+    }
+    if(action==="backup"){
+      const btn=document.getElementById("exportBackup");
+      if(btn)btn.click(); else route("settings");
+    }
+    if(action==="search"){
+      if(window.hegevaV322Search?.open)window.hegevaV322Search.open();
+    }
+    if(action==="refresh")render();
+  });
+
+  document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(render,80));
+  window.addEventListener("storage",()=>setTimeout(render,80));
+
+  const obs=new MutationObserver(()=>{
+    if(document.getElementById("home")?.classList.contains("active")){
+      clearTimeout(window.__v323Refresh);
+      window.__v323Refresh=setTimeout(render,120);
+    }
+  });
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",()=>{
+      render();
+      obs.observe(document.body,{subtree:true,childList:true,characterData:true});
+    },{once:true});
+  }else{
+    render();
+    obs.observe(document.body,{subtree:true,childList:true,characterData:true});
+  }
+
+  window.hegevaV323CommandSuite={render,metrics,version:"V32.3"};
 })();
 </script>
 
