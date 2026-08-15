@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="HEGEVA AI V34.1 — automated production checks, secure cloud workspace and launch hardening." />
-  <title>HEGEVA AI V34.1</title>
+  <meta name="description" content="HEGEVA AI V34.2 — multilingual payment-readiness test mode with live account, plan and cloud verification." />
+  <title>HEGEVA AI V34.2</title>
 
   <style>
     :root {
@@ -1121,7 +1121,7 @@
       background:linear-gradient(145deg,rgba(53,213,138,.08),rgba(255,255,255,.035));
     }
     .plan-card.current-plan::after{
-      content:"CURRENT";
+      content:attr(data-current-label);
       position:absolute;top:14px;right:14px;
       padding:5px 8px;border-radius:999px;
       border:1px solid rgba(53,213,138,.32);
@@ -1682,7 +1682,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name notranslate" translate="no">Hegeva AI</div>
-          <div class="brand-subtitle">V34.1 SMART BUSINESS HUB</div>
+          <div class="brand-subtitle">V34.2 SMART BUSINESS HUB</div>
         </div>
       </div>
 
@@ -3082,10 +3082,57 @@
           HEGEVA will not mark Premium or Pro as active until the backend confirms the user's entitlement. Prices and final limits will be connected to the real payment setup later.
         </div>
       
+        
+<div class="card" id="v342PaymentTest" style="margin-top:18px">
+  <div class="page-heading" style="margin-bottom:10px">
+    <div>
+      <div class="vision-tagline" id="v342Kicker">V34.2 PAYMENT TEST MODE</div>
+      <h2 id="v342Title">Payment integration readiness</h2>
+      <p id="v342Subtitle">Test the upgrade path without entering card details, charging money or changing plan entitlement.</p>
+    </div>
+    <span class="status soon" id="v342ModeBadge">TEST MODE</span>
+  </div>
+
+  <div class="notice" id="v342SafetyNotice" style="margin-bottom:14px">
+    No real payment provider is connected. This test never asks for card details and cannot activate Premium or Pro.
+  </div>
+
+  <div class="v342-preflight-grid">
+    <div class="v342-preflight"><span id="v342DomainLabel">Domain</span><strong id="v342Domain">—</strong></div>
+    <div class="v342-preflight"><span id="v342AuthLabel">Account</span><strong id="v342Auth">—</strong></div>
+    <div class="v342-preflight"><span id="v342PlanLabel">Plan API</span><strong id="v342Plan">—</strong></div>
+    <div class="v342-preflight"><span id="v342CloudLabel">Cloud workspace</span><strong id="v342Cloud">—</strong></div>
+    <div class="v342-preflight"><span id="v342ProviderLabel">Payment provider</span><strong id="v342Provider">NOT CONNECTED</strong></div>
+    <div class="v342-preflight"><span id="v342LanguageLabel">Language QA</span><strong id="v342Language">—</strong></div>
+  </div>
+
+  <div class="v342-test-grid">
+    <div class="v342-test-panel">
+      <h3 id="v342ChooseTitle">Choose a test upgrade</h3>
+      <p id="v342ChooseText">This only tests the flow. Your real backend plan stays unchanged.</p>
+      <div class="v342-plan-choice">
+        <button class="v342-plan-button active" type="button" data-v342-plan="premium">Premium</button>
+        <button class="v342-plan-button" type="button" data-v342-plan="pro">Pro</button>
+      </div>
+      <div class="hero-buttons" style="margin-top:14px">
+        <button class="secondary-button" id="v342RunPreflight" type="button">Run preflight</button>
+        <button class="primary-button" id="v342RunCheckout" type="button">Test checkout flow</button>
+      </div>
+    </div>
+
+    <div class="v342-test-panel">
+      <h3 id="v342ResultTitle">Test result</h3>
+      <div class="v342-result" id="v342Result">Run the preflight first.</div>
+      <div class="v342-flow-list" id="v342FlowList"></div>
+    </div>
+  </div>
+</div>
+
+
         <div class="card" id="v13BillingCenter" style="margin-top:18px">
           <div class="page-heading" style="margin-bottom:10px">
             <div>
-              <div class="vision-tagline">V29.0 BILLING & UPGRADE PREP</div>
+              <div class="vision-tagline">V34.2 PAYMENT READINESS</div>
               <h2 data-i18n="v13.billingTitle">Billing & Upgrade Center</h2>
               <p data-i18n="v13.billingSubtitle">Payments are not active yet. This page prepares real plan upgrades without charging a card.</p>
             </div>
@@ -16751,6 +16798,299 @@ document.addEventListener("click",async e=>{
 document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(render,80));
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",render,{once:true});else render();
 window.hegevaV341AutomatedCheck={runAll,render,state,version:"V34.1"};
+})();
+</script>
+
+
+<style>
+/* =========================================================
+   HEGEVA AI V34.2 — PAYMENT READINESS + UI POLISH
+   ========================================================= */
+.v342-preflight-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+.v342-preflight{
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:13px;
+  background:rgba(255,255,255,.03);
+}
+.v342-preflight span{display:block;color:var(--muted);font-size:11px}
+.v342-preflight strong{display:block;margin-top:5px;font-size:13px}
+.v342-test-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-top:14px;
+}
+.v342-test-panel{
+  padding:15px;
+  border:1px solid var(--border);
+  border-radius:15px;
+  background:rgba(255,255,255,.025);
+}
+.v342-test-panel h3{margin:0 0 6px}
+.v342-test-panel p{color:var(--muted);font-size:12px;line-height:1.5}
+.v342-plan-choice{display:flex;gap:9px;margin-top:12px}
+.v342-plan-button{
+  flex:1;min-height:42px;border:1px solid var(--border);border-radius:11px;
+  background:rgba(255,255,255,.04);color:var(--text);font-weight:900;cursor:pointer
+}
+.v342-plan-button.active{
+  border-color:rgba(246,196,83,.48);
+  background:rgba(246,196,83,.10);
+  color:#ffe7a3
+}
+.v342-result{
+  padding:12px;border:1px solid var(--border);border-radius:12px;
+  background:rgba(255,255,255,.025);color:var(--muted);line-height:1.5;font-size:12px
+}
+.v342-result.ok{border-color:rgba(53,213,138,.28);color:#79eab1;background:rgba(53,213,138,.05)}
+.v342-result.warn{border-color:rgba(246,196,83,.30);color:#ffe19a;background:rgba(246,196,83,.05)}
+.v342-result.fail{border-color:rgba(255,102,128,.30);color:#ff9bab;background:rgba(255,102,128,.05)}
+.v342-flow-list{display:grid;gap:7px;margin-top:10px}
+.v342-flow-item{padding:9px 10px;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-size:11px}
+@media(max-width:900px){
+  .v342-preflight-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .v342-test-grid{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+  .v342-preflight-grid{grid-template-columns:1fr}
+  .v342-plan-choice{flex-direction:column}
+}
+</style>
+
+<script>
+/* =========================================================
+   HEGEVA AI V34.2 — PAYMENT TEST MODE + 5-LANGUAGE POLISH
+   No card collection, no charge, no entitlement mutation.
+   ========================================================= */
+(() => {
+"use strict";
+
+const I={
+en:{
+ kicker:"V34.2 PAYMENT TEST MODE",title:"Payment integration readiness",
+ subtitle:"Test the upgrade path without entering card details, charging money or changing plan entitlement.",
+ badge:"TEST MODE",safety:"No real payment provider is connected. This test never asks for card details and cannot activate Premium or Pro.",
+ domain:"Domain",account:"Account",plan:"Plan API",cloud:"Cloud workspace",provider:"Payment provider",language:"Language QA",
+ notConnected:"NOT CONNECTED",choose:"Choose a test upgrade",chooseText:"This only tests the flow. Your real backend plan stays unchanged.",
+ preflight:"Run preflight",checkout:"Test checkout flow",result:"Test result",start:"Run the preflight first.",
+ customDomain:"Custom domain",worker:"Worker preview",authenticated:"Authenticated",signedOut:"Not signed in",reachable:"Reachable",unavailable:"Unavailable",
+ languagePass:"PASS",languageWarn:"CHECK",preflightPass:"Preflight passed. Payment provider is still intentionally not connected.",
+ preflightWarn:"Preflight needs attention before a real payment provider is connected.",
+ checkoutPass:"Test checkout flow completed safely. No charge occurred and your entitlement was not changed.",
+ checkoutBlocked:"Test checkout is blocked until account, plan API and cloud workspace checks pass.",
+ steps:["Plan selected","Account session validated","Plan backend validated","Cloud workspace validated","No card data requested","No money charged","Entitlement left unchanged"],
+ current:"CURRENT",month:"month",backendAllowance:"Backend-confirmed AI allowance",core:"Core HEGEVA workspace",cloudFeature:"Cloud workspace",productivity:"More productivity capacity",fullWorkspace:"Full business workspace",heavy:"Heavier business usage",priority:"Priority access to advanced tools",
+ notConfigured:"Not configured",pending:"Payment connection pending",currentPlan:"Current plan"
+},
+hu:{
+ kicker:"V34.2 FIZETÉSI TESZTMÓD",title:"Fizetési integráció készültsége",
+ subtitle:"Teszteld a csomagváltási folyamatot kártyaadatok, pénzlevonás és jogosultságmódosítás nélkül.",
+ badge:"TESZTMÓD",safety:"Nincs valódi fizetési szolgáltató csatlakoztatva. A teszt nem kér kártyaadatot, és nem aktiválhat Premium vagy Pro csomagot.",
+ domain:"Domain",account:"Fiók",plan:"Csomag API",cloud:"Felhő munkatér",provider:"Fizetési szolgáltató",language:"Nyelvi QA",
+ notConnected:"NINCS CSATLAKOZTATVA",choose:"Teszt csomagváltás kiválasztása",chooseText:"Ez csak a folyamatot teszteli. A valódi backend csomagod változatlan marad.",
+ preflight:"Előellenőrzés futtatása",checkout:"Checkout folyamat tesztelése",result:"Teszt eredménye",start:"Először futtasd az előellenőrzést.",
+ customDomain:"Saját domain",worker:"Worker előnézet",authenticated:"Hitelesítve",signedOut:"Nincs bejelentkezve",reachable:"Elérhető",unavailable:"Nem elérhető",
+ languagePass:"PASS",languageWarn:"ELLENŐRIZD",preflightPass:"Az előellenőrzés sikeres. A fizetési szolgáltató szándékosan még nincs csatlakoztatva.",
+ preflightWarn:"Az előellenőrzés figyelmet igényel a valódi fizetés bekötése előtt.",
+ checkoutPass:"A teszt checkout biztonságosan lefutott. Nem történt terhelés, és a jogosultságod nem változott.",
+ checkoutBlocked:"A checkout teszt addig nem fut, amíg a fiók, csomag API és cloud munkatér ellenőrzése nem sikeres.",
+ steps:["Csomag kiválasztva","Fiók munkamenet ellenőrizve","Csomag backend ellenőrizve","Felhő munkatér ellenőrizve","Nem kért kártyaadatot","Nem történt pénzlevonás","Jogosultság változatlan maradt"],
+ current:"JELENLEGI",month:"hó",backendAllowance:"Backend által igazolt AI keret",core:"Alap HEGEVA munkatér",cloudFeature:"Felhő munkatér",productivity:"Nagyobb produktivitási kapacitás",fullWorkspace:"Teljes üzleti munkatér",heavy:"Nagyobb üzleti használat",priority:"Elsőbbségi hozzáférés fejlett eszközökhöz",
+ notConfigured:"Nincs beállítva",pending:"Fizetési kapcsolat előkészítés alatt",currentPlan:"Jelenlegi csomag"
+},
+de:{
+ kicker:"V34.2 ZAHLUNGS-TESTMODUS",title:"Bereitschaft der Zahlungsintegration",
+ subtitle:"Teste den Upgrade-Ablauf ohne Kartendaten, Abbuchung oder Änderung der Berechtigung.",
+ badge:"TESTMODUS",safety:"Kein echter Zahlungsanbieter ist verbunden. Der Test fragt keine Kartendaten ab und kann Premium oder Pro nicht aktivieren.",
+ domain:"Domain",account:"Konto",plan:"Tarif-API",cloud:"Cloud-Arbeitsbereich",provider:"Zahlungsanbieter",language:"Sprach-QA",
+ notConnected:"NICHT VERBUNDEN",choose:"Test-Upgrade auswählen",chooseText:"Dies testet nur den Ablauf. Dein echter Backend-Tarif bleibt unverändert.",
+ preflight:"Vorprüfung starten",checkout:"Checkout-Ablauf testen",result:"Testergebnis",start:"Starte zuerst die Vorprüfung.",
+ customDomain:"Eigene Domain",worker:"Worker-Vorschau",authenticated:"Authentifiziert",signedOut:"Nicht angemeldet",reachable:"Erreichbar",unavailable:"Nicht verfügbar",
+ languagePass:"PASS",languageWarn:"PRÜFEN",preflightPass:"Vorprüfung bestanden. Der Zahlungsanbieter ist absichtlich noch nicht verbunden.",
+ preflightWarn:"Die Vorprüfung benötigt Aufmerksamkeit, bevor ein echter Zahlungsanbieter verbunden wird.",
+ checkoutPass:"Test-Checkout sicher abgeschlossen. Keine Abbuchung und keine Änderung der Berechtigung.",
+ checkoutBlocked:"Checkout-Test blockiert, bis Konto, Tarif-API und Cloud-Arbeitsbereich erfolgreich geprüft wurden.",
+ steps:["Tarif ausgewählt","Kontositzung validiert","Tarif-Backend validiert","Cloud-Arbeitsbereich validiert","Keine Kartendaten abgefragt","Kein Geld abgebucht","Berechtigung unverändert"],
+ current:"AKTUELL",month:"Monat",backendAllowance:"Backend-bestätigtes AI-Kontingent",core:"HEGEVA-Kernarbeitsbereich",cloudFeature:"Cloud-Arbeitsbereich",productivity:"Mehr Produktivitätskapazität",fullWorkspace:"Vollständiger Business-Workspace",heavy:"Intensivere Geschäftsnutzung",priority:"Priorisierter Zugriff auf erweiterte Tools",
+ notConfigured:"Nicht konfiguriert",pending:"Zahlungsverbindung ausstehend",currentPlan:"Aktueller Tarif"
+},
+fr:{
+ kicker:"V34.2 MODE TEST DE PAIEMENT",title:"Préparation de l’intégration de paiement",
+ subtitle:"Testez le parcours de mise à niveau sans carte, sans débit et sans modifier les droits.",
+ badge:"MODE TEST",safety:"Aucun prestataire de paiement réel n’est connecté. Le test ne demande aucune carte et ne peut pas activer Premium ou Pro.",
+ domain:"Domaine",account:"Compte",plan:"API forfait",cloud:"Espace cloud",provider:"Prestataire de paiement",language:"QA langue",
+ notConnected:"NON CONNECTÉ",choose:"Choisir une mise à niveau test",chooseText:"Ceci teste uniquement le parcours. Votre forfait backend réel reste inchangé.",
+ preflight:"Lancer le précontrôle",checkout:"Tester le checkout",result:"Résultat du test",start:"Lancez d’abord le précontrôle.",
+ customDomain:"Domaine personnalisé",worker:"Aperçu Worker",authenticated:"Authentifié",signedOut:"Non connecté",reachable:"Accessible",unavailable:"Indisponible",
+ languagePass:"PASS",languageWarn:"VÉRIFIER",preflightPass:"Précontrôle réussi. Le prestataire de paiement reste volontairement non connecté.",
+ preflightWarn:"Le précontrôle nécessite une attention avant de connecter un vrai prestataire.",
+ checkoutPass:"Le checkout test s’est terminé en sécurité. Aucun débit et aucun changement de droits.",
+ checkoutBlocked:"Le test checkout est bloqué tant que le compte, l’API forfait et l’espace cloud ne sont pas validés.",
+ steps:["Forfait sélectionné","Session du compte validée","Backend du forfait validé","Espace cloud validé","Aucune carte demandée","Aucun débit effectué","Droits inchangés"],
+ current:"ACTUEL",month:"mois",backendAllowance:"Quota AI confirmé par le backend",core:"Espace HEGEVA principal",cloudFeature:"Espace cloud",productivity:"Capacité de productivité accrue",fullWorkspace:"Espace professionnel complet",heavy:"Usage professionnel plus intensif",priority:"Accès prioritaire aux outils avancés",
+ notConfigured:"Non configuré",pending:"Connexion paiement en attente",currentPlan:"Forfait actuel"
+},
+es:{
+ kicker:"V34.2 MODO DE PRUEBA DE PAGO",title:"Preparación de la integración de pagos",
+ subtitle:"Prueba el flujo de mejora sin tarjeta, sin cobro y sin modificar derechos.",
+ badge:"MODO PRUEBA",safety:"No hay un proveedor de pago real conectado. La prueba no solicita tarjeta y no puede activar Premium o Pro.",
+ domain:"Dominio",account:"Cuenta",plan:"API del plan",cloud:"Workspace cloud",provider:"Proveedor de pago",language:"QA de idioma",
+ notConnected:"NO CONECTADO",choose:"Elegir mejora de prueba",chooseText:"Esto solo prueba el flujo. Tu plan real del backend no cambia.",
+ preflight:"Ejecutar comprobación previa",checkout:"Probar flujo de checkout",result:"Resultado de la prueba",start:"Ejecuta primero la comprobación previa.",
+ customDomain:"Dominio propio",worker:"Vista Worker",authenticated:"Autenticado",signedOut:"Sin sesión",reachable:"Disponible",unavailable:"No disponible",
+ languagePass:"PASS",languageWarn:"REVISAR",preflightPass:"Comprobación previa superada. El proveedor de pago sigue sin conectarse intencionadamente.",
+ preflightWarn:"La comprobación previa necesita atención antes de conectar un proveedor real.",
+ checkoutPass:"El checkout de prueba terminó de forma segura. No hubo cobro ni cambio de derechos.",
+ checkoutBlocked:"La prueba de checkout queda bloqueada hasta validar cuenta, API del plan y workspace cloud.",
+ steps:["Plan seleccionado","Sesión validada","Backend del plan validado","Workspace cloud validado","No se solicitaron datos de tarjeta","No se cobró dinero","Derechos sin cambios"],
+ current:"ACTUAL",month:"mes",backendAllowance:"Límite de AI confirmado por backend",core:"Workspace principal HEGEVA",cloudFeature:"Workspace cloud",productivity:"Mayor capacidad de productividad",fullWorkspace:"Workspace empresarial completo",heavy:"Uso empresarial más intenso",priority:"Acceso prioritario a herramientas avanzadas",
+ notConfigured:"No configurado",pending:"Conexión de pago pendiente",currentPlan:"Plan actual"
+}
+};
+
+const S={selected:"premium",auth:false,plan:false,cloud:false,domain:false,language:false,last:null};
+const lang=()=>{const v=document.getElementById("languageSelect")?.value||"en";return I[v]?v:"en"};
+const x=()=>I[lang()];
+const $=id=>document.getElementById(id);
+
+async function probe(url){
+ try{
+   const r=await fetch(url,{credentials:"include",cache:"no-store",headers:{"Accept":"application/json"}});
+   return {ok:r.ok,status:r.status};
+ }catch(error){return {ok:false,status:0,error:String(error?.message||error)}}
+}
+
+function knownEnglishPhrases(){
+ return [
+   "Billing & Upgrade Center","Payments are not active yet","Payment connection pending",
+   "More productivity capacity","Full business workspace","Heavier business usage",
+   "Priority access to advanced tools","Current plan","Coming Soon"
+ ];
+}
+
+function auditPricingLanguage(){
+ if(lang()==="en")return true;
+ const pricing=$("pricing");if(!pricing)return false;
+ const visible=(pricing.innerText||"");
+ return !knownEnglishPhrases().some(v=>visible.includes(v));
+}
+
+function polishLegacyBilling(){
+ const t=x(),center=$("v13BillingCenter");if(!center)return;
+ const cards=center.querySelectorAll(".v13-billing-card");
+ if(cards[0]){
+   const price=cards[0].querySelector(".v13-billing-price");
+   if(price)price.innerHTML=`£0 <small>/ ${t.month}</small>`;
+   const items=cards[0].querySelectorAll(".v13-billing-item");
+   if(items[0])items[0].textContent=`✓ ${t.backendAllowance}`;
+   if(items[1])items[1].textContent=`✓ ${t.core}`;
+   if(items[2])items[2].textContent=`✓ ${t.cloudFeature}`;
+ }
+ if(cards[1]){
+   const price=cards[1].querySelector(".v13-billing-price");if(price)price.textContent=t.notConfigured;
+   const items=cards[1].querySelectorAll(".v13-billing-item");
+   if(items[0])items[0].textContent=`✓ ${t.backendAllowance}`;
+   if(items[1])items[1].textContent=`✓ ${t.productivity}`;
+   if(items[2])items[2].textContent=`✓ ${t.fullWorkspace}`;
+   const b=cards[1].querySelector("button");if(b)b.textContent=t.pending;
+ }
+ if(cards[2]){
+   const price=cards[2].querySelector(".v13-billing-price");if(price)price.textContent=t.notConfigured;
+   const items=cards[2].querySelectorAll(".v13-billing-item");
+   if(items[0])items[0].textContent=`✓ ${t.backendAllowance}`;
+   if(items[1])items[1].textContent=`✓ ${t.heavy}`;
+   if(items[2])items[2].textContent=`✓ ${t.priority}`;
+   const b=cards[2].querySelector("button");if(b)b.textContent=t.pending;
+ }
+ center.querySelectorAll('[data-i18n="v13.currentPlan"]').forEach(n=>n.textContent=t.currentPlan);
+ document.querySelectorAll(".plan-card").forEach(card=>card.dataset.currentLabel=t.current);
+}
+
+function translateKnownStatuses(){
+ const t=x();
+ const map={
+   "Active":{hu:"Aktív",de:"Aktiv",fr:"Actif",es:"Activo"},
+   "Connected":{hu:"Csatlakoztatva",de:"Verbunden",fr:"Connecté",es:"Conectado"},
+   "Disabled":{hu:"Kikapcsolva",de:"Deaktiviert",fr:"Désactivé",es:"Desactivado"},
+   "Ready":{hu:"Kész",de:"Bereit",fr:"Prêt",es:"Listo"}
+ };
+ const l=lang();if(l==="en")return;
+ [$("planCloudUsage"),$("v25Payments")].forEach(n=>{
+   if(!n)return;const value=(n.textContent||"").trim();
+   if(map[value]?.[l])n.textContent=map[value][l];
+ });
+}
+
+function localize(){
+ const t=x();
+ $("v342Kicker").textContent=t.kicker;$("v342Title").textContent=t.title;$("v342Subtitle").textContent=t.subtitle;
+ $("v342ModeBadge").textContent=t.badge;$("v342SafetyNotice").textContent=t.safety;
+ $("v342DomainLabel").textContent=t.domain;$("v342AuthLabel").textContent=t.account;$("v342PlanLabel").textContent=t.plan;
+ $("v342CloudLabel").textContent=t.cloud;$("v342ProviderLabel").textContent=t.provider;$("v342LanguageLabel").textContent=t.language;
+ $("v342Provider").textContent=t.notConnected;$("v342ChooseTitle").textContent=t.choose;$("v342ChooseText").textContent=t.chooseText;
+ $("v342RunPreflight").textContent=t.preflight;$("v342RunCheckout").textContent=t.checkout;$("v342ResultTitle").textContent=t.result;
+ if(!S.last)$("v342Result").textContent=t.start;
+ polishLegacyBilling();translateKnownStatuses();
+ setTimeout(()=>{S.language=auditPricingLanguage();$("v342Language").textContent=S.language?t.languagePass:t.languageWarn},20);
+}
+
+function setResult(text,kind=""){
+ const n=$("v342Result");n.textContent=text;n.className="v342-result"+(kind?" "+kind:"");
+}
+
+function renderPreflight(){
+ const t=x();
+ $("v342Domain").textContent=S.domain?t.customDomain:t.worker;
+ $("v342Auth").textContent=S.auth?t.authenticated:t.signedOut;
+ $("v342Plan").textContent=S.plan?t.reachable:t.unavailable;
+ $("v342Cloud").textContent=S.cloud?t.reachable:t.unavailable;
+ $("v342Language").textContent=S.language?t.languagePass:t.languageWarn;
+}
+
+async function runPreflight(){
+ const [auth,plan,cloud]=await Promise.all([probe("/api/auth/get-session"),probe("/api/plan/status"),probe("/api/workspace")]);
+ S.domain=!/workers\.dev$|localhost$|127\.0\.0\.1$/.test(location.hostname.toLowerCase());
+ S.auth=auth.ok;S.plan=plan.ok;S.cloud=cloud.ok;
+ polishLegacyBilling();translateKnownStatuses();
+ S.language=auditPricingLanguage();
+ S.last={auth,plan,cloud,time:Date.now(),selected:S.selected};
+ renderPreflight();
+ const ok=S.domain&&S.auth&&S.plan&&S.cloud&&S.language;
+ setResult(ok?x().preflightPass:x().preflightWarn,ok?"ok":"warn");
+ return ok;
+}
+
+async function testCheckout(){
+ const ok=await runPreflight(),t=x();
+ if(!ok){setResult(t.checkoutBlocked,"warn");$("v342FlowList").innerHTML="";return}
+ setResult(t.checkoutPass,"ok");
+ $("v342FlowList").innerHTML=t.steps.map(s=>`<div class="v342-flow-item">✓ ${s}</div>`).join("");
+}
+
+document.addEventListener("click",e=>{
+ const plan=e.target.closest("[data-v342-plan]")?.dataset.v342Plan;
+ if(plan){
+   S.selected=plan;
+   document.querySelectorAll("[data-v342-plan]").forEach(b=>b.classList.toggle("active",b.dataset.v342Plan===plan));
+ }
+});
+$("v342RunPreflight")?.addEventListener("click",runPreflight);
+$("v342RunCheckout")?.addEventListener("click",testCheckout);
+document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(localize,80));
+
+const observer=new MutationObserver(()=>{
+ clearTimeout(window.__v342LangTimer);
+ window.__v342LangTimer=setTimeout(()=>{polishLegacyBilling();translateKnownStatuses()},100);
+});
+const pricing=$("pricing");if(pricing)observer.observe(pricing,{subtree:true,childList:true,characterData:true});
+
+localize();
+window.hegevaV342PaymentTest={runPreflight,testCheckout,state:S,version:"V34.2",chargesRealMoney:false,changesEntitlement:false};
 })();
 </script>
 
