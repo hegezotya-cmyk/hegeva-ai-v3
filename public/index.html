@@ -13998,7 +13998,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.3 — GLOBAL WORKSPACE SEARCH / COMMAND PALETTE
+   HEGEVA AI V32.4 — GLOBAL WORKSPACE SEARCH / COMMAND PALETTE
    ========================================================= */
 .v322-search-trigger{
   display:flex;
@@ -14225,7 +14225,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.3 — GLOBAL WORKSPACE SEARCH
+   HEGEVA AI V32.4 — GLOBAL WORKSPACE SEARCH
    Searches only data already stored in the HEGEVA workspace.
    ========================================================= */
 (() => {
@@ -14454,7 +14454,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.3 — BUSINESS COMMAND SUITE
+   HEGEVA AI V32.4 — BUSINESS COMMAND SUITE
    Multi-feature upgrade: Today Center, KPI Pulse, Quick Create,
    Smart Focus, Backup Status.
    ========================================================= */
@@ -14601,7 +14601,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.3 — BUSINESS COMMAND SUITE
+   HEGEVA AI V32.4 — BUSINESS COMMAND SUITE
    Uses only existing HEGEVA workspace data. No invented metrics.
    ========================================================= */
 (() => {
@@ -14896,6 +14896,73 @@ Open planner tasks: ${s.openTasks}`;
   }
 
   window.hegevaV323CommandSuite={render,metrics,version:"V32.3"};
+})();
+</script>
+
+
+<style>
+/* HEGEVA AI V32.4 — Productivity Pack */
+.v324-panel{margin:18px 0;padding:20px;border:1px solid rgba(255,255,255,.10);border-radius:20px;background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(155,108,255,.025))}
+.v324-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.v324-head h3{margin:0 0 5px;font-size:19px}.v324-head p{margin:0;color:var(--muted);font-size:12px}
+.v324-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:15px}
+.v324-box{padding:15px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.025)}
+.v324-box h4{margin:0 0 8px;font-size:14px}.v324-box p{margin:0 0 11px;color:var(--muted);font-size:11px;line-height:1.5}
+.v324-row{display:flex;gap:8px;flex-wrap:wrap}.v324-btn{min-height:38px;padding:0 11px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.05);color:var(--text);cursor:pointer;font-weight:800}
+.v324-btn:hover{border-color:rgba(246,196,83,.35);transform:translateY(-1px)}
+.v324-note{margin-top:10px;padding:9px 10px;border-radius:10px;background:rgba(121,234,177,.055);color:var(--muted);font-size:10px}
+@media(max-width:900px){.v324-grid{grid-template-columns:1fr}}
+</style>
+<script>
+(() => {
+"use strict";
+const T={
+en:{title:"Productivity Pack",desc:"Three practical tools added together: daily briefing, data quality check and workspace snapshot.",brief:"Daily briefing",briefD:"Build a factual summary from your saved workspace.",quality:"Data quality",qualityD:"Check whether key workspace records are missing.",snapshot:"Workspace snapshot",snapshotD:"Save a lightweight local checkpoint before major edits.",build:"Build briefing",check:"Run check",save:"Save snapshot",restore:"Restore latest",good:"Core workspace data is available.",missing:"Some core workspace areas are still empty.",saved:"Snapshot saved locally.",none:"No local snapshot is available.",restored:"Latest local snapshot restored.",briefReady:"Briefing prepared from current workspace facts."},
+hu:{title:"Produktivitási csomag",desc:"Három gyakorlati eszköz egyszerre: napi áttekintés, adatminőség-ellenőrzés és munkatér-pillanatkép.",brief:"Napi áttekintés",briefD:"Tényszerű összefoglaló készítése a mentett munkatérből.",quality:"Adatminőség",qualityD:"Ellenőrzi, hogy hiányoznak-e fontos munkatéradatok.",snapshot:"Munkatér-pillanatkép",snapshotD:"Könnyű helyi ellenőrzőpont mentése nagyobb módosítások előtt.",build:"Áttekintés készítése",check:"Ellenőrzés futtatása",save:"Pillanatkép mentése",restore:"Legutóbbi visszaállítása",good:"Az alapvető munkatéradatok rendelkezésre állnak.",missing:"Néhány alapvető munkatérterület még üres.",saved:"A pillanatkép helyben elmentve.",none:"Nincs elérhető helyi pillanatkép.",restored:"A legutóbbi helyi pillanatkép visszaállítva.",briefReady:"Az áttekintés elkészült az aktuális munkatéradatokból."},
+de:{title:"Produktivitätspaket",desc:"Drei praktische Werkzeuge zusammen: Tagesbriefing, Datenqualitätsprüfung und Arbeitsbereich-Snapshot.",brief:"Tagesbriefing",briefD:"Faktische Zusammenfassung aus gespeicherten Arbeitsbereichsdaten erstellen.",quality:"Datenqualität",qualityD:"Prüfen, ob wichtige Arbeitsbereichsdaten fehlen.",snapshot:"Arbeitsbereich-Snapshot",snapshotD:"Lokalen Kontrollpunkt vor größeren Änderungen speichern.",build:"Briefing erstellen",check:"Prüfung starten",save:"Snapshot speichern",restore:"Letzten wiederherstellen",good:"Kerndaten des Arbeitsbereichs sind vorhanden.",missing:"Einige Kernbereiche des Arbeitsbereichs sind noch leer.",saved:"Snapshot lokal gespeichert.",none:"Kein lokaler Snapshot verfügbar.",restored:"Letzter lokaler Snapshot wiederhergestellt.",briefReady:"Briefing aus aktuellen Arbeitsbereichsdaten erstellt."},
+fr:{title:"Pack de productivité",desc:"Trois outils pratiques ensemble : briefing quotidien, contrôle de qualité des données et instantané de l’espace.",brief:"Briefing quotidien",briefD:"Créer un résumé factuel à partir des données enregistrées.",quality:"Qualité des données",qualityD:"Vérifier si des données importantes sont manquantes.",snapshot:"Instantané de l’espace",snapshotD:"Enregistrer un point de contrôle local avant des modifications importantes.",build:"Créer le briefing",check:"Lancer le contrôle",save:"Enregistrer l’instantané",restore:"Restaurer le dernier",good:"Les données principales sont disponibles.",missing:"Certaines zones principales sont encore vides.",saved:"Instantané enregistré localement.",none:"Aucun instantané local disponible.",restored:"Dernier instantané local restauré.",briefReady:"Briefing créé à partir des données actuelles."},
+es:{title:"Paquete de productividad",desc:"Tres herramientas prácticas juntas: resumen diario, control de calidad de datos e instantánea del espacio.",brief:"Resumen diario",briefD:"Crear un resumen factual con los datos guardados.",quality:"Calidad de datos",qualityD:"Comprobar si faltan datos importantes del espacio.",snapshot:"Instantánea del espacio",snapshotD:"Guardar un punto de control local antes de cambios importantes.",build:"Crear resumen",check:"Ejecutar control",save:"Guardar instantánea",restore:"Restaurar última",good:"Los datos principales del espacio están disponibles.",missing:"Algunas áreas principales todavía están vacías.",saved:"Instantánea guardada localmente.",none:"No hay instantánea local disponible.",restored:"Última instantánea local restaurada.",briefReady:"Resumen creado con los datos actuales."}
+};
+const keys=["hegeva_v10_customers","hegeva_documents","hegeva_expenses","hegeva_planner_tasks","hegeva_v41_saved_chats"];
+const lang=()=>{let l=document.getElementById("languageSelect")?.value||"en";return T[l]?l:"en"};
+const tx=()=>T[lang()];
+const read=k=>{try{return JSON.parse(localStorage.getItem(k)||"[]")}catch{return []}};
+function root(){
+ const home=document.getElementById("home"); if(!home)return null;
+ let r=document.getElementById("v324Productivity");
+ if(!r){r=document.createElement("section");r.id="v324Productivity";r.className="v324-panel";(document.getElementById("v323CommandSuite")||home.firstElementChild)?.insertAdjacentElement("afterend",r)}
+ return r;
+}
+function counts(){return keys.map(k=>{const x=read(k);return Array.isArray(x)?x.length:0})}
+function render(msg=""){
+ const r=root();if(!r)return;const x=tx(),c=counts();
+ r.innerHTML=`<div class="v324-head"><div><h3>${x.title}</h3><p>${x.desc}</p></div></div>
+ <div class="v324-grid">
+ <div class="v324-box"><h4>☀️ ${x.brief}</h4><p>${x.briefD}</p><div class="v324-row"><button class="v324-btn" data-v324="brief">${x.build}</button></div></div>
+ <div class="v324-box"><h4>✓ ${x.quality}</h4><p>${x.qualityD}</p><div class="v324-row"><button class="v324-btn" data-v324="quality">${x.check}</button></div></div>
+ <div class="v324-box"><h4>🛡️ ${x.snapshot}</h4><p>${x.snapshotD}</p><div class="v324-row"><button class="v324-btn" data-v324="save">${x.save}</button><button class="v324-btn" data-v324="restore">${x.restore}</button></div></div>
+ </div>${msg?`<div class="v324-note">${msg}</div>`:""}`;
+}
+function snapshot(){
+ const data={time:new Date().toISOString(),data:{}};
+ keys.forEach(k=>data.data[k]=localStorage.getItem(k));
+ localStorage.setItem("hegeva_v324_snapshot",JSON.stringify(data));render(tx().saved);
+}
+function restore(){
+ const s=read("hegeva_v324_snapshot");if(!s||!s.data){render(tx().none);return}
+ Object.entries(s.data).forEach(([k,v])=>{if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)});
+ render(tx().restored);window.hegevaV323CommandSuite?.render?.();
+}
+function quality(){const c=counts();render(c.slice(0,4).every(n=>n>0)?tx().good:tx().missing)}
+function brief(){
+ const c=counts(),x=tx();
+ const detail=`${x.briefReady} ${c[0]} · ${c[1]} · ${c[2]} · ${c[3]} · ${c[4]}`;
+ render(detail);
+}
+document.addEventListener("click",e=>{const a=e.target.closest("[data-v324]")?.dataset.v324;if(!a)return;if(a==="save")snapshot();if(a==="restore")restore();if(a==="quality")quality();if(a==="brief")brief()});
+document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(()=>render(),80));
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>render(),{once:true});else render();
+window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
 })();
 </script>
 
