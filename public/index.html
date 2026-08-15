@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="HEGEVA AI V34.2 — multilingual payment-readiness test mode with live account, plan and cloud verification." />
-  <title>HEGEVA AI V34.2</title>
+  <meta name="description" content="HEGEVA AI V34.3 — multilingual billing adapter readiness with safe test checkout orchestration." />
+  <title>HEGEVA AI V34.3</title>
 
   <style>
     :root {
@@ -1682,7 +1682,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name notranslate" translate="no">Hegeva AI</div>
-          <div class="brand-subtitle">V34.2 SMART BUSINESS HUB</div>
+          <div class="brand-subtitle">V34.3 SMART BUSINESS HUB</div>
         </div>
       </div>
 
@@ -3132,7 +3132,7 @@
         <div class="card" id="v13BillingCenter" style="margin-top:18px">
           <div class="page-heading" style="margin-bottom:10px">
             <div>
-              <div class="vision-tagline">V34.2 PAYMENT READINESS</div>
+              <div class="vision-tagline" id="v343LegacyBillingKicker">V34.3 PAYMENT READINESS</div>
               <h2 data-i18n="v13.billingTitle">Billing & Upgrade Center</h2>
               <p data-i18n="v13.billingSubtitle">Payments are not active yet. This page prepares real plan upgrades without charging a card.</p>
             </div>
@@ -17091,6 +17091,266 @@ const pricing=$("pricing");if(pricing)observer.observe(pricing,{subtree:true,chi
 
 localize();
 window.hegevaV342PaymentTest={runPreflight,testCheckout,state:S,version:"V34.2",chargesRealMoney:false,changesEntitlement:false};
+})();
+</script>
+
+
+<style>
+/* =========================================================
+   HEGEVA AI V34.3 — BILLING ADAPTER READINESS
+   Provider-agnostic. No card data handled in browser.
+   ========================================================= */
+#v343BillingAdapter{
+  margin-top:18px;
+  border:1px solid rgba(55,200,255,.20);
+  background:
+    radial-gradient(circle at 100% 0%,rgba(55,200,255,.08),transparent 28%),
+    linear-gradient(145deg,rgba(255,255,255,.035),rgba(155,108,255,.02));
+}
+.v343-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.v343-panel{padding:15px;border:1px solid var(--border);border-radius:15px;background:rgba(255,255,255,.025)}
+.v343-panel h3{margin:0 0 6px}
+.v343-panel p{color:var(--muted);font-size:12px;line-height:1.5}
+.v343-status-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:12px}
+.v343-status{padding:11px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.025)}
+.v343-status span{display:block;color:var(--muted);font-size:10px}
+.v343-status strong{display:block;margin-top:4px;font-size:13px}
+.v343-flow{display:grid;gap:8px;margin-top:10px}
+.v343-flow-item{padding:9px 10px;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-size:11px}
+.v343-safe{color:#79eab1!important}
+.v343-warn{color:#ffe19a!important}
+.v343-fail{color:#ff9bab!important}
+@media(max-width:900px){.v343-grid{grid-template-columns:1fr}.v343-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.v343-status-grid{grid-template-columns:1fr}}
+</style>
+
+<script>
+/* =========================================================
+   HEGEVA AI V34.3 — BILLING ADAPTER
+   Optional backend contract:
+     GET  /api/billing/status
+     POST /api/billing/checkout   { plan, mode:"test" }
+   The browser never collects card data and never grants entitlement.
+   ========================================================= */
+(() => {
+"use strict";
+
+const T={
+en:{
+  kicker:"V34.3 BILLING ADAPTER",title:"Payment provider integration readiness",
+  subtitle:"HEGEVA can now detect an optional billing backend without exposing card fields or granting paid access from the browser.",
+  provider:"Provider",mode:"Mode",billingApi:"Billing API",entitlement:"Entitlement authority",
+  notConnected:"Not connected",test:"Test",live:"Live",backendOnly:"Backend only",reachable:"Reachable",unavailable:"Unavailable",
+  refresh:"Check billing backend",testCheckout:"Prepare test checkout",blocked:"Billing backend is not configured for safe test checkout.",
+  ready:"Billing backend is available in test mode. Checkout can be prepared without collecting card data in HEGEVA.",
+  checkoutReady:"A test checkout session was prepared by the backend. No entitlement has been changed in the browser.",
+  badResponse:"Billing backend responded, but no safe test checkout URL/session was returned.",
+  security:"Browser safety",securityText:"No card number, CVV or payment secret is collected or stored by this HEGEVA page.",
+  authority:"Plan security",authorityText:"Premium/Pro remains inactive until the backend confirms entitlement.",
+  providerPending:"Provider connection is still pending.",
+  statusPass:"SUCCESS",statusWarn:"CHECK",legacyKicker:"V34.3 PAYMENT READINESS",
+  steps:["Provider status checked","Test mode required","No card fields in browser","No payment secret in browser","Entitlement remains backend-controlled"]
+},
+hu:{
+  kicker:"V34.3 FIZETÉSI ADAPTER",title:"Fizetési szolgáltató integrációs készültség",
+  subtitle:"A HEGEVA már képes felismerni egy opcionális billing backendet anélkül, hogy kártyamezőket jelenítene meg vagy fizetős jogosultságot adna a böngészőből.",
+  provider:"Szolgáltató",mode:"Mód",billingApi:"Billing API",entitlement:"Jogosultság kezelője",
+  notConnected:"Nincs csatlakoztatva",test:"Teszt",live:"Éles",backendOnly:"Csak backend",reachable:"Elérhető",unavailable:"Nem elérhető",
+  refresh:"Billing backend ellenőrzése",testCheckout:"Teszt checkout előkészítése",blocked:"A billing backend még nincs biztonságos teszt checkout módra beállítva.",
+  ready:"A billing backend tesztmódban elérhető. A checkout előkészíthető anélkül, hogy a HEGEVA kártyaadatot kérne.",
+  checkoutReady:"A backend előkészített egy teszt checkout munkamenetet. A böngészőben nem változott jogosultság.",
+  badResponse:"A billing backend válaszolt, de nem adott vissza biztonságos teszt checkout URL-t/munkamenetet.",
+  security:"Böngészőbiztonság",securityText:"Ez a HEGEVA oldal nem kér és nem tárol kártyaszámot, CVV-t vagy fizetési titkot.",
+  authority:"Csomagbiztonság",authorityText:"A Premium/Pro csak akkor válik aktívvá, ha a backend igazolja a jogosultságot.",
+  providerPending:"A fizetési szolgáltató csatlakoztatása még folyamatban van.",
+  statusPass:"SIKERES",statusWarn:"ELLENŐRIZD",legacyKicker:"V34.3 FIZETÉSI KÉSZÜLTSÉG",
+  steps:["Szolgáltató státusza ellenőrizve","Tesztmód kötelező","Nincs kártyamező a böngészőben","Nincs fizetési titok a böngészőben","Jogosultság továbbra is backend által kezelt"]
+},
+de:{
+  kicker:"V34.3 ZAHLUNGSADAPTER",title:"Bereitschaft der Zahlungsanbieter-Integration",
+  subtitle:"HEGEVA kann ein optionales Billing-Backend erkennen, ohne Kartenfelder anzuzeigen oder bezahlte Rechte im Browser zu vergeben.",
+  provider:"Anbieter",mode:"Modus",billingApi:"Billing-API",entitlement:"Berechtigungsinstanz",
+  notConnected:"Nicht verbunden",test:"Test",live:"Live",backendOnly:"Nur Backend",reachable:"Erreichbar",unavailable:"Nicht verfügbar",
+  refresh:"Billing-Backend prüfen",testCheckout:"Test-Checkout vorbereiten",blocked:"Billing-Backend ist nicht für sicheren Test-Checkout konfiguriert.",
+  ready:"Billing-Backend ist im Testmodus verfügbar. Checkout kann ohne Kartendaten in HEGEVA vorbereitet werden.",
+  checkoutReady:"Backend hat eine Test-Checkout-Sitzung vorbereitet. Berechtigung im Browser blieb unverändert.",
+  badResponse:"Billing-Backend antwortete, lieferte aber keine sichere Test-Checkout-URL/Sitzung.",
+  security:"Browser-Sicherheit",securityText:"Diese HEGEVA-Seite erfasst oder speichert keine Kartennummer, CVV oder Zahlungsgeheimnisse.",
+  authority:"Tarifsicherheit",authorityText:"Premium/Pro bleibt inaktiv, bis das Backend die Berechtigung bestätigt.",
+  providerPending:"Anbieterverbindung steht noch aus.",
+  statusPass:"ERFOLGREICH",statusWarn:"PRÜFEN",legacyKicker:"V34.3 ZAHLUNGSBEREITSCHAFT",
+  steps:["Anbieterstatus geprüft","Testmodus erforderlich","Keine Kartenfelder im Browser","Keine Zahlungsgeheimnisse im Browser","Berechtigung bleibt backend-gesteuert"]
+},
+fr:{
+  kicker:"V34.3 ADAPTATEUR DE PAIEMENT",title:"Préparation de l’intégration du prestataire de paiement",
+  subtitle:"HEGEVA peut détecter un backend de facturation optionnel sans afficher de champs de carte ni accorder de droits payants dans le navigateur.",
+  provider:"Prestataire",mode:"Mode",billingApi:"API de facturation",entitlement:"Autorité des droits",
+  notConnected:"Non connecté",test:"Test",live:"Production",backendOnly:"Backend uniquement",reachable:"Accessible",unavailable:"Indisponible",
+  refresh:"Vérifier le backend de facturation",testCheckout:"Préparer un checkout test",blocked:"Le backend de facturation n’est pas configuré pour un checkout test sûr.",
+  ready:"Le backend de facturation est disponible en mode test. Le checkout peut être préparé sans carte dans HEGEVA.",
+  checkoutReady:"Le backend a préparé une session de checkout test. Aucun droit n’a été modifié dans le navigateur.",
+  badResponse:"Le backend a répondu mais n’a retourné aucune URL/session de checkout test sûre.",
+  security:"Sécurité du navigateur",securityText:"Cette page HEGEVA ne collecte ni ne stocke numéro de carte, CVV ou secret de paiement.",
+  authority:"Sécurité du forfait",authorityText:"Premium/Pro reste inactif tant que le backend n’a pas confirmé les droits.",
+  providerPending:"La connexion au prestataire est toujours en attente.",
+  statusPass:"RÉUSSI",statusWarn:"VÉRIFIER",legacyKicker:"V34.3 PRÉPARATION PAIEMENT",
+  steps:["Statut du prestataire vérifié","Mode test obligatoire","Aucun champ carte dans le navigateur","Aucun secret de paiement dans le navigateur","Droits toujours contrôlés par le backend"]
+},
+es:{
+  kicker:"V34.3 ADAPTADOR DE PAGO",title:"Preparación de la integración del proveedor de pagos",
+  subtitle:"HEGEVA puede detectar un backend de facturación opcional sin mostrar campos de tarjeta ni conceder derechos de pago desde el navegador.",
+  provider:"Proveedor",mode:"Modo",billingApi:"API de facturación",entitlement:"Autoridad de derechos",
+  notConnected:"No conectado",test:"Prueba",live:"Producción",backendOnly:"Solo backend",reachable:"Disponible",unavailable:"No disponible",
+  refresh:"Comprobar backend de facturación",testCheckout:"Preparar checkout de prueba",blocked:"El backend de facturación no está configurado para un checkout de prueba seguro.",
+  ready:"El backend de facturación está disponible en modo prueba. El checkout puede prepararse sin datos de tarjeta en HEGEVA.",
+  checkoutReady:"El backend preparó una sesión de checkout de prueba. Los derechos no cambiaron en el navegador.",
+  badResponse:"El backend respondió, pero no devolvió una URL/sesión segura de checkout de prueba.",
+  security:"Seguridad del navegador",securityText:"Esta página HEGEVA no recopila ni almacena número de tarjeta, CVV ni secretos de pago.",
+  authority:"Seguridad del plan",authorityText:"Premium/Pro permanece inactivo hasta que el backend confirme los derechos.",
+  providerPending:"La conexión del proveedor sigue pendiente.",
+  statusPass:"CORRECTO",statusWarn:"REVISAR",legacyKicker:"V34.3 PREPARACIÓN DE PAGO",
+  steps:["Estado del proveedor comprobado","Modo prueba obligatorio","Sin campos de tarjeta en el navegador","Sin secretos de pago en el navegador","Derechos controlados por backend"]
+}
+};
+
+const S={provider:null,mode:null,available:false,last:null,checkout:null};
+const lang=()=>{const v=document.getElementById("languageSelect")?.value||"en";return T[v]?v:"en"};
+const x=()=>T[lang()];
+const $=id=>document.getElementById(id);
+
+function selectedPlan(){
+  return window.hegevaV342PaymentTest?.state?.selected || "premium";
+}
+
+async function request(url,opts={}){
+  try{
+    const r=await fetch(url,{credentials:"include",cache:"no-store",headers:{"Accept":"application/json","Content-Type":"application/json",...(opts.headers||{})},...opts});
+    let data=null;try{data=await r.json()}catch{}
+    return {ok:r.ok,status:r.status,data};
+  }catch(error){return {ok:false,status:0,error:String(error?.message||error)}}
+}
+
+function applyLanguagePolish(){
+  const t=x();
+
+  // Polish the V34.2 "PASS" indicator into the active language.
+  const qa=$("v342Language");
+  if(qa && /^(PASS|SIKERES|ERFOLGREICH|RÉUSSI|CORRECTO)$/i.test((qa.textContent||"").trim())){
+    qa.textContent=t.statusPass;
+  }
+
+  // Localize the remaining lower-page billing kicker.
+  const legacy=$("v343LegacyBillingKicker");
+  if(legacy)legacy.textContent=t.legacyKicker;
+
+  // Keep current-plan pseudo badge language current.
+  document.querySelectorAll(".plan-card").forEach(card=>card.dataset.currentLabel=(
+    {en:"CURRENT",hu:"JELENLEGI",de:"AKTUELL",fr:"ACTUEL",es:"ACTUAL"}[lang()]||"CURRENT"
+  ));
+}
+
+function ensurePanel(){
+  if($("v343BillingAdapter"))return;
+  const host=$("v342PaymentTest") || $("v13BillingCenter");
+  if(!host)return;
+  const el=document.createElement("div");
+  el.className="card";
+  el.id="v343BillingAdapter";
+  host.insertAdjacentElement("afterend",el);
+}
+
+function render(){
+  ensurePanel();
+  const el=$("v343BillingAdapter");if(!el)return;
+  const t=x();
+  el.innerHTML=`
+    <div class="page-heading" style="margin-bottom:10px">
+      <div>
+        <div class="vision-tagline">${t.kicker}</div>
+        <h2>${t.title}</h2>
+        <p>${t.subtitle}</p>
+      </div>
+      <span class="status ${S.available?"live":"soon"}">${S.available?t.reachable:t.notConnected}</span>
+    </div>
+
+    <div class="v343-status-grid">
+      <div class="v343-status"><span>${t.provider}</span><strong>${S.provider||t.notConnected}</strong></div>
+      <div class="v343-status"><span>${t.mode}</span><strong>${S.mode==="test"?t.test:S.mode==="live"?t.live:"—"}</strong></div>
+      <div class="v343-status"><span>${t.billingApi}</span><strong>${S.available?t.reachable:t.unavailable}</strong></div>
+      <div class="v343-status"><span>${t.entitlement}</span><strong>${t.backendOnly}</strong></div>
+    </div>
+
+    <div class="v343-grid">
+      <div class="v343-panel">
+        <h3>🛡️ ${t.security}</h3>
+        <p>${t.securityText}</p>
+        <div class="v343-flow">
+          ${t.steps.map(s=>`<div class="v343-flow-item">✓ ${s}</div>`).join("")}
+        </div>
+      </div>
+      <div class="v343-panel">
+        <h3>🔐 ${t.authority}</h3>
+        <p>${t.authorityText}</p>
+        <div class="hero-buttons" style="margin-top:14px">
+          <button class="secondary-button" type="button" data-v343="status">${t.refresh}</button>
+          <button class="primary-button" type="button" data-v343="checkout" ${S.available&&S.mode==="test"?"":"disabled"}>${t.testCheckout}</button>
+        </div>
+        <div class="v342-result ${S.available?"ok":"warn"}" style="margin-top:12px">${S.available?t.ready:t.providerPending}</div>
+      </div>
+    </div>`;
+  applyLanguagePolish();
+}
+
+async function checkStatus(){
+  const r=await request("/api/billing/status");
+  if(r.ok && r.data){
+    S.available=Boolean(r.data.available ?? r.data.connected ?? true);
+    S.provider=String(r.data.provider||r.data.name||"Billing backend");
+    S.mode=String(r.data.mode||"").toLowerCase()||null;
+  }else{
+    S.available=false;S.provider=null;S.mode=null;
+  }
+  S.last={status:r,time:Date.now()};
+  render();
+  return r;
+}
+
+async function prepareCheckout(){
+  const t=x();
+  if(!(S.available&&S.mode==="test")){render();return {ok:false,blocked:true}}
+  const r=await request("/api/billing/checkout",{
+    method:"POST",
+    body:JSON.stringify({plan:selectedPlan(),mode:"test"})
+  });
+  S.checkout=r;
+  render();
+  const panel=$("v343BillingAdapter");
+  const result=panel?.querySelector(".v342-result");
+  if(result){
+    if(r.ok && (r.data?.url || r.data?.sessionId || r.data?.id)){
+      result.textContent=t.checkoutReady;result.className="v342-result ok";
+    }else{
+      result.textContent=t.badResponse;result.className="v342-result warn";
+    }
+  }
+  return r;
+}
+
+document.addEventListener("click",async e=>{
+  const a=e.target.closest("[data-v343]")?.dataset.v343;
+  if(a==="status")await checkStatus();
+  if(a==="checkout")await prepareCheckout();
+});
+document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(()=>{render();applyLanguagePolish()},90));
+
+const observer=new MutationObserver(()=>{clearTimeout(window.__v343PolishTimer);window.__v343PolishTimer=setTimeout(applyLanguagePolish,100)});
+const pricing=$("pricing");if(pricing)observer.observe(pricing,{subtree:true,childList:true,characterData:true});
+
+ensurePanel();render();
+window.hegevaV343BillingAdapter={
+  checkStatus,prepareCheckout,state:S,version:"V34.3",
+  handlesCardData:false,storesPaymentSecrets:false,grantsEntitlement:false
+};
 })();
 </script>
 
