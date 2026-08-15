@@ -13998,7 +13998,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.4 — GLOBAL WORKSPACE SEARCH / COMMAND PALETTE
+   HEGEVA AI V32.5 — GLOBAL WORKSPACE SEARCH / COMMAND PALETTE
    ========================================================= */
 .v322-search-trigger{
   display:flex;
@@ -14225,7 +14225,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.4 — GLOBAL WORKSPACE SEARCH
+   HEGEVA AI V32.5 — GLOBAL WORKSPACE SEARCH
    Searches only data already stored in the HEGEVA workspace.
    ========================================================= */
 (() => {
@@ -14454,7 +14454,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.4 — BUSINESS COMMAND SUITE
+   HEGEVA AI V32.5 — BUSINESS COMMAND SUITE
    Multi-feature upgrade: Today Center, KPI Pulse, Quick Create,
    Smart Focus, Backup Status.
    ========================================================= */
@@ -14601,7 +14601,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.4 — BUSINESS COMMAND SUITE
+   HEGEVA AI V32.5 — BUSINESS COMMAND SUITE
    Uses only existing HEGEVA workspace data. No invented metrics.
    ========================================================= */
 (() => {
@@ -14901,7 +14901,7 @@ Open planner tasks: ${s.openTasks}`;
 
 
 <style>
-/* HEGEVA AI V32.4 — Productivity Pack */
+/* HEGEVA AI V32.5 — Productivity Pack */
 .v324-panel{margin:18px 0;padding:20px;border:1px solid rgba(255,255,255,.10);border-radius:20px;background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(155,108,255,.025))}
 .v324-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
 .v324-head h3{margin:0 0 5px;font-size:19px}.v324-head p{margin:0;color:var(--muted);font-size:12px}
@@ -14963,6 +14963,217 @@ document.addEventListener("click",e=>{const a=e.target.closest("[data-v324]")?.d
 document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(()=>render(),80));
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>render(),{once:true});else render();
 window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
+})();
+</script>
+
+
+<style>
+/* =========================================================
+   HEGEVA AI V32.5 — SALES & CUSTOMER OPERATIONS PACK
+   ========================================================= */
+#v325OpsPack{
+  margin:18px 0 24px;
+  display:grid;
+  gap:16px;
+}
+.v325-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+.v325-card{
+  padding:19px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:19px;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(55,200,255,.06),transparent 28%),
+    linear-gradient(145deg,rgba(255,255,255,.035),rgba(155,108,255,.025));
+  box-shadow:0 18px 50px rgba(0,0,0,.18);
+}
+.v325-card h3{margin:0 0 5px;font-size:18px}
+.v325-card p{margin:0 0 13px;color:var(--muted);font-size:11px;line-height:1.55}
+.v325-list{display:grid;gap:9px}
+.v325-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  padding:11px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:12px;
+  background:rgba(255,255,255,.022);
+}
+.v325-row strong{display:block;font-size:12px}
+.v325-row small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.v325-mini{
+  min-height:34px;padding:0 9px;border-radius:9px;border:1px solid var(--border);
+  background:rgba(255,255,255,.05);color:var(--text);font-weight:800;cursor:pointer
+}
+.v325-mini:hover{border-color:rgba(246,196,83,.35);transform:translateY(-1px)}
+.v325-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.v325-stat{padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(255,255,255,.025)}
+.v325-stat span{display:block;color:var(--muted);font-size:10px}.v325-stat strong{display:block;margin-top:4px;font-size:18px}
+.v325-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:980px){.v325-grid{grid-template-columns:1fr}}
+</style>
+
+<script>
+/* =========================================================
+   HEGEVA AI V32.5 — SALES & CUSTOMER OPERATIONS
+   Follow-up queue + invoice chase center + customer health.
+   Uses saved HEGEVA data only.
+   ========================================================= */
+(() => {
+  "use strict";
+
+  const T={
+    en:{
+      followTitle:"Follow-up Queue",followDesc:"See customers marked for follow-up and jump straight to CRM.",
+      invoiceTitle:"Invoice Chase Center",invoiceDesc:"Surface saved invoices that may need attention based on their stored status.",
+      healthTitle:"Customer Health Snapshot",healthDesc:"A simple operational snapshot from your saved CRM data.",
+      noFollow:"No customers are currently marked for follow-up.",openCrm:"Open CRM",
+      noInvoice:"No saved invoices currently need attention.",openDocs:"Open documents",
+      customers:"Customers",withEmail:"With email",withPhone:"With phone",followups:"Follow-ups",
+      refresh:"Refresh",search:"Search customers",prepare:"Prepare follow-up",
+      due:"Needs attention",customer:"Customer",unknown:"Unknown"
+    },
+    hu:{
+      followTitle:"Utánkövetési sor",followDesc:"Lásd az utánkövetésre megjelölt ügyfeleket, és ugorj közvetlenül a CRM-be.",
+      invoiceTitle:"Számlakövetési központ",invoiceDesc:"Kiemeli azokat a mentett számlákat, amelyek a tárolt állapotuk alapján figyelmet igényelhetnek.",
+      healthTitle:"Ügyfélállapot pillanatkép",healthDesc:"Egyszerű működési áttekintés a mentett CRM-adatokból.",
+      noFollow:"Jelenleg nincs utánkövetésre megjelölt ügyfél.",openCrm:"CRM megnyitása",
+      noInvoice:"Jelenleg nincs figyelmet igénylő mentett számla.",openDocs:"Dokumentumok megnyitása",
+      customers:"Ügyfelek",withEmail:"E-maillel",withPhone:"Telefonnal",followups:"Utánkövetések",
+      refresh:"Frissítés",search:"Ügyfelek keresése",prepare:"Utánkövetés előkészítése",
+      due:"Figyelmet igényel",customer:"Ügyfél",unknown:"Ismeretlen"
+    },
+    de:{
+      followTitle:"Nachfass-Warteschlange",followDesc:"Zeigt Kunden mit Nachfassbedarf und öffnet direkt das CRM.",
+      invoiceTitle:"Rechnungs-Nachfasszentrum",invoiceDesc:"Zeigt gespeicherte Rechnungen, die anhand ihres gespeicherten Status Aufmerksamkeit benötigen könnten.",
+      healthTitle:"Kundenstatus-Snapshot",healthDesc:"Einfache Betriebsübersicht aus gespeicherten CRM-Daten.",
+      noFollow:"Derzeit sind keine Kunden zur Nachverfolgung markiert.",openCrm:"CRM öffnen",
+      noInvoice:"Derzeit benötigen keine gespeicherten Rechnungen Aufmerksamkeit.",openDocs:"Dokumente öffnen",
+      customers:"Kunden",withEmail:"Mit E-Mail",withPhone:"Mit Telefon",followups:"Nachfassaktionen",
+      refresh:"Aktualisieren",search:"Kunden suchen",prepare:"Nachfassaktion vorbereiten",
+      due:"Benötigt Aufmerksamkeit",customer:"Kunde",unknown:"Unbekannt"
+    },
+    fr:{
+      followTitle:"File de suivi",followDesc:"Affiche les clients marqués pour suivi et ouvre directement le CRM.",
+      invoiceTitle:"Centre de relance des factures",invoiceDesc:"Met en avant les factures enregistrées qui peuvent nécessiter une attention selon leur statut.",
+      healthTitle:"Aperçu de santé client",healthDesc:"Vue opérationnelle simple issue des données CRM enregistrées.",
+      noFollow:"Aucun client n’est actuellement marqué pour suivi.",openCrm:"Ouvrir le CRM",
+      noInvoice:"Aucune facture enregistrée ne nécessite actuellement d’attention.",openDocs:"Ouvrir les documents",
+      customers:"Clients",withEmail:"Avec e-mail",withPhone:"Avec téléphone",followups:"Suivis",
+      refresh:"Actualiser",search:"Rechercher des clients",prepare:"Préparer le suivi",
+      due:"Nécessite une attention",customer:"Client",unknown:"Inconnu"
+    },
+    es:{
+      followTitle:"Cola de seguimientos",followDesc:"Muestra clientes marcados para seguimiento y abre directamente el CRM.",
+      invoiceTitle:"Centro de seguimiento de facturas",invoiceDesc:"Destaca facturas guardadas que pueden necesitar atención según su estado.",
+      healthTitle:"Resumen de salud del cliente",healthDesc:"Vista operativa simple basada en los datos CRM guardados.",
+      noFollow:"Actualmente no hay clientes marcados para seguimiento.",openCrm:"Abrir CRM",
+      noInvoice:"Actualmente no hay facturas guardadas que necesiten atención.",openDocs:"Abrir documentos",
+      customers:"Clientes",withEmail:"Con correo",withPhone:"Con teléfono",followups:"Seguimientos",
+      refresh:"Actualizar",search:"Buscar clientes",prepare:"Preparar seguimiento",
+      due:"Necesita atención",customer:"Cliente",unknown:"Desconocido"
+    }
+  };
+
+  const lang=()=>{const v=document.getElementById("languageSelect")?.value||"en";return T[v]?v:"en"};
+  const tx=()=>T[lang()];
+  const read=(k,f=[])=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))??f}catch{return f}};
+  const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+
+  function customers(){const x=read("hegeva_v10_customers",[]);return Array.isArray(x)?x:[]}
+  function docs(){const x=read("hegeva_documents",[]);return Array.isArray(x)?x:[]}
+
+  function invoiceAttention(){
+    return docs().filter(d=>{
+      const type=String(d.type||"").toLowerCase();
+      const status=String(d.status||"").toLowerCase();
+      return type.includes("invoice") && !["paid","complete","completed"].includes(status);
+    }).slice(0,8);
+  }
+
+  function root(){
+    const home=document.getElementById("home"); if(!home)return null;
+    let r=document.getElementById("v325OpsPack");
+    if(!r){
+      r=document.createElement("section");
+      r.id="v325OpsPack";
+      const anchor=document.getElementById("v324Productivity")||document.getElementById("v323CommandSuite");
+      if(anchor)anchor.insertAdjacentElement("afterend",r); else home.prepend(r);
+    }
+    return r;
+  }
+
+  function render(){
+    const r=root();if(!r)return;
+    const x=tx(),cs=customers(),fs=cs.filter(c=>c&&c.followup).slice(0,8),iv=invoiceAttention();
+    const emailCount=cs.filter(c=>String(c.email||"").trim()).length;
+    const phoneCount=cs.filter(c=>String(c.phone||"").trim()).length;
+
+    r.innerHTML=`
+      <div class="v325-grid">
+        <div class="v325-card">
+          <h3>👥 ${x.followTitle}</h3><p>${x.followDesc}</p>
+          <div class="v325-list">
+            ${fs.length?fs.map(c=>`
+              <div class="v325-row">
+                <div><strong>${esc(c.name||c.company||x.customer)}</strong><small>${esc(c.email||c.phone||"")}</small></div>
+                <button class="v325-mini" data-v325-route="customers">${x.openCrm}</button>
+              </div>`).join(""):`<div class="v325-row"><div><strong>${x.noFollow}</strong></div></div>`}
+          </div>
+          <div class="v325-actions">
+            <button class="v325-mini" data-v325-route="customers">${x.openCrm}</button>
+            <button class="v325-mini" data-v325-action="search">${x.search}</button>
+          </div>
+        </div>
+
+        <div class="v325-card">
+          <h3>🧾 ${x.invoiceTitle}</h3><p>${x.invoiceDesc}</p>
+          <div class="v325-list">
+            ${iv.length?iv.map(d=>`
+              <div class="v325-row">
+                <div><strong>${esc(d.number||d.reference||"Invoice")}</strong><small>${esc(d.customerName||d.customer||x.unknown)} • ${esc(d.total||d.amount||"")}</small></div>
+                <button class="v325-mini" data-v325-route="documents">${x.openDocs}</button>
+              </div>`).join(""):`<div class="v325-row"><div><strong>${x.noInvoice}</strong></div></div>`}
+          </div>
+          <div class="v325-actions"><button class="v325-mini" data-v325-route="documents">${x.openDocs}</button></div>
+        </div>
+
+        <div class="v325-card">
+          <h3>📊 ${x.healthTitle}</h3><p>${x.healthDesc}</p>
+          <div class="v325-stats">
+            <div class="v325-stat"><span>${x.customers}</span><strong>${cs.length}</strong></div>
+            <div class="v325-stat"><span>${x.withEmail}</span><strong>${emailCount}</strong></div>
+            <div class="v325-stat"><span>${x.withPhone}</span><strong>${phoneCount}</strong></div>
+            <div class="v325-stat"><span>${x.followups}</span><strong>${fs.length}</strong></div>
+          </div>
+          <div class="v325-actions"><button class="v325-mini" data-v325-action="refresh">${x.refresh}</button></div>
+        </div>
+      </div>`;
+  }
+
+  function route(page){
+    if(typeof window.showPage==="function")window.showPage(page);
+    else document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===page));
+  }
+
+  document.addEventListener("click",e=>{
+    const rb=e.target.closest("[data-v325-route]");
+    if(rb){route(rb.dataset.v325Route);return}
+    const a=e.target.closest("[data-v325-action]")?.dataset.v325Action;
+    if(a==="refresh")render();
+    if(a==="search"&&window.hegevaV322Search?.open)window.hegevaV322Search.open();
+  });
+
+  document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(render,80));
+  window.addEventListener("storage",()=>setTimeout(render,80));
+
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",render,{once:true});else render();
+
+  window.hegevaV325OpsPack={render,version:"V32.5"};
 })();
 </script>
 
