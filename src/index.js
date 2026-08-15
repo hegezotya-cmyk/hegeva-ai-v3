@@ -6,7 +6,7 @@ import {
 } from "./auth.js";
 
 // =========================================
-// HEGEVA AI V30.1
+// HEGEVA AI V34.4
 // ACCOUNT + PASSWORD RECOVERY BACKEND
 // =========================================
 
@@ -465,6 +465,295 @@ export default {
           {
             error:
               "Plan service temporarily unavailable."
+          },
+          {
+            status: 500
+          }
+        );
+      }
+    }
+
+
+    // =========================================
+    // HEGEVA AI V34.4
+    // BILLING BACKEND READINESS
+    // =========================================
+
+    if (
+      url.pathname ===
+      "/api/billing/status"
+    ) {
+      if (
+        request.method !==
+        "GET"
+      ) {
+        return Response.json(
+          {
+            error:
+              "Method not allowed."
+          },
+          {
+            status: 405
+          }
+        );
+      }
+
+      try {
+        const user =
+          await getLoggedInUser(
+            request,
+            env,
+            ctx
+          );
+
+        if (!user) {
+          return Response.json(
+            {
+              error:
+                "Authentication required."
+            },
+            {
+              status: 401
+            }
+          );
+        }
+
+        const configuredProvider =
+          typeof env.PAYMENT_PROVIDER ===
+            "string"
+            ? env.PAYMENT_PROVIDER.trim()
+            : "";
+
+        const configuredMode =
+          typeof env.PAYMENT_MODE ===
+            "string"
+            ? env.PAYMENT_MODE.trim().toLowerCase()
+            : "";
+
+        const allowedModes =
+          new Set([
+            "test",
+            "live"
+          ]);
+
+        const mode =
+          allowedModes.has(
+            configuredMode
+          )
+            ? configuredMode
+            : "test";
+
+        const available =
+          Boolean(
+            configuredProvider
+          );
+
+        return Response.json({
+          available,
+          connected:
+            available,
+          provider:
+            available
+              ? configuredProvider
+              : null,
+          mode,
+          checkoutEnabled:
+            false,
+          entitlementSource:
+            "backend",
+          cardDataHandledByHegeva:
+            false,
+          paymentSecretsExposedToBrowser:
+            false,
+          message:
+            available
+              ? "Billing provider detected, but checkout remains disabled until a provider-specific secure checkout integration is completed."
+              : "No payment provider is connected."
+        });
+      } catch (error) {
+        console.error(
+          "HEGEVA billing status error:",
+          error
+        );
+
+        return Response.json(
+          {
+            error:
+              "Billing status is temporarily unavailable."
+          },
+          {
+            status: 500
+          }
+        );
+      }
+    }
+
+    if (
+      url.pathname ===
+      "/api/billing/checkout"
+    ) {
+      if (
+        request.method !==
+        "POST"
+      ) {
+        return Response.json(
+          {
+            error:
+              "Method not allowed."
+          },
+          {
+            status: 405
+          }
+        );
+      }
+
+      try {
+        const user =
+          await getLoggedInUser(
+            request,
+            env,
+            ctx
+          );
+
+        if (!user) {
+          return Response.json(
+            {
+              error:
+                "Authentication required."
+            },
+            {
+              status: 401
+            }
+          );
+        }
+
+        let body;
+
+        try {
+          body =
+            await request.json();
+        } catch {
+          return Response.json(
+            {
+              error:
+                "Invalid JSON body."
+            },
+            {
+              status: 400
+            }
+          );
+        }
+
+        const requestedPlan =
+          typeof body?.plan ===
+            "string"
+            ? body.plan
+                .trim()
+                .toLowerCase()
+            : "";
+
+        if (
+          ![
+            "premium",
+            "pro"
+          ].includes(
+            requestedPlan
+          )
+        ) {
+          return Response.json(
+            {
+              error:
+                "Invalid paid plan."
+            },
+            {
+              status: 400
+            }
+          );
+        }
+
+        if (
+          body?.mode !==
+          "test"
+        ) {
+          return Response.json(
+            {
+              error:
+                "Only test checkout is allowed in this build."
+            },
+            {
+              status: 400
+            }
+          );
+        }
+
+        const configuredProvider =
+          typeof env.PAYMENT_PROVIDER ===
+            "string"
+            ? env.PAYMENT_PROVIDER.trim()
+            : "";
+
+        if (!configuredProvider) {
+          return Response.json(
+            {
+              ok: false,
+              available: false,
+              provider: null,
+              mode:
+                "test",
+              plan:
+                requestedPlan,
+              entitlementChanged:
+                false,
+              cardDataHandledByHegeva:
+                false,
+              message:
+                "No payment provider is connected. Test checkout cannot be created yet."
+            },
+            {
+              status: 503
+            }
+          );
+        }
+
+        // IMPORTANT:
+        // A real provider-specific checkout session must be created
+        // server-side here in a future version. Do not grant Premium/Pro
+        // from this route. Entitlement must only change after a verified
+        // payment webhook/backend confirmation.
+
+        return Response.json(
+          {
+            ok: false,
+            available: true,
+            provider:
+              configuredProvider,
+            mode:
+              "test",
+            plan:
+              requestedPlan,
+            checkoutReady:
+              false,
+            entitlementChanged:
+              false,
+            cardDataHandledByHegeva:
+              false,
+            message:
+              "Payment provider detected, but secure provider checkout is not implemented yet."
+          },
+          {
+            status: 501
+          }
+        );
+      } catch (error) {
+        console.error(
+          "HEGEVA billing checkout error:",
+          error
+        );
+
+        return Response.json(
+          {
+            error:
+              "Billing checkout is temporarily unavailable."
           },
           {
             status: 500
