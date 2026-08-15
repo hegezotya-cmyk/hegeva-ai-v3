@@ -17673,5 +17673,657 @@ window.hegevaV351StripeSubscription = {
 })();
 </script>
 
-</body>
+<!-- =========================================================
+     HEGEVA AI V35.3 — BACKEND CONFIRMED PLAN OVERVIEW
+     Small UI-only upgrade.
+     Does not grant entitlement.
+     Does not handle card data.
+     Uses V35.2 backend-confirmed state only.
+     ========================================================= -->
+
+<style>
+#v353PlanOverview{
+  margin:18px 0;
+  border:1px solid rgba(53,213,138,.24);
+  border-radius:20px;
+  padding:20px;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(53,213,138,.10),transparent 28%),
+    radial-gradient(circle at 0% 100%,rgba(55,200,255,.08),transparent 30%),
+    linear-gradient(145deg,rgba(255,255,255,.04),rgba(155,108,255,.025));
+  box-shadow:0 18px 50px rgba(0,0,0,.14);
+}
+
+.v353-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+  flex-wrap:wrap;
+}
+
+.v353-head h3{
+  margin:0 0 5px;
+  font-size:21px;
+}
+
+.v353-head p{
+  margin:0;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+}
+
+.v353-plan-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid rgba(53,213,138,.32);
+  background:rgba(53,213,138,.08);
+  color:#79eab1;
+  font-size:12px;
+  font-weight:900;
+}
+
+.v353-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin-top:16px;
+}
+
+.v353-stat{
+  min-height:88px;
+  padding:13px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:rgba(255,255,255,.03);
+}
+
+.v353-stat span{
+  display:block;
+  color:var(--muted);
+  font-size:11px;
+  margin-bottom:7px;
+}
+
+.v353-stat strong{
+  display:block;
+  font-size:19px;
+  word-break:break-word;
+}
+
+.v353-meter{
+  height:7px;
+  overflow:hidden;
+  border-radius:999px;
+  margin-top:9px;
+  background:rgba(255,255,255,.08);
+}
+
+.v353-meter i{
+  display:block;
+  width:0;
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg,#37c8ff,#9b6cff,#f6c453);
+  transition:width .3s ease;
+}
+
+.v353-lifecycle{
+  margin-top:12px;
+  padding:12px 13px;
+  border-radius:13px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.025);
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+}
+
+.v353-lifecycle.ok{
+  border-color:rgba(53,213,138,.27);
+  background:rgba(53,213,138,.055);
+  color:#8ce8ba;
+}
+
+.v353-lifecycle.warn{
+  border-color:rgba(246,196,83,.28);
+  background:rgba(246,196,83,.055);
+  color:#ffe19a;
+}
+
+.v353-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:13px;
+}
+
+@media(max-width:1000px){
+  .v353-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:580px){
+  .v353-grid{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+
+<script>
+(() => {
+"use strict";
+
+/* =========================================================
+   HEGEVA AI V35.3
+   BACKEND-CONFIRMED PLAN OVERVIEW
+   ========================================================= */
+
+const TEXT = {
+  en:{
+    title:"Your HEGEVA plan",
+    subtitle:"Live account status confirmed by the HEGEVA backend.",
+    plan:"Current plan",
+    usage:"AI usage",
+    remaining:"AI remaining",
+    webhook:"Last Stripe event",
+    refresh:"Refresh account status",
+    basic:"Basic",
+    premium:"Premium",
+    pro:"Pro",
+    none:"No verified event yet",
+    checkout:"Checkout completed",
+    paid:"Invoice paid",
+    failed:"Payment failed",
+    deleted:"Subscription ended",
+    active:"Your paid HEGEVA entitlement is confirmed by the backend.",
+    basicState:"No paid subscription is currently active. Backend access is Basic.",
+    failedState:"Stripe reported a failed payment. Check the subscription before relying on paid access.",
+    webhookPending:"The Stripe webhook has not yet been verified for this account.",
+    syncing:"Refreshing…"
+  },
+
+  hu:{
+    title:"HEGEVA csomagod",
+    subtitle:"A HEGEVA backend által igazolt élő fiókállapot.",
+    plan:"Jelenlegi csomag",
+    usage:"AI használat",
+    remaining:"Hátralévő AI keret",
+    webhook:"Utolsó Stripe esemény",
+    refresh:"Fiókállapot frissítése",
+    basic:"Basic",
+    premium:"Premium",
+    pro:"Pro",
+    none:"Még nincs ellenőrzött esemény",
+    checkout:"Checkout befejezve",
+    paid:"Számla kifizetve",
+    failed:"Fizetés sikertelen",
+    deleted:"Előfizetés megszűnt",
+    active:"A fizetős HEGEVA jogosultságot a backend igazolta.",
+    basicState:"Jelenleg nincs aktív fizetős előfizetés. Backend hozzáférés: Basic.",
+    failedState:"A Stripe sikertelen fizetést jelzett. A fizetős hozzáférés előtt ellenőrizd az előfizetést.",
+    webhookPending:"A Stripe webhook ennél a fióknál még nincs ellenőrizve.",
+    syncing:"Frissítés…"
+  },
+
+  de:{
+    title:"Dein HEGEVA-Tarif",
+    subtitle:"Live-Kontostatus, bestätigt durch das HEGEVA-Backend.",
+    plan:"Aktueller Tarif",
+    usage:"AI-Nutzung",
+    remaining:"Verbleibendes AI-Kontingent",
+    webhook:"Letztes Stripe-Ereignis",
+    refresh:"Kontostatus aktualisieren",
+    basic:"Basic",
+    premium:"Premium",
+    pro:"Pro",
+    none:"Noch kein verifiziertes Ereignis",
+    checkout:"Checkout abgeschlossen",
+    paid:"Rechnung bezahlt",
+    failed:"Zahlung fehlgeschlagen",
+    deleted:"Abonnement beendet",
+    active:"Die kostenpflichtige HEGEVA-Berechtigung wurde vom Backend bestätigt.",
+    basicState:"Derzeit ist kein kostenpflichtiges Abonnement aktiv. Backend-Zugriff: Basic.",
+    failedState:"Stripe meldete eine fehlgeschlagene Zahlung. Bitte das Abonnement prüfen.",
+    webhookPending:"Der Stripe-Webhook wurde für dieses Konto noch nicht verifiziert.",
+    syncing:"Aktualisierung…"
+  },
+
+  fr:{
+    title:"Votre forfait HEGEVA",
+    subtitle:"État du compte confirmé en direct par le backend HEGEVA.",
+    plan:"Forfait actuel",
+    usage:"Utilisation AI",
+    remaining:"AI restante",
+    webhook:"Dernier événement Stripe",
+    refresh:"Actualiser le compte",
+    basic:"Basic",
+    premium:"Premium",
+    pro:"Pro",
+    none:"Aucun événement vérifié",
+    checkout:"Checkout terminé",
+    paid:"Facture payée",
+    failed:"Paiement échoué",
+    deleted:"Abonnement terminé",
+    active:"Votre droit HEGEVA payant est confirmé par le backend.",
+    basicState:"Aucun abonnement payant n'est actuellement actif. Accès backend : Basic.",
+    failedState:"Stripe a signalé un échec de paiement. Vérifiez l'abonnement.",
+    webhookPending:"Le webhook Stripe n'est pas encore vérifié pour ce compte.",
+    syncing:"Actualisation…"
+  },
+
+  es:{
+    title:"Tu plan HEGEVA",
+    subtitle:"Estado de cuenta confirmado en vivo por el backend de HEGEVA.",
+    plan:"Plan actual",
+    usage:"Uso de AI",
+    remaining:"AI restante",
+    webhook:"Último evento Stripe",
+    refresh:"Actualizar estado",
+    basic:"Basic",
+    premium:"Premium",
+    pro:"Pro",
+    none:"Todavía no hay evento verificado",
+    checkout:"Checkout completado",
+    paid:"Factura pagada",
+    failed:"Pago fallido",
+    deleted:"Suscripción finalizada",
+    active:"El backend confirmó tu acceso HEGEVA de pago.",
+    basicState:"Actualmente no hay una suscripción de pago activa. Acceso backend: Basic.",
+    failedState:"Stripe informó de un pago fallido. Comprueba la suscripción.",
+    webhookPending:"El webhook de Stripe aún no está verificado para esta cuenta.",
+    syncing:"Actualizando…"
+  }
+};
+
+function language(){
+  const value =
+    document.getElementById("languageSelect")?.value ||
+    "en";
+
+  return TEXT[value] ? value : "en";
+}
+
+function t(){
+  return TEXT[language()];
+}
+
+function source(){
+  return window.hegevaV351StripeSubscription || null;
+}
+
+function state(){
+  return source()?.state || null;
+}
+
+function normalizePlan(plan){
+  const value =
+    String(plan || "basic")
+      .toLowerCase();
+
+  return ["basic","premium","pro"].includes(value)
+    ? value
+    : "basic";
+}
+
+function planLabel(plan){
+  const copy = t();
+  const p = normalizePlan(plan);
+
+  if(p === "premium") return copy.premium;
+  if(p === "pro") return copy.pro;
+
+  return copy.basic;
+}
+
+function eventLabel(type){
+  const copy = t();
+
+  if(type === "checkout.session.completed"){
+    return copy.checkout;
+  }
+
+  if(type === "invoice.paid"){
+    return copy.paid;
+  }
+
+  if(type === "invoice.payment_failed"){
+    return copy.failed;
+  }
+
+  if(type === "customer.subscription.deleted"){
+    return copy.deleted;
+  }
+
+  return type || copy.none;
+}
+
+function getHost(){
+  const pricing =
+    document.getElementById("pricing");
+
+  if(!pricing){
+    return null;
+  }
+
+  let root =
+    document.getElementById("v353PlanOverview");
+
+  if(!root){
+    root =
+      document.createElement("section");
+
+    root.id =
+      "v353PlanOverview";
+
+    const billing =
+      document.getElementById("v343BillingAdapter");
+
+    if(billing){
+      billing.insertAdjacentElement(
+        "beforebegin",
+        root
+      );
+    }else{
+      pricing.appendChild(root);
+    }
+  }
+
+  return root;
+}
+
+function lifecycleMessage(s){
+  const copy = t();
+
+  if(!s?.webhookVerified){
+    return {
+      text:copy.webhookPending,
+      cls:"warn"
+    };
+  }
+
+  if(
+    s.lastWebhookEventType ===
+    "invoice.payment_failed"
+  ){
+    return {
+      text:copy.failedState,
+      cls:"warn"
+    };
+  }
+
+  if(
+    normalizePlan(s.currentPlan) === "basic"
+  ){
+    return {
+      text:copy.basicState,
+      cls:"ok"
+    };
+  }
+
+  return {
+    text:copy.active,
+    cls:"ok"
+  };
+}
+
+function render(){
+  const root =
+    getHost();
+
+  if(!root){
+    return;
+  }
+
+  const copy =
+    t();
+
+  const s =
+    state() || {};
+
+  const plan =
+    normalizePlan(
+      s.currentPlan
+    );
+
+  const used =
+    Number.isFinite(
+      Number(s.aiMessages)
+    )
+      ? Number(s.aiMessages)
+      : 0;
+
+  const limit =
+    Number.isFinite(
+      Number(s.aiLimit)
+    )
+      ? Number(s.aiLimit)
+      : 0;
+
+  const remaining =
+    Math.max(
+      0,
+      limit - used
+    );
+
+  const pct =
+    limit > 0
+      ? Math.max(
+          0,
+          Math.min(
+            100,
+            (used / limit) * 100
+          )
+        )
+      : 0;
+
+  const life =
+    lifecycleMessage(s);
+
+  root.innerHTML = `
+    <div class="v353-head">
+
+      <div>
+        <h3>
+          👤 ${copy.title}
+        </h3>
+
+        <p>
+          ${copy.subtitle}
+        </p>
+      </div>
+
+      <div class="v353-plan-pill">
+        ✓ ${planLabel(plan)}
+      </div>
+
+    </div>
+
+    <div class="v353-grid">
+
+      <div class="v353-stat">
+        <span>
+          ${copy.plan}
+        </span>
+
+        <strong>
+          ${planLabel(plan)}
+        </strong>
+      </div>
+
+      <div class="v353-stat">
+        <span>
+          ${copy.usage}
+        </span>
+
+        <strong>
+          ${used} / ${limit || "—"}
+        </strong>
+
+        <div class="v353-meter">
+          <i style="width:${pct}%"></i>
+        </div>
+      </div>
+
+      <div class="v353-stat">
+        <span>
+          ${copy.remaining}
+        </span>
+
+        <strong>
+          ${limit ? remaining : "—"}
+        </strong>
+      </div>
+
+      <div class="v353-stat">
+        <span>
+          ${copy.webhook}
+        </span>
+
+        <strong>
+          ${eventLabel(
+            s.lastWebhookEventType
+          )}
+        </strong>
+      </div>
+
+    </div>
+
+    <div class="v353-lifecycle ${life.cls}">
+      ${life.text}
+    </div>
+
+    <div class="v353-actions">
+
+      <button
+        type="button"
+        class="secondary-button"
+        id="v353Refresh"
+      >
+        ${copy.refresh}
+      </button>
+
+    </div>
+  `;
+
+  document.title =
+    "HEGEVA AI V35.3";
+}
+
+async function refresh(){
+  const api =
+    source();
+
+  const button =
+    document.getElementById(
+      "v353Refresh"
+    );
+
+  if(button){
+    button.disabled = true;
+    button.textContent =
+      t().syncing;
+  }
+
+  try{
+    if(
+      api &&
+      typeof api.checkStatus ===
+      "function"
+    ){
+      await api.checkStatus();
+    }
+  }catch(error){
+    console.warn(
+      "HEGEVA V35.3 refresh:",
+      error
+    );
+  }
+
+  render();
+}
+
+document.addEventListener(
+  "click",
+  event => {
+    if(
+      event.target.closest(
+        "#v353Refresh"
+      )
+    ){
+      refresh();
+    }
+  }
+);
+
+document
+  .getElementById(
+    "languageSelect"
+  )
+  ?.addEventListener(
+    "change",
+    () => {
+      setTimeout(
+        render,
+        120
+      );
+    }
+  );
+
+const observer =
+  new MutationObserver(
+    () => {
+      clearTimeout(
+        window.__v353RenderTimer
+      );
+
+      window.__v353RenderTimer =
+        setTimeout(
+          render,
+          100
+        );
+    }
+  );
+
+const pricing =
+  document.getElementById(
+    "pricing"
+  );
+
+if(pricing){
+  observer.observe(
+    pricing,
+    {
+      childList:true,
+      subtree:true
+    }
+  );
+}
+
+setTimeout(
+  render,
+  150
+);
+
+setTimeout(
+  refresh,
+  600
+);
+
+window.hegevaV353PlanOverview = {
+  version:"V35.3",
+  render,
+  refresh,
+  entitlementSource:"backend",
+  changesEntitlement:false,
+  handlesCardData:false
+};
+
+})();
+</script></body>
 </html>
