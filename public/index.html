@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Hegeva AI V32.0 — secure cloud-first workspace migration with protected local fallback." />
-  <title>Hegeva AI V32.0</title>
+  <meta name="description" content="HEGEVA AI V34.1 — automated production checks, secure cloud workspace and launch hardening." />
+  <title>HEGEVA AI V34.1</title>
 
   <style>
     :root {
@@ -1682,7 +1682,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name notranslate" translate="no">Hegeva AI</div>
-          <div class="brand-subtitle">V34.0 SMART BUSINESS HUB</div>
+          <div class="brand-subtitle">V34.1 SMART BUSINESS HUB</div>
         </div>
       </div>
 
@@ -16664,23 +16664,22 @@ window.hegevaV338LaunchCandidate={runAll,reportText,state,version:"V33.8"};
 
 <script>
 /* =========================================================
-   HEGEVA AI V34.0 — FINAL LAUNCH HARDENING
-   - cleans visible release labels
-   - keeps existing auth/cloud/AI contracts unchanged
-   - exposes one final production status block
-   - reuses existing V33.8 launch checks instead of inventing new results
+   HEGEVA AI V34.1 — AUTOMATED PRODUCTION CHECK
+   Real network checks for auth, plan and workspace.
+   Does not consume an AI request.
    ========================================================= */
 (() => {
 "use strict";
 
 const T={
-en:{title:"V34.0 Final Launch Hardening",desc:"Production polish for the current HEGEVA build. This block reuses the existing launch checks and does not invent readiness results.",badge:"FINAL CANDIDATE",domain:"Domain",auth:"Account",cloud:"Cloud",diagnostics:"Diagnostics",ready:"Ready",signed:"Signed in",connected:"Connected",run:"Run final launch check",system:"Open System Check",legal:"Open Legal",settings:"Open Settings"},
-hu:{title:"V34.0 Végső indulási megerősítés",desc:"Production finomhangolás a jelenlegi HEGEVA buildhez. Ez a blokk a meglévő indulási ellenőrzéseket használja, és nem talál ki készültségi eredményt.",badge:"VÉGSŐ JELÖLT",domain:"Domain",auth:"Fiók",cloud:"Felhő",diagnostics:"Diagnosztika",ready:"Kész",signed:"Bejelentkezve",connected:"Csatlakoztatva",run:"Végső indulási ellenőrzés",system:"Rendszerellenőrzés megnyitása",legal:"Jogi oldal megnyitása",settings:"Beállítások megnyitása"},
-de:{title:"V34.0 Finales Launch-Hardening",desc:"Produktions-Finishing für den aktuellen HEGEVA-Build. Dieser Block verwendet bestehende Launch-Prüfungen und erfindet keine Ergebnisse.",badge:"FINALER KANDIDAT",domain:"Domain",auth:"Konto",cloud:"Cloud",diagnostics:"Diagnose",ready:"Bereit",signed:"Angemeldet",connected:"Verbunden",run:"Finale Launch-Prüfung",system:"Systemprüfung öffnen",legal:"Rechtliches öffnen",settings:"Einstellungen öffnen"},
-fr:{title:"V34.0 Renforcement final avant lancement",desc:"Finition production du build HEGEVA actuel. Ce bloc réutilise les contrôles existants et n’invente aucun résultat.",badge:"CANDIDAT FINAL",domain:"Domaine",auth:"Compte",cloud:"Cloud",diagnostics:"Diagnostic",ready:"Prêt",signed:"Connecté",connected:"Connecté",run:"Lancer le contrôle final",system:"Ouvrir le contrôle système",legal:"Ouvrir le juridique",settings:"Ouvrir les paramètres"},
-es:{title:"V34.0 Endurecimiento final de lanzamiento",desc:"Pulido de producción del build actual de HEGEVA. Este bloque reutiliza controles existentes y no inventa resultados.",badge:"CANDIDATO FINAL",domain:"Dominio",auth:"Cuenta",cloud:"Nube",diagnostics:"Diagnóstico",ready:"Listo",signed:"Sesión iniciada",connected:"Conectado",run:"Ejecutar control final",system:"Abrir comprobación del sistema",legal:"Abrir legal",settings:"Abrir ajustes"}
+en:{title:"V34.1 Automated Production Check",desc:"Checks the live domain, account session, plan API and cloud workspace without consuming an AI request.",badge:"PRODUCTION CHECK",domain:"Domain",auth:"Account API",plan:"Plan API",cloud:"Cloud workspace",diag:"Diagnostics",checking:"Checking…",pass:"PASS",warn:"WARNING",fail:"FAIL",run:"Run automated check",system:"Open System Check",legal:"Open Legal",settings:"Open Settings",signed:"Authenticated",guest:"Not signed in",reachable:"Reachable",unreachable:"Unavailable",custom:"Custom domain",worker:"Worker preview"},
+hu:{title:"V34.1 Automatikus production ellenőrzés",desc:"Ellenőrzi az élő domaint, a fiók sessiont, a csomag API-t és a cloud workspace-t AI kérés felhasználása nélkül.",badge:"PRODUCTION TESZT",domain:"Domain",auth:"Fiók API",plan:"Csomag API",cloud:"Felhő workspace",diag:"Diagnosztika",checking:"Ellenőrzés…",pass:"PASS",warn:"FIGYELMEZTETÉS",fail:"HIBA",run:"Automatikus ellenőrzés futtatása",system:"Rendszerellenőrzés",legal:"Jogi oldal",settings:"Beállítások",signed:"Hitelesítve",guest:"Nincs bejelentkezve",reachable:"Elérhető",unreachable:"Nem elérhető",custom:"Saját domain",worker:"Worker előnézet"},
+de:{title:"V34.1 Automatischer Produktionscheck",desc:"Prüft Live-Domain, Kontositzung, Plan-API und Cloud-Workspace ohne eine KI-Anfrage zu verbrauchen.",badge:"PRODUKTIONSCHECK",domain:"Domain",auth:"Konto-API",plan:"Plan-API",cloud:"Cloud-Workspace",diag:"Diagnose",checking:"Prüfung…",pass:"PASS",warn:"WARNUNG",fail:"FEHLER",run:"Automatischen Check starten",system:"Systemprüfung",legal:"Rechtliches",settings:"Einstellungen",signed:"Authentifiziert",guest:"Nicht angemeldet",reachable:"Erreichbar",unreachable:"Nicht verfügbar",custom:"Eigene Domain",worker:"Worker-Vorschau"},
+fr:{title:"V34.1 Contrôle automatique de production",desc:"Vérifie le domaine, la session, l’API du forfait et l’espace cloud sans consommer de requête IA.",badge:"CONTRÔLE PRODUCTION",domain:"Domaine",auth:"API compte",plan:"API forfait",cloud:"Espace cloud",diag:"Diagnostic",checking:"Vérification…",pass:"PASS",warn:"AVERTISSEMENT",fail:"ÉCHEC",run:"Lancer le contrôle automatique",system:"Contrôle système",legal:"Juridique",settings:"Paramètres",signed:"Authentifié",guest:"Non connecté",reachable:"Accessible",unreachable:"Indisponible",custom:"Domaine personnalisé",worker:"Aperçu Worker"},
+es:{title:"V34.1 Comprobación automática de producción",desc:"Comprueba dominio, sesión, API del plan y workspace cloud sin consumir una solicitud de IA.",badge:"CONTROL PRODUCCIÓN",domain:"Dominio",auth:"API de cuenta",plan:"API del plan",cloud:"Workspace cloud",diag:"Diagnóstico",checking:"Comprobando…",pass:"PASS",warn:"AVISO",fail:"FALLO",run:"Ejecutar comprobación automática",system:"Comprobación del sistema",legal:"Legal",settings:"Ajustes",signed:"Autenticado",guest:"Sin sesión",reachable:"Disponible",unreachable:"No disponible",custom:"Dominio propio",worker:"Vista Worker"}
 };
 
+const state={domain:null,auth:null,plan:null,cloud:null,running:false,lastRun:null};
 const lang=()=>{const v=document.getElementById("languageSelect")?.value||"en";return T[v]?v:"en"};
 const tx=()=>T[lang()];
 function route(page){if(typeof window.showPage==="function")window.showPage(page);else document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===page))}
@@ -16694,36 +16693,64 @@ function root(){
  }
  return r;
 }
+async function probe(url){
+ try{
+   const r=await fetch(url,{method:"GET",credentials:"include",cache:"no-store",headers:{"Accept":"application/json"}});
+   let data=null; try{data=await r.json()}catch{}
+   return {ok:r.ok,status:r.status,data};
+ }catch(error){return {ok:false,status:0,error:String(error?.message||error)}}
+}
+function statusText(v,x){
+ if(state.running && v===null)return x.checking;
+ if(v===true)return x.pass;
+ if(v===false)return x.fail;
+ return "—";
+}
 function render(){
  const r=root();if(!r)return;const x=tx();
  const custom=!/workers\.dev$|localhost$|127\.0\.0\.1$/.test(location.hostname.toLowerCase());
- const signed=Boolean(window.hegevaCurrentUser||window.hegevaCurrentSession);
- const cloud=Boolean(document.getElementById("home") && "/api/workspace");
+ state.domain=custom;
  const diag=Boolean(window.hegevaV338LaunchCandidate);
- r.innerHTML=`<div class="v340-head"><div><h3>🚀 ${x.title}</h3><p>${x.desc}</p></div><span class="v340-badge">${x.badge}</span></div>
+ r.innerHTML=`<div class="v340-head"><div><h3>🧪 ${x.title}</h3><p>${x.desc}</p></div><span class="v340-badge">${x.badge}</span></div>
  <div class="v340-grid">
-  <div class="v340-item"><span>${x.domain}</span><strong>${custom?location.hostname:"workers.dev"}</strong></div>
-  <div class="v340-item"><span>${x.auth}</span><strong>${signed?x.signed:"—"}</strong></div>
-  <div class="v340-item"><span>${x.cloud}</span><strong>${cloud?x.connected:"—"}</strong></div>
-  <div class="v340-item"><span>${x.diagnostics}</span><strong>${diag?x.ready:"—"}</strong></div>
+  <div class="v340-item"><span>${x.domain}</span><strong>${custom?x.custom:x.worker}: ${location.hostname}</strong></div>
+  <div class="v340-item"><span>${x.auth}</span><strong>${statusText(state.auth,x)}</strong></div>
+  <div class="v340-item"><span>${x.plan}</span><strong>${statusText(state.plan,x)}</strong></div>
+  <div class="v340-item"><span>${x.cloud}</span><strong>${statusText(state.cloud,x)}</strong></div>
  </div>
  <div class="v340-actions">
-  <button class="v340-btn" data-v340="run">${x.run}</button>
-  <button class="v340-btn" data-v340="system">${x.system}</button>
-  <button class="v340-btn" data-v340="legal">${x.legal}</button>
-  <button class="v340-btn" data-v340="settings">${x.settings}</button>
- </div>`;
+  <button class="v340-btn" data-v341="run" ${state.running?"disabled":""}>${state.running?x.checking:x.run}</button>
+  <button class="v340-btn" data-v341="system">${x.system}</button>
+  <button class="v340-btn" data-v341="legal">${x.legal}</button>
+  <button class="v340-btn" data-v341="settings">${x.settings}</button>
+ </div>
+ <div style="margin-top:10px;color:var(--muted);font-size:11px">${x.diag}: ${diag?x.reachable:x.unreachable}${state.lastRun?` · ${new Date(state.lastRun).toLocaleString()}`:""}</div>`;
+}
+async function runAll(){
+ state.running=true; state.auth=state.plan=state.cloud=null; render();
+ const [auth,plan,cloud]=await Promise.all([
+   probe("/api/auth/get-session"),
+   probe("/api/plan/status"),
+   probe("/api/workspace")
+ ]);
+ state.auth=auth.ok;
+ state.plan=plan.ok;
+ state.cloud=cloud.ok;
+ state.lastRun=Date.now();
+ state.running=false;
+ render();
+ return {version:"V34.1",domain:state.domain,auth,plan,cloud,aiRequestConsumed:false,lastRun:state.lastRun};
 }
 document.addEventListener("click",async e=>{
- const a=e.target.closest("[data-v340]")?.dataset.v340;if(!a)return;
- if(a==="run"&&window.hegevaV338LaunchCandidate?.runAll)await window.hegevaV338LaunchCandidate.runAll();
+ const a=e.target.closest("[data-v341]")?.dataset.v341;if(!a)return;
+ if(a==="run")await runAll();
  if(a==="system")route("diagnostics");
  if(a==="legal")route("legal");
  if(a==="settings")route("settings");
 });
 document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(render,80));
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",render,{once:true});else render();
-window.hegevaV340Final={render,version:"V34.0"};
+window.hegevaV341AutomatedCheck={runAll,render,state,version:"V34.1"};
 })();
 </script>
 
