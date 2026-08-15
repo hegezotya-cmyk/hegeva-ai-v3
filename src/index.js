@@ -6,7 +6,7 @@ import {
 } from "./auth.js";
 
 // =========================================
-// HEGEVA AI V34.7
+// HEGEVA AI V34.9
 // ACCOUNT + PASSWORD RECOVERY BACKEND
 // =========================================
 
@@ -304,6 +304,15 @@ async function createStripeCheckoutSession(
     "subscription"
   );
 
+  // V34.9:
+  // Managed Payments is disabled for this Stripe Sandbox
+  // Checkout session because HEGEVA uses the standard
+  // Stripe Checkout integration in this test flow.
+  form.set(
+    "managed_payments[enabled]",
+    "false"
+  );
+
   form.set(
     "line_items[0][price]",
     priceId
@@ -316,7 +325,9 @@ async function createStripeCheckoutSession(
 
   form.set(
     "client_reference_id",
-    String(user.id)
+    String(
+      user.id
+    )
   );
 
   if (user.email) {
@@ -338,7 +349,9 @@ async function createStripeCheckoutSession(
 
   form.set(
     "metadata[userId]",
-    String(user.id)
+    String(
+      user.id
+    )
   );
 
   form.set(
@@ -350,7 +363,8 @@ async function createStripeCheckoutSession(
     await fetch(
       "https://api.stripe.com/v1/checkout/sessions",
       {
-        method: "POST",
+        method:
+          "POST",
 
         headers: {
           Authorization:
@@ -380,8 +394,11 @@ async function createStripeCheckoutSession(
 
     return {
       ok: false,
+
       status:
-        response.status || 502,
+        response.status ||
+        502,
+
       error:
         data?.error?.message ||
         "Stripe test checkout could not be created."
@@ -394,7 +411,9 @@ async function createStripeCheckoutSession(
   ) {
     return {
       ok: false,
+
       status: 502,
+
       error:
         "Stripe returned an incomplete checkout session."
     };
@@ -466,7 +485,8 @@ export default {
       "/api/system/email-status"
     ) {
       if (
-        request.method !== "GET"
+        request.method !==
+        "GET"
       ) {
         return Response.json(
           {
@@ -515,7 +535,8 @@ export default {
       "/api/email/test"
     ) {
       if (
-        request.method !== "POST"
+        request.method !==
+        "POST"
       ) {
         return Response.json(
           {
@@ -571,10 +592,13 @@ export default {
 
         return Response.json({
           ok: true,
+
           to:
             user.email,
+
           id:
-            result?.id || null
+            result?.id ||
+            null
         });
       } catch (error) {
         console.error(
@@ -603,7 +627,8 @@ export default {
       "/api/plan/status"
     ) {
       if (
-        request.method !== "GET"
+        request.method !==
+        "GET"
       ) {
         return Response.json(
           {
@@ -683,7 +708,7 @@ export default {
     }
 
     // =========================================
-    // HEGEVA AI V34.7
+    // HEGEVA AI V34.9
     // STRIPE TEST CHECKOUT BACKEND
     // =========================================
 
@@ -692,7 +717,8 @@ export default {
       "/api/billing/status"
     ) {
       if (
-        request.method !== "GET"
+        request.method !==
+        "GET"
       ) {
         return Response.json(
           {
@@ -726,14 +752,16 @@ export default {
         }
 
         const provider =
-          typeof env.PAYMENT_PROVIDER === "string"
+          typeof env.PAYMENT_PROVIDER ===
+            "string"
             ? env.PAYMENT_PROVIDER
                 .trim()
                 .toLowerCase()
             : "";
 
         const paymentMode =
-          typeof env.PAYMENT_MODE === "string"
+          typeof env.PAYMENT_MODE ===
+            "string"
             ? env.PAYMENT_MODE
                 .trim()
                 .toLowerCase()
@@ -779,7 +807,8 @@ export default {
           proPriceReady;
 
         return Response.json({
-          available: true,
+          available:
+            true,
 
           connected,
 
@@ -805,6 +834,9 @@ export default {
           paymentSecretsExposedToBrowser:
             false,
 
+          managedPaymentsEnabled:
+            false,
+
           testConfiguration: {
             providerSelected,
             testMode,
@@ -815,7 +847,7 @@ export default {
 
           message:
             checkoutEnabled
-              ? "Stripe test checkout is configured. Entitlement remains unchanged until a future verified webhook flow is implemented."
+              ? "Stripe test checkout is configured. Managed Payments is disabled for the HEGEVA Sandbox checkout. Entitlement remains unchanged until a verified webhook flow is implemented."
               : "Billing API is available, but Stripe test checkout setup is incomplete."
         });
       } catch (error) {
@@ -841,7 +873,8 @@ export default {
       "/api/billing/checkout"
     ) {
       if (
-        request.method !== "POST"
+        request.method !==
+        "POST"
       ) {
         return Response.json(
           {
@@ -892,7 +925,8 @@ export default {
         }
 
         const requestedPlan =
-          typeof body?.plan === "string"
+          typeof body?.plan ===
+            "string"
             ? body.plan
                 .trim()
                 .toLowerCase()
@@ -918,7 +952,8 @@ export default {
         }
 
         if (
-          body?.mode !== "test"
+          body?.mode !==
+          "test"
         ) {
           return Response.json(
             {
@@ -932,14 +967,16 @@ export default {
         }
 
         const provider =
-          typeof env.PAYMENT_PROVIDER === "string"
+          typeof env.PAYMENT_PROVIDER ===
+            "string"
             ? env.PAYMENT_PROVIDER
                 .trim()
                 .toLowerCase()
             : "";
 
         const paymentMode =
-          typeof env.PAYMENT_MODE === "string"
+          typeof env.PAYMENT_MODE ===
+            "string"
             ? env.PAYMENT_MODE
                 .trim()
                 .toLowerCase()
@@ -951,7 +988,8 @@ export default {
         ) {
           return Response.json(
             {
-              ok: false,
+              ok:
+                false,
 
               provider:
                 null,
@@ -991,7 +1029,8 @@ export default {
         if (!checkout.ok) {
           return Response.json(
             {
-              ok: false,
+              ok:
+                false,
 
               provider:
                 "Stripe",
@@ -1022,7 +1061,8 @@ export default {
         }
 
         return Response.json({
-          ok: true,
+          ok:
+            true,
 
           provider:
             "Stripe",
@@ -1045,6 +1085,9 @@ export default {
           url:
             checkout.url,
 
+          managedPaymentsEnabled:
+            false,
+
           entitlementChanged:
             false,
 
@@ -1052,7 +1095,7 @@ export default {
             false,
 
           message:
-            "Stripe test checkout session created. No HEGEVA entitlement has been changed."
+            "Stripe test checkout session created. Managed Payments is disabled. No HEGEVA entitlement has been changed."
         });
       } catch (error) {
         console.error(
@@ -1144,8 +1187,11 @@ export default {
           );
         }
 
+        // LOAD
+
         if (
-          request.method === "GET"
+          request.method ===
+          "GET"
         ) {
           const row =
             await env.DB
@@ -1169,9 +1215,13 @@ export default {
 
           if (!row) {
             return Response.json({
-              found: false,
+              found:
+                false,
+
               dataType,
-              data: null
+
+              data:
+                null
             });
           }
 
@@ -1186,7 +1236,8 @@ export default {
           } catch {}
 
           return Response.json({
-            found: true,
+            found:
+              true,
 
             id:
               row.id,
@@ -1205,8 +1256,11 @@ export default {
           });
         }
 
+        // SAVE
+
         if (
-          request.method === "PUT"
+          request.method ===
+          "PUT"
         ) {
           let body;
 
@@ -1326,8 +1380,11 @@ export default {
             .run();
 
           return Response.json({
-            ok: true,
+            ok:
+              true,
+
             dataType,
+
             updatedAt:
               now
           });
@@ -1447,7 +1504,8 @@ export default {
           await request.json();
 
         const message =
-          typeof body.message === "string"
+          typeof body.message ===
+            "string"
             ? body.message.trim()
             : "";
 
@@ -1464,7 +1522,8 @@ export default {
         }
 
         if (
-          message.length > 2500
+          message.length >
+          2500
         ) {
           return Response.json(
             {
@@ -1504,11 +1563,20 @@ export default {
         };
 
         const languageNames = {
-          en: "English",
-          hu: "Hungarian",
-          de: "German",
-          fr: "French",
-          es: "Spanish"
+          en:
+            "English",
+
+          hu:
+            "Hungarian",
+
+          de:
+            "German",
+
+          fr:
+            "French",
+
+          es:
+            "Spanish"
         };
 
         const mode =
@@ -1530,9 +1598,13 @@ export default {
             : "en";
 
         const businessContext =
-          typeof body.businessContext === "string"
+          typeof body.businessContext ===
+            "string"
             ? body.businessContext
-                .slice(0, 500)
+                .slice(
+                  0,
+                  500
+                )
                 .trim()
             : "";
 
@@ -1540,12 +1612,15 @@ export default {
           Array.isArray(
             body.history
           )
-            ? body.history.slice(-10)
+            ? body.history
+                .slice(-10)
             : [];
 
-        let totalChars = 0;
+        let totalChars =
+          0;
 
-        const safeHistory = [];
+        const safeHistory =
+          [];
 
         for (
           const item
@@ -1559,7 +1634,8 @@ export default {
             ].includes(
               item.role
             ) ||
-            typeof item.content !== "string"
+            typeof item.content !==
+              "string"
           ) {
             continue;
           }
@@ -1584,6 +1660,7 @@ export default {
           safeHistory.push({
             role:
               item.role,
+
             content
           });
         }
@@ -1593,12 +1670,15 @@ export default {
             .map(
               (item) =>
                 `${
-                  item.role === "assistant"
+                  item.role ===
+                  "assistant"
                     ? "HEGEVA AI"
                     : "User"
                 }: ${item.content}`
             )
-            .join("\n\n");
+            .join(
+              "\n\n"
+            );
 
         const prompt = `
 You are HEGEVA AI, a practical business companion.
