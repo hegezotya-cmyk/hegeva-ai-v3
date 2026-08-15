@@ -13998,7 +13998,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.8 — GLOBAL WORKSPACE SEARCH / COMMAND PALETTE
+   HEGEVA AI V32.9 — GLOBAL WORKSPACE SEARCH / COMMAND PALETTE
    ========================================================= */
 .v322-search-trigger{
   display:flex;
@@ -14225,7 +14225,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.8 — GLOBAL WORKSPACE SEARCH
+   HEGEVA AI V32.9 — GLOBAL WORKSPACE SEARCH
    Searches only data already stored in the HEGEVA workspace.
    ========================================================= */
 (() => {
@@ -14454,7 +14454,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.8 — BUSINESS COMMAND SUITE
+   HEGEVA AI V32.9 — BUSINESS COMMAND SUITE
    Multi-feature upgrade: Today Center, KPI Pulse, Quick Create,
    Smart Focus, Backup Status.
    ========================================================= */
@@ -14601,7 +14601,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.8 — BUSINESS COMMAND SUITE
+   HEGEVA AI V32.9 — BUSINESS COMMAND SUITE
    Uses only existing HEGEVA workspace data. No invented metrics.
    ========================================================= */
 (() => {
@@ -14901,7 +14901,7 @@ Open planner tasks: ${s.openTasks}`;
 
 
 <style>
-/* HEGEVA AI V32.8 — Productivity Pack */
+/* HEGEVA AI V32.9 — Productivity Pack */
 .v324-panel{margin:18px 0;padding:20px;border:1px solid rgba(255,255,255,.10);border-radius:20px;background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(155,108,255,.025))}
 .v324-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
 .v324-head h3{margin:0 0 5px;font-size:19px}.v324-head p{margin:0;color:var(--muted);font-size:12px}
@@ -14969,7 +14969,7 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.8 — SALES & CUSTOMER OPERATIONS PACK
+   HEGEVA AI V32.9 — SALES & CUSTOMER OPERATIONS PACK
    ========================================================= */
 #v325OpsPack{
   margin:18px 0 24px;
@@ -15019,7 +15019,7 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.8 — SALES & CUSTOMER OPERATIONS
+   HEGEVA AI V32.9 — SALES & CUSTOMER OPERATIONS
    Follow-up queue + invoice chase center + customer health.
    Uses saved HEGEVA data only.
    ========================================================= */
@@ -15180,7 +15180,7 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.8 — REPORTING & OPERATIONS PACK
+   HEGEVA AI V32.9 — REPORTING & OPERATIONS PACK
    Monthly snapshot + due-date radar + CSV export + follow-up helper
    ========================================================= */
 #v326OpsReporting{
@@ -15251,7 +15251,7 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.8 — REPORTING & OPERATIONS PACK
+   HEGEVA AI V32.9 — REPORTING & OPERATIONS PACK
    Uses saved workspace data only. No invented values.
    ========================================================= */
 (() => {
@@ -15474,7 +15474,7 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.8 — BUSINESS INTELLIGENCE PACK
+   HEGEVA AI V32.9 — BUSINESS INTELLIGENCE PACK
    Health Score + Document Aging + Expense Mix + Summary Export
    ========================================================= */
 #v327IntelligencePack{
@@ -15547,7 +15547,7 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.8 — BUSINESS INTELLIGENCE PACK
+   HEGEVA AI V32.9 — BUSINESS INTELLIGENCE PACK
    Uses only saved HEGEVA workspace data.
    ========================================================= */
 (() => {
@@ -15784,7 +15784,7 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.8 — SMART BUSINESS CONTROL PACK
+   HEGEVA AI V32.9 — SMART BUSINESS CONTROL PACK
    Action Center + Data Completeness + Activity Pulse + Quick Report
    ========================================================= */
 #v328ControlPack{margin:18px 0 28px}
@@ -15849,6 +15849,87 @@ document.getElementById("languageSelect")?.addEventListener("change",()=>setTime
 window.addEventListener("storage",()=>setTimeout(()=>render(),80));
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>render(),{once:true});else render();
 window.hegevaV328Control={render,metrics,completeness,report,version:"V32.8"};
+})();
+</script>
+
+
+<style>
+/* =========================================================
+   HEGEVA AI V32.9 — BUSINESS PLANNING PACK
+   Weekly planner + customer next-step board + document totals + risk notes
+   ========================================================= */
+#v329PlanningPack{margin:18px 0 28px}
+.v329-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.v329-card{
+  padding:20px;border:1px solid rgba(255,255,255,.10);border-radius:20px;
+  background:radial-gradient(circle at 100% 0%,rgba(246,196,83,.06),transparent 28%),
+             linear-gradient(145deg,rgba(255,255,255,.035),rgba(155,108,255,.022));
+  box-shadow:0 18px 50px rgba(0,0,0,.18)
+}
+.v329-card h3{margin:0 0 5px;font-size:18px}.v329-card p{margin:0 0 13px;color:var(--muted);font-size:11px;line-height:1.55}
+.v329-list{display:grid;gap:9px}
+.v329-row{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:11px;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(255,255,255,.022)
+}
+.v329-row strong{display:block;font-size:12px}.v329-row small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.v329-btn{min-height:35px;padding:0 10px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);font-weight:800;cursor:pointer}
+.v329-btn:hover{border-color:rgba(246,196,83,.35);transform:translateY(-1px)}
+.v329-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.v329-metric{padding:11px;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(255,255,255,.022)}
+.v329-metric span{display:block;color:var(--muted);font-size:10px}.v329-metric strong{display:block;margin-top:4px;font-size:17px}
+.v329-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.v329-output{margin-top:11px;padding:11px;border:1px solid rgba(255,255,255,.08);border-radius:11px;background:rgba(255,255,255,.02);color:var(--muted);font-size:11px;line-height:1.55;white-space:pre-wrap}
+@media(max-width:980px){.v329-grid{grid-template-columns:1fr}.v329-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.v329-metrics{grid-template-columns:1fr}}
+</style>
+
+<script>
+(() => {
+"use strict";
+const T={
+en:{weekT:"Weekly Work Planner",weekD:"Build a simple weekly focus list from your open planner items.",noTasks:"No open planner tasks are available.",openPlanner:"Open planner",
+nextT:"Customer Next-Step Board",nextD:"Shows CRM customers marked for follow-up so you can act on them quickly.",noFollow:"No customers are currently marked for follow-up.",openCrm:"Open CRM",
+docT:"Document Totals",docD:"A factual snapshot of saved document counts by type.",invoice:"Invoices",quote:"Quotes",receipt:"Receipts",other:"Other",
+riskT:"Business Risk Notes",riskD:"Highlights simple operational gaps from current workspace data.",build:"Build notes",copy:"Copy notes",copied:"Risk notes copied.",none:"No immediate operational gap detected.",needDocs:"No saved business documents.",needExpenses:"No expense records.",needTasks:"No open planner tasks.",needCustomers:"No CRM customers.",followRisk:"Customer follow-ups need attention."},
+hu:{weekT:"Heti munkatervező",weekD:"Készíts egyszerű heti fókuszlistát a nyitott tervezőfeladatokból.",noTasks:"Nincs elérhető nyitott tervezőfeladat.",openPlanner:"Tervező megnyitása",
+nextT:"Ügyfél következő lépés tábla",nextD:"Megmutatja az utánkövetésre megjelölt CRM-ügyfeleket, hogy gyorsan tudj lépni.",noFollow:"Jelenleg nincs utánkövetésre megjelölt ügyfél.",openCrm:"CRM megnyitása",
+docT:"Dokumentumösszesítő",docD:"Tényszerű áttekintés a mentett dokumentumok számáról típusonként.",invoice:"Számlák",quote:"Árajánlatok",receipt:"Nyugták",other:"Egyéb",
+riskT:"Üzleti kockázati jegyzetek",riskD:"Egyszerű működési hiányosságokat emel ki az aktuális munkatéradatokból.",build:"Jegyzetek készítése",copy:"Jegyzetek másolása",copied:"A kockázati jegyzetek kimásolva.",none:"Nincs azonnali működési hiányosság.",needDocs:"Nincs mentett üzleti dokumentum.",needExpenses:"Nincs kiadási bejegyzés.",needTasks:"Nincs nyitott tervezőfeladat.",needCustomers:"Nincs CRM-ügyfél.",followRisk:"Az ügyfél-utánkövetések figyelmet igényelnek."},
+de:{weekT:"Wöchentlicher Arbeitsplaner",weekD:"Erstellt eine einfache Wochen-Fokusliste aus offenen Planer-Aufgaben.",noTasks:"Keine offenen Planer-Aufgaben verfügbar.",openPlanner:"Planer öffnen",
+nextT:"Kunden-Nächste-Schritte",nextD:"Zeigt CRM-Kunden mit Nachfassbedarf für schnelle Aktionen.",noFollow:"Keine Kunden zur Nachverfolgung markiert.",openCrm:"CRM öffnen",
+docT:"Dokumentenübersicht",docD:"Faktische Anzahl gespeicherter Dokumente nach Typ.",invoice:"Rechnungen",quote:"Angebote",receipt:"Quittungen",other:"Andere",
+riskT:"Geschäftsrisiko-Notizen",riskD:"Hebt einfache operative Lücken aus aktuellen Arbeitsbereichsdaten hervor.",build:"Notizen erstellen",copy:"Notizen kopieren",copied:"Risikohinweise kopiert.",none:"Keine unmittelbare operative Lücke erkannt.",needDocs:"Keine gespeicherten Geschäftsdokumente.",needExpenses:"Keine Ausgabeneinträge.",needTasks:"Keine offenen Planer-Aufgaben.",needCustomers:"Keine CRM-Kunden.",followRisk:"Kunden-Nachfassaktionen benötigen Aufmerksamkeit."},
+fr:{weekT:"Planificateur hebdomadaire",weekD:"Crée une liste de priorités hebdomadaire à partir des tâches ouvertes.",noTasks:"Aucune tâche ouverte disponible.",openPlanner:"Ouvrir le planificateur",
+nextT:"Tableau des prochaines étapes client",nextD:"Affiche les clients CRM marqués pour suivi afin d’agir rapidement.",noFollow:"Aucun client n’est marqué pour suivi.",openCrm:"Ouvrir le CRM",
+docT:"Totaux des documents",docD:"Vue factuelle du nombre de documents enregistrés par type.",invoice:"Factures",quote:"Devis",receipt:"Reçus",other:"Autres",
+riskT:"Notes de risque opérationnel",riskD:"Met en évidence les lacunes simples à partir des données actuelles.",build:"Créer les notes",copy:"Copier les notes",copied:"Notes de risque copiées.",none:"Aucune lacune opérationnelle immédiate détectée.",needDocs:"Aucun document professionnel enregistré.",needExpenses:"Aucune dépense enregistrée.",needTasks:"Aucune tâche ouverte.",needCustomers:"Aucun client CRM.",followRisk:"Les suivis clients nécessitent une attention."},
+es:{weekT:"Planificador semanal de trabajo",weekD:"Crea una lista semanal de prioridades con las tareas abiertas.",noTasks:"No hay tareas abiertas disponibles.",openPlanner:"Abrir planificador",
+nextT:"Tablero de próximos pasos del cliente",nextD:"Muestra clientes CRM marcados para seguimiento para actuar rápidamente.",noFollow:"No hay clientes marcados para seguimiento.",openCrm:"Abrir CRM",
+docT:"Totales de documentos",docD:"Vista factual del número de documentos guardados por tipo.",invoice:"Facturas",quote:"Presupuestos",receipt:"Recibos",other:"Otros",
+riskT:"Notas de riesgo empresarial",riskD:"Destaca lagunas operativas simples usando los datos actuales.",build:"Crear notas",copy:"Copiar notas",copied:"Notas de riesgo copiadas.",none:"No se detecta ninguna laguna operativa inmediata.",needDocs:"No hay documentos empresariales guardados.",needExpenses:"No hay registros de gastos.",needTasks:"No hay tareas abiertas.",needCustomers:"No hay clientes CRM.",followRisk:"Los seguimientos de clientes necesitan atención."}
+};
+const lang=()=>{const v=document.getElementById("languageSelect")?.value||"en";return T[v]?v:"en"};
+const tx=()=>T[lang()];
+const read=(k,f=[])=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))??f}catch{return f}};
+const arr=k=>{const x=read(k,[]);return Array.isArray(x)?x:[]};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+const cs=()=>arr("hegeva_v10_customers"), ds=()=>arr("hegeva_documents"), es=()=>arr("hegeva_expenses"), ts=()=>arr("hegeva_planner_tasks");
+function counts(){const d={invoice:0,quote:0,receipt:0,other:0};ds().forEach(x=>{const t=String(x.type||"").toLowerCase();if(t.includes("invoice"))d.invoice++;else if(t.includes("quote"))d.quote++;else if(t.includes("receipt"))d.receipt++;else d.other++});return d}
+function risks(){const x=tx(),r=[];if(!cs().length)r.push(x.needCustomers);if(!ds().length)r.push(x.needDocs);if(!es().length)r.push(x.needExpenses);if(!ts().filter(t=>t&&!t.done).length)r.push(x.needTasks);if(cs().some(c=>c&&c.followup))r.push(x.followRisk);return r}
+function root(){const home=document.getElementById("home");if(!home)return null;let r=document.getElementById("v329PlanningPack");if(!r){r=document.createElement("section");r.id="v329PlanningPack";const a=document.getElementById("v328ControlPack")||document.getElementById("v327IntelligencePack");a?a.insertAdjacentElement("afterend",r):home.appendChild(r)}return r}
+function route(p){if(typeof window.showPage==="function")window.showPage(p);else document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x.id===p))}
+function render(custom=""){const r=root();if(!r)return;const x=tx(),open=ts().filter(t=>t&&!t.done).slice(0,6),follow=cs().filter(c=>c&&c.followup).slice(0,6),c=counts(),risk=custom||risks().map(v=>"• "+v).join("\n")||x.none;r.innerHTML=`<div class="v329-grid">
+<div class="v329-card"><h3>🗓️ ${x.weekT}</h3><p>${x.weekD}</p><div class="v329-list">${open.length?open.map(t=>`<div class="v329-row"><div><strong>${esc(t.text||t.title||t.task||"Task")}</strong><small>${esc(t.priority||t.date||"")}</small></div><button class="v329-btn" data-v329-route="planner">${x.openPlanner}</button></div>`).join(""):`<div class="v329-row"><div><strong>${x.noTasks}</strong></div></div>`}</div></div>
+<div class="v329-card"><h3>👥 ${x.nextT}</h3><p>${x.nextD}</p><div class="v329-list">${follow.length?follow.map(c=>`<div class="v329-row"><div><strong>${esc(c.name||c.company||"Customer")}</strong><small>${esc(c.email||c.phone||"")}</small></div><button class="v329-btn" data-v329-route="customers">${x.openCrm}</button></div>`).join(""):`<div class="v329-row"><div><strong>${x.noFollow}</strong></div></div>`}</div></div>
+<div class="v329-card"><h3>📚 ${x.docT}</h3><p>${x.docD}</p><div class="v329-metrics"><div class="v329-metric"><span>${x.invoice}</span><strong>${c.invoice}</strong></div><div class="v329-metric"><span>${x.quote}</span><strong>${c.quote}</strong></div><div class="v329-metric"><span>${x.receipt}</span><strong>${c.receipt}</strong></div><div class="v329-metric"><span>${x.other}</span><strong>${c.other}</strong></div></div></div>
+<div class="v329-card"><h3>⚠️ ${x.riskT}</h3><p>${x.riskD}</p><div class="v329-actions"><button class="v329-btn" data-v329="build">${x.build}</button><button class="v329-btn" data-v329="copy">${x.copy}</button></div><div class="v329-output" id="v329RiskOutput">${esc(risk)}</div></div>
+</div>`}
+document.addEventListener("click",async e=>{const rb=e.target.closest("[data-v329-route]");if(rb){route(rb.dataset.v329Route);return}const a=e.target.closest("[data-v329]")?.dataset.v329;if(a==="build")render(risks().map(v=>"• "+v).join("\n")||tx().none);if(a==="copy"){try{await navigator.clipboard.writeText(document.getElementById("v329RiskOutput")?.textContent||"");if(typeof showToast==="function")showToast(tx().copied)}catch{}}});
+document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(()=>render(),80));
+window.addEventListener("storage",()=>setTimeout(()=>render(),80));
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>render(),{once:true});else render();
+window.hegevaV329Planning={render,risks,counts,version:"V32.9"};
 })();
 </script>
 
