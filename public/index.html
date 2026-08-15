@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="HEGEVA AI V35.1 — verified Stripe subscription status, backend plan display and billing UI polish." />
-  <title>HEGEVA AI V35.1</title>
+  <meta name="description" content="HEGEVA AI V35.2 — clearer subscription lifecycle status and billing UI polish." />
+  <title>HEGEVA AI V35.2</title>
 
   <style>
     :root {
@@ -1682,7 +1682,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name notranslate" translate="no">Hegeva AI</div>
-          <div class="brand-subtitle">V35.1 SMART BUSINESS HUB</div>
+          <div class="brand-subtitle">V35.2 SMART BUSINESS HUB</div>
         </div>
       </div>
 
@@ -17126,7 +17126,7 @@ window.hegevaV342PaymentTest={runPreflight,testCheckout,state:S,version:"V34.2",
 
 <script>
 /* =========================================================
-   HEGEVA AI V35.1 — SUBSCRIPTION STATUS + BILLING UI POLISH
+   HEGEVA AI V35.2 — SUBSCRIPTION LIFECYCLE UI POLISH
    - fixes the stray "undefined" heading
    - shows the backend-confirmed Basic/Premium/Pro plan
    - shows AI allowance and last verified Stripe webhook
@@ -17137,7 +17137,7 @@ window.hegevaV342PaymentTest={runPreflight,testCheckout,state:S,version:"V34.2",
 
 const T = {
   en: {
-    kicker:"V35.1 STRIPE SANDBOX",
+    kicker:"V35.2 STRIPE SANDBOX",
     title:"Stripe subscription status",
     subtitle:"HEGEVA now shows the backend-confirmed plan and verified Stripe webhook state. Sandbox payments never use real money.",
     provider:"Provider", mode:"Mode", billingApi:"Billing API", entitlement:"Entitlement authority",
@@ -17159,15 +17159,15 @@ const T = {
     failed:"Stripe test checkout could not be created.",
     popupBlocked:"The browser blocked the new tab, so Stripe Checkout is opening in this tab.",
     securityTitle:"Payment safety", securityText:"Card details are entered only on Stripe-hosted Checkout. HEGEVA does not request or store card number or CVV.",
-    selectedTestPlan:"Selected test plan", currentPlan:"Current backend plan", aiAllowance:"AI allowance", webhook:"Last verified Stripe event",
+    selectedTestPlan:"Checkout target", currentPlan:"Current backend plan", aiAllowance:"AI allowance", webhook:"Last verified Stripe event",
     noWebhook:"Not verified yet", planBasic:"Basic", planPremium:"Premium", planPro:"Pro",
-    legacyKicker:"V35.1 PAYMENT READINESS", success:"SUCCESS",
+    legacyKicker:"V35.2 PAYMENT READINESS", success:"SUCCESS",
     sandbox:"SANDBOX", current:"CURRENT", currentHu:"CURRENT",
     testPrice:"Sandbox test price", monthly:"/ month",
-    currentMessage:"This plan is confirmed by the HEGEVA backend."
+    currentMessage:"This plan is confirmed by the HEGEVA backend.", eventCheckout:"Checkout completed", eventPaid:"Invoice paid", eventFailed:"Payment failed", eventDeleted:"Subscription cancelled", lifecycleActive:"Subscription verified and active.", lifecycleBasic:"No paid subscription is active. Backend access is Basic.", lifecycleFailed:"Stripe reported a failed payment. Access is unchanged until Stripe confirms a later lifecycle event."
   },
   hu: {
-    kicker:"V35.1 STRIPE SANDBOX",
+    kicker:"V35.2 STRIPE SANDBOX",
     title:"Stripe előfizetés állapota",
     subtitle:"A HEGEVA most a backend által igazolt csomagot és az ellenőrzött Stripe webhook állapotát mutatja. A Sandbox fizetés nem használ valódi pénzt.",
     provider:"Szolgáltató", mode:"Mód", billingApi:"Billing API", entitlement:"Jogosultság kezelője",
@@ -17189,15 +17189,15 @@ const T = {
     failed:"A Stripe teszt checkout nem hozható létre.",
     popupBlocked:"A böngésző blokkolta az új lapot, ezért a Stripe Checkout ezen a lapon nyílik meg.",
     securityTitle:"Fizetési biztonság", securityText:"A kártyaadatokat kizárólag a Stripe által hosztolt Checkout oldalon kell megadni. A HEGEVA nem kér és nem tárol kártyaszámot vagy CVV-t.",
-    selectedTestPlan:"Kiválasztott tesztcsomag", currentPlan:"Jelenlegi backend csomag", aiAllowance:"AI keret", webhook:"Utolsó ellenőrzött Stripe esemény",
+    selectedTestPlan:"Checkout célcsomag", currentPlan:"Jelenlegi backend csomag", aiAllowance:"AI keret", webhook:"Utolsó ellenőrzött Stripe esemény",
     noWebhook:"Még nincs ellenőrizve", planBasic:"Basic", planPremium:"Premium", planPro:"Pro",
-    legacyKicker:"V35.1 FIZETÉSI KÉSZÜLTSÉG", success:"SIKERES",
+    legacyKicker:"V35.2 FIZETÉSI KÉSZÜLTSÉG", success:"SIKERES",
     sandbox:"SANDBOX", current:"JELENLEGI",
     testPrice:"Sandbox tesztár", monthly:"/ hó",
-    currentMessage:"Ezt a csomagot a HEGEVA backend igazolja."
+    currentMessage:"Ezt a csomagot a HEGEVA backend igazolja.", eventCheckout:"Checkout sikeresen befejezve", eventPaid:"Számla kifizetve", eventFailed:"Sikertelen fizetés", eventDeleted:"Előfizetés megszűnt", lifecycleActive:"Az előfizetés ellenőrzött és aktív.", lifecycleBasic:"Nincs aktív fizetős előfizetés. A backend jogosultság Basic.", lifecycleFailed:"A Stripe sikertelen fizetést jelzett. A jogosultság addig nem változik, amíg egy későbbi Stripe esemény ezt nem igazolja."
   },
   de: {
-    kicker:"V35.1 STRIPE SANDBOX", title:"Stripe-Abonnementstatus",
+    kicker:"V35.2 STRIPE SANDBOX", title:"Stripe-Abonnementstatus",
     subtitle:"HEGEVA zeigt jetzt den vom Backend bestätigten Tarif und den verifizierten Stripe-Webhook-Status. Sandbox-Zahlungen verwenden kein echtes Geld.",
     provider:"Anbieter", mode:"Modus", billingApi:"Billing-API", entitlement:"Berechtigungsinstanz",
     connected:"Verbunden", notConnected:"Nicht verbunden", test:"Test", live:"Live", backendOnly:"Nur Backend",
@@ -17213,11 +17213,11 @@ const T = {
     invalidUrl:"Die Checkout-URL hat die HEGEVA Stripe-Sicherheitsprüfung nicht bestanden.", failed:"Stripe-Test-Checkout konnte nicht erstellt werden.",
     popupBlocked:"Der Browser blockierte den neuen Tab; Stripe Checkout wird in diesem Tab geöffnet.", securityTitle:"Zahlungssicherheit",
     securityText:"Kartendaten werden nur auf dem von Stripe gehosteten Checkout eingegeben. HEGEVA erfasst oder speichert keine Kartennummer oder CVV.",
-    selectedTestPlan:"Ausgewählter Testtarif", currentPlan:"Aktueller Backend-Tarif", aiAllowance:"AI-Kontingent", webhook:"Letztes verifiziertes Stripe-Ereignis",
-    noWebhook:"Noch nicht verifiziert", planBasic:"Basic", planPremium:"Premium", planPro:"Pro", legacyKicker:"V35.1 ZAHLUNGSBEREITSCHAFT", success:"ERFOLGREICH", sandbox:"SANDBOX", current:"AKTUELL", testPrice:"Sandbox-Testpreis", monthly:"/ Monat", currentMessage:"Dieser Tarif wird vom HEGEVA-Backend bestätigt."
+    selectedTestPlan:"Checkout-Zieltarif", currentPlan:"Aktueller Backend-Tarif", aiAllowance:"AI-Kontingent", webhook:"Letztes verifiziertes Stripe-Ereignis",
+    noWebhook:"Noch nicht verifiziert", planBasic:"Basic", planPremium:"Premium", planPro:"Pro", legacyKicker:"V35.2 ZAHLUNGSBEREITSCHAFT", success:"ERFOLGREICH", sandbox:"SANDBOX", current:"AKTUELL", testPrice:"Sandbox-Testpreis", monthly:"/ Monat", currentMessage:"Dieser Tarif wird vom HEGEVA-Backend bestätigt.", eventCheckout:"Checkout abgeschlossen", eventPaid:"Rechnung bezahlt", eventFailed:"Zahlung fehlgeschlagen", eventDeleted:"Abonnement beendet", lifecycleActive:"Das Abonnement ist verifiziert und aktiv.", lifecycleBasic:"Kein kostenpflichtiges Abonnement ist aktiv. Backend-Zugriff: Basic.", lifecycleFailed:"Stripe meldete eine fehlgeschlagene Zahlung. Der Zugriff bleibt unverändert, bis ein späteres Stripe-Ereignis den Status bestätigt."
   },
   fr: {
-    kicker:"V35.1 STRIPE SANDBOX", title:"État de l’abonnement Stripe",
+    kicker:"V35.2 STRIPE SANDBOX", title:"État de l’abonnement Stripe",
     subtitle:"HEGEVA affiche maintenant le forfait confirmé par le backend et l’état du webhook Stripe vérifié. Les paiements Sandbox n’utilisent pas d’argent réel.",
     provider:"Prestataire", mode:"Mode", billingApi:"API de facturation", entitlement:"Autorité des droits",
     connected:"Connecté", notConnected:"Non connecté", test:"Test", live:"Production", backendOnly:"Backend uniquement",
@@ -17232,10 +17232,10 @@ const T = {
     blocked:"Le checkout test reste bloqué tant que Stripe, le mode test, le secret et les deux Price IDs ne sont pas configurés.", created:"Le Checkout Sandbox Stripe est ouvert. Utilisez uniquement des données de paiement test Stripe.",
     invalidUrl:"L’URL de checkout n’a pas passé le contrôle de sécurité Stripe de HEGEVA.", failed:"Impossible de créer le checkout test Stripe.", popupBlocked:"Le navigateur a bloqué le nouvel onglet ; Stripe Checkout sera ouvert dans cet onglet.",
     securityTitle:"Sécurité du paiement", securityText:"Les données de carte sont saisies uniquement sur Checkout hébergé par Stripe. HEGEVA ne demande ni ne stocke le numéro de carte ou le CVV.",
-    selectedTestPlan:"Forfait test sélectionné", currentPlan:"Forfait backend actuel", aiAllowance:"Quota AI", webhook:"Dernier événement Stripe vérifié", noWebhook:"Pas encore vérifié", planBasic:"Basic", planPremium:"Premium", planPro:"Pro", legacyKicker:"V35.1 PRÉPARATION PAIEMENT", success:"RÉUSSI", sandbox:"SANDBOX", current:"ACTUEL", testPrice:"Prix test Sandbox", monthly:"/ mois", currentMessage:"Ce forfait est confirmé par le backend HEGEVA."
+    selectedTestPlan:"Forfait cible du checkout", currentPlan:"Forfait backend actuel", aiAllowance:"Quota AI", webhook:"Dernier événement Stripe vérifié", noWebhook:"Pas encore vérifié", planBasic:"Basic", planPremium:"Premium", planPro:"Pro", legacyKicker:"V35.2 PRÉPARATION PAIEMENT", success:"RÉUSSI", sandbox:"SANDBOX", current:"ACTUEL", testPrice:"Prix test Sandbox", monthly:"/ mois", currentMessage:"Ce forfait est confirmé par le backend HEGEVA.", eventCheckout:"Checkout terminé", eventPaid:"Facture payée", eventFailed:"Paiement échoué", eventDeleted:"Abonnement résilié", lifecycleActive:"L’abonnement est vérifié et actif.", lifecycleBasic:"Aucun abonnement payant n’est actif. L’accès backend est Basic.", lifecycleFailed:"Stripe a signalé un échec de paiement. L’accès reste inchangé jusqu’à confirmation par un événement Stripe ultérieur."
   },
   es: {
-    kicker:"V35.1 STRIPE SANDBOX", title:"Estado de suscripción Stripe",
+    kicker:"V35.2 STRIPE SANDBOX", title:"Estado de suscripción Stripe",
     subtitle:"HEGEVA muestra ahora el plan confirmado por el backend y el estado del webhook Stripe verificado. Los pagos Sandbox no usan dinero real.",
     provider:"Proveedor", mode:"Modo", billingApi:"API de facturación", entitlement:"Autoridad de derechos",
     connected:"Conectado", notConnected:"No conectado", test:"Prueba", live:"Producción", backendOnly:"Solo backend",
@@ -17250,7 +17250,7 @@ const T = {
     blocked:"El checkout de prueba queda bloqueado hasta configurar Stripe, modo prueba, secret y ambos Price IDs.", created:"Stripe Sandbox Checkout se abrió. Usa solo datos de pago de prueba Stripe.",
     invalidUrl:"La URL de checkout no superó la comprobación de seguridad Stripe de HEGEVA.", failed:"No se pudo crear el checkout de prueba Stripe.", popupBlocked:"El navegador bloqueó la nueva pestaña; Stripe Checkout se abrirá en esta pestaña.",
     securityTitle:"Seguridad de pago", securityText:"Los datos de tarjeta se introducen únicamente en Checkout alojado por Stripe. HEGEVA no solicita ni almacena número de tarjeta o CVV.",
-    selectedTestPlan:"Plan de prueba seleccionado", currentPlan:"Plan backend actual", aiAllowance:"Cuota AI", webhook:"Último evento Stripe verificado", noWebhook:"Aún no verificado", planBasic:"Basic", planPremium:"Premium", planPro:"Pro", legacyKicker:"V35.1 PREPARACIÓN DE PAGO", success:"CORRECTO", sandbox:"SANDBOX", current:"ACTUAL", testPrice:"Precio test Sandbox", monthly:"/ mes", currentMessage:"Este plan está confirmado por el backend HEGEVA."
+    selectedTestPlan:"Plan objetivo del checkout", currentPlan:"Plan backend actual", aiAllowance:"Cuota AI", webhook:"Último evento Stripe verificado", noWebhook:"Aún no verificado", planBasic:"Basic", planPremium:"Premium", planPro:"Pro", legacyKicker:"V35.2 PREPARACIÓN DE PAGO", success:"CORRECTO", sandbox:"SANDBOX", current:"ACTUAL", testPrice:"Precio test Sandbox", monthly:"/ mes", currentMessage:"Este plan está confirmado por el backend HEGEVA.", eventCheckout:"Checkout completado", eventPaid:"Factura pagada", eventFailed:"Pago fallido", eventDeleted:"Suscripción cancelada", lifecycleActive:"La suscripción está verificada y activa.", lifecycleBasic:"No hay una suscripción de pago activa. El acceso del backend es Basic.", lifecycleFailed:"Stripe informó de un pago fallido. El acceso no cambia hasta que un evento posterior de Stripe confirme el estado."
   }
 };
 
@@ -17405,6 +17405,24 @@ function applyPlanUI(){
   }
 }
 
+function friendlyEvent(type){
+  const t = tx();
+  const map = {
+    "checkout.session.completed": t.eventCheckout,
+    "invoice.paid": t.eventPaid,
+    "invoice.payment_failed": t.eventFailed,
+    "customer.subscription.deleted": t.eventDeleted
+  };
+  return map[type] || type || t.noWebhook;
+}
+
+function lifecycleMessage(){
+  const t = tx();
+  if(S.lastWebhookEventType === "invoice.payment_failed") return t.lifecycleFailed;
+  if(normalPlan(S.currentPlan) === "basic") return t.lifecycleBasic;
+  return t.lifecycleActive;
+}
+
 function applyLanguagePolish(){
   const t = tx();
   const qa = $("v342Language");
@@ -17486,11 +17504,12 @@ function render(){
         <div class="v343-flow" style="margin-top:12px">
           <div class="v343-flow-item">${t.currentPlan}<strong style="float:right">${planLabel(S.currentPlan)}</strong></div>
           <div class="v343-flow-item">${t.aiAllowance}<strong style="float:right">${Number.isFinite(Number(S.aiMessages)) && Number.isFinite(Number(S.aiLimit)) ? `${Number(S.aiMessages)} / ${Number(S.aiLimit)}` : "—"}</strong></div>
-          <div class="v343-flow-item">${t.webhook}<strong style="float:right">${S.webhookVerified ? (S.lastWebhookEventType || "✓") : t.noWebhook}</strong></div>
+          <div class="v343-flow-item">${t.webhook}<strong style="float:right">${S.webhookVerified ? friendlyEvent(S.lastWebhookEventType) : t.noWebhook}</strong></div>
         </div>
 
         ${S.webhookVerified && S.lastWebhookEventCreatedAt ? `<p style="margin-top:9px">${formatWebhookTime(S.lastWebhookEventCreatedAt)}</p>` : ""}
-        <p><strong>${t.selectedTestPlan}:</strong> ${selectedPlan() === "pro" ? t.planPro : t.planPremium}</p>
+        <p style="margin-top:9px"><strong>${lifecycleMessage()}</strong></p>
+        ${normalPlan(S.currentPlan) === "basic" ? `<p><strong>${t.selectedTestPlan}:</strong> ${selectedPlan() === "pro" ? t.planPro : t.planPremium}</p>` : ""}
 
         <div class="hero-buttons" style="margin-top:14px">
           <button class="secondary-button" type="button" data-v351="status" ${S.busy ? "disabled" : ""}>${S.busy ? t.checking : t.refresh}</button>
@@ -17644,7 +17663,7 @@ window.hegevaV351StripeSubscription = {
   checkStatus,
   openCheckout,
   state:S,
-  version:"V35.1",
+  version:"V35.2",
   safeStripeUrl,
   handlesCardData:false,
   storesPaymentSecrets:false,
