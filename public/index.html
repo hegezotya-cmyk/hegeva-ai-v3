@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="HEGEVA AI V34.5 — clear billing API/provider status separation, multilingual payment readiness and safe backend-only entitlement control." />
-  <title>HEGEVA AI V34.5</title>
+  <meta name="description" content="HEGEVA AI V34.6 — multilingual payment provider setup readiness with safe test-mode controls and backend-only entitlement protection." />
+  <title>HEGEVA AI V34.6</title>
 
   <style>
     :root {
@@ -1682,7 +1682,7 @@
         <div class="brand-logo">H</div>
         <div>
           <div class="brand-name notranslate" translate="no">Hegeva AI</div>
-          <div class="brand-subtitle">V34.5 SMART BUSINESS HUB</div>
+          <div class="brand-subtitle">V34.6 SMART BUSINESS HUB</div>
         </div>
       </div>
 
@@ -17126,104 +17126,125 @@ window.hegevaV342PaymentTest={runPreflight,testCheckout,state:S,version:"V34.2",
 
 <script>
 /* =========================================================
-   HEGEVA AI V34.5 — BILLING STATUS CLARITY
-   Fixes the distinction between:
-   - Billing API reachable
-   - Payment provider connected
-   The browser still handles no card data and grants no entitlement.
+   HEGEVA AI V34.6 — PAYMENT PROVIDER SETUP READINESS
+   - Billing API reachability separate from provider connection
+   - Provider-not-connected is a setup warning, not a success state
+   - Safe test mode only
+   - No browser card handling
+   - No frontend entitlement grant
    ========================================================= */
 (() => {
 "use strict";
 
 const T={
 en:{
-  kicker:"V34.5 BILLING STATUS",title:"Payment provider integration readiness",
-  subtitle:"Billing API reachability and payment-provider connection are now shown separately so the status cannot be misleading.",
+  kicker:"V34.6 PAYMENT PROVIDER SETUP",title:"Payment provider setup readiness",
+  subtitle:"HEGEVA now separates API health, provider configuration and checkout readiness so each missing setup step is explicit.",
   provider:"Provider",mode:"Mode",billingApi:"Billing API",entitlement:"Entitlement authority",
   notConnected:"Not connected",test:"Test",live:"Live",backendOnly:"Backend only",
   reachable:"Reachable",unavailable:"Unavailable",connected:"Connected",
+  setupRequired:"SETUP REQUIRED",ready:"READY",
   refresh:"Check billing backend",testCheckout:"Prepare test checkout",
-  apiReachableNoProvider:"Billing API is reachable. No payment provider is connected yet.",
+  apiReachableNoProvider:"Billing API is reachable. Payment provider setup is still required.",
   apiUnavailable:"Billing API is currently unavailable.",
   providerReady:"Payment provider detected in test mode.",
   checkoutReady:"A test checkout session was prepared by the backend. No browser entitlement change occurred.",
-  checkoutBlocked:"Test checkout remains disabled until a real provider-specific secure checkout implementation is available.",
-  security:"Browser safety",securityText:"HEGEVA does not request or store card number, CVV or payment secrets in this page.",
+  checkoutBlocked:"Test checkout stays disabled until a provider is connected in test mode and secure provider checkout exists.",
+  security:"Browser safety",securityText:"HEGEVA does not request or store card number, CVV or payment secrets on this page.",
   authority:"Plan security",authorityText:"Premium/Pro remains inactive until the backend confirms entitlement.",
-  statusPass:"SUCCESS",statusWarn:"CHECK",legacyKicker:"V34.5 PAYMENT READINESS",
-  steps:["Billing API checked","Provider connection checked separately","No card fields in browser","No payment secrets in browser","Entitlement remains backend-controlled"]
+  checklist:"Provider setup checklist",apiStep:"Billing API reachable",providerStep:"Payment provider configured",modeStep:"Test mode enabled",checkoutStep:"Provider checkout implemented",webhookStep:"Verified payment webhook configured",
+  done:"Ready",missing:"Required",notVerified:"Not verified",
+  statusPass:"SUCCESS",statusWarn:"CHECK",legacyKicker:"V34.6 PAYMENT READINESS"
 },
 hu:{
-  kicker:"V34.5 BILLING ÁLLAPOT",title:"Fizetési szolgáltató integrációs készültség",
-  subtitle:"A Billing API elérhetősége és a fizetési szolgáltató csatlakozása most külön jelenik meg, így az állapot nem lehet félrevezető.",
+  kicker:"V34.6 FIZETÉSI SZOLGÁLTATÓ BEÁLLÍTÁS",title:"Fizetési szolgáltató beállítási készültség",
+  subtitle:"A HEGEVA most külön kezeli az API állapotát, a szolgáltató konfigurációját és a checkout készültségét, így minden hiányzó lépés egyértelmű.",
   provider:"Szolgáltató",mode:"Mód",billingApi:"Billing API",entitlement:"Jogosultság kezelője",
   notConnected:"Nincs csatlakoztatva",test:"Teszt",live:"Éles",backendOnly:"Csak backend",
   reachable:"Elérhető",unavailable:"Nem elérhető",connected:"Csatlakoztatva",
+  setupRequired:"BEÁLLÍTÁS SZÜKSÉGES",ready:"KÉSZ",
   refresh:"Billing backend ellenőrzése",testCheckout:"Teszt checkout előkészítése",
-  apiReachableNoProvider:"A Billing API elérhető. Fizetési szolgáltató még nincs csatlakoztatva.",
+  apiReachableNoProvider:"A Billing API elérhető. A fizetési szolgáltató beállítása még szükséges.",
   apiUnavailable:"A Billing API jelenleg nem elérhető.",
   providerReady:"Fizetési szolgáltató észlelve tesztmódban.",
   checkoutReady:"A backend előkészített egy teszt checkout munkamenetet. A böngészőben nem változott jogosultság.",
-  checkoutBlocked:"A teszt checkout addig kikapcsolva marad, amíg nincs kész valódi, szolgáltatóspecifikus biztonságos checkout.",
+  checkoutBlocked:"A teszt checkout addig kikapcsolva marad, amíg nincs szolgáltató tesztmódban és kész biztonságos checkout.",
   security:"Böngészőbiztonság",securityText:"A HEGEVA ezen az oldalon nem kér és nem tárol kártyaszámot, CVV-t vagy fizetési titkot.",
   authority:"Csomagbiztonság",authorityText:"A Premium/Pro csak akkor válik aktívvá, ha a backend igazolja a jogosultságot.",
-  statusPass:"SIKERES",statusWarn:"ELLENŐRIZD",legacyKicker:"V34.5 FIZETÉSI KÉSZÜLTSÉG",
-  steps:["Billing API ellenőrizve","Szolgáltató csatlakozás külön ellenőrizve","Nincs kártyamező a böngészőben","Nincs fizetési titok a böngészőben","Jogosultság továbbra is backend által kezelt"]
+  checklist:"Szolgáltató beállítási ellenőrzőlista",apiStep:"Billing API elérhető",providerStep:"Fizetési szolgáltató beállítva",modeStep:"Tesztmód bekapcsolva",checkoutStep:"Szolgáltatói checkout elkészült",webhookStep:"Ellenőrzött payment webhook beállítva",
+  done:"Kész",missing:"Szükséges",notVerified:"Nincs igazolva",
+  statusPass:"SIKERES",statusWarn:"ELLENŐRIZD",legacyKicker:"V34.6 FIZETÉSI KÉSZÜLTSÉG"
 },
 de:{
-  kicker:"V34.5 BILLING-STATUS",title:"Bereitschaft der Zahlungsanbieter-Integration",
-  subtitle:"Erreichbarkeit der Billing-API und Anbieter-Verbindung werden jetzt getrennt angezeigt, damit der Status nicht irreführend ist.",
+  kicker:"V34.6 ZAHLUNGSANBIETER-SETUP",title:"Bereitschaft der Zahlungsanbieter-Einrichtung",
+  subtitle:"HEGEVA trennt nun API-Zustand, Anbieter-Konfiguration und Checkout-Bereitschaft, damit fehlende Schritte klar sichtbar sind.",
   provider:"Anbieter",mode:"Modus",billingApi:"Billing-API",entitlement:"Berechtigungsinstanz",
   notConnected:"Nicht verbunden",test:"Test",live:"Live",backendOnly:"Nur Backend",
   reachable:"Erreichbar",unavailable:"Nicht verfügbar",connected:"Verbunden",
+  setupRequired:"EINRICHTUNG NÖTIG",ready:"BEREIT",
   refresh:"Billing-Backend prüfen",testCheckout:"Test-Checkout vorbereiten",
-  apiReachableNoProvider:"Billing-API ist erreichbar. Noch kein Zahlungsanbieter verbunden.",
+  apiReachableNoProvider:"Billing-API ist erreichbar. Zahlungsanbieter muss noch eingerichtet werden.",
   apiUnavailable:"Billing-API ist derzeit nicht verfügbar.",
   providerReady:"Zahlungsanbieter im Testmodus erkannt.",
   checkoutReady:"Backend hat eine Test-Checkout-Sitzung vorbereitet. Keine Berechtigungsänderung im Browser.",
-  checkoutBlocked:"Test-Checkout bleibt deaktiviert, bis eine echte providerspezifische sichere Checkout-Implementierung vorhanden ist.",
+  checkoutBlocked:"Test-Checkout bleibt deaktiviert, bis ein Anbieter im Testmodus verbunden und sicherer Checkout vorhanden ist.",
   security:"Browser-Sicherheit",securityText:"HEGEVA erfasst oder speichert hier keine Kartennummer, CVV oder Zahlungsgeheimnisse.",
   authority:"Tarifsicherheit",authorityText:"Premium/Pro bleibt inaktiv, bis das Backend die Berechtigung bestätigt.",
-  statusPass:"ERFOLGREICH",statusWarn:"PRÜFEN",legacyKicker:"V34.5 ZAHLUNGSBEREITSCHAFT",
-  steps:["Billing-API geprüft","Anbieter-Verbindung separat geprüft","Keine Kartenfelder im Browser","Keine Zahlungsgeheimnisse im Browser","Berechtigung bleibt backend-gesteuert"]
+  checklist:"Anbieter-Setup-Checkliste",apiStep:"Billing-API erreichbar",providerStep:"Zahlungsanbieter konfiguriert",modeStep:"Testmodus aktiviert",checkoutStep:"Provider-Checkout implementiert",webhookStep:"Verifizierter Payment-Webhook konfiguriert",
+  done:"Bereit",missing:"Erforderlich",notVerified:"Nicht verifiziert",
+  statusPass:"ERFOLGREICH",statusWarn:"PRÜFEN",legacyKicker:"V34.6 ZAHLUNGSBEREITSCHAFT"
 },
 fr:{
-  kicker:"V34.5 ÉTAT FACTURATION",title:"Préparation de l’intégration du prestataire de paiement",
-  subtitle:"L’accessibilité de l’API de facturation et la connexion du prestataire sont maintenant affichées séparément.",
+  kicker:"V34.6 CONFIGURATION DU PRESTATAIRE",title:"Préparation de la configuration du prestataire de paiement",
+  subtitle:"HEGEVA sépare désormais l’état de l’API, la configuration du prestataire et la préparation du checkout.",
   provider:"Prestataire",mode:"Mode",billingApi:"API de facturation",entitlement:"Autorité des droits",
   notConnected:"Non connecté",test:"Test",live:"Production",backendOnly:"Backend uniquement",
   reachable:"Accessible",unavailable:"Indisponible",connected:"Connecté",
+  setupRequired:"CONFIGURATION REQUISE",ready:"PRÊT",
   refresh:"Vérifier le backend de facturation",testCheckout:"Préparer un checkout test",
-  apiReachableNoProvider:"L’API de facturation est accessible. Aucun prestataire de paiement n’est encore connecté.",
+  apiReachableNoProvider:"L’API de facturation est accessible. La configuration du prestataire reste nécessaire.",
   apiUnavailable:"L’API de facturation est actuellement indisponible.",
   providerReady:"Prestataire détecté en mode test.",
   checkoutReady:"Le backend a préparé une session de checkout test. Aucun droit n’a changé dans le navigateur.",
-  checkoutBlocked:"Le checkout test reste désactivé tant qu’une intégration sécurisée spécifique au prestataire n’est pas prête.",
+  checkoutBlocked:"Le checkout test reste désactivé jusqu’à connexion d’un prestataire en mode test et disponibilité d’un checkout sécurisé.",
   security:"Sécurité du navigateur",securityText:"HEGEVA ne collecte ni ne stocke ici numéro de carte, CVV ou secret de paiement.",
   authority:"Sécurité du forfait",authorityText:"Premium/Pro reste inactif tant que le backend n’a pas confirmé les droits.",
-  statusPass:"RÉUSSI",statusWarn:"VÉRIFIER",legacyKicker:"V34.5 PRÉPARATION PAIEMENT",
-  steps:["API de facturation vérifiée","Connexion du prestataire vérifiée séparément","Aucun champ carte dans le navigateur","Aucun secret de paiement dans le navigateur","Droits toujours contrôlés par le backend"]
+  checklist:"Liste de configuration du prestataire",apiStep:"API de facturation accessible",providerStep:"Prestataire configuré",modeStep:"Mode test activé",checkoutStep:"Checkout prestataire implémenté",webhookStep:"Webhook de paiement vérifié configuré",
+  done:"Prêt",missing:"Requis",notVerified:"Non vérifié",
+  statusPass:"RÉUSSI",statusWarn:"VÉRIFIER",legacyKicker:"V34.6 PRÉPARATION PAIEMENT"
 },
 es:{
-  kicker:"V34.5 ESTADO DE FACTURACIÓN",title:"Preparación de la integración del proveedor de pagos",
-  subtitle:"La disponibilidad de la API de facturación y la conexión del proveedor ahora se muestran por separado.",
+  kicker:"V34.6 CONFIGURACIÓN DEL PROVEEDOR",title:"Preparación de la configuración del proveedor de pagos",
+  subtitle:"HEGEVA ahora separa estado de API, configuración del proveedor y preparación del checkout.",
   provider:"Proveedor",mode:"Modo",billingApi:"API de facturación",entitlement:"Autoridad de derechos",
   notConnected:"No conectado",test:"Prueba",live:"Producción",backendOnly:"Solo backend",
   reachable:"Disponible",unavailable:"No disponible",connected:"Conectado",
+  setupRequired:"CONFIGURACIÓN NECESARIA",ready:"LISTO",
   refresh:"Comprobar backend de facturación",testCheckout:"Preparar checkout de prueba",
-  apiReachableNoProvider:"La API de facturación está disponible. Aún no hay proveedor de pago conectado.",
+  apiReachableNoProvider:"La API de facturación está disponible. Aún falta configurar el proveedor de pagos.",
   apiUnavailable:"La API de facturación no está disponible actualmente.",
   providerReady:"Proveedor detectado en modo de prueba.",
   checkoutReady:"El backend preparó una sesión de checkout de prueba. Los derechos no cambiaron en el navegador.",
-  checkoutBlocked:"El checkout de prueba seguirá desactivado hasta que exista una integración segura específica del proveedor.",
+  checkoutBlocked:"El checkout de prueba seguirá desactivado hasta conectar un proveedor en modo prueba y disponer de checkout seguro.",
   security:"Seguridad del navegador",securityText:"HEGEVA no recopila ni almacena aquí número de tarjeta, CVV ni secretos de pago.",
   authority:"Seguridad del plan",authorityText:"Premium/Pro permanece inactivo hasta que el backend confirme los derechos.",
-  statusPass:"CORRECTO",statusWarn:"REVISAR",legacyKicker:"V34.5 PREPARACIÓN DE PAGO",
-  steps:["API de facturación comprobada","Conexión del proveedor comprobada por separado","Sin campos de tarjeta en el navegador","Sin secretos de pago en el navegador","Derechos controlados por backend"]
+  checklist:"Lista de configuración del proveedor",apiStep:"API de facturación disponible",providerStep:"Proveedor configurado",modeStep:"Modo prueba activado",checkoutStep:"Checkout del proveedor implementado",webhookStep:"Webhook de pago verificado configurado",
+  done:"Listo",missing:"Necesario",notVerified:"No verificado",
+  statusPass:"CORRECTO",statusWarn:"REVISAR",legacyKicker:"V34.6 PREPARACIÓN DE PAGO"
 }
 };
 
-const S={apiReachable:false,providerConnected:false,provider:null,mode:null,last:null,checkout:null};
+const S={
+  apiReachable:false,
+  providerConnected:false,
+  provider:null,
+  mode:null,
+  checkoutImplemented:false,
+  webhookVerified:false,
+  last:null,
+  checkout:null
+};
+
 const lang=()=>{const v=document.getElementById("languageSelect")?.value||"en";return T[v]?v:"en"};
 const x=()=>T[lang()];
 const $=id=>document.getElementById(id);
@@ -17276,17 +17297,29 @@ function ensurePanel(){
   host.insertAdjacentElement("afterend",el);
 }
 
+function checklistRow(label,ok,unknown=false){
+  const t=x();
+  const state=unknown?t.notVerified:(ok?t.done:t.missing);
+  const icon=unknown?"—":(ok?"✓":"!");
+  return `<div class="v343-flow-item">${icon} ${label} <strong style="float:right">${state}</strong></div>`;
+}
+
 function render(){
   ensurePanel();
   const el=$("v343BillingAdapter");if(!el)return;
   const t=x();
 
+  const setupReady =
+    S.apiReachable &&
+    S.providerConnected &&
+    S.mode==="test" &&
+    S.checkoutImplemented &&
+    S.webhookVerified;
+
   const topStatus =
-    !S.apiReachable
-      ? t.unavailable
-      : S.providerConnected
-        ? t.connected
-        : t.notConnected;
+    setupReady
+      ? t.ready
+      : t.setupRequired;
 
   const message =
     !S.apiReachable
@@ -17302,7 +17335,7 @@ function render(){
         <h2>${t.title}</h2>
         <p>${t.subtitle}</p>
       </div>
-      <span class="status ${S.apiReachable?"live":"soon"}">${topStatus}</span>
+      <span class="status ${setupReady?"live":"soon"}">${topStatus}</span>
     </div>
 
     <div class="v343-status-grid">
@@ -17326,19 +17359,24 @@ function render(){
 
     <div class="v343-grid">
       <div class="v343-panel">
-        <h3>🛡️ ${t.security}</h3>
-        <p>${t.securityText}</p>
+        <h3>🧩 ${t.checklist}</h3>
         <div class="v343-flow">
-          ${t.steps.map(s=>`<div class="v343-flow-item">✓ ${s}</div>`).join("")}
+          ${checklistRow(t.apiStep,S.apiReachable)}
+          ${checklistRow(t.providerStep,S.providerConnected)}
+          ${checklistRow(t.modeStep,S.mode==="test")}
+          ${checklistRow(t.checkoutStep,S.checkoutImplemented,true)}
+          ${checklistRow(t.webhookStep,S.webhookVerified,true)}
         </div>
       </div>
 
       <div class="v343-panel">
-        <h3>🔐 ${t.authority}</h3>
+        <h3>🛡️ ${t.security}</h3>
+        <p>${t.securityText}</p>
+        <h3 style="margin-top:14px">🔐 ${t.authority}</h3>
         <p>${t.authorityText}</p>
         <div class="hero-buttons" style="margin-top:14px">
-          <button class="secondary-button" type="button" data-v345="status">${t.refresh}</button>
-          <button class="primary-button" type="button" data-v345="checkout" ${S.apiReachable&&S.providerConnected&&S.mode==="test"?"":"disabled"}>${t.testCheckout}</button>
+          <button class="secondary-button" type="button" data-v346="status">${t.refresh}</button>
+          <button class="primary-button" type="button" data-v346="checkout" ${S.apiReachable&&S.providerConnected&&S.mode==="test"&&S.checkoutImplemented?"":"disabled"}>${t.testCheckout}</button>
         </div>
         <div class="v342-result ${S.apiReachable?"ok":"warn"}" style="margin-top:12px">${message}</div>
       </div>
@@ -17350,19 +17388,22 @@ function render(){
 async function checkStatus(){
   const r=await request("/api/billing/status");
 
-  // Key fix:
-  // HTTP 200 means the billing API itself is reachable,
-  // even when data.available / data.connected is false.
   S.apiReachable = r.status === 200;
 
   if(S.apiReachable && r.data){
     S.providerConnected = Boolean(r.data.connected ?? r.data.available ?? false);
     S.provider = S.providerConnected ? String(r.data.provider||r.data.name||"Billing provider") : null;
     S.mode = String(r.data.mode||"test").toLowerCase();
+
+    // Current V34.4 backend explicitly keeps checkout disabled.
+    S.checkoutImplemented = Boolean(r.data.checkoutEnabled === true);
+    S.webhookVerified = Boolean(r.data.webhookVerified === true);
   }else{
     S.providerConnected=false;
     S.provider=null;
     S.mode=null;
+    S.checkoutImplemented=false;
+    S.webhookVerified=false;
   }
 
   S.last={status:r,time:Date.now()};
@@ -17373,7 +17414,7 @@ async function checkStatus(){
 async function prepareCheckout(){
   const t=x();
 
-  if(!(S.apiReachable&&S.providerConnected&&S.mode==="test")){
+  if(!(S.apiReachable&&S.providerConnected&&S.mode==="test"&&S.checkoutImplemented)){
     render();
     const result=$("v343BillingAdapter")?.querySelector(".v342-result");
     if(result){
@@ -17405,7 +17446,7 @@ async function prepareCheckout(){
 }
 
 document.addEventListener("click",async e=>{
-  const a=e.target.closest("[data-v345]")?.dataset.v345;
+  const a=e.target.closest("[data-v346]")?.dataset.v346;
   if(a==="status")await checkStatus();
   if(a==="checkout")await prepareCheckout();
 });
@@ -17415,8 +17456,8 @@ document.getElementById("languageSelect")?.addEventListener("change",()=>{
 });
 
 const observer=new MutationObserver(()=>{
-  clearTimeout(window.__v345PolishTimer);
-  window.__v345PolishTimer=setTimeout(applyLanguagePolish,100);
+  clearTimeout(window.__v346PolishTimer);
+  window.__v346PolishTimer=setTimeout(applyLanguagePolish,100);
 });
 const pricing=$("pricing");
 if(pricing)observer.observe(pricing,{subtree:true,childList:true,characterData:true});
@@ -17424,12 +17465,12 @@ if(pricing)observer.observe(pricing,{subtree:true,childList:true,characterData:t
 ensurePanel();
 render();
 
-window.hegevaV345BillingStatus={
+window.hegevaV346ProviderSetup={
   checkStatus,
   prepareCheckout,
   state:S,
-  version:"V34.5",
-  separatesApiAndProviderStatus:true,
+  version:"V34.6",
+  providerSpecificCheckout:false,
   handlesCardData:false,
   storesPaymentSecrets:false,
   grantsEntitlement:false
