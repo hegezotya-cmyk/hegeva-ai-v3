@@ -13998,7 +13998,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.5 — GLOBAL WORKSPACE SEARCH / COMMAND PALETTE
+   HEGEVA AI V32.6 — GLOBAL WORKSPACE SEARCH / COMMAND PALETTE
    ========================================================= */
 .v322-search-trigger{
   display:flex;
@@ -14225,7 +14225,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.5 — GLOBAL WORKSPACE SEARCH
+   HEGEVA AI V32.6 — GLOBAL WORKSPACE SEARCH
    Searches only data already stored in the HEGEVA workspace.
    ========================================================= */
 (() => {
@@ -14454,7 +14454,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.5 — BUSINESS COMMAND SUITE
+   HEGEVA AI V32.6 — BUSINESS COMMAND SUITE
    Multi-feature upgrade: Today Center, KPI Pulse, Quick Create,
    Smart Focus, Backup Status.
    ========================================================= */
@@ -14601,7 +14601,7 @@ Open planner tasks: ${s.openTasks}`;
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.5 — BUSINESS COMMAND SUITE
+   HEGEVA AI V32.6 — BUSINESS COMMAND SUITE
    Uses only existing HEGEVA workspace data. No invented metrics.
    ========================================================= */
 (() => {
@@ -14901,7 +14901,7 @@ Open planner tasks: ${s.openTasks}`;
 
 
 <style>
-/* HEGEVA AI V32.5 — Productivity Pack */
+/* HEGEVA AI V32.6 — Productivity Pack */
 .v324-panel{margin:18px 0;padding:20px;border:1px solid rgba(255,255,255,.10);border-radius:20px;background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(155,108,255,.025))}
 .v324-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
 .v324-head h3{margin:0 0 5px;font-size:19px}.v324-head p{margin:0;color:var(--muted);font-size:12px}
@@ -14969,7 +14969,7 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
 
 <style>
 /* =========================================================
-   HEGEVA AI V32.5 — SALES & CUSTOMER OPERATIONS PACK
+   HEGEVA AI V32.6 — SALES & CUSTOMER OPERATIONS PACK
    ========================================================= */
 #v325OpsPack{
   margin:18px 0 24px;
@@ -15019,7 +15019,7 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
 
 <script>
 /* =========================================================
-   HEGEVA AI V32.5 — SALES & CUSTOMER OPERATIONS
+   HEGEVA AI V32.6 — SALES & CUSTOMER OPERATIONS
    Follow-up queue + invoice chase center + customer health.
    Uses saved HEGEVA data only.
    ========================================================= */
@@ -15174,6 +15174,300 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",render,{once:true});else render();
 
   window.hegevaV325OpsPack={render,version:"V32.5"};
+})();
+</script>
+
+
+<style>
+/* =========================================================
+   HEGEVA AI V32.6 — REPORTING & OPERATIONS PACK
+   Monthly snapshot + due-date radar + CSV export + follow-up helper
+   ========================================================= */
+#v326OpsReporting{
+  margin:18px 0 26px;
+}
+.v326-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+.v326-card{
+  padding:19px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:19px;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(246,196,83,.06),transparent 28%),
+    linear-gradient(145deg,rgba(255,255,255,.035),rgba(55,200,255,.022));
+  box-shadow:0 18px 50px rgba(0,0,0,.18);
+}
+.v326-card h3{margin:0 0 5px;font-size:18px}
+.v326-card p{margin:0 0 13px;color:var(--muted);font-size:11px;line-height:1.55}
+.v326-stats{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:9px;
+}
+.v326-stat{
+  padding:12px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:12px;
+  background:rgba(255,255,255,.025);
+}
+.v326-stat span{display:block;color:var(--muted);font-size:10px}
+.v326-stat strong{display:block;margin-top:4px;font-size:18px}
+.v326-list{display:grid;gap:9px}
+.v326-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  padding:11px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:12px;
+  background:rgba(255,255,255,.022);
+}
+.v326-row strong{display:block;font-size:12px}
+.v326-row small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.v326-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.v326-btn{
+  min-height:36px;padding:0 10px;border-radius:9px;border:1px solid var(--border);
+  background:rgba(255,255,255,.05);color:var(--text);font-weight:800;cursor:pointer
+}
+.v326-btn:hover{border-color:rgba(246,196,83,.35);transform:translateY(-1px)}
+.v326-output{
+  margin-top:11px;
+  padding:11px;
+  border-radius:11px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.02);
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.55;
+  white-space:pre-wrap;
+}
+@media(max-width:980px){.v326-grid{grid-template-columns:1fr}.v326-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.v326-stats{grid-template-columns:1fr}}
+</style>
+
+<script>
+/* =========================================================
+   HEGEVA AI V32.6 — REPORTING & OPERATIONS PACK
+   Uses saved workspace data only. No invented values.
+   ========================================================= */
+(() => {
+  "use strict";
+
+  const T={
+    en:{
+      monthlyTitle:"Monthly Business Snapshot",monthlyDesc:"A factual monthly view from your saved documents, expenses, customers and planner data.",
+      docs:"Documents",expenses:"Expenses",customers:"Customers",tasks:"Open tasks",
+      dueTitle:"Due-Date Radar",dueDesc:"Shows saved documents with a stored due date that is today or already passed.",
+      noDue:"No overdue or due-today saved documents found.",openDocs:"Open documents",
+      exportTitle:"Workspace CSV Export",exportDesc:"Export core saved records to CSV files for your own records.",
+      exportCustomers:"Export customers",exportDocs:"Export documents",exportExpenses:"Export expenses",exportTasks:"Export planner",
+      helperTitle:"Follow-up Message Helper",helperDesc:"Prepare a short follow-up draft from a real CRM customer record. Nothing is sent automatically.",
+      noCustomer:"No CRM customer is available for a follow-up draft.",prepare:"Prepare draft",copy:"Copy draft",
+      copied:"Draft copied.",draftPrefix:"Hello",draftBody:"I’m following up regarding our recent business contact. Please let me know if you need anything from me or if there is an update.",
+      today:"Today",overdue:"Overdue",unknown:"Unknown"
+    },
+    hu:{
+      monthlyTitle:"Havi üzleti pillanatkép",monthlyDesc:"Tényszerű havi áttekintés a mentett dokumentumokból, kiadásokból, ügyfelekből és tervezőadatokból.",
+      docs:"Dokumentumok",expenses:"Kiadások",customers:"Ügyfelek",tasks:"Nyitott feladatok",
+      dueTitle:"Határidő-radar",dueDesc:"Megmutatja azokat a mentett dokumentumokat, amelyeknél a tárolt határidő ma van vagy már elmúlt.",
+      noDue:"Nincs lejárt vagy ma esedékes mentett dokumentum.",openDocs:"Dokumentumok megnyitása",
+      exportTitle:"Munkatér CSV export",exportDesc:"Exportáld a fő mentett adatokat CSV fájlokba saját nyilvántartásodhoz.",
+      exportCustomers:"Ügyfelek exportálása",exportDocs:"Dokumentumok exportálása",exportExpenses:"Kiadások exportálása",exportTasks:"Tervező exportálása",
+      helperTitle:"Utánkövetési üzenetsegéd",helperDesc:"Készíts rövid utánkövetési piszkozatot egy valódi CRM-ügyfél adataiból. Semmi nem kerül automatikusan elküldésre.",
+      noCustomer:"Nincs elérhető CRM-ügyfél utánkövetési piszkozathoz.",prepare:"Piszkozat készítése",copy:"Piszkozat másolása",
+      copied:"A piszkozat kimásolva.",draftPrefix:"Szia",draftBody:"Azért jelentkezem, hogy utánkövessem a legutóbbi üzleti egyeztetésünket. Kérlek jelezd, ha szükséged van valamire tőlem, vagy van friss fejlemény.",
+      today:"Ma",overdue:"Lejárt",unknown:"Ismeretlen"
+    },
+    de:{
+      monthlyTitle:"Monatlicher Geschäfts-Snapshot",monthlyDesc:"Faktische Monatsübersicht aus gespeicherten Dokumenten, Ausgaben, Kunden und Planerdaten.",
+      docs:"Dokumente",expenses:"Ausgaben",customers:"Kunden",tasks:"Offene Aufgaben",
+      dueTitle:"Fälligkeitsradar",dueDesc:"Zeigt gespeicherte Dokumente mit Fälligkeitsdatum von heute oder bereits überschritten.",
+      noDue:"Keine überfälligen oder heute fälligen gespeicherten Dokumente gefunden.",openDocs:"Dokumente öffnen",
+      exportTitle:"Arbeitsbereich CSV-Export",exportDesc:"Exportiere gespeicherte Kerndaten als CSV-Dateien für deine Unterlagen.",
+      exportCustomers:"Kunden exportieren",exportDocs:"Dokumente exportieren",exportExpenses:"Ausgaben exportieren",exportTasks:"Planer exportieren",
+      helperTitle:"Nachfass-Nachrichtenhilfe",helperDesc:"Erstellt einen kurzen Nachfassentwurf aus einem echten CRM-Kundeneintrag. Nichts wird automatisch gesendet.",
+      noCustomer:"Kein CRM-Kunde für einen Nachfassentwurf verfügbar.",prepare:"Entwurf erstellen",copy:"Entwurf kopieren",
+      copied:"Entwurf kopiert.",draftPrefix:"Hallo",draftBody:"Ich melde mich zu unserem letzten geschäftlichen Kontakt. Bitte lass mich wissen, wenn du etwas von mir brauchst oder es ein Update gibt.",
+      today:"Heute",overdue:"Überfällig",unknown:"Unbekannt"
+    },
+    fr:{
+      monthlyTitle:"Instantané mensuel de l’entreprise",monthlyDesc:"Vue mensuelle factuelle à partir des documents, dépenses, clients et données du planificateur enregistrés.",
+      docs:"Documents",expenses:"Dépenses",customers:"Clients",tasks:"Tâches ouvertes",
+      dueTitle:"Radar des échéances",dueDesc:"Affiche les documents enregistrés dont l’échéance est aujourd’hui ou déjà dépassée.",
+      noDue:"Aucun document enregistré en retard ou dû aujourd’hui.",openDocs:"Ouvrir les documents",
+      exportTitle:"Export CSV de l’espace",exportDesc:"Exportez les données principales enregistrées en fichiers CSV pour vos propres archives.",
+      exportCustomers:"Exporter les clients",exportDocs:"Exporter les documents",exportExpenses:"Exporter les dépenses",exportTasks:"Exporter le planificateur",
+      helperTitle:"Assistant de message de suivi",helperDesc:"Prépare un court brouillon de suivi à partir d’un vrai client CRM. Rien n’est envoyé automatiquement.",
+      noCustomer:"Aucun client CRM disponible pour un brouillon de suivi.",prepare:"Préparer le brouillon",copy:"Copier le brouillon",
+      copied:"Brouillon copié.",draftPrefix:"Bonjour",draftBody:"Je vous contacte pour faire suite à notre dernier échange professionnel. N’hésitez pas à me dire si vous avez besoin de quelque chose de ma part ou s’il y a une mise à jour.",
+      today:"Aujourd’hui",overdue:"En retard",unknown:"Inconnu"
+    },
+    es:{
+      monthlyTitle:"Instantánea mensual del negocio",monthlyDesc:"Vista mensual factual basada en documentos, gastos, clientes y datos del planificador guardados.",
+      docs:"Documentos",expenses:"Gastos",customers:"Clientes",tasks:"Tareas abiertas",
+      dueTitle:"Radar de vencimientos",dueDesc:"Muestra documentos guardados cuya fecha de vencimiento es hoy o ya ha pasado.",
+      noDue:"No hay documentos guardados vencidos o con vencimiento hoy.",openDocs:"Abrir documentos",
+      exportTitle:"Exportación CSV del espacio",exportDesc:"Exporta los datos principales guardados a archivos CSV para tus propios registros.",
+      exportCustomers:"Exportar clientes",exportDocs:"Exportar documentos",exportExpenses:"Exportar gastos",exportTasks:"Exportar planificador",
+      helperTitle:"Asistente de mensaje de seguimiento",helperDesc:"Prepara un breve borrador de seguimiento a partir de un cliente CRM real. No se envía nada automáticamente.",
+      noCustomer:"No hay cliente CRM disponible para un borrador de seguimiento.",prepare:"Preparar borrador",copy:"Copiar borrador",
+      copied:"Borrador copiado.",draftPrefix:"Hola",draftBody:"Me pongo en contacto para hacer seguimiento de nuestro último contacto comercial. Dime si necesitas algo de mi parte o si hay alguna novedad.",
+      today:"Hoy",overdue:"Vencido",unknown:"Desconocido"
+    }
+  };
+
+  const lang=()=>{const v=document.getElementById("languageSelect")?.value||"en";return T[v]?v:"en"};
+  const tx=()=>T[lang()];
+  const read=(k,f=[])=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))??f}catch{return f}};
+  const arr=k=>{const x=read(k,[]);return Array.isArray(x)?x:[]};
+  const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+
+  function customers(){return arr("hegeva_v10_customers")}
+  function documents(){return arr("hegeva_documents")}
+  function expenses(){return arr("hegeva_expenses")}
+  function tasks(){return arr("hegeva_planner_tasks")}
+  function openTasks(){return tasks().filter(t=>t&&!t.done)}
+
+  function dueDocs(){
+    const today=new Date(); today.setHours(0,0,0,0);
+    return documents().map(d=>{
+      const raw=d.due||d.dueDate||d.dateDue||"";
+      if(!raw)return null;
+      const dt=new Date(raw);
+      if(Number.isNaN(dt.getTime()))return null;
+      dt.setHours(0,0,0,0);
+      const diff=Math.round((dt-today)/86400000);
+      return {...d,__dueDiff:diff,__dueDate:dt};
+    }).filter(Boolean).filter(d=>d.__dueDiff<=0).sort((a,b)=>a.__dueDiff-b.__dueDiff).slice(0,10);
+  }
+
+  function root(){
+    const home=document.getElementById("home");if(!home)return null;
+    let r=document.getElementById("v326OpsReporting");
+    if(!r){
+      r=document.createElement("section");
+      r.id="v326OpsReporting";
+      const anchor=document.getElementById("v325OpsPack")||document.getElementById("v324Productivity");
+      if(anchor)anchor.insertAdjacentElement("afterend",r);else home.appendChild(r);
+    }
+    return r;
+  }
+
+  function csvCell(v){
+    const s=String(v??"");
+    return `"${s.replace(/"/g,'""')}"`;
+  }
+
+  function downloadCsv(filename,rows){
+    if(!rows.length)return;
+    const keys=[...new Set(rows.flatMap(r=>Object.keys(r||{})))];
+    const content=[
+      keys.map(csvCell).join(","),
+      ...rows.map(r=>keys.map(k=>csvCell(typeof r?.[k]==="object"?JSON.stringify(r[k]):r?.[k])).join(","))
+    ].join("\n");
+    const blob=new Blob([content],{type:"text/csv;charset=utf-8"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download=filename;a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+
+  function draft(){
+    const x=tx();
+    const c=customers().find(c=>c&&c.followup)||customers()[0];
+    if(!c)return x.noCustomer;
+    const name=String(c.name||c.company||"").trim();
+    return `${x.draftPrefix}${name?` ${name}`:""},\n\n${x.draftBody}`;
+  }
+
+  function render(message=""){
+    const r=root();if(!r)return;
+    const x=tx(),ds=dueDocs(),cs=customers(),docs=documents(),ex=expenses(),ot=openTasks();
+    const prepared=message||"";
+
+    r.innerHTML=`
+      <div class="v326-grid">
+        <div class="v326-card">
+          <h3>📅 ${x.monthlyTitle}</h3><p>${x.monthlyDesc}</p>
+          <div class="v326-stats">
+            <div class="v326-stat"><span>${x.docs}</span><strong>${docs.length}</strong></div>
+            <div class="v326-stat"><span>${x.expenses}</span><strong>${ex.length}</strong></div>
+            <div class="v326-stat"><span>${x.customers}</span><strong>${cs.length}</strong></div>
+            <div class="v326-stat"><span>${x.tasks}</span><strong>${ot.length}</strong></div>
+          </div>
+        </div>
+
+        <div class="v326-card">
+          <h3>⏰ ${x.dueTitle}</h3><p>${x.dueDesc}</p>
+          <div class="v326-list">
+            ${ds.length?ds.map(d=>`
+              <div class="v326-row">
+                <div>
+                  <strong>${esc(d.number||d.reference||d.type||"Document")}</strong>
+                  <small>${esc(d.customerName||d.customer||x.unknown)} • ${d.__dueDiff===0?x.today:x.overdue}</small>
+                </div>
+                <button class="v326-btn" data-v326-route="documents">${x.openDocs}</button>
+              </div>`).join(""):`<div class="v326-row"><div><strong>${x.noDue}</strong></div></div>`}
+          </div>
+        </div>
+
+        <div class="v326-card">
+          <h3>📤 ${x.exportTitle}</h3><p>${x.exportDesc}</p>
+          <div class="v326-actions">
+            <button class="v326-btn" data-v326-export="customers">${x.exportCustomers}</button>
+            <button class="v326-btn" data-v326-export="documents">${x.exportDocs}</button>
+            <button class="v326-btn" data-v326-export="expenses">${x.exportExpenses}</button>
+            <button class="v326-btn" data-v326-export="tasks">${x.exportTasks}</button>
+          </div>
+        </div>
+
+        <div class="v326-card">
+          <h3>✉️ ${x.helperTitle}</h3><p>${x.helperDesc}</p>
+          <div class="v326-actions">
+            <button class="v326-btn" data-v326-action="draft">${x.prepare}</button>
+            <button class="v326-btn" data-v326-action="copy">${x.copy}</button>
+          </div>
+          <div class="v326-output" id="v326DraftOutput">${esc(prepared||draft())}</div>
+        </div>
+      </div>`;
+  }
+
+  function route(page){
+    if(typeof window.showPage==="function")window.showPage(page);
+    else document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===page));
+  }
+
+  document.addEventListener("click",async e=>{
+    const rb=e.target.closest("[data-v326-route]");
+    if(rb){route(rb.dataset.v326Route);return}
+
+    const ex=e.target.closest("[data-v326-export]")?.dataset.v326Export;
+    if(ex==="customers")downloadCsv("hegeva-customers.csv",customers());
+    if(ex==="documents")downloadCsv("hegeva-documents.csv",documents());
+    if(ex==="expenses")downloadCsv("hegeva-expenses.csv",expenses());
+    if(ex==="tasks")downloadCsv("hegeva-planner.csv",tasks());
+
+    const action=e.target.closest("[data-v326-action]")?.dataset.v326Action;
+    if(action==="draft")render(draft());
+    if(action==="copy"){
+      const out=document.getElementById("v326DraftOutput")?.textContent||draft();
+      try{
+        await navigator.clipboard.writeText(out);
+        if(typeof showToast==="function")showToast(tx().copied);
+      }catch{}
+    }
+  });
+
+  document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(()=>render(),80));
+  window.addEventListener("storage",()=>setTimeout(()=>render(),80));
+
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>render(),{once:true});else render();
+
+  window.hegevaV326ReportingOps={render,dueDocs,version:"V32.6"};
 })();
 </script>
 
