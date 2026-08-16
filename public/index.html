@@ -7083,7 +7083,7 @@
     }
 
     async function callHegeva(message, mode = "general", history = null) {
-      const chatHistory = history || ensureActiveChat().messages.slice(-10);
+      const chatHistory = history || (window.hegevaAI?.getHistory?.() || []);
       const businessContext = (document.getElementById("aiBusinessContext")?.value || "").trim();
 
       const response = await fetch("/api/chat", {
