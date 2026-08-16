@@ -18841,5 +18841,1000 @@ ${error?.message || ""}`.trim()
   );
 
 })();
+</script><!-- =========================================================
+     HEGEVA AI V35.2.9
+     SMART LANGUAGE SYNC
+     COPY + PASTE ONLY
+
+     EN / HU / DE / FR / ES
+     FULL UI + AI LANGUAGE SYNC
+     ========================================================= -->
+
+<style>
+#hegevaV3529LanguageSync {
+  position: fixed;
+  right: 18px;
+  top: 88px;
+  z-index: 9997;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  max-width: calc(100vw - 36px);
+
+  padding: 9px 13px;
+
+  border-radius: 999px;
+
+  border:
+    1px solid rgba(246,196,83,.28);
+
+  background:
+    rgba(7,17,31,.92);
+
+  color: #f7f9fc;
+
+  box-shadow:
+    0 12px 35px rgba(0,0,0,.28);
+
+  backdrop-filter:
+    blur(16px);
+
+  font-size: 12px;
+  font-weight: 800;
+
+  opacity: 0;
+  transform:
+    translateY(-8px);
+
+  pointer-events: none;
+
+  transition:
+    opacity .22s ease,
+    transform .22s ease;
+}
+
+#hegevaV3529LanguageSync.show {
+  opacity: 1;
+
+  transform:
+    translateY(0);
+}
+
+#hegevaV3529LanguageSync .v3529-dot {
+  width: 8px;
+  height: 8px;
+
+  border-radius: 50%;
+
+  background:
+    #35d58a;
+
+  box-shadow:
+    0 0 12px rgba(53,213,138,.65);
+}
+
+#hegevaV3529LanguageSync strong {
+  color:
+    #ffe7a3;
+}
+
+#hegevaV3529LanguageBadge {
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  gap:
+    6px;
+
+  margin-left:
+    8px;
+
+  padding:
+    5px 9px;
+
+  border-radius:
+    999px;
+
+  border:
+    1px solid rgba(55,200,255,.22);
+
+  background:
+    rgba(55,200,255,.06);
+
+  color:
+    var(--muted);
+
+  font-size:
+    10px;
+
+  font-weight:
+    850;
+
+  vertical-align:
+    middle;
+}
+
+@media(max-width:650px) {
+
+  #hegevaV3529LanguageSync {
+    top:
+      78px;
+
+    right:
+      10px;
+
+    left:
+      10px;
+
+    justify-content:
+      center;
+  }
+}
+</style>
+
+<script>
+(() => {
+
+  "use strict";
+
+  const VERSION =
+    "V35.2.9";
+
+  const SUPPORTED = {
+    en: {
+      flag: "🇬🇧",
+      name: "English",
+      synced: "AI synced",
+      ready: "Ready"
+    },
+
+    hu: {
+      flag: "🇭🇺",
+      name: "Magyar",
+      synced: "AI szinkronizálva",
+      ready: "Kész"
+    },
+
+    de: {
+      flag: "🇩🇪",
+      name: "Deutsch",
+      synced: "AI synchronisiert",
+      ready: "Bereit"
+    },
+
+    fr: {
+      flag: "🇫🇷",
+      name: "Français",
+      synced: "AI synchronisée",
+      ready: "Prêt"
+    },
+
+    es: {
+      flag: "🇪🇸",
+      name: "Español",
+      synced: "AI sincronizada",
+      ready: "Listo"
+    }
+  };
+
+
+  function languageSelect() {
+
+    return document.getElementById(
+      "languageSelect"
+    );
+  }
+
+
+  function currentLanguage() {
+
+    const value =
+      String(
+        languageSelect()?.value ||
+        localStorage.getItem(
+          "hegeva_language"
+        ) ||
+        document.documentElement
+          .dataset
+          .hegevaLanguage ||
+        "en"
+      )
+      .toLowerCase();
+
+    return SUPPORTED[value]
+      ? value
+      : "en";
+  }
+
+
+  function langData() {
+
+    return SUPPORTED[
+      currentLanguage()
+    ];
+  }
+
+
+  function ensureSyncIndicator() {
+
+    let indicator =
+      document.getElementById(
+        "hegevaV3529LanguageSync"
+      );
+
+    if (!indicator) {
+
+      indicator =
+        document.createElement(
+          "div"
+        );
+
+      indicator.id =
+        "hegevaV3529LanguageSync";
+
+      indicator.innerHTML = `
+        <span class="v3529-dot"></span>
+        <span id="hegevaV3529SyncText"></span>
+      `;
+
+      document.body.appendChild(
+        indicator
+      );
+    }
+
+    return indicator;
+  }
+
+
+  function ensureAiBadge() {
+
+    let badge =
+      document.getElementById(
+        "hegevaV3529LanguageBadge"
+      );
+
+    if (badge) {
+      return badge;
+    }
+
+    badge =
+      document.createElement(
+        "span"
+      );
+
+    badge.id =
+      "hegevaV3529LanguageBadge";
+
+    const existingBadge =
+      document.getElementById(
+        "aiLanguageBadge"
+      );
+
+    if (existingBadge) {
+
+      existingBadge
+        .insertAdjacentElement(
+          "afterend",
+          badge
+        );
+
+      return badge;
+    }
+
+    const assistant =
+      document.getElementById(
+        "assistant"
+      );
+
+    const heading =
+      assistant?.querySelector(
+        ".page-heading h1"
+      );
+
+    if (heading) {
+
+      heading.appendChild(
+        badge
+      );
+    }
+
+    return badge;
+  }
+
+
+  function updateBadges(
+    showNotice = false
+  ) {
+
+    const language =
+      currentLanguage();
+
+    const info =
+      SUPPORTED[language];
+
+    const badge =
+      ensureAiBadge();
+
+    if (badge) {
+
+      badge.textContent =
+        `${info.flag} ${info.name} • AI`;
+    }
+
+    const oldBadge =
+      document.getElementById(
+        "aiLanguageBadge"
+      );
+
+    if (oldBadge) {
+
+      oldBadge.textContent =
+        language.toUpperCase();
+    }
+
+    const indicator =
+      ensureSyncIndicator();
+
+    const text =
+      document.getElementById(
+        "hegevaV3529SyncText"
+      );
+
+    if (text) {
+
+      text.innerHTML =
+        `${info.flag} <strong>${info.name}</strong> • ${info.synced}`;
+    }
+
+    if (showNotice) {
+
+      indicator
+        .classList
+        .add("show");
+
+      clearTimeout(
+        window.__hegevaV3529NoticeTimer
+      );
+
+      window.__hegevaV3529NoticeTimer =
+        setTimeout(
+          () => {
+
+            indicator
+              .classList
+              .remove("show");
+
+          },
+          2200
+        );
+    }
+  }
+
+
+  function applyStandardTranslations(
+    language
+  ) {
+
+    try {
+
+      /*
+       * Use HEGEVA's existing translation engine
+       * when it is accessible.
+       */
+
+      if (
+        typeof translatePage ===
+        "function"
+      ) {
+
+        translatePage(
+          language
+        );
+      }
+
+    } catch (
+      error
+    ) {
+
+      console.warn(
+        "HEGEVA V35.2.9 translatePage fallback:",
+        error
+      );
+    }
+
+
+    /*
+     * Direct data-i18n fallback.
+     * Uses the existing HEGEVA translation dictionary.
+     */
+
+    try {
+
+      if (
+        typeof translations !==
+          "undefined" &&
+        translations &&
+        translations[
+          language
+        ]
+      ) {
+
+        const dictionary =
+          translations[
+            language
+          ];
+
+        document
+          .querySelectorAll(
+            "[data-i18n]"
+          )
+          .forEach(
+            element => {
+
+              const key =
+                element.dataset
+                  .i18n;
+
+              if (
+                Object.prototype
+                  .hasOwnProperty.call(
+                    dictionary,
+                    key
+                  )
+              ) {
+
+                element.textContent =
+                  dictionary[key];
+              }
+            }
+          );
+
+
+        document
+          .querySelectorAll(
+            "[data-i18n-placeholder]"
+          )
+          .forEach(
+            element => {
+
+              const key =
+                element.dataset
+                  .i18nPlaceholder;
+
+              if (
+                Object.prototype
+                  .hasOwnProperty.call(
+                    dictionary,
+                    key
+                  )
+              ) {
+
+                element.placeholder =
+                  dictionary[key];
+              }
+            }
+          );
+      }
+
+    } catch (
+      error
+    ) {
+
+      console.warn(
+        "HEGEVA V35.2.9 dictionary fallback:",
+        error
+      );
+    }
+  }
+
+
+  function runLegacyLanguageLayers() {
+
+    /*
+     * Existing HEGEVA language modules
+     * are allowed to refresh after the
+     * primary language has been locked.
+     */
+
+    try {
+
+      if (
+        typeof v22ApplyUiLanguage ===
+        "function"
+      ) {
+
+        v22ApplyUiLanguage();
+      }
+
+    } catch {}
+
+
+    try {
+
+      if (
+        typeof v31ApplyAll ===
+        "function"
+      ) {
+
+        v31ApplyAll();
+      }
+
+    } catch {}
+
+
+    try {
+
+      if (
+        typeof window
+          .hegevaV316LanguageAudit ===
+        "function"
+      ) {
+
+        window
+          .hegevaV316LanguageAudit();
+      }
+
+    } catch {}
+  }
+
+
+  function refreshAiLanguage() {
+
+    const language =
+      currentLanguage();
+
+    const info =
+      SUPPORTED[language];
+
+    const status =
+      document.getElementById(
+        "aiChatStatus"
+      );
+
+    if (
+      status &&
+      !status.textContent
+        .toLowerCase()
+        .includes("thinking")
+    ) {
+
+      status.textContent =
+        info.ready;
+    }
+
+
+    /*
+     * V35.2.8 automatically reads the
+     * current languageSelect value,
+     * so nothing is replaced here.
+     */
+
+    if (
+      window.hegevaV3528
+    ) {
+
+      window
+        .hegevaV3528
+        .activeLanguage =
+          language;
+    }
+
+
+    if (
+      window.hegevaAI
+    ) {
+
+      window
+        .hegevaAI
+        .activeLanguage =
+          language;
+    }
+  }
+
+
+  function setLanguage(
+    language,
+    {
+      showNotice = true
+    } = {}
+  ) {
+
+    if (
+      !SUPPORTED[
+        language
+      ]
+    ) {
+
+      language =
+        "en";
+    }
+
+
+    const select =
+      languageSelect();
+
+    if (
+      select &&
+      select.value !==
+        language
+    ) {
+
+      select.value =
+        language;
+    }
+
+
+    /*
+     * Save immediately BEFORE the older
+     * HEGEVA change handlers run.
+     */
+
+    localStorage.setItem(
+      "hegeva_language",
+      language
+    );
+
+
+    document
+      .documentElement
+      .setAttribute(
+        "lang",
+        language
+      );
+
+
+    document
+      .documentElement
+      .dataset
+      .hegevaLanguage =
+        language;
+
+
+    /*
+     * Translate using existing HEGEVA
+     * dictionaries.
+     */
+
+    applyStandardTranslations(
+      language
+    );
+
+
+    /*
+     * Give older HEGEVA modules time
+     * to update their dynamic content.
+     */
+
+    setTimeout(
+      runLegacyLanguageLayers,
+      0
+    );
+
+    setTimeout(
+      runLegacyLanguageLayers,
+      120
+    );
+
+    setTimeout(
+      runLegacyLanguageLayers,
+      400
+    );
+
+    setTimeout(
+      runLegacyLanguageLayers,
+      900
+    );
+
+
+    refreshAiLanguage();
+
+    updateBadges(
+      showNotice
+    );
+
+
+    /*
+     * Custom event for future HEGEVA
+     * modules.
+     */
+
+    window.dispatchEvent(
+      new CustomEvent(
+        "hegeva:languagechange",
+        {
+          detail: {
+            language,
+            version:
+              VERSION
+          }
+        }
+      )
+    );
+  }
+
+
+  /*
+   * Capture listener runs BEFORE older
+   * language-change handlers.
+   *
+   * Important:
+   * we DO NOT stop propagation.
+   */
+
+  document.addEventListener(
+    "change",
+    event => {
+
+      const select =
+        event.target.closest?.(
+          "#languageSelect"
+        );
+
+      if (!select) {
+        return;
+      }
+
+      const language =
+        String(
+          select.value ||
+          "en"
+        )
+        .toLowerCase();
+
+
+      if (
+        !SUPPORTED[
+          language
+        ]
+      ) {
+
+        return;
+      }
+
+
+      /*
+       * Lock the new language immediately.
+       */
+
+      localStorage.setItem(
+        "hegeva_language",
+        language
+      );
+
+
+      document
+        .documentElement
+        .setAttribute(
+          "lang",
+          language
+        );
+
+
+      document
+        .documentElement
+        .dataset
+        .hegevaLanguage =
+          language;
+
+
+      /*
+       * Allow the original HEGEVA
+       * change event to finish first.
+       */
+
+      setTimeout(
+        () => {
+
+          setLanguage(
+            language,
+            {
+              showNotice:
+                true
+            }
+          );
+
+        },
+        25
+      );
+
+    },
+    true
+  );
+
+
+  /*
+   * Restore saved language on load.
+   */
+
+  function boot() {
+
+    const saved =
+      String(
+        localStorage.getItem(
+          "hegeva_language"
+        ) ||
+        languageSelect()
+          ?.value ||
+        "en"
+      )
+      .toLowerCase();
+
+
+    const language =
+      SUPPORTED[saved]
+        ? saved
+        : "en";
+
+
+    setLanguage(
+      language,
+      {
+        showNotice:
+          false
+      }
+    );
+
+
+    /*
+     * Final refresh after all older
+     * HEGEVA modules have loaded.
+     */
+
+    setTimeout(
+      () => {
+
+        setLanguage(
+          language,
+          {
+            showNotice:
+              false
+          }
+        );
+
+      },
+      650
+    );
+
+
+    setTimeout(
+      () => {
+
+        setLanguage(
+          currentLanguage(),
+          {
+            showNotice:
+              false
+          }
+        );
+
+      },
+      1500
+    );
+  }
+
+
+  if (
+    document.readyState ===
+    "loading"
+  ) {
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      boot,
+      {
+        once: true
+      }
+    );
+
+  } else {
+
+    boot();
+  }
+
+
+  /*
+   * Public API for future HEGEVA modules.
+   *
+   * Example:
+   * window.hegevaLanguage.set("de")
+   */
+
+  window.hegevaLanguage = {
+
+    version:
+      VERSION,
+
+    supported:
+      Object.keys(
+        SUPPORTED
+      ),
+
+    get:
+      currentLanguage,
+
+    set(
+      language
+    ) {
+
+      const value =
+        String(
+          language ||
+          ""
+        )
+        .toLowerCase();
+
+      if (
+        !SUPPORTED[
+          value
+        ]
+      ) {
+
+        return false;
+      }
+
+
+      setLanguage(
+        value
+      );
+
+      return true;
+    },
+
+    refresh() {
+
+      setLanguage(
+        currentLanguage(),
+        {
+          showNotice:
+            false
+        }
+      );
+    }
+  };
+
+
+  window.hegevaV3529 = {
+
+    version:
+      VERSION,
+
+    smartLanguageSync:
+      true,
+
+    fullUiSync:
+      true,
+
+    aiLanguageSync:
+      true,
+
+    remembersLanguage:
+      true,
+
+    expandableLanguages:
+      true,
+
+    changesStripe:
+      false,
+
+    changesBilling:
+      false,
+
+    changesEntitlement:
+      false,
+
+    changesAuthentication:
+      false
+  };
+
+
+  console.log(
+    "HEGEVA AI V35.2.9 Smart Language Sync active."
+  );
+
+})();
 </script></body>
 </html>
