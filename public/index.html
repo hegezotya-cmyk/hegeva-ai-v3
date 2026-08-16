@@ -13125,7 +13125,11 @@ Open planner tasks: ${s.openTasks}`;
     if(l==="en"){box.className="";return;}
     const active=document.querySelector(".page.active")||document.body;
     const text=active.innerText||"";
-    const leftovers=knownEnglishMarkers.filter(x=>text.includes(x));
+    const leftovers=knownEnglishMarkers.filter(x=>{
+      if(!text.includes(x)) return false;
+      const translated=translateExact(x);
+      return translated===x;
+    });
     if(leftovers.length){
       box.className="show warn";
       box.innerHTML=`<strong>⚠ Localization Guard</strong><span>${leftovers.length} known untranslated UI phrase(s) detected.</span>`;
