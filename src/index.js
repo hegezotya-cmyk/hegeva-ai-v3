@@ -1,116 +1,152 @@
-node <<'NODE'
-const fs = require("fs");
+set -e
 
-const file = "src/index.js";
+echo "Restoring last working src/index.js..."
+git show HEAD~1:src/index.js > src/index.js
 
-if (!fs.existsSync(file)) {
-  console.error("ERROR: src/index.js not found.");
-  process.exit(1);
-}
+python3 <<'PY'
+from pathlib import Path
 
-let code = fs.readFileSync(file, "utf8");
+path = Path("src/index.js")
+code = path.read_text(encoding="utf-8")
 
-/*
-  V35.3.4
-  Fresh Conversation Core
+# ============================================================
+# HEGEVA AI V35.3.4
+# FRESH CONVERSATION CORE
+# ============================================================
 
-  Changes:
-  - ignores all incoming chat history
-  - sends only system + latest user message
-  - strips HEGEVA AI response labels
-  - keeps Stripe / Auth / D1 / Workspace untouched
-*/
+start_marker = "        const rawHistory ="
+end_marker = """        // =========================================
+        // HEGEVA AI V35.3.3 — CLEAN AI CORE"""
 
-const historyStart = `        const rawHistory =`;
-const historyEnd = `        // =========================================
-        // HEGEVA AI V35.3.3 — CLEAN AI CORE`;
+start = code.find(start_marker)
+end = code.find(end_marker, start)
 
-const hs = code.indexOf(historyStart);
-const he = code.indexOf(historyEnd, hs);
+if start == -1 or end == -1:
+    raise SystemExit(
+        "ERROR: V35.3.3 history block not found. Nothing changed."
+    )
 
-if (hs === -1 || he === -1) {
-  console.error("ERROR: history block not found. Nothing changed.");
-  process.exit(1);
-}
-
-const freshHistoryBlock = `        // =========================================
+replacement = """        // =========================================
         // HEGEVA AI V35.3.4 — FRESH CONVERSATION CORE
-        // Ignore old/contaminated chat history.
+        // Old contaminated history is intentionally ignored.
         // =========================================
 
         const safeHistory = [];
 
-`;
+"""
 
-code =
-  code.slice(0, hs) +
-  freshHistoryBlock +
-  code.slice(he);
+code = code[:start] + replacement + code[end:]
 
-/*
-  Remove the old safeHistory injection into messages.
-*/
 
-const historyLoopStart = `        for (const item of safeHistory) {`;
-const userPushMarker = `        messages.push({
+# ------------------------------------------------------------
+# Remove old history injection from AI messages.
+# Only SYSTEM + CURRENT USER MESSAGE will be sent.
+# ------------------------------------------------------------
+
+loop_start_marker = "        for (const item of safeHistory) {"
+
+user_marker = """        messages.push({
           role: "user",
           content: message
-        });`;
+        });"""
 
-const ls = code.indexOf(historyLoopStart);
-const up = code.indexOf(userPushMarker, ls);
+loop_start = code.find(loop_start_marker)
+user_start = code.find(user_marker, loop_start)
 
-if (ls !== -1 && up !== -1) {
-  code =
-    code.slice(0, ls) +
-    userPushMarker +
-    code.slice(up + userPushMarker.length);
-}
+if loop_start != -1 and user_start != -1:
+    code = (
+        code[:loop_start]
+        + user_marker
+        + code[user_start + len(user_marker):]
+    )
 
-/*
-  Strengthen response label cleanup.
-*/
 
-const oldCleanup = `.replace(/^HEGEVA AI\\s+(?:VÁLASZA|RESPONSE|ANSWER|ANTWORT|RÉPONSE|RESPUESTA)\\s*:?\\s*/i, "")`;
+# ------------------------------------------------------------
+# Improve server-side cleanup.
+# If the model writes "HEGEVA AI válasza:",
+# keep the actual answer AFTER that label.
+# ------------------------------------------------------------
 
-const newCleanup = `.replace(/^(?:HEGEVA AI\\s*)?(?:VÁLASZA|RESPONSE|ANSWER|ANTWORT|RÉPONSE|RESPUESTA)\\s*:?\\s*/i, "")
-            .replace(/^HEGEVA AI\\s+válasza\\s*:?\\s*/i, "")
-            .replace(/^HEGEVA AI\\s+response\\s*:?\\s*/i, "")`;
+needle = """        let aiResponse =
+          typeof result?.response === "string"
+            ? result.response.trim()
+            : "";
 
-if (code.includes(oldCleanup)) {
-  code =
-    code.replace(
-      oldCleanup,
-      newCleanup
-    );
-}
+        // Defensive cleanup for obvious model-control leakage."""
 
-/*
-  Update version string.
-*/
+replacement_cleanup = """        let aiResponse =
+          typeof result?.response === "string"
+            ? result.response.trim()
+            : "";
 
-code =
-  code.replaceAll(
-    "V35.3.3",
-    "V35.3.4"
-  );
+        // =========================================
+        // V35.3.4 RESPONSE NORMALIZER
+        // =========================================
 
-fs.writeFileSync(
-  file,
-  code,
-  "utf8"
-);
+        const answerLabel =
+          /(?:^|\\\\n)\\\\s*HEGEVA AI\\\\s+(?:VÁLASZA|RESPONSE|ANSWER|ANTWORT|RÉPONSE|RESPUESTA)\\\\s*:\\\\s*/i.exec(
+            aiResponse
+          );
 
-console.log("");
-console.log("✅ HEGEVA AI V35.3.4 FRESH CONVERSATION CORE INSTALLED");
-console.log("✅ Old chat history disabled");
-console.log("✅ Only latest user message is sent");
-console.log("✅ Response labels cleaned");
-console.log("✅ Stripe untouched");
-console.log("✅ Authentication untouched");
-console.log("✅ D1 untouched");
-console.log("✅ Workspace untouched");
-console.log("");
-NODE
+        if (answerLabel) {
+          aiResponse =
+            aiResponse
+              .slice(
+                answerLabel.index +
+                answerLabel[0].length
+              )
+              .trim();
+        }
 
+        // Defensive cleanup for obvious model-control leakage."""
+
+if needle not in code:
+    raise SystemExit(
+        "ERROR: AI response block not found. Nothing changed."
+    )
+
+code = code.replace(
+    needle,
+    replacement_cleanup,
+    1
+)
+
+
+# ------------------------------------------------------------
+# Update version
+# ------------------------------------------------------------
+
+code = code.replace(
+    "HEGEVA AI V35.3.3 — CLEAN AI CORE",
+    "HEGEVA AI V35.3.4 — FRESH CONVERSATION CORE"
+)
+
+code = code.replace(
+    '"V35.3.3"',
+    '"V35.3.4"'
+)
+
+path.write_text(
+    code,
+    encoding="utf-8"
+)
+
+print("")
+print("✅ HEGEVA AI V35.3.4 INSTALLED")
+print("✅ Broken Terminal text removed from src/index.js")
+print("✅ Old AI history disabled")
+print("✅ Only current user request sent to AI")
+print("✅ HEGEVA AI response-label cleanup improved")
+print("✅ Stripe untouched")
+print("✅ Authentication untouched")
+print("✅ D1 untouched")
+print("✅ Workspace untouched")
+print("")
+PY
+
+echo "Checking JavaScript..."
 node --check src/index.js
+
+echo ""
+echo "✅ SUCCESS — src/index.js syntax is valid"
+echo "✅ READY TO COMMIT"
