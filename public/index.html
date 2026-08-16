@@ -19836,5 +19836,885 @@ ${error?.message || ""}`.trim()
   );
 
 })();
+</script><!-- =========================================================
+     HEGEVA AI V35.3.0
+     SMART AI ACTIONS
+     COPY + PASTE ONLY
+     EN / HU / DE / FR / ES
+     ========================================================= -->
+
+<style>
+.v3530-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:12px;
+  padding-top:10px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+
+.v3530-action{
+  border:1px solid var(--border);
+  border-radius:9px;
+  padding:7px 10px;
+  background:rgba(255,255,255,.035);
+  color:var(--text);
+  font-size:11px;
+  font-weight:800;
+  cursor:pointer;
+  transition:.18s ease;
+}
+
+.v3530-action:hover{
+  transform:translateY(-1px);
+  border-color:rgba(246,196,83,.40);
+  background:rgba(246,196,83,.07);
+}
+
+.v3530-action.primary{
+  border-color:rgba(246,196,83,.30);
+  background:rgba(246,196,83,.08);
+  color:#ffe7a3;
+}
+
+.v3530-action.task{
+  border-color:rgba(53,213,138,.25);
+  background:rgba(53,213,138,.06);
+}
+
+#v3530SavedButton{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin-left:8px;
+  padding:6px 10px;
+  border:1px solid rgba(155,108,255,.28);
+  border-radius:999px;
+  background:rgba(155,108,255,.07);
+  color:var(--text);
+  font-size:11px;
+  font-weight:850;
+  cursor:pointer;
+}
+
+#v3530SavedBackdrop{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(2,5,14,.75);
+  backdrop-filter:blur(12px);
+}
+
+#v3530SavedBackdrop.open{
+  display:flex;
+}
+
+#v3530SavedPanel{
+  width:min(760px,100%);
+  max-height:80vh;
+  overflow:auto;
+  padding:20px;
+  border:1px solid rgba(246,196,83,.25);
+  border-radius:22px;
+  background:
+    radial-gradient(circle at 95% 0%,rgba(155,108,255,.14),transparent 30%),
+    #0b1424;
+  box-shadow:0 35px 100px rgba(0,0,0,.48);
+}
+
+.v3530-saved-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+  margin-bottom:16px;
+}
+
+.v3530-saved-head button{
+  width:38px;
+  height:38px;
+  border-radius:11px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  cursor:pointer;
+}
+
+.v3530-saved-item{
+  margin-top:10px;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:rgba(255,255,255,.03);
+}
+
+.v3530-saved-text{
+  white-space:pre-wrap;
+  line-height:1.6;
+  margin-top:7px;
+}
+
+.v3530-saved-tools{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
+#v3530Toast{
+  position:fixed;
+  right:20px;
+  bottom:20px;
+  z-index:10000;
+  padding:11px 15px;
+  border-radius:12px;
+  border:1px solid rgba(53,213,138,.30);
+  background:rgba(8,20,28,.95);
+  color:#dfffee;
+  font-size:12px;
+  font-weight:800;
+  opacity:0;
+  transform:translateY(12px);
+  pointer-events:none;
+  transition:.2s ease;
+}
+
+#v3530Toast.show{
+  opacity:1;
+  transform:translateY(0);
+}
+
+@media(max-width:650px){
+  .v3530-action{
+    flex:1 1 calc(50% - 7px);
+  }
+
+  #v3530SavedPanel{
+    padding:16px;
+  }
+}
+</style>
+
+<script>
+(() => {
+  "use strict";
+
+  const VERSION = "V35.3.0";
+  const STORAGE_KEY = "hegeva_v3530_saved_ai";
+
+  const COPY = {
+    en:{
+      copy:"📋 Copy",
+      save:"⭐ Save",
+      shorter:"✂️ Shorter",
+      detail:"🔎 More detail",
+      retry:"🔄 Regenerate",
+      task:"✅ Create task",
+      copied:"Answer copied.",
+      saved:"AI answer saved.",
+      taskMade:"Planner task created.",
+      savedTitle:"⭐ Saved AI answers",
+      empty:"No saved AI answers yet.",
+      remove:"Delete",
+      close:"Close",
+      shorterPrompt:"Rewrite your previous answer more concisely. Keep only the most useful information.",
+      detailPrompt:"Expand your previous answer with more useful detail, practical steps and examples. Do not invent facts.",
+      retryPrompt:"Answer my previous request again in a clearer and more useful way. Do not invent facts."
+    },
+
+    hu:{
+      copy:"📋 Másolás",
+      save:"⭐ Mentés",
+      shorter:"✂️ Rövidebben",
+      detail:"🔎 Részletesebben",
+      retry:"🔄 Újragenerálás",
+      task:"✅ Feladat készítése",
+      copied:"Válasz kimásolva.",
+      saved:"AI-válasz elmentve.",
+      taskMade:"Feladat hozzáadva a tervezőhöz.",
+      savedTitle:"⭐ Mentett AI-válaszok",
+      empty:"Még nincs mentett AI-válasz.",
+      remove:"Törlés",
+      close:"Bezárás",
+      shorterPrompt:"Írd át az előző válaszodat rövidebben. Csak a leghasznosabb információkat tartsd meg.",
+      detailPrompt:"Fejtsd ki részletesebben az előző válaszodat gyakorlati lépésekkel és példákkal. Ne találj ki adatokat.",
+      retryPrompt:"Válaszolj újra az előző kérésemre világosabban és hasznosabban. Ne találj ki adatokat."
+    },
+
+    de:{
+      copy:"📋 Kopieren",
+      save:"⭐ Speichern",
+      shorter:"✂️ Kürzer",
+      detail:"🔎 Detaillierter",
+      retry:"🔄 Neu generieren",
+      task:"✅ Aufgabe erstellen",
+      copied:"Antwort kopiert.",
+      saved:"AI-Antwort gespeichert.",
+      taskMade:"Aufgabe zum Planer hinzugefügt.",
+      savedTitle:"⭐ Gespeicherte AI-Antworten",
+      empty:"Noch keine gespeicherten AI-Antworten.",
+      remove:"Löschen",
+      close:"Schließen",
+      shorterPrompt:"Schreibe deine vorherige Antwort kürzer und behalte nur die wichtigsten Informationen.",
+      detailPrompt:"Erweitere deine vorherige Antwort mit praktischen Schritten und Beispielen. Erfinde keine Fakten.",
+      retryPrompt:"Beantworte meine vorherige Anfrage erneut klarer und hilfreicher. Erfinde keine Fakten."
+    },
+
+    fr:{
+      copy:"📋 Copier",
+      save:"⭐ Enregistrer",
+      shorter:"✂️ Plus court",
+      detail:"🔎 Plus détaillé",
+      retry:"🔄 Régénérer",
+      task:"✅ Créer une tâche",
+      copied:"Réponse copiée.",
+      saved:"Réponse AI enregistrée.",
+      taskMade:"Tâche ajoutée au planificateur.",
+      savedTitle:"⭐ Réponses AI enregistrées",
+      empty:"Aucune réponse AI enregistrée.",
+      remove:"Supprimer",
+      close:"Fermer",
+      shorterPrompt:"Réécris ta réponse précédente de façon plus concise en gardant uniquement les informations les plus utiles.",
+      detailPrompt:"Développe davantage ta réponse précédente avec des étapes pratiques et des exemples. N'invente aucun fait.",
+      retryPrompt:"Réponds à nouveau à ma demande précédente de façon plus claire et plus utile. N'invente aucun fait."
+    },
+
+    es:{
+      copy:"📋 Copiar",
+      save:"⭐ Guardar",
+      shorter:"✂️ Más corto",
+      detail:"🔎 Más detalle",
+      retry:"🔄 Regenerar",
+      task:"✅ Crear tarea",
+      copied:"Respuesta copiada.",
+      saved:"Respuesta AI guardada.",
+      taskMade:"Tarea añadida al planificador.",
+      savedTitle:"⭐ Respuestas AI guardadas",
+      empty:"Aún no hay respuestas AI guardadas.",
+      remove:"Eliminar",
+      close:"Cerrar",
+      shorterPrompt:"Reescribe tu respuesta anterior de forma más breve y conserva solo la información más útil.",
+      detailPrompt:"Amplía tu respuesta anterior con pasos prácticos y ejemplos. No inventes datos.",
+      retryPrompt:"Responde de nuevo a mi solicitud anterior de forma más clara y útil. No inventes datos."
+    }
+  };
+
+  function language(){
+    const value =
+      document.getElementById("languageSelect")?.value ||
+      localStorage.getItem("hegeva_language") ||
+      "en";
+
+    return COPY[value] ? value : "en";
+  }
+
+  function t(){
+    return COPY[language()];
+  }
+
+  function toast(message){
+    let box = document.getElementById("v3530Toast");
+
+    if(!box){
+      box = document.createElement("div");
+      box.id = "v3530Toast";
+      document.body.appendChild(box);
+    }
+
+    box.textContent = message;
+    box.classList.add("show");
+
+    clearTimeout(window.__v3530ToastTimer);
+
+    window.__v3530ToastTimer =
+      setTimeout(() => {
+        box.classList.remove("show");
+      }, 1900);
+  }
+
+  async function copyText(value){
+    try{
+      await navigator.clipboard.writeText(value);
+    }catch{
+      const area = document.createElement("textarea");
+      area.value = value;
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+  }
+
+  function readSaved(){
+    try{
+      const value =
+        JSON.parse(
+          localStorage.getItem(STORAGE_KEY) || "[]"
+        );
+
+      return Array.isArray(value)
+        ? value
+        : [];
+    }catch{
+      return [];
+    }
+  }
+
+  function writeSaved(items){
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(items.slice(0,100))
+    );
+
+    updateSavedButton();
+  }
+
+  function saveAnswer(text){
+    const items = readSaved();
+
+    items.unshift({
+      id:
+        crypto.randomUUID?.() ||
+        `ai-${Date.now()}`,
+
+      text:
+        String(text).slice(0,10000),
+
+      language:
+        language(),
+
+      createdAt:
+        new Date().toISOString()
+    });
+
+    writeSaved(items);
+    toast(t().saved);
+  }
+
+  function sendPrompt(prompt){
+    const input =
+      document.getElementById("aiChatInput");
+
+    const button =
+      document.getElementById("sendAiChat");
+
+    if(!input || !button)
+      return;
+
+    input.value = prompt;
+    input.focus();
+
+    button.click();
+  }
+
+  function makeTask(text){
+    const task =
+      String(text || "")
+        .replace(/\s+/g," ")
+        .trim()
+        .slice(0,160);
+
+    if(!task)
+      return;
+
+    const taskInput =
+      document.getElementById("plannerTask");
+
+    const priority =
+      document.getElementById("plannerPriority");
+
+    const add =
+      document.getElementById("plannerAdd");
+
+    if(!taskInput || !add)
+      return;
+
+    taskInput.value = task;
+
+    if(priority){
+      priority.value = "Medium";
+    }
+
+    add.click();
+
+    if(typeof showPage === "function"){
+      showPage("planner");
+    }
+
+    toast(t().taskMade);
+  }
+
+  function getAssistantText(box){
+    if(!box)
+      return "";
+
+    const body =
+      Array.from(box.children)
+        .find(el =>
+          el.tagName === "DIV" &&
+          !el.classList.contains("v3530-actions") &&
+          !el.classList.contains("chat-actions")
+        );
+
+    if(!body)
+      return "";
+
+    return (
+      body.innerText ||
+      body.textContent ||
+      ""
+    ).trim();
+  }
+
+  function button(label,className,handler){
+    const b =
+      document.createElement("button");
+
+    b.type = "button";
+    b.className =
+      `v3530-action ${className || ""}`.trim();
+
+    b.textContent = label;
+
+    b.addEventListener(
+      "click",
+      event => {
+        event.preventDefault();
+        event.stopPropagation();
+        handler();
+      }
+    );
+
+    return b;
+  }
+
+  function enhanceBubble(box){
+    if(
+      !box ||
+      box.dataset.v3530 === "1"
+    ){
+      return;
+    }
+
+    const title =
+      box.querySelector(":scope > strong");
+
+    if(
+      !title ||
+      title.textContent.trim() !==
+        "HEGEVA AI"
+    ){
+      return;
+    }
+
+    const answer =
+      getAssistantText(box);
+
+    if(!answer)
+      return;
+
+    box.dataset.v3530 = "1";
+
+    const actions =
+      document.createElement("div");
+
+    actions.className =
+      "v3530-actions";
+
+    actions.append(
+      button(
+        t().copy,
+        "",
+        async () => {
+          await copyText(answer);
+          toast(t().copied);
+        }
+      ),
+
+      button(
+        t().save,
+        "primary",
+        () => saveAnswer(answer)
+      ),
+
+      button(
+        t().shorter,
+        "",
+        () => sendPrompt(
+          `${t().shorterPrompt}
+
+Previous HEGEVA answer:
+${answer}`
+        )
+      ),
+
+      button(
+        t().detail,
+        "",
+        () => sendPrompt(
+          `${t().detailPrompt}
+
+Previous HEGEVA answer:
+${answer}`
+        )
+      ),
+
+      button(
+        t().retry,
+        "",
+        () => sendPrompt(
+          `${t().retryPrompt}
+
+Previous HEGEVA answer:
+${answer}`
+        )
+      ),
+
+      button(
+        t().task,
+        "task",
+        () => makeTask(answer)
+      )
+    );
+
+    box.appendChild(actions);
+  }
+
+  function enhanceAll(){
+    document
+      .querySelectorAll(
+        "#aiChatMessages .coming-item"
+      )
+      .forEach(
+        enhanceBubble
+      );
+  }
+
+  function ensureSavedPanel(){
+    let backdrop =
+      document.getElementById(
+        "v3530SavedBackdrop"
+      );
+
+    if(backdrop)
+      return backdrop;
+
+    backdrop =
+      document.createElement("div");
+
+    backdrop.id =
+      "v3530SavedBackdrop";
+
+    backdrop.innerHTML = `
+      <div id="v3530SavedPanel">
+        <div class="v3530-saved-head">
+          <div>
+            <div class="vision-tagline">HEGEVA AI V35.3.0</div>
+            <h2 id="v3530SavedTitle"></h2>
+          </div>
+          <button type="button" id="v3530SavedClose">×</button>
+        </div>
+
+        <div id="v3530SavedList"></div>
+      </div>
+    `;
+
+    document.body.appendChild(
+      backdrop
+    );
+
+    backdrop
+      .querySelector(
+        "#v3530SavedClose"
+      )
+      .addEventListener(
+        "click",
+        () =>
+          backdrop.classList.remove(
+            "open"
+          )
+      );
+
+    backdrop.addEventListener(
+      "click",
+      event => {
+        if(
+          event.target ===
+          backdrop
+        ){
+          backdrop.classList.remove(
+            "open"
+          );
+        }
+      }
+    );
+
+    return backdrop;
+  }
+
+  function renderSaved(){
+    const backdrop =
+      ensureSavedPanel();
+
+    const list =
+      backdrop.querySelector(
+        "#v3530SavedList"
+      );
+
+    const title =
+      backdrop.querySelector(
+        "#v3530SavedTitle"
+      );
+
+    title.textContent =
+      t().savedTitle;
+
+    list.innerHTML = "";
+
+    const items =
+      readSaved();
+
+    if(!items.length){
+      const empty =
+        document.createElement("div");
+
+      empty.className =
+        "coming-item";
+
+      empty.textContent =
+        t().empty;
+
+      list.appendChild(empty);
+      return;
+    }
+
+    items.forEach(item => {
+      const row =
+        document.createElement("div");
+
+      row.className =
+        "v3530-saved-item";
+
+      const meta =
+        document.createElement("small");
+
+      const date =
+        new Date(item.createdAt);
+
+      meta.textContent =
+        `${String(item.language || "en").toUpperCase()} • ${
+          Number.isNaN(date.getTime())
+            ? ""
+            : date.toLocaleString()
+        }`;
+
+      const body =
+        document.createElement("div");
+
+      body.className =
+        "v3530-saved-text";
+
+      body.textContent =
+        item.text;
+
+      const tools =
+        document.createElement("div");
+
+      tools.className =
+        "v3530-saved-tools";
+
+      tools.append(
+        button(
+          t().copy,
+          "",
+          async () => {
+            await copyText(item.text);
+            toast(t().copied);
+          }
+        ),
+
+        button(
+          t().task,
+          "task",
+          () => makeTask(item.text)
+        ),
+
+        button(
+          `🗑 ${t().remove}`,
+          "",
+          () => {
+            writeSaved(
+              readSaved()
+                .filter(
+                  x =>
+                    x.id !== item.id
+                )
+            );
+
+            renderSaved();
+          }
+        )
+      );
+
+      row.append(
+        meta,
+        body,
+        tools
+      );
+
+      list.appendChild(row);
+    });
+  }
+
+  function openSaved(){
+    renderSaved();
+
+    ensureSavedPanel()
+      .classList.add("open");
+  }
+
+  function ensureSavedButton(){
+    let b =
+      document.getElementById(
+        "v3530SavedButton"
+      );
+
+    if(b)
+      return b;
+
+    b =
+      document.createElement("button");
+
+    b.id =
+      "v3530SavedButton";
+
+    b.type =
+      "button";
+
+    b.addEventListener(
+      "click",
+      openSaved
+    );
+
+    const assistant =
+      document.getElementById(
+        "assistant"
+      );
+
+    const heading =
+      assistant?.querySelector(
+        ".page-heading h1"
+      );
+
+    if(heading){
+      heading.insertAdjacentElement(
+        "afterend",
+        b
+      );
+    }
+
+    updateSavedButton();
+
+    return b;
+  }
+
+  function updateSavedButton(){
+    const b =
+      document.getElementById(
+        "v3530SavedButton"
+      );
+
+    if(!b)
+      return;
+
+    b.textContent =
+      `⭐ ${readSaved().length}`;
+  }
+
+  const observer =
+    new MutationObserver(() => {
+      enhanceAll();
+    });
+
+  function boot(){
+    ensureSavedButton();
+    ensureSavedPanel();
+    enhanceAll();
+
+    const wrap =
+      document.getElementById(
+        "aiChatMessages"
+      );
+
+    if(wrap){
+      observer.observe(
+        wrap,
+        {
+          childList:true,
+          subtree:true
+        }
+      );
+    }
+  }
+
+  document
+    .getElementById(
+      "languageSelect"
+    )
+    ?.addEventListener(
+      "change",
+      () => {
+        setTimeout(
+          () => {
+            enhanceAll();
+            updateSavedButton();
+          },
+          150
+        );
+      }
+    );
+
+  window.hegevaV3530 = {
+    version:VERSION,
+    smartActions:true,
+    copy:true,
+    saveAnswers:true,
+    shorter:true,
+    moreDetail:true,
+    regenerate:true,
+    createPlannerTask:true,
+    languages:[
+      "en",
+      "hu",
+      "de",
+      "fr",
+      "es"
+    ],
+    changesStripe:false,
+    changesBilling:false,
+    changesAuthentication:false
+  };
+
+  if(
+    document.readyState ===
+    "loading"
+  ){
+    document.addEventListener(
+      "DOMContentLoaded",
+      boot,
+      {once:true}
+    );
+  }else{
+    boot();
+  }
+
+  console.log(
+    "HEGEVA AI V35.3.0 Smart Actions active."
+  );
+})();
 </script></body>
 </html>
