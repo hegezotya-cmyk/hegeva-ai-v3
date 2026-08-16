@@ -18325,5 +18325,77 @@ window.hegevaV353PlanOverview = {
 };
 
 })();
-</script></body>
+</script><<!-- HEGEVA AI V35.3.1 — PLAN PANEL MOUNT FIX -->
+<script>
+(() => {
+  "use strict";
+
+  function fixV353Mount() {
+    const pricing = document.getElementById("pricing");
+    const panel = document.getElementById("v353PlanOverview");
+
+    if (!pricing || !panel) return false;
+
+    /*
+      Keep the panel inside the Pricing page,
+      but outside dynamic billing panels.
+    */
+    if (panel.parentElement !== pricing) {
+      pricing.appendChild(panel);
+    }
+
+    panel.style.display = "block";
+    panel.style.visibility = "visible";
+    panel.style.opacity = "1";
+
+    return true;
+  }
+
+  function repair() {
+    fixV353Mount();
+
+    if (
+      window.hegevaV353PlanOverview &&
+      typeof window.hegevaV353PlanOverview.render === "function"
+    ) {
+      try {
+        window.hegevaV353PlanOverview.render();
+      } catch (err) {
+        console.warn("HEGEVA V35.3.1 render repair:", err);
+      }
+    }
+
+    fixV353Mount();
+  }
+
+  document.addEventListener("click", e => {
+    const target = e.target.closest(
+      '[data-page="pricing"], [data-route="pricing"], [data-nav="pricing"], a[href="#pricing"]'
+    );
+
+    if (target) {
+      setTimeout(repair, 150);
+      setTimeout(repair, 500);
+    }
+  });
+
+  document
+    .getElementById("languageSelect")
+    ?.addEventListener("change", () => {
+      setTimeout(repair, 180);
+    });
+
+  window.addEventListener("hashchange", () => {
+    setTimeout(repair, 150);
+  });
+
+  setTimeout(repair, 300);
+  setTimeout(repair, 1000);
+
+  window.hegevaV3531MountFix = {
+    version: "V35.3.1",
+    repair
+  };
+})();
+</script>/body>
 </html>
