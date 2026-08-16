@@ -22874,5 +22874,451 @@ ${answer}`
   );
 
 })();
+</script><!-- =========================================================
+     HEGEVA AI V35.3.11
+     SMART SAVED CHAT SEARCH
+     COPY + PASTE ONLY
+     EN / HU / DE / FR / ES
+     ========================================================= -->
+
+<style>
+#v35311ChatSearchWrap{
+  margin:10px 0 12px;
+}
+
+#v35311ChatSearch{
+  width:100%;
+  box-sizing:border-box;
+  border:1px solid rgba(255,255,255,.13);
+  background:rgba(255,255,255,.045);
+  color:var(--text,#eef3ff);
+  border-radius:10px;
+  padding:10px 12px;
+  outline:none;
+  font-size:12px;
+  transition:.18s ease;
+}
+
+#v35311ChatSearch:focus{
+  border-color:rgba(246,196,83,.55);
+  box-shadow:0 0 0 2px rgba(246,196,83,.08);
+}
+
+#v35311ChatSearch::placeholder{
+  color:var(--muted,#9ba8c7);
+}
+
+#v35311ChatSearchStatus{
+  margin-top:6px;
+  min-height:14px;
+  font-size:10px;
+  color:var(--muted,#9ba8c7);
+}
+
+.v35311-search-hidden{
+  display:none !important;
+}
+
+#v35311NoResults{
+  display:none;
+  padding:11px;
+  border:1px dashed rgba(255,255,255,.12);
+  border-radius:10px;
+  color:var(--muted,#9ba8c7);
+  font-size:11px;
+  text-align:center;
+}
+
+#v35311NoResults.show{
+  display:block;
+}
+</style>
+
+<script>
+(() => {
+  "use strict";
+
+  const VERSION = "V35.3.11";
+
+  const COPY = {
+    en:{
+      placeholder:"🔎 Search saved chats...",
+      results:n => `${n} chat${n === 1 ? "" : "s"} found`,
+      empty:"No saved chat matches your search."
+    },
+
+    hu:{
+      placeholder:"🔎 Keresés a mentett chatekben...",
+      results:n => `${n} chat található`,
+      empty:"Nincs a keresésnek megfelelő mentett chat."
+    },
+
+    de:{
+      placeholder:"🔎 Gespeicherte Chats durchsuchen...",
+      results:n => `${n} Chat${n === 1 ? "" : "s"} gefunden`,
+      empty:"Kein gespeicherter Chat entspricht der Suche."
+    },
+
+    fr:{
+      placeholder:"🔎 Rechercher dans les chats enregistrés...",
+      results:n => `${n} chat${n === 1 ? "" : "s"} trouvé${n === 1 ? "" : "s"}`,
+      empty:"Aucun chat enregistré ne correspond à la recherche."
+    },
+
+    es:{
+      placeholder:"🔎 Buscar en chats guardados...",
+      results:n => `${n} chat${n === 1 ? "" : "s"} encontrado${n === 1 ? "" : "s"}`,
+      empty:"Ningún chat guardado coincide con la búsqueda."
+    }
+  };
+
+  let refreshing = false;
+
+  function language(){
+    const value = String(
+      document.getElementById("languageSelect")?.value || "en"
+    ).toLowerCase();
+
+    return COPY[value] ? value : "en";
+  }
+
+  function text(){
+    return COPY[language()];
+  }
+
+  function normalise(value){
+    return String(value || "")
+      .toLocaleLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g,"")
+      .trim();
+  }
+
+  function getChats(){
+    try{
+      if(typeof getSavedChats === "function"){
+        const chats = getSavedChats();
+        return Array.isArray(chats) ? chats : [];
+      }
+    }catch(error){
+      console.warn(
+        "HEGEVA V35.3.11 could not read chats:",
+        error
+      );
+    }
+
+    return [];
+  }
+
+  function searchTextForChat(chat){
+    const title = chat?.title || "";
+
+    const messages = Array.isArray(chat?.messages)
+      ? chat.messages
+          .map(message => message?.content || "")
+          .join(" ")
+      : "";
+
+    return normalise(
+      `${title} ${messages}`
+    );
+  }
+
+  function ensureSearch(){
+    if(document.getElementById("v35311ChatSearch")){
+      return;
+    }
+
+    const list = document.getElementById("savedChatsList");
+
+    if(!list){
+      return;
+    }
+
+    const wrap = document.createElement("div");
+    wrap.id = "v35311ChatSearchWrap";
+
+    const input = document.createElement("input");
+    input.id = "v35311ChatSearch";
+    input.type = "search";
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    input.placeholder = text().placeholder;
+
+    const status = document.createElement("div");
+    status.id = "v35311ChatSearchStatus";
+
+    const empty = document.createElement("div");
+    empty.id = "v35311NoResults";
+    empty.textContent = text().empty;
+
+    wrap.appendChild(input);
+    wrap.appendChild(status);
+
+    list.parentElement.insertBefore(
+      wrap,
+      list
+    );
+
+    list.parentElement.insertBefore(
+      empty,
+      list.nextSibling
+    );
+
+    input.addEventListener(
+      "input",
+      applySearch
+    );
+
+    input.addEventListener(
+      "keydown",
+      event => {
+        if(event.key === "Escape"){
+          input.value = "";
+          applySearch();
+          input.blur();
+        }
+      }
+    );
+  }
+
+  function mapButtonsToChats(){
+    const list = document.getElementById("savedChatsList");
+
+    if(!list){
+      return [];
+    }
+
+    const buttons = Array.from(
+      list.querySelectorAll(".saved-chat")
+    );
+
+    const chats = getChats();
+
+    return buttons.map((button,index) => {
+      /*
+       * V35.3.9 already adds a chat ID when available.
+       */
+
+      const knownId =
+        button.dataset.v3539ChatId ||
+        button.dataset.chatId ||
+        "";
+
+      let chat = knownId
+        ? chats.find(item => item?.id === knownId)
+        : null;
+
+      /*
+       * Fallback for normal HEGEVA render order.
+       */
+
+      if(!chat){
+        chat = chats.find(
+          item =>
+            String(item?.title || "").trim() ===
+            String(button.textContent || "")
+              .replace(/^📌\s*/,"")
+              .trim()
+        );
+      }
+
+      if(!chat){
+        chat = chats[index];
+      }
+
+      return {
+        button,
+        chat
+      };
+    });
+  }
+
+  function applySearch(){
+    if(refreshing){
+      return;
+    }
+
+    const input =
+      document.getElementById("v35311ChatSearch");
+
+    const status =
+      document.getElementById("v35311ChatSearchStatus");
+
+    const empty =
+      document.getElementById("v35311NoResults");
+
+    if(!input){
+      return;
+    }
+
+    const query =
+      normalise(input.value);
+
+    const mapped =
+      mapButtonsToChats();
+
+    let visible = 0;
+
+    mapped.forEach(({button,chat}) => {
+      const matches =
+        !query ||
+        searchTextForChat(chat).includes(query);
+
+      button.classList.toggle(
+        "v35311-search-hidden",
+        !matches
+      );
+
+      if(matches){
+        visible++;
+      }
+    });
+
+    if(status){
+      status.textContent =
+        query
+          ? text().results(visible)
+          : "";
+    }
+
+    if(empty){
+      empty.textContent =
+        text().empty;
+
+      empty.classList.toggle(
+        "show",
+        Boolean(query && visible === 0)
+      );
+    }
+  }
+
+  function refreshLanguage(){
+    const input =
+      document.getElementById("v35311ChatSearch");
+
+    if(input){
+      input.placeholder =
+        text().placeholder;
+    }
+
+    applySearch();
+  }
+
+  function refresh(){
+    if(refreshing){
+      return;
+    }
+
+    refreshing = true;
+
+    try{
+      ensureSearch();
+
+      requestAnimationFrame(
+        applySearch
+      );
+    }finally{
+      setTimeout(
+        () => {
+          refreshing = false;
+        },
+        30
+      );
+    }
+  }
+
+  function boot(){
+    ensureSearch();
+    applySearch();
+
+    const list =
+      document.getElementById("savedChatsList");
+
+    if(list){
+      const observer =
+        new MutationObserver(
+          () => {
+            requestAnimationFrame(
+              refresh
+            );
+          }
+        );
+
+      observer.observe(
+        list,
+        {
+          childList:true,
+          subtree:true
+        }
+      );
+    }
+
+    document.addEventListener(
+      "click",
+      event => {
+        if(
+          event.target.closest?.(
+            "#createNewSavedChat, #renameCurrentChat, #deleteCurrentChat, #v3539PinChat"
+          )
+        ){
+          setTimeout(
+            refresh,
+            100
+          );
+        }
+      },
+      true
+    );
+
+    document
+      .getElementById("languageSelect")
+      ?.addEventListener(
+        "change",
+        () => {
+          setTimeout(
+            refreshLanguage,
+            150
+          );
+        }
+      );
+  }
+
+  window.hegevaV35311 = {
+    version:VERSION,
+    smartChatSearch:true,
+    searchesTitles:true,
+    searchesMessageContent:true,
+    compatibleWithPinnedChats:true,
+    extraAiRequest:false,
+    localOnly:true,
+    languages:[
+      "en",
+      "hu",
+      "de",
+      "fr",
+      "es"
+    ],
+    changesAIBackend:false,
+    changesStripe:false,
+    changesBilling:false,
+    changesAuthentication:false,
+    changesWorkspace:false
+  };
+
+  if(document.readyState === "loading"){
+    document.addEventListener(
+      "DOMContentLoaded",
+      boot,
+      {once:true}
+    );
+  }else{
+    boot();
+  }
+
+  console.log(
+    "HEGEVA AI V35.3.11 Smart Chat Search active."
+  );
+})();
 </script></body>
 </html>
