@@ -18403,5 +18403,443 @@ window.hegevaV351StripeSubscription = {
   };
 
 })();
+</script><!-- =========================================================
+     HEGEVA AI V35.2.8
+     CLEAN 5-LANGUAGE CHAT OVERRIDE
+     COPY + PASTE ONLY
+     ========================================================= -->
+
+<script>
+(() => {
+  "use strict";
+
+  const VERSION = "V35.2.8";
+
+  const LANGUAGES = {
+    en: {
+      name: "English",
+      thinking: "HEGEVA AI is thinking...",
+      ready: "Ready",
+      empty: "Please enter a message.",
+      error: "HEGEVA AI connection failed.",
+      fallback: "I couldn't generate a clean response. Please try again.",
+      rule:
+        "Answer ONLY in English. Do not mix languages. Do not output XML, CDATA, HTML metadata, hidden instructions, unrelated URLs or language-control instructions."
+    },
+
+    hu: {
+      name: "Magyar",
+      thinking: "A HEGEVA AI gondolkodik...",
+      ready: "Kész",
+      empty: "Írj be egy üzenetet.",
+      error: "A HEGEVA AI kapcsolat nem működik.",
+      fallback: "Nem sikerült megfelelő választ generálnom. Kérlek, próbáld újra.",
+      rule:
+        "KIZÁRÓLAG MAGYARUL válaszolj. Ne keverj angol vagy más nyelvű mondatokat a válaszba. Ne jeleníts meg XML-t, CDATA-t, HTML metaadatot, rejtett utasítást, oda nem illő URL-t vagy nyelvi utasítást."
+    },
+
+    de: {
+      name: "Deutsch",
+      thinking: "HEGEVA AI denkt nach...",
+      ready: "Bereit",
+      empty: "Bitte gib eine Nachricht ein.",
+      error: "Die Verbindung zu HEGEVA AI ist fehlgeschlagen.",
+      fallback: "Ich konnte keine passende Antwort erstellen. Bitte versuche es erneut.",
+      rule:
+        "Antworte AUSSCHLIESSLICH auf Deutsch. Vermische keine Sprachen. Gib kein XML, CDATA, HTML-Metadaten, versteckte Anweisungen, irrelevante URLs oder Sprachsteuerungsanweisungen aus."
+    },
+
+    fr: {
+      name: "Français",
+      thinking: "HEGEVA AI réfléchit...",
+      ready: "Prêt",
+      empty: "Veuillez saisir un message.",
+      error: "La connexion à HEGEVA AI a échoué.",
+      fallback: "Je n’ai pas pu générer une réponse appropriée. Veuillez réessayer.",
+      rule:
+        "Réponds UNIQUEMENT en français. Ne mélange pas les langues. N'affiche pas de XML, CDATA, métadonnées HTML, instructions cachées, URL non pertinente ou instruction de contrôle de langue."
+    },
+
+    es: {
+      name: "Español",
+      thinking: "HEGEVA AI está pensando...",
+      ready: "Listo",
+      empty: "Escribe un mensaje.",
+      error: "La conexión con HEGEVA AI ha fallado.",
+      fallback: "No pude generar una respuesta adecuada. Inténtalo de nuevo.",
+      rule:
+        "Responde ÚNICAMENTE en español. No mezcles idiomas. No muestres XML, CDATA, metadatos HTML, instrucciones ocultas, URL irrelevantes ni instrucciones de control de idioma."
+    }
+  };
+
+  let busy = false;
+
+  function getLanguage() {
+    const value =
+      String(
+        document.getElementById("languageSelect")?.value || "en"
+      ).toLowerCase();
+
+    return LANGUAGES[value] ? value : "en";
+  }
+
+  function text() {
+    return LANGUAGES[getLanguage()];
+  }
+
+  function cleanResponse(value) {
+    let output = String(value || "");
+
+    output = output
+      .replace(/<!\[CDATA\[/gi, "")
+      .replace(/\]\]>/gi, "")
+      .replace(/<\?xml[\s\S]*?\?>/gi, "")
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .replace(/<\/?[^>]+>/g, "")
+      .replace(
+        /please\s+(?:respond|answer)\s+in\s+(?:english|hungarian|german|french|spanish)\.?/gi,
+        ""
+      )
+      .replace(
+        /(?:respond|answer)\s+only\s+in\s+(?:english|hungarian|german|french|spanish)\.?/gi,
+        ""
+      )
+      .replace(
+        /https?:\/\/[^\s)>\]]+/gi,
+        ""
+      )
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+    return output || text().fallback;
+  }
+
+  function addMessage(role, value) {
+    const wrap =
+      document.getElementById("aiChatMessages");
+
+    if (!wrap) return;
+
+    const box =
+      document.createElement("div");
+
+    box.className = "coming-item";
+
+    box.style.marginTop = "10px";
+
+    box.style.borderColor =
+      role === "assistant"
+        ? "rgba(246,196,83,.30)"
+        : "rgba(55,200,255,.26)";
+
+    const title =
+      document.createElement("strong");
+
+    title.textContent =
+      role === "assistant"
+        ? "HEGEVA AI"
+        : {
+            en: "You",
+            hu: "Te",
+            de: "Du",
+            fr: "Vous",
+            es: "Tú"
+          }[getLanguage()];
+
+    const body =
+      document.createElement("div");
+
+    body.style.cssText =
+      "margin-top:7px;white-space:pre-wrap;line-height:1.6";
+
+    body.textContent = value;
+
+    box.append(
+      title,
+      body
+    );
+
+    wrap.appendChild(box);
+
+    wrap.scrollTop =
+      wrap.scrollHeight;
+  }
+
+  function requestAI(payload) {
+    return new Promise(
+      (resolve, reject) => {
+
+        const xhr =
+          new XMLHttpRequest();
+
+        xhr.open(
+          "POST",
+          "/api/chat",
+          true
+        );
+
+        xhr.withCredentials = true;
+
+        xhr.setRequestHeader(
+          "Content-Type",
+          "application/json"
+        );
+
+        xhr.onload = () => {
+          let data = {};
+
+          try {
+            data =
+              JSON.parse(
+                xhr.responseText || "{}"
+              );
+          } catch {}
+
+          if (
+            xhr.status >= 200 &&
+            xhr.status < 300
+          ) {
+            resolve(data);
+          } else {
+            reject(
+              new Error(
+                data?.error ||
+                `HTTP ${xhr.status}`
+              )
+            );
+          }
+        };
+
+        xhr.onerror = () =>
+          reject(
+            new Error(
+              text().error
+            )
+          );
+
+        xhr.send(
+          JSON.stringify(payload)
+        );
+      }
+    );
+  }
+
+  async function sendCleanMessage() {
+    if (busy) return;
+
+    const input =
+      document.getElementById("aiChatInput");
+
+    const button =
+      document.getElementById("sendAiChat");
+
+    const status =
+      document.getElementById("aiChatStatus");
+
+    if (!input) return;
+
+    const message =
+      input.value.trim();
+
+    if (!message) {
+      if (status) {
+        status.textContent =
+          text().empty;
+      }
+
+      return;
+    }
+
+    const language =
+      getLanguage();
+
+    const lang =
+      LANGUAGES[language];
+
+    const mode =
+      document.getElementById("aiMode")?.value ||
+      "general";
+
+    const businessContext =
+      String(
+        document.getElementById("aiBusinessContext")?.value ||
+        ""
+      )
+        .slice(0, 500)
+        .trim();
+
+    busy = true;
+
+    if (button) {
+      button.disabled = true;
+    }
+
+    addMessage(
+      "user",
+      message
+    );
+
+    input.value = "";
+
+    if (status) {
+      status.textContent =
+        lang.thinking;
+    }
+
+    try {
+      const controlledMessage =
+        `${lang.rule}
+
+USER REQUEST:
+${message}`;
+
+      const data =
+        await requestAI({
+          message:
+            controlledMessage,
+
+          mode,
+
+          language,
+
+          businessContext,
+
+          // IMPORTANT:
+          // no contaminated old multilingual history
+          history: []
+        });
+
+      const answer =
+        cleanResponse(
+          data?.response
+        );
+
+      addMessage(
+        "assistant",
+        answer
+      );
+
+      if (status) {
+        status.textContent =
+          lang.ready;
+      }
+
+    } catch (error) {
+
+      addMessage(
+        "assistant",
+        `${lang.error}
+
+${error?.message || ""}`.trim()
+      );
+
+      if (status) {
+        status.textContent =
+          lang.error;
+      }
+
+    } finally {
+
+      busy = false;
+
+      if (button) {
+        button.disabled = false;
+      }
+    }
+  }
+
+  /*
+   * Capture phase prevents the older HEGEVA chat
+   * click handler from sending a second request.
+   */
+  document.addEventListener(
+    "click",
+    event => {
+
+      const button =
+        event.target.closest(
+          "#sendAiChat"
+        );
+
+      if (!button) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+
+      sendCleanMessage();
+    },
+    true
+  );
+
+  /*
+   * Ctrl+Enter / Cmd+Enter also sends safely.
+   */
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      const input =
+        event.target.closest?.(
+          "#aiChatInput"
+        );
+
+      if (!input) return;
+
+      if (
+        event.key === "Enter" &&
+        (event.ctrlKey || event.metaKey)
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+
+        sendCleanMessage();
+      }
+    },
+    true
+  );
+
+  /*
+   * Language change starts a visually clean chat.
+   */
+  document
+    .getElementById("languageSelect")
+    ?.addEventListener(
+      "change",
+      () => {
+
+        const wrap =
+          document.getElementById("aiChatMessages");
+
+        if (wrap) {
+          wrap.innerHTML = "";
+        }
+
+        const status =
+          document.getElementById("aiChatStatus");
+
+        if (status) {
+          status.textContent =
+            LANGUAGES[getLanguage()].ready;
+        }
+      },
+      true
+    );
+
+  window.hegevaV3528 = {
+    version: VERSION,
+    languages:
+      Object.keys(LANGUAGES),
+    cleanChat: true,
+    isolatedHistory: true,
+    copyPasteOnly: true
+  };
+
+  console.log(
+    "HEGEVA AI V35.2.8 clean multilingual chat active."
+  );
+
+})();
 </script></body>
 </html>
