@@ -17767,5 +17767,402 @@ window.hegevaV351StripeSubscription = {
     changesEntitlement: false
   };
 })();
+</script><!-- =========================================================
+     HEGEVA AI V35.2.3
+     AI ASSISTANT QUICK ACTIONS
+     SAFE UI ENHANCEMENT
+     NO STRIPE / BILLING / ENTITLEMENT CHANGES
+     ========================================================= -->
+
+<style>
+#hegevaV3523AssistantTools{
+  margin:16px 0;
+  padding:18px;
+  border:1px solid rgba(246,196,83,.22);
+  border-radius:18px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(246,196,83,.08),
+      rgba(55,200,255,.05)
+    );
+}
+
+#hegevaV3523AssistantTools .v3523-title{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  margin-bottom:6px;
+  font-size:17px;
+  font-weight:800;
+  color:var(--text,#fff);
+}
+
+#hegevaV3523AssistantTools .v3523-subtitle{
+  margin-bottom:14px;
+  color:var(--muted,#9eacc0);
+  font-size:13px;
+  line-height:1.5;
+}
+
+#hegevaV3523AssistantTools .v3523-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+
+#hegevaV3523AssistantTools button{
+  width:100%;
+  min-height:54px;
+  padding:11px 12px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:13px;
+  background:rgba(255,255,255,.055);
+  color:var(--text,#fff);
+  font:inherit;
+  font-size:13px;
+  font-weight:700;
+  text-align:left;
+  cursor:pointer;
+  transition:
+    transform .15s ease,
+    background .15s ease,
+    border-color .15s ease;
+}
+
+#hegevaV3523AssistantTools button:hover{
+  transform:translateY(-1px);
+  background:rgba(255,255,255,.09);
+  border-color:rgba(246,196,83,.30);
+}
+
+#hegevaV3523AssistantTools .v3523-note{
+  margin-top:12px;
+  padding:10px 12px;
+  border-radius:11px;
+  background:rgba(53,213,138,.06);
+  border:1px solid rgba(53,213,138,.18);
+  color:var(--muted,#9eacc0);
+  font-size:12px;
+}
+
+@media(max-width:850px){
+  #hegevaV3523AssistantTools .v3523-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:520px){
+  #hegevaV3523AssistantTools .v3523-grid{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+
+<script>
+(() => {
+  "use strict";
+
+  const VERSION = "V35.2.3";
+
+  const translations = {
+    en:{
+      title:"⚡ AI Quick Actions",
+      subtitle:
+        "Choose what you want to create. HEGEVA will prepare a professional instruction for the AI Assistant.",
+      email:"✉️ Write business email",
+      quote:"💷 Create quotation",
+      invoice:"🧾 Invoice wording",
+      reply:"💬 Reply to customer",
+      plan:"📈 Business plan",
+      social:"📣 Marketing post",
+      improve:"✨ Improve my text",
+      summary:"📋 Summarise text",
+      ideas:"💡 Generate business ideas",
+      note:
+        "Nothing is sent automatically. You can review and edit the instruction before asking the AI.",
+
+      prompts:{
+        email:
+          "Write a professional business email. Ask me for the recipient, purpose and important details if they are missing. Keep the message clear, polite and ready to send.",
+
+        quote:
+          "Help me prepare a professional customer quotation. Ask for the customer, product or service, quantity, price, VAT if applicable, payment terms and validity period. Do not invent missing prices or business information.",
+
+        invoice:
+          "Help me prepare professional wording for an invoice. Ask for any missing customer, item, quantity, price, VAT, payment terms and due-date information. Do not invent financial or tax details.",
+
+        reply:
+          "Help me write a professional reply to a customer. Ask me to provide the customer's message or explain the situation. Keep the reply helpful, clear and appropriate for a business.",
+
+        plan:
+          "Help me create a practical business plan. Ask about the business, customers, location, products or services, costs, pricing and goals. Clearly separate known information from assumptions and do not invent financial results.",
+
+        social:
+          "Create a professional marketing post for my business. Ask what I am promoting, the target customer, platform and desired tone. Do not make fake claims, fake reviews or invented statistics.",
+
+        improve:
+          "Improve the text I provide while keeping its original meaning. Make it clearer, more professional and natural. Do not add facts that I did not provide.",
+
+        summary:
+          "Summarise the text I provide. Keep the important facts, numbers, dates and action points. Do not invent information.",
+
+        ideas:
+          "Generate realistic business ideas based on my situation. Ask about my budget, skills, location and available time. Focus on practical ideas and do not promise guaranteed income."
+      }
+    },
+
+    hu:{
+      title:"⚡ AI gyorsműveletek",
+      subtitle:
+        "Válaszd ki, mit szeretnél elkészíteni. A HEGEVA előkészíti a megfelelő utasítást az AI Asszisztensnek.",
+      email:"✉️ Üzleti e-mail írása",
+      quote:"💷 Árajánlat készítése",
+      invoice:"🧾 Számlaszöveg",
+      reply:"💬 Válasz ügyfélnek",
+      plan:"📈 Üzleti terv",
+      social:"📣 Marketing poszt",
+      improve:"✨ Szöveg javítása",
+      summary:"📋 Szöveg összefoglalása",
+      ideas:"💡 Üzleti ötletek",
+      note:
+        "Semmi nem kerül automatikusan elküldésre. Az AI használata előtt ellenőrizheted és szerkesztheted az utasítást.",
+
+      prompts:{
+        email:
+          "Írj professzionális üzleti e-mailt. Ha hiányzik információ, kérdezd meg a címzettet, a célt és a fontos részleteket. Az e-mail legyen világos, udvarias és elküldésre kész.",
+
+        quote:
+          "Segíts professzionális ügyfél-árajánlatot készíteni. Kérdezd meg az ügyfél adatait, a terméket vagy szolgáltatást, mennyiséget, árat, szükség esetén ÁFÁ-t, fizetési feltételeket és az ajánlat érvényességét. Hiányzó árat vagy üzleti adatot ne találj ki.",
+
+        invoice:
+          "Segíts professzionális számlaszöveget készíteni. Kérdezd meg a hiányzó ügyfél-, tétel-, mennyiség-, ár-, ÁFA-, fizetési feltétel- és határidőadatokat. Pénzügyi vagy adózási adatokat ne találj ki.",
+
+        reply:
+          "Segíts professzionális választ írni egy ügyfélnek. Kérd el az ügyfél üzenetét vagy a helyzet leírását. A válasz legyen segítőkész, világos és üzletileg megfelelő.",
+
+        plan:
+          "Segíts gyakorlati üzleti tervet készíteni. Kérdezz rá a vállalkozásra, ügyfelekre, helyszínre, termékekre vagy szolgáltatásokra, költségekre, árakra és célokra. A tényeket és feltételezéseket különítsd el, és ne találj ki pénzügyi eredményeket.",
+
+        social:
+          "Készíts professzionális marketing posztot a vállalkozásom számára. Kérdezd meg, mit reklámozunk, ki a célközönség, melyik platformra készül és milyen hangnemet szeretnék. Ne használj hamis állításokat, kamu értékeléseket vagy kitalált statisztikákat.",
+
+        improve:
+          "Javítsd fel az általam megadott szöveget az eredeti jelentés megtartásával. Legyen világosabb, professzionálisabb és természetesebb. Ne adj hozzá olyan tényt, amit nem adtam meg.",
+
+        summary:
+          "Foglald össze az általam megadott szöveget. Tartsd meg a fontos tényeket, számokat, dátumokat és teendőket. Ne találj ki információt.",
+
+        ideas:
+          "Adj reális üzleti ötleteket a helyzetem alapján. Kérdezz rá a költségvetésemre, képességeimre, helyszínemre és rendelkezésre álló időmre. Gyakorlati ötletekre koncentrálj, és ne ígérj garantált bevételt."
+      }
+    }
+  };
+
+  function getLanguage(){
+    const select =
+      document.getElementById("languageSelect");
+
+    const value =
+      String(select?.value || "en").toLowerCase();
+
+    return value === "hu" ? "hu" : "en";
+  }
+
+  function findAssistantPage(){
+    return (
+      document.getElementById("assistant") ||
+      document.getElementById("ai") ||
+      document.getElementById("aiAssistant") ||
+      document.querySelector('[data-page-section="assistant"]')
+    );
+  }
+
+  function findInput(root){
+    if(!root) return null;
+
+    return (
+      root.querySelector("textarea") ||
+      root.querySelector(
+        'input[type="text"]:not([disabled])'
+      )
+    );
+  }
+
+  function setPrompt(prompt){
+    const root =
+      findAssistantPage() || document;
+
+    const input =
+      findInput(root);
+
+    if(!input){
+      alert(
+        getLanguage() === "hu"
+          ? "Nyisd meg az AI Asszisztens oldalt, majd válaszd ki újra a műveletet."
+          : "Open the AI Assistant page, then choose the action again."
+      );
+      return;
+    }
+
+    input.value = prompt;
+
+    input.dispatchEvent(
+      new Event("input",{
+        bubbles:true
+      })
+    );
+
+    input.dispatchEvent(
+      new Event("change",{
+        bubbles:true
+      })
+    );
+
+    input.focus();
+
+    try{
+      input.scrollIntoView({
+        behavior:"smooth",
+        block:"center"
+      });
+    }catch{}
+  }
+
+  function build(){
+    const root = findAssistantPage();
+
+    if(!root) return;
+
+    let panel =
+      document.getElementById(
+        "hegevaV3523AssistantTools"
+      );
+
+    if(!panel){
+      panel = document.createElement("div");
+
+      panel.id =
+        "hegevaV3523AssistantTools";
+
+      const heading =
+        root.querySelector(".page-heading");
+
+      if(heading){
+        heading.insertAdjacentElement(
+          "afterend",
+          panel
+        );
+      }else{
+        root.prepend(panel);
+      }
+    }
+
+    const lang =
+      getLanguage();
+
+    const t =
+      translations[lang];
+
+    const actions = [
+      ["email",t.email],
+      ["quote",t.quote],
+      ["invoice",t.invoice],
+      ["reply",t.reply],
+      ["plan",t.plan],
+      ["social",t.social],
+      ["improve",t.improve],
+      ["summary",t.summary],
+      ["ideas",t.ideas]
+    ];
+
+    panel.innerHTML = `
+      <div class="v3523-title">
+        ${t.title}
+      </div>
+
+      <div class="v3523-subtitle">
+        ${t.subtitle}
+      </div>
+
+      <div class="v3523-grid">
+        ${actions.map(([key,label]) => `
+          <button
+            type="button"
+            data-v3523-action="${key}"
+          >
+            ${label}
+          </button>
+        `).join("")}
+      </div>
+
+      <div class="v3523-note">
+        🔒 ${t.note}
+      </div>
+    `;
+
+    panel
+      .querySelectorAll(
+        "[data-v3523-action]"
+      )
+      .forEach(button => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const key =
+              button.dataset.v3523Action;
+
+            const prompt =
+              t.prompts[key];
+
+            if(prompt){
+              setPrompt(prompt);
+            }
+          }
+        );
+      });
+  }
+
+  document.addEventListener(
+    "click",
+    event => {
+
+      if(
+        event.target.closest(
+          '[data-page="assistant"],' +
+          '[data-page="ai"],' +
+          '[data-page="aiAssistant"]'
+        )
+      ){
+        setTimeout(build,120);
+        setTimeout(build,500);
+      }
+    }
+  );
+
+  document
+    .getElementById("languageSelect")
+    ?.addEventListener(
+      "change",
+      () => {
+        setTimeout(build,150);
+        setTimeout(build,500);
+      }
+    );
+
+  setTimeout(build,500);
+  setTimeout(build,1500);
+
+  window.hegevaV3523AssistantQuickActions = {
+    version:VERSION,
+    build,
+    changesStripe:false,
+    changesBilling:false,
+    changesEntitlement:false,
+    sendsAutomatically:false
+  };
+})();
 </script></body>
 </html>
