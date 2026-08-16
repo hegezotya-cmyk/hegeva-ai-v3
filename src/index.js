@@ -1,6 +1,6 @@
 import { createAuth, getLoggedInUser } from "./auth.js";
 
-const AI_MODEL = "@cf/meta/llama-3.1-8b-instruct";
+const AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
