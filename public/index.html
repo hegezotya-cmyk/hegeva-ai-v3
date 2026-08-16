@@ -25524,5 +25524,432 @@ ${transcript}`;
     "HEGEVA AI V35.3.15 Smart Chat Categories active."
   );
 })();
+</script><!-- =========================================================
+     HEGEVA AI V35.3.16
+     STABLE CHAT CATEGORY FILTER
+     FRONTEND ONLY
+     ========================================================= -->
+
+<style>
+#v35316FilterWrap{
+  margin:10px 0;
+  padding:9px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:10px;
+  background:rgba(255,255,255,.025);
+}
+
+#v35316FilterLabel{
+  margin-bottom:7px;
+  color:var(--muted,#9ba8c7);
+  font-size:10px;
+  font-weight:800;
+}
+
+#v35316Filters{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+}
+
+.v35316-filter{
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.04);
+  color:var(--text,#eef3ff);
+  border-radius:999px;
+  padding:6px 8px;
+  font-size:9px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.v35316-filter.active{
+  border-color:rgba(246,196,83,.7);
+  background:rgba(246,196,83,.14);
+  color:#ffe7a3;
+}
+
+.v35316-hidden{
+  display:none !important;
+}
+</style>
+
+<script>
+(() => {
+  "use strict";
+
+  const VERSION = "V35.3.16";
+
+  const CATEGORY_STORE =
+    "hegeva_v35315_chat_categories";
+
+  const FILTER_STORE =
+    "hegeva_v35316_filter";
+
+  const CATEGORIES = {
+    all:"🌐",
+    favourite:"⭐",
+    business:"💼",
+    finance:"💷",
+    document:"📄",
+    idea:"💡"
+  };
+
+  const COPY = {
+    en:{
+      label:"Filter saved chats",
+      all:"All",
+      favourite:"Favorites",
+      business:"Business",
+      finance:"Finance",
+      document:"Documents",
+      idea:"Ideas"
+    },
+
+    hu:{
+      label:"Mentett chatek szűrése",
+      all:"Összes",
+      favourite:"Kedvenc",
+      business:"Üzlet",
+      finance:"Pénzügy",
+      document:"Dokumentum",
+      idea:"Ötlet"
+    },
+
+    de:{
+      label:"Gespeicherte Chats filtern",
+      all:"Alle",
+      favourite:"Favoriten",
+      business:"Geschäft",
+      finance:"Finanzen",
+      document:"Dokumente",
+      idea:"Ideen"
+    },
+
+    fr:{
+      label:"Filtrer les chats enregistrés",
+      all:"Tous",
+      favourite:"Favoris",
+      business:"Entreprise",
+      finance:"Finance",
+      document:"Documents",
+      idea:"Idées"
+    },
+
+    es:{
+      label:"Filtrar chats guardados",
+      all:"Todos",
+      favourite:"Favoritos",
+      business:"Negocio",
+      finance:"Finanzas",
+      document:"Documentos",
+      idea:"Ideas"
+    }
+  };
+
+  function language(){
+    const value = String(
+      document.getElementById("languageSelect")?.value || "en"
+    ).toLowerCase();
+
+    return COPY[value] ? value : "en";
+  }
+
+  function t(){
+    return COPY[language()];
+  }
+
+  function readCategories(){
+    try{
+      const data =
+        JSON.parse(
+          localStorage.getItem(
+            CATEGORY_STORE
+          ) || "{}"
+        );
+
+      return data && typeof data === "object"
+        ? data
+        : {};
+    }catch{
+      return {};
+    }
+  }
+
+  function currentFilter(){
+    const value =
+      localStorage.getItem(
+        FILTER_STORE
+      ) || "all";
+
+    return CATEGORIES[value]
+      ? value
+      : "all";
+  }
+
+  function getChats(){
+    try{
+      if(typeof getSavedChats === "function"){
+        const chats = getSavedChats();
+        return Array.isArray(chats) ? chats : [];
+      }
+    }catch{}
+
+    return [];
+  }
+
+  function chatIdForButton(button, chats){
+    const known =
+      button.dataset.v3539ChatId ||
+      button.dataset.chatId ||
+      "";
+
+    if(known){
+      return known;
+    }
+
+    const title =
+      String(button.textContent || "")
+        .replace(/^📌\s*/,"")
+        .replace(/^[⭐💼💷📄💡]\s*/,"")
+        .trim();
+
+    const found =
+      chats.find(
+        chat =>
+          String(chat?.title || "")
+            .trim() === title
+      );
+
+    return found?.id || "";
+  }
+
+  function applyFilter(){
+    const selected =
+      currentFilter();
+
+    const categories =
+      readCategories();
+
+    const chats =
+      getChats();
+
+    document
+      .querySelectorAll(
+        "#savedChatsList .saved-chat"
+      )
+      .forEach(button => {
+        const id =
+          chatIdForButton(
+            button,
+            chats
+          );
+
+        const category =
+          id
+            ? categories[id] || ""
+            : "";
+
+        const show =
+          selected === "all" ||
+          category === selected;
+
+        button.classList.toggle(
+          "v35316-hidden",
+          !show
+        );
+      });
+
+    document
+      .querySelectorAll(
+        ".v35316-filter"
+      )
+      .forEach(button => {
+        button.classList.toggle(
+          "active",
+          button.dataset.filter === selected
+        );
+      });
+  }
+
+  function setFilter(value){
+    localStorage.setItem(
+      FILTER_STORE,
+      value
+    );
+
+    applyFilter();
+  }
+
+  function ensureUi(){
+    if(
+      document.getElementById(
+        "v35316FilterWrap"
+      )
+    ){
+      return;
+    }
+
+    const search =
+      document.getElementById(
+        "v35311ChatSearchWrap"
+      );
+
+    const list =
+      document.getElementById(
+        "savedChatsList"
+      );
+
+    const target =
+      search || list;
+
+    if(!target){
+      return;
+    }
+
+    const wrap =
+      document.createElement("div");
+
+    wrap.id =
+      "v35316FilterWrap";
+
+    const label =
+      document.createElement("div");
+
+    label.id =
+      "v35316FilterLabel";
+
+    const buttons =
+      document.createElement("div");
+
+    buttons.id =
+      "v35316Filters";
+
+    Object.keys(CATEGORIES)
+      .forEach(key => {
+        const button =
+          document.createElement("button");
+
+        button.type =
+          "button";
+
+        button.className =
+          "v35316-filter";
+
+        button.dataset.filter =
+          key;
+
+        button.addEventListener(
+          "click",
+          () => setFilter(key)
+        );
+
+        buttons.appendChild(
+          button
+        );
+      });
+
+    wrap.append(
+      label,
+      buttons
+    );
+
+    target.insertAdjacentElement(
+      "afterend",
+      wrap
+    );
+
+    translate();
+  }
+
+  function translate(){
+    const label =
+      document.getElementById(
+        "v35316FilterLabel"
+      );
+
+    if(label){
+      label.textContent =
+        t().label;
+    }
+
+    document
+      .querySelectorAll(
+        ".v35316-filter"
+      )
+      .forEach(button => {
+        const key =
+          button.dataset.filter;
+
+        button.textContent =
+          `${CATEGORIES[key]} ${t()[key]}`;
+      });
+
+    applyFilter();
+  }
+
+  function boot(){
+    ensureUi();
+    applyFilter();
+
+    document.addEventListener(
+      "click",
+      event => {
+        if(
+          event.target.closest?.(
+            "#savedChatsList .saved-chat, .v35315-category, #createNewSavedChat, #deleteCurrentChat, #renameCurrentChat"
+          )
+        ){
+          setTimeout(
+            applyFilter,
+            80
+          );
+        }
+      },
+      true
+    );
+
+    document
+      .getElementById(
+        "languageSelect"
+      )
+      ?.addEventListener(
+        "change",
+        () => {
+          setTimeout(
+            translate,
+            120
+          );
+        }
+      );
+  }
+
+  window.hegevaV35316 = {
+    version:VERSION,
+    stableCategoryFilter:true,
+    noMutationObserver:true,
+    localOnly:true,
+    extraAiRequest:false,
+    changesAIBackend:false,
+    changesStripe:false,
+    changesBilling:false,
+    changesAuthentication:false,
+    changesWorkspace:false
+  };
+
+  if(document.readyState === "loading"){
+    document.addEventListener(
+      "DOMContentLoaded",
+      boot,
+      {once:true}
+    );
+  }else{
+    boot();
+  }
+
+  console.log(
+    "HEGEVA AI V35.3.16 Stable Chat Category Filter active."
+  );
+})();
 </script></body>
 </html>
