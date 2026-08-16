@@ -22369,5 +22369,506 @@ ${answer}`
   );
 
 })();
+</script><!-- =========================================================
+     HEGEVA AI V35.3.9
+     PINNED CHATS
+     COPY + PASTE ONLY
+     EN / HU / DE / FR / ES
+     ========================================================= -->
+
+<style>
+#v3539PinChat{
+  border:1px solid rgba(246,196,83,.32);
+  background:rgba(246,196,83,.07);
+}
+
+#v3539PinChat.active{
+  background:rgba(246,196,83,.18);
+  border-color:rgba(246,196,83,.65);
+  color:#ffe7a3;
+}
+
+.v3539-pinned-chat{
+  border-color:rgba(246,196,83,.38) !important;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(246,196,83,.08),
+      rgba(255,255,255,.025)
+    ) !important;
+}
+
+.v3539-pin-mark{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-right:6px;
+  font-size:11px;
+}
+</style>
+
+<script>
+(() => {
+  "use strict";
+
+  const VERSION =
+    "V35.3.9";
+
+  const STORE =
+    "hegeva_v3539_pinned_chats";
+
+  const TEXT = {
+    en:{
+      pin:"📌 Pin",
+      unpin:"📌 Unpin"
+    },
+
+    hu:{
+      pin:"📌 Kitűzés",
+      unpin:"📌 Levétel"
+    },
+
+    de:{
+      pin:"📌 Anheften",
+      unpin:"📌 Lösen"
+    },
+
+    fr:{
+      pin:"📌 Épingler",
+      unpin:"📌 Désépingler"
+    },
+
+    es:{
+      pin:"📌 Fijar",
+      unpin:"📌 Desfijar"
+    }
+  };
+
+  let arranging =
+    false;
+
+  function language(){
+    const value =
+      String(
+        document
+          .getElementById(
+            "languageSelect"
+          )
+          ?.value ||
+        "en"
+      ).toLowerCase();
+
+    return TEXT[value]
+      ? value
+      : "en";
+  }
+
+  function labels(){
+    return TEXT[
+      language()
+    ];
+  }
+
+  function readPins(){
+    try{
+      const value =
+        JSON.parse(
+          localStorage.getItem(
+            STORE
+          ) ||
+          "[]"
+        );
+
+      return Array.isArray(value)
+        ? value
+        : [];
+
+    }catch{
+      return [];
+    }
+  }
+
+  function savePins(value){
+    const clean =
+      [...new Set(value)]
+        .filter(Boolean)
+        .slice(0,50);
+
+    localStorage.setItem(
+      STORE,
+      JSON.stringify(clean)
+    );
+  }
+
+  function currentId(){
+    try{
+      if(
+        typeof activeChatId ===
+        "function"
+      ){
+        return activeChatId();
+      }
+    }catch{}
+
+    return localStorage.getItem(
+      "hegeva_active_chat"
+    );
+  }
+
+  function isPinned(id){
+    return Boolean(
+      id &&
+      readPins().includes(id)
+    );
+  }
+
+  function togglePin(){
+    const id =
+      currentId();
+
+    if(!id)
+      return;
+
+    let pins =
+      readPins();
+
+    if(
+      pins.includes(id)
+    ){
+      pins =
+        pins.filter(
+          value =>
+            value !== id
+        );
+    }else{
+      pins.unshift(id);
+    }
+
+    savePins(pins);
+
+    refresh();
+  }
+
+  function ensureButton(){
+    if(
+      document.getElementById(
+        "v3539PinChat"
+      )
+    ){
+      return;
+    }
+
+    const rename =
+      document.getElementById(
+        "renameCurrentChat"
+      );
+
+    const container =
+      rename?.parentElement;
+
+    if(!container)
+      return;
+
+    const button =
+      document.createElement(
+        "button"
+      );
+
+    button.id =
+      "v3539PinChat";
+
+    button.type =
+      "button";
+
+    button.className =
+      "mini-action";
+
+    button.addEventListener(
+      "click",
+      togglePin
+    );
+
+    container.insertBefore(
+      button,
+      container.firstChild
+    );
+  }
+
+  function updateButton(){
+    const button =
+      document.getElementById(
+        "v3539PinChat"
+      );
+
+    if(!button)
+      return;
+
+    const pinned =
+      isPinned(
+        currentId()
+      );
+
+    button.textContent =
+      pinned
+        ? labels().unpin
+        : labels().pin;
+
+    button.classList.toggle(
+      "active",
+      pinned
+    );
+  }
+
+  function decorateSavedChats(){
+    const list =
+      document.getElementById(
+        "savedChatsList"
+      );
+
+    if(
+      !list ||
+      arranging
+    ){
+      return;
+    }
+
+    let chats = [];
+
+    try{
+      if(
+        typeof getSavedChats ===
+        "function"
+      ){
+        chats =
+          getSavedChats() ||
+          [];
+      }
+    }catch{}
+
+    if(
+      !Array.isArray(chats) ||
+      !chats.length
+    ){
+      return;
+    }
+
+    const buttons =
+      Array.from(
+        list.children
+      ).filter(
+        element =>
+          element.tagName ===
+          "BUTTON"
+      );
+
+    buttons.forEach(
+      (button,index) => {
+        const chat =
+          chats[index];
+
+        if(!chat)
+          return;
+
+        button.dataset.v3539ChatId =
+          chat.id;
+
+        const pinned =
+          isPinned(chat.id);
+
+        button.classList.toggle(
+          "v3539-pinned-chat",
+          pinned
+        );
+
+        const oldMark =
+          button.querySelector(
+            ".v3539-pin-mark"
+          );
+
+        if(oldMark){
+          oldMark.remove();
+        }
+
+        if(pinned){
+          const mark =
+            document.createElement(
+              "span"
+            );
+
+          mark.className =
+            "v3539-pin-mark";
+
+          mark.textContent =
+            "📌";
+
+          button.prepend(
+            mark
+          );
+        }
+      }
+    );
+
+    /*
+     * Move pinned chats to the top visually.
+     * The underlying HEGEVA chat data is NOT changed.
+     */
+
+    arranging = true;
+
+    const ordered =
+      [...buttons].sort(
+        (a,b) => {
+          const aPinned =
+            isPinned(
+              a.dataset.v3539ChatId
+            );
+
+          const bPinned =
+            isPinned(
+              b.dataset.v3539ChatId
+            );
+
+          if(
+            aPinned === bPinned
+          ){
+            return 0;
+          }
+
+          return aPinned
+            ? -1
+            : 1;
+        }
+      );
+
+    ordered.forEach(
+      button =>
+        list.appendChild(
+          button
+        )
+    );
+
+    arranging = false;
+  }
+
+  function refresh(){
+    ensureButton();
+    updateButton();
+    decorateSavedChats();
+  }
+
+  function boot(){
+    refresh();
+
+    const list =
+      document.getElementById(
+        "savedChatsList"
+      );
+
+    if(list){
+      const observer =
+        new MutationObserver(
+          () => {
+            if(arranging)
+              return;
+
+            requestAnimationFrame(
+              refresh
+            );
+          }
+        );
+
+      observer.observe(
+        list,
+        {
+          childList:true,
+          subtree:true
+        }
+      );
+    }
+
+    document.addEventListener(
+      "click",
+      event => {
+        if(
+          event.target.closest?.(
+            "#savedChatsList .saved-chat"
+          )
+        ){
+          setTimeout(
+            refresh,
+            80
+          );
+        }
+      },
+      true
+    );
+
+    document
+      .getElementById(
+        "languageSelect"
+      )
+      ?.addEventListener(
+        "change",
+        () => {
+          setTimeout(
+            refresh,
+            150
+          );
+        }
+      );
+  }
+
+  window.hegevaV3539 = {
+    version:
+      VERSION,
+
+    pinnedChats:
+      true,
+
+    localOnly:
+      true,
+
+    languages:[
+      "en",
+      "hu",
+      "de",
+      "fr",
+      "es"
+    ],
+
+    changesAIBackend:
+      false,
+
+    changesStripe:
+      false,
+
+    changesBilling:
+      false,
+
+    changesAuthentication:
+      false,
+
+    changesWorkspace:
+      false
+  };
+
+  if(
+    document.readyState ===
+    "loading"
+  ){
+    document.addEventListener(
+      "DOMContentLoaded",
+      boot,
+      {once:true}
+    );
+  }else{
+    boot();
+  }
+
+  console.log(
+    "HEGEVA AI V35.3.9 Pinned Chats active."
+  );
+
+})();
 </script></body>
 </html>
