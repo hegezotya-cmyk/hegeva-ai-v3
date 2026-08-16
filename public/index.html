@@ -21179,5 +21179,397 @@ ${answer}`
   );
 
 })();
+</script><!-- =========================================================
+     HEGEVA AI V35.3.2
+     STRICT CLEAN OUTPUT
+     COPY + PASTE ONLY
+     EN / HU / DE / FR / ES
+     ========================================================= -->
+
+<script>
+(() => {
+  "use strict";
+
+  const VERSION = "V35.3.2";
+
+  const FALLBACKS = {
+    en: "I couldn't generate a clean answer. Please try again.",
+    hu: "Nem sikerült megfelelő választ generálnom. Kérlek, próbáld újra.",
+    de: "Ich konnte keine passende Antwort erzeugen. Bitte versuche es erneut.",
+    fr: "Je n’ai pas pu générer une réponse correcte. Veuillez réessayer.",
+    es: "No pude generar una respuesta adecuada. Inténtalo de nuevo."
+  };
+
+  function currentLanguage() {
+    const value = String(
+      document.getElementById("languageSelect")?.value ||
+      localStorage.getItem("hegeva_language") ||
+      "en"
+    ).toLowerCase();
+
+    return ["en", "hu", "de", "fr", "es"].includes(value)
+      ? value
+      : "en";
+  }
+
+  function removeEnglishTranslation(text) {
+    if (currentLanguage() === "en") {
+      return text;
+    }
+
+    /*
+     * Removes obvious English translations
+     * appended in brackets after the real answer.
+     *
+     * Example:
+     * Jól vagyok. (Hello! I'm fine, thanks.)
+     */
+
+    return text.replace(
+      /\s*\((?=[^)]*(?:\bthe\b|\band\b|\byou\b|\byour\b|\bi\b|\bmy\b|\bwhat\b|\bhow\b|\bplease\b|\bworking\b|\btasks?\b|\bresponse\b|\bmessage\b))[^)]{8,700}\)/gi,
+      ""
+    );
+  }
+
+  function truncateInternalConversation(text) {
+    const markers = [
+      "\nUSER MESSAGE:",
+      "\nUSER:",
+      "\nRESPONSE:",
+      "\nASSISTANT:",
+      "\nSYSTEM:",
+      "\nDEVELOPER:",
+      "\nINSTRUCTION:",
+      "\nINSTRUCTIONS:",
+      "\nLATEST MESSAGE:",
+      "\nRECENT CONVERSATION:",
+      "\nSIMULATED CONVERSATION:",
+      "\nEXAMPLE CONVERSATION:"
+    ];
+
+    let cutAt = text.length;
+
+    for (const marker of markers) {
+      const index =
+        text.toUpperCase().indexOf(
+          marker.toUpperCase()
+        );
+
+      if (
+        index !== -1 &&
+        index < cutAt
+      ) {
+        cutAt = index;
+      }
+    }
+
+    return text.slice(0, cutAt);
+  }
+
+  function removeBadLines(text) {
+    const badPatterns = [
+      /^\s*USER MESSAGE\s*:?\s*$/i,
+      /^\s*USER\s*:?\s*$/i,
+      /^\s*RESPONSE\s*:?\s*$/i,
+      /^\s*ASSISTANT\s*:?\s*$/i,
+      /^\s*SYSTEM\s*:?\s*$/i,
+      /^\s*DEVELOPER\s*:?\s*$/i,
+      /^\s*INSTRUCTIONS?\s*:?\s*$/i,
+      /^\s*PROMPT\s*:?\s*$/i,
+
+      /^\s*\(?NOTE\s*:/i,
+
+      /i['’]ll be simulating a conversation/i,
+      /i['’]ll be providing the user/i,
+      /you['’]ll be responding as/i,
+      /please respond to the user/i,
+      /following the provided rules/i,
+      /keeping the conversation.*hungarian/i,
+      /keeping the conversation.*english/i,
+      /keeping the conversation.*german/i,
+      /keeping the conversation.*french/i,
+      /keeping the conversation.*spanish/i,
+
+      /please respond in hungarian/i,
+      /please respond in english/i,
+      /please respond in german/i,
+      /please respond in french/i,
+      /please respond in spanish/i
+    ];
+
+    const lines =
+      String(text || "")
+        .split(/\r?\n/);
+
+    const result = [];
+    const seen = new Set();
+
+    for (let line of lines) {
+      line = line.trim();
+
+      if (!line) {
+        if (
+          result.length &&
+          result[result.length - 1] !== ""
+        ) {
+          result.push("");
+        }
+
+        continue;
+      }
+
+      if (
+        badPatterns.some(
+          pattern => pattern.test(line)
+        )
+      ) {
+        continue;
+      }
+
+      const fingerprint =
+        line
+          .toLowerCase()
+          .replace(/\s+/g, " ")
+          .trim();
+
+      if (
+        fingerprint.length > 20 &&
+        seen.has(fingerprint)
+      ) {
+        continue;
+      }
+
+      seen.add(fingerprint);
+
+      result.push(line);
+    }
+
+    return result
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+  function stripMarkup(text) {
+    return String(text || "")
+      .replace(/<!\[CDATA\[/gi, "")
+      .replace(/\]\]>/gi, "")
+      .replace(/<\?xml[\s\S]*?\?>/gi, "")
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .trim();
+  }
+
+  function cleanAnswer(raw) {
+    let text =
+      String(raw || "")
+        .replace(/\r/g, "")
+        .trim();
+
+    if (!text) {
+      return FALLBACKS[currentLanguage()];
+    }
+
+    text = stripMarkup(text);
+
+    /*
+     * Most important rule:
+     * once the model starts inventing another USER MESSAGE
+     * or RESPONSE block, everything after that is discarded.
+     */
+
+    text =
+      truncateInternalConversation(text);
+
+    text =
+      removeEnglishTranslation(text);
+
+    text =
+      removeBadLines(text);
+
+    text =
+      text
+        .replace(
+          /^(?:HEGEVA AI válasza|HEGEVA AI response|HEGEVA AI Antwort|Réponse HEGEVA AI|Respuesta HEGEVA AI)\s*:?\s*/i,
+          ""
+        )
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+
+    /*
+     * Final safety check.
+     */
+
+    const stillBad =
+      /USER MESSAGE\s*:|RESPONSE\s*:|SIMULATING A CONVERSATION|PROVIDING THE USER['’]S MESSAGE/i
+        .test(text);
+
+    if (
+      !text ||
+      stillBad
+    ) {
+      return FALLBACKS[currentLanguage()];
+    }
+
+    return text;
+  }
+
+  function getAnswerBody(box) {
+    if (!box) return null;
+
+    const title =
+      box.querySelector(":scope > strong");
+
+    if (
+      !title ||
+      title.textContent.trim() !== "HEGEVA AI"
+    ) {
+      return null;
+    }
+
+    return Array
+      .from(box.children)
+      .find(element =>
+        element.tagName === "DIV" &&
+        !element.classList.contains("chat-actions") &&
+        !element.classList.contains("v3530-actions")
+      ) || null;
+  }
+
+  function cleanBubble(box) {
+    const body =
+      getAnswerBody(box);
+
+    if (!body) return;
+
+    const original =
+      String(
+        body.innerText ||
+        body.textContent ||
+        ""
+      ).trim();
+
+    if (!original) return;
+
+    const cleaned =
+      cleanAnswer(original);
+
+    if (cleaned !== original) {
+      body.textContent = cleaned;
+
+      /*
+       * Smart Actions must use the cleaned answer,
+       * not the hidden leaked text.
+       */
+
+      box.dataset.v3532Cleaned = "1";
+    }
+  }
+
+  function cleanAll() {
+    document
+      .querySelectorAll(
+        "#aiChatMessages .coming-item"
+      )
+      .forEach(cleanBubble);
+  }
+
+  function boot() {
+    const wrap =
+      document.getElementById(
+        "aiChatMessages"
+      );
+
+    if (!wrap) return;
+
+    const observer =
+      new MutationObserver(() => {
+        requestAnimationFrame(
+          cleanAll
+        );
+
+        setTimeout(
+          cleanAll,
+          50
+        );
+
+        setTimeout(
+          cleanAll,
+          250
+        );
+      });
+
+    observer.observe(
+      wrap,
+      {
+        childList: true,
+        subtree: true,
+        characterData: true
+      }
+    );
+
+    cleanAll();
+  }
+
+  document
+    .getElementById(
+      "languageSelect"
+    )
+    ?.addEventListener(
+      "change",
+      () => {
+        setTimeout(
+          cleanAll,
+          150
+        );
+      }
+    );
+
+  window.hegevaV3532 = {
+    version: VERSION,
+
+    strictCleanOutput: true,
+
+    removesUserMessageLeak: true,
+
+    removesResponseLeak: true,
+
+    removesEnglishTranslationLeak: true,
+
+    removesPromptLeak: true,
+
+    removesDuplicates: true,
+
+    languages: [
+      "en",
+      "hu",
+      "de",
+      "fr",
+      "es"
+    ],
+
+    keepsSmartActions: true,
+    keepsLanguageSync: true,
+
+    changesStripe: false,
+    changesBilling: false,
+    changesAuthentication: false
+  };
+
+  if (
+    document.readyState === "loading"
+  ) {
+    document.addEventListener(
+      "DOMContentLoaded",
+      boot,
+      { once: true }
+    );
+  } else {
+    boot();
+  }
+
+  console.log(
+    "HEGEVA AI V35.3.2 Strict Clean Output active."
+  );
+})();
 </script></body>
 </html>
