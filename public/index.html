@@ -18399,3 +18399,322 @@ window.hegevaV353PlanOverview = {
 })();
 </script>/body>
 </html>
+<!-- =========================================================
+     HEGEVA AI V35.3.2
+     SANDBOX / LIVE PAYMENT STATUS CLARITY
+     UI ONLY — NO ENTITLEMENT CHANGES
+     ========================================================= -->
+
+<style>
+#v3532PaymentNotice{
+  margin:14px 0 18px;
+  padding:15px 17px;
+  border-radius:15px;
+  border:1px solid rgba(53,213,138,.28);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(53,213,138,.08),
+      rgba(55,200,255,.05)
+    );
+  color:var(--muted);
+  line-height:1.55;
+  font-size:13px;
+}
+
+#v3532PaymentNotice strong{
+  color:#79eab1;
+}
+
+#v3532PaymentNotice.warn{
+  border-color:rgba(246,196,83,.28);
+  background:rgba(246,196,83,.06);
+}
+
+#v3532PaymentNotice.warn strong{
+  color:#ffe19a;
+}
+</style>
+
+<script>
+(() => {
+  "use strict";
+
+  const TEXT = {
+    en: {
+      sandboxTitle:"Stripe Sandbox payment active",
+      sandboxText:
+        "Stripe test payments are connected and the webhook has been verified. No real charges are enabled.",
+      pendingTitle:"Payment setup incomplete",
+      pendingText:
+        "Stripe test payment setup is not fully verified yet. No real card charges are enabled.",
+      liveTitle:"Live payment mode detected",
+      liveText:
+        "Live payment mode is configured. Review the billing setup carefully before accepting real customer payments."
+    },
+
+    hu: {
+      sandboxTitle:"Stripe Sandbox tesztfizetés aktív",
+      sandboxText:
+        "A Stripe tesztfizetés csatlakoztatva van, és a webhook ellenőrzött. Valódi kártyaterhelés nincs engedélyezve.",
+      pendingTitle:"A fizetési beállítás még nem teljes",
+      pendingText:
+        "A Stripe tesztfizetés még nincs teljesen ellenőrizve. Valódi kártyaterhelés nincs engedélyezve.",
+      liveTitle:"Élő fizetési mód észlelve",
+      liveText:
+        "Élő fizetési mód van beállítva. Valódi ügyfélfizetések fogadása előtt ellenőrizd a teljes fizetési konfigurációt."
+    },
+
+    de: {
+      sandboxTitle:"Stripe Sandbox-Testzahlung aktiv",
+      sandboxText:
+        "Stripe-Testzahlungen sind verbunden und der Webhook wurde verifiziert. Echte Kartenbelastungen sind nicht aktiviert.",
+      pendingTitle:"Zahlungseinrichtung unvollständig",
+      pendingText:
+        "Die Stripe-Testzahlung ist noch nicht vollständig verifiziert. Echte Kartenbelastungen sind nicht aktiviert.",
+      liveTitle:"Live-Zahlungsmodus erkannt",
+      liveText:
+        "Der Live-Zahlungsmodus ist konfiguriert. Prüfe die Abrechnung sorgfältig, bevor echte Kundenzahlungen angenommen werden."
+    },
+
+    fr: {
+      sandboxTitle:"Paiement Stripe Sandbox actif",
+      sandboxText:
+        "Les paiements de test Stripe sont connectés et le webhook est vérifié. Aucun débit réel n'est activé.",
+      pendingTitle:"Configuration de paiement incomplète",
+      pendingText:
+        "Le paiement de test Stripe n'est pas encore entièrement vérifié. Aucun débit réel n'est activé.",
+      liveTitle:"Mode de paiement réel détecté",
+      liveText:
+        "Le mode de paiement réel est configuré. Vérifiez soigneusement la facturation avant d'accepter de vrais paiements."
+    },
+
+    es: {
+      sandboxTitle:"Pago Stripe Sandbox activo",
+      sandboxText:
+        "Los pagos de prueba de Stripe están conectados y el webhook está verificado. No hay cargos reales activados.",
+      pendingTitle:"Configuración de pago incompleta",
+      pendingText:
+        "El pago de prueba de Stripe aún no está totalmente verificado. No hay cargos reales activados.",
+      liveTitle:"Modo de pago real detectado",
+      liveText:
+        "El modo de pago real está configurado. Revisa cuidadosamente la facturación antes de aceptar pagos reales."
+    }
+  };
+
+  function language(){
+    const value =
+      document.getElementById("languageSelect")?.value ||
+      "en";
+
+    return TEXT[value] ? value : "en";
+  }
+
+  function t(){
+    return TEXT[language()];
+  }
+
+  function billingState(){
+    return window.hegevaV351StripeSubscription?.state || {};
+  }
+
+  function findLegacyNotice(){
+    const pricing =
+      document.getElementById("pricing");
+
+    if(!pricing){
+      return null;
+    }
+
+    const notices =
+      Array.from(
+        pricing.querySelectorAll(
+          ".notice"
+        )
+      );
+
+    return notices.find(el => {
+      const text =
+        String(
+          el.textContent || ""
+        ).toLowerCase();
+
+      return (
+        text.includes("fizetés") ||
+        text.includes("payment") ||
+        text.includes("zahlung") ||
+        text.includes("paiement") ||
+        text.includes("pago")
+      );
+    }) || null;
+  }
+
+  function ensureNotice(){
+    const pricing =
+      document.getElementById("pricing");
+
+    if(!pricing){
+      return null;
+    }
+
+    let notice =
+      document.getElementById(
+        "v3532PaymentNotice"
+      );
+
+    if(!notice){
+      notice =
+        document.createElement("div");
+
+      notice.id =
+        "v3532PaymentNotice";
+
+      const oldNotice =
+        findLegacyNotice();
+
+      if(oldNotice){
+        oldNotice.style.display =
+          "none";
+
+        oldNotice.insertAdjacentElement(
+          "afterend",
+          notice
+        );
+      }else{
+        const heading =
+          pricing.querySelector(
+            ".page-heading"
+          );
+
+        if(heading){
+          heading.insertAdjacentElement(
+            "afterend",
+            notice
+          );
+        }else{
+          pricing.prepend(notice);
+        }
+      }
+    }
+
+    return notice;
+  }
+
+  function render(){
+    const notice =
+      ensureNotice();
+
+    if(!notice){
+      return;
+    }
+
+    const copy =
+      t();
+
+    const state =
+      billingState();
+
+    const mode =
+      String(
+        state.mode || ""
+      ).toLowerCase();
+
+    const sandboxReady =
+      state.providerConnected === true &&
+      mode === "test" &&
+      state.checkoutEnabled === true &&
+      state.webhookVerified === true;
+
+    const liveMode =
+      mode === "live";
+
+    if(liveMode){
+      notice.className =
+        "warn";
+
+      notice.innerHTML =
+        `<strong>⚠️ ${copy.liveTitle}</strong><br>${copy.liveText}`;
+
+      return;
+    }
+
+    if(sandboxReady){
+      notice.className =
+        "";
+
+      notice.innerHTML =
+        `<strong>✅ ${copy.sandboxTitle}</strong><br>${copy.sandboxText}`;
+
+      return;
+    }
+
+    notice.className =
+      "warn";
+
+    notice.innerHTML =
+      `<strong>🧪 ${copy.pendingTitle}</strong><br>${copy.pendingText}`;
+  }
+
+  function refresh(){
+    render();
+
+    setTimeout(
+      render,
+      250
+    );
+
+    setTimeout(
+      render,
+      800
+    );
+  }
+
+  document
+    .getElementById(
+      "languageSelect"
+    )
+    ?.addEventListener(
+      "change",
+      () => {
+        setTimeout(
+          refresh,
+          120
+        );
+      }
+    );
+
+  document.addEventListener(
+    "click",
+    event => {
+      if(
+        event.target.closest(
+          '[data-page="pricing"]'
+        )
+      ){
+        setTimeout(
+          refresh,
+          150
+        );
+      }
+    }
+  );
+
+  setTimeout(
+    refresh,
+    300
+  );
+
+  setTimeout(
+    refresh,
+    1200
+  );
+
+  window.hegevaV3532PaymentStatus = {
+    version:"V35.3.2",
+    render,
+    changesEntitlement:false,
+    handlesCardData:false,
+    livePaymentsEnabledByThisPatch:false
+  };
+})();
+</script>
