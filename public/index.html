@@ -18294,5 +18294,114 @@ window.hegevaV351StripeSubscription = {
   };
 
 })();
+</script>
+<!-- =========================================================
+     HEGEVA AI V35.2.5
+     REMOVE V35.2.4 FRONTEND LANGUAGE FETCH OVERRIDE
+     RESTORE NORMAL BACKEND CHAT REQUEST
+     ========================================================= -->
+
+<script>
+(() => {
+  "use strict";
+
+  /*
+    V35.2.4 modified window.fetch for /api/chat.
+    This patch restores clean chat requests without
+    injecting extra language instructions into the user's message.
+  */
+
+  if (!window.__hegevaOriginalFetchV3525) {
+    window.__hegevaOriginalFetchV3525 =
+      window.fetch.bind(window);
+  }
+
+  const cleanFetch =
+    window.__hegevaOriginalFetchV3525;
+
+  window.fetch = function(input, init = {}) {
+
+    let url = "";
+
+    try {
+      url =
+        typeof input === "string"
+          ? input
+          : input?.url || "";
+    } catch {}
+
+    const isChat =
+      url === "/api/chat" ||
+      url.endsWith("/api/chat");
+
+    if (!isChat) {
+      return cleanFetch(input, init);
+    }
+
+    try {
+
+      if (
+        typeof init.body === "string"
+      ) {
+
+        const body =
+          JSON.parse(init.body);
+
+        if (
+          body &&
+          typeof body === "object" &&
+          typeof body.message === "string"
+        ) {
+
+          const marker =
+            "USER MESSAGE:\n";
+
+          if (
+            body.message.includes(marker)
+          ) {
+
+            body.message =
+              body.message
+                .split(marker)
+                .slice(1)
+                .join(marker)
+                .trim();
+          }
+        }
+
+        init = {
+          ...init,
+          body: JSON.stringify(body)
+        };
+      }
+
+    } catch (error) {
+
+      console.warn(
+        "HEGEVA V35.2.5 clean chat fallback:",
+        error
+      );
+    }
+
+    return cleanFetch(
+      input,
+      init
+    );
+  };
+
+  window.__hegevaV3524LanguageLockInstalled =
+    false;
+
+  window.hegevaV3525ChatRestore = {
+    version: "V35.2.5",
+    active: true,
+    removesV3524Injection: true,
+    changesStripe: false,
+    changesBilling: false,
+    changesWebhook: false,
+    changesEntitlement: false
+  };
+
+})();
 </script></body>
 </html>
