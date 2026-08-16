@@ -21888,5 +21888,486 @@ ${answer}`
     "HEGEVA AI V35.3.7 Smart Follow-Up Suggestions active."
   );
 })();
+</script><!-- =========================================================
+     HEGEVA AI V35.3.8
+     SMART CHAT TITLES
+     COPY + PASTE ONLY
+     EN / HU / DE / FR / ES
+     ========================================================= -->
+
+<script>
+(() => {
+  "use strict";
+
+  const VERSION = "V35.3.8";
+
+  const DEFAULT_TITLES = [
+    "New chat",
+    "Új chat",
+    "Neuer Chat",
+    "Nouveau chat",
+    "Nuevo chat",
+    "Chat"
+  ];
+
+  const PREFIXES = [
+    "szia",
+    "hello",
+    "hi",
+    "hey",
+    "hallo",
+    "bonjour",
+    "hola",
+
+    "tudsz nekem",
+    "tudnál nekem",
+    "segíts nekem",
+    "segíts kérlek",
+    "kérlek",
+
+    "can you",
+    "could you",
+    "please",
+    "help me",
+
+    "kannst du",
+    "bitte",
+
+    "peux-tu",
+    "pouvez-vous",
+    "s'il te plaît",
+    "s'il vous plaît",
+
+    "puedes",
+    "podrías",
+    "por favor"
+  ];
+
+  function cleanText(value) {
+    return String(value || "")
+      .replace(/\s+/g, " ")
+      .replace(/[!?.,:;]+$/g, "")
+      .trim();
+  }
+
+  function removePrefix(value) {
+    let text = cleanText(value);
+
+    const lower = text.toLowerCase();
+
+    for (const prefix of PREFIXES) {
+      const p = prefix.toLowerCase();
+
+      if (
+        lower === p ||
+        lower.startsWith(p + " ")
+      ) {
+        text =
+          text
+            .slice(prefix.length)
+            .replace(/^[\s,:;-]+/, "")
+            .trim();
+
+        break;
+      }
+    }
+
+    return text;
+  }
+
+  function topicIcon(text) {
+    const value =
+      String(text || "").toLowerCase();
+
+    const rules = [
+      {
+        icon: "💷",
+        words: [
+          "money","profit","price","cost","budget","expense",
+          "pénz","profit","ár","költség","kiadás",
+          "geld","kosten","preis",
+          "argent","coût","prix",
+          "dinero","coste","precio"
+        ]
+      },
+
+      {
+        icon: "📈",
+        words: [
+          "marketing","sales","customer","growth",
+          "értékesítés","marketing","ügyfél","növekedés",
+          "verkauf","kunde","wachstum",
+          "vente","client","croissance",
+          "ventas","cliente","crecimiento"
+        ]
+      },
+
+      {
+        icon: "📋",
+        words: [
+          "plan","task","week","schedule","priority",
+          "terv","feladat","hét","időbeosztás","prioritás",
+          "aufgabe","woche","priorität",
+          "tâche","semaine","priorité",
+          "tarea","semana","prioridad"
+        ]
+      },
+
+      {
+        icon: "✉️",
+        words: [
+          "email","message","letter","reply",
+          "email","üzenet","levél","válasz",
+          "nachricht","brief",
+          "message","lettre",
+          "mensaje","carta"
+        ]
+      },
+
+      {
+        icon: "📄",
+        words: [
+          "invoice","quote","document","contract",
+          "számla","árajánlat","dokumentum","szerződés",
+          "rechnung","dokument","vertrag",
+          "facture","document","contrat",
+          "factura","documento","contrato"
+        ]
+      },
+
+      {
+        icon: "⚖️",
+        words: [
+          "compare","decision","choose",
+          "összehasonlítás","döntés","válasszak",
+          "vergleich","entscheidung",
+          "comparer","décision",
+          "comparar","decisión"
+        ]
+      },
+
+      {
+        icon: "💡",
+        words: [
+          "idea","ideas","business idea",
+          "ötlet","ötletek",
+          "idee","idée","idea"
+        ]
+      },
+
+      {
+        icon: "⏱️",
+        words: [
+          "time","faster","save time",
+          "idő","gyorsabb","időt",
+          "zeit","temps","tiempo"
+        ]
+      }
+    ];
+
+    for (const rule of rules) {
+      if (
+        rule.words.some(
+          word =>
+            value.includes(
+              word.toLowerCase()
+            )
+        )
+      ) {
+        return rule.icon;
+      }
+    }
+
+    return "💬";
+  }
+
+  function makeTitle(message) {
+    let text =
+      removePrefix(message);
+
+    if (!text) {
+      text =
+        cleanText(message);
+    }
+
+    /*
+     * Remove some question-style filler.
+     */
+
+    text = text
+      .replace(
+        /^(hogyan|hogy|how|wie|comment|cómo)\s+/i,
+        ""
+      )
+      .trim();
+
+    if (!text) {
+      text = cleanText(message);
+    }
+
+    /*
+     * Prefer a compact readable title.
+     */
+
+    const words =
+      text.split(/\s+/);
+
+    if (words.length > 7) {
+      text =
+        words
+          .slice(0, 7)
+          .join(" ");
+    }
+
+    if (text.length > 46) {
+      text =
+        text
+          .slice(0, 46)
+          .replace(/\s+\S*$/, "")
+          .trim();
+    }
+
+    /*
+     * Upper-case first letter while preserving
+     * the rest of the user's language.
+     */
+
+    if (text) {
+      text =
+        text.charAt(0).toUpperCase() +
+        text.slice(1);
+    }
+
+    return `${topicIcon(message)} ${text || "Chat"}`;
+  }
+
+  function canAutoRename(chat, message) {
+    if (!chat) return false;
+
+    const userMessages =
+      Array.isArray(chat.messages)
+        ? chat.messages.filter(
+            m => m?.role === "user"
+          )
+        : [];
+
+    /*
+     * Smart title only for the first user message.
+     */
+
+    if (userMessages.length > 1) {
+      return false;
+    }
+
+    const existing =
+      String(chat.title || "").trim();
+
+    const originalAutoTitle =
+      cleanText(message).slice(0, 42);
+
+    if (!existing) {
+      return true;
+    }
+
+    if (
+      DEFAULT_TITLES.includes(existing)
+    ) {
+      return true;
+    }
+
+    /*
+     * Existing HEGEVA automatically uses the first
+     * 42 characters. That is safe for us to upgrade.
+     */
+
+    if (
+      existing === originalAutoTitle ||
+      existing ===
+        cleanText(message)
+          .slice(0, 42)
+    ) {
+      return true;
+    }
+
+    /*
+     * Never overwrite a manually renamed chat.
+     */
+
+    return false;
+  }
+
+  function applySmartTitle(message) {
+    try {
+      if (
+        typeof ensureActiveChat !== "function" ||
+        typeof updateChat !== "function"
+      ) {
+        return;
+      }
+
+      const chat =
+        ensureActiveChat();
+
+      if (
+        !canAutoRename(
+          chat,
+          message
+        )
+      ) {
+        return;
+      }
+
+      const title =
+        makeTitle(message);
+
+      if (
+        !title ||
+        title === chat.title
+      ) {
+        return;
+      }
+
+      chat.title = title;
+
+      updateChat(chat);
+
+      if (
+        typeof renderSavedChats ===
+        "function"
+      ) {
+        renderSavedChats();
+      }
+
+      if (
+        typeof refreshCommandMetrics ===
+        "function"
+      ) {
+        refreshCommandMetrics();
+      }
+
+    } catch (error) {
+      console.warn(
+        "HEGEVA V35.3.8 title update skipped:",
+        error
+      );
+    }
+  }
+
+  function captureCurrentMessage() {
+    const input =
+      document.getElementById(
+        "aiChatInput"
+      );
+
+    const message =
+      input?.value?.trim();
+
+    if (!message) {
+      return;
+    }
+
+    /*
+     * Wait for HEGEVA's normal chat persistence
+     * to finish first.
+     */
+
+    setTimeout(
+      () => {
+        applySmartTitle(
+          message
+        );
+      },
+      450
+    );
+  }
+
+  /*
+   * Normal Send button.
+   */
+
+  document.addEventListener(
+    "click",
+    event => {
+      const send =
+        event.target.closest?.(
+          "#sendAiChat"
+        );
+
+      if (!send) {
+        return;
+      }
+
+      captureCurrentMessage();
+    },
+    true
+  );
+
+  /*
+   * Ctrl+Enter / Cmd+Enter sending.
+   */
+
+  document.addEventListener(
+    "keydown",
+    event => {
+      if (
+        event.target?.id !==
+          "aiChatInput" ||
+        event.key !==
+          "Enter" ||
+        !(
+          event.ctrlKey ||
+          event.metaKey
+        )
+      ) {
+        return;
+      }
+
+      captureCurrentMessage();
+    },
+    true
+  );
+
+  window.hegevaV3538 = {
+    version:
+      VERSION,
+
+    smartChatTitles:
+      true,
+
+    extraAiRequest:
+      false,
+
+    preservesManualRename:
+      true,
+
+    languages: [
+      "en",
+      "hu",
+      "de",
+      "fr",
+      "es"
+    ],
+
+    changesAIBackend:
+      false,
+
+    changesStripe:
+      false,
+
+    changesBilling:
+      false,
+
+    changesAuthentication:
+      false,
+
+    changesWorkspace:
+      false
+  };
+
+  console.log(
+    "HEGEVA AI V35.3.8 Smart Chat Titles active."
+  );
+
+})();
 </script></body>
 </html>
