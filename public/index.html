@@ -23882,5 +23882,686 @@ ${answer}`
   );
 
 })();
+</script><!-- =========================================================
+     HEGEVA AI V35.3.13
+     BACKUP INSPECTOR
+     FRONTEND ONLY
+     ========================================================= -->
+
+<style>
+#v35313Inspect{
+  margin-top:6px;
+  width:100%;
+  border:1px solid rgba(90,200,255,.25);
+  background:rgba(90,200,255,.06);
+  color:var(--text,#eef3ff);
+  border-radius:9px;
+  padding:8px 10px;
+  font-size:10px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+#v35313Inspect:hover{
+  border-color:rgba(246,196,83,.5);
+  background:rgba(246,196,83,.08);
+}
+
+#v35313File{
+  display:none;
+}
+
+#v35313Modal{
+  position:fixed;
+  inset:0;
+  z-index:999999;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(3,8,20,.78);
+  backdrop-filter:blur(8px);
+}
+
+#v35313Modal.show{
+  display:flex;
+}
+
+#v35313Card{
+  width:min(520px,100%);
+  max-height:85vh;
+  overflow:auto;
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:18px;
+  padding:20px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(20,32,62,.98),
+      rgba(14,25,48,.98)
+    );
+  box-shadow:0 24px 80px rgba(0,0,0,.45);
+  color:var(--text,#eef3ff);
+}
+
+#v35313Card h3{
+  margin:0 0 6px;
+  font-size:18px;
+}
+
+#v35313Card p{
+  margin:0 0 16px;
+  color:var(--muted,#9ba8c7);
+  font-size:12px;
+  line-height:1.5;
+}
+
+.v35313-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.v35313-stat{
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:12px;
+  padding:12px;
+  background:rgba(255,255,255,.035);
+}
+
+.v35313-stat span{
+  display:block;
+  color:var(--muted,#9ba8c7);
+  font-size:10px;
+  margin-bottom:5px;
+}
+
+.v35313-stat strong{
+  font-size:14px;
+}
+
+#v35313Validity{
+  margin:14px 0;
+  border-radius:12px;
+  padding:11px 12px;
+  font-size:12px;
+  font-weight:800;
+}
+
+#v35313Validity.ok{
+  border:1px solid rgba(40,210,150,.35);
+  background:rgba(40,210,150,.08);
+}
+
+#v35313Validity.bad{
+  border:1px solid rgba(255,90,90,.35);
+  background:rgba(255,90,90,.08);
+}
+
+#v35313Close{
+  width:100%;
+  border:1px solid rgba(246,196,83,.4);
+  background:rgba(246,196,83,.12);
+  color:var(--text,#eef3ff);
+  border-radius:10px;
+  padding:10px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+@media(max-width:520px){
+  .v35313-grid{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+
+<script>
+(() => {
+  "use strict";
+
+  const VERSION = "V35.3.13";
+
+  const COPY = {
+    en:{
+      inspect:"🔍 Inspect backup",
+      title:"HEGEVA Backup Inspector",
+      subtitle:"Review a backup before restoring it.",
+      valid:"✅ Valid HEGEVA chat backup",
+      invalid:"❌ This is not a valid HEGEVA chat backup",
+      created:"Created",
+      version:"Backup version",
+      chats:"Saved chats",
+      messages:"Messages",
+      pinned:"Pinned chats",
+      file:"File",
+      close:"Close",
+      unknown:"Unknown"
+    },
+
+    hu:{
+      inspect:"🔍 Mentés ellenőrzése",
+      title:"HEGEVA mentés ellenőrző",
+      subtitle:"Ellenőrizd a mentést visszaállítás előtt.",
+      valid:"✅ Érvényes HEGEVA chat mentés",
+      invalid:"❌ Ez nem érvényes HEGEVA chat mentés",
+      created:"Készült",
+      version:"Mentés verziója",
+      chats:"Mentett chatek",
+      messages:"Üzenetek",
+      pinned:"Kitűzött chatek",
+      file:"Fájl",
+      close:"Bezárás",
+      unknown:"Ismeretlen"
+    },
+
+    de:{
+      inspect:"🔍 Sicherung prüfen",
+      title:"HEGEVA Sicherungsprüfung",
+      subtitle:"Prüfe die Sicherung vor der Wiederherstellung.",
+      valid:"✅ Gültige HEGEVA-Chat-Sicherung",
+      invalid:"❌ Keine gültige HEGEVA-Chat-Sicherung",
+      created:"Erstellt",
+      version:"Sicherungsversion",
+      chats:"Gespeicherte Chats",
+      messages:"Nachrichten",
+      pinned:"Angeheftete Chats",
+      file:"Datei",
+      close:"Schließen",
+      unknown:"Unbekannt"
+    },
+
+    fr:{
+      inspect:"🔍 Vérifier la sauvegarde",
+      title:"Vérificateur de sauvegarde HEGEVA",
+      subtitle:"Vérifiez la sauvegarde avant de la restaurer.",
+      valid:"✅ Sauvegarde de chat HEGEVA valide",
+      invalid:"❌ Sauvegarde HEGEVA non valide",
+      created:"Créée",
+      version:"Version",
+      chats:"Chats enregistrés",
+      messages:"Messages",
+      pinned:"Chats épinglés",
+      file:"Fichier",
+      close:"Fermer",
+      unknown:"Inconnu"
+    },
+
+    es:{
+      inspect:"🔍 Revisar copia",
+      title:"Inspector de copias HEGEVA",
+      subtitle:"Revisa la copia antes de restaurarla.",
+      valid:"✅ Copia de chats HEGEVA válida",
+      invalid:"❌ Esta no es una copia HEGEVA válida",
+      created:"Creada",
+      version:"Versión",
+      chats:"Chats guardados",
+      messages:"Mensajes",
+      pinned:"Chats fijados",
+      file:"Archivo",
+      close:"Cerrar",
+      unknown:"Desconocido"
+    }
+  };
+
+  function language(){
+    const value = String(
+      document.getElementById("languageSelect")?.value || "en"
+    ).toLowerCase();
+
+    return COPY[value] ? value : "en";
+  }
+
+  function t(){
+    return COPY[language()];
+  }
+
+  function validBackup(data){
+    return Boolean(
+      data &&
+      typeof data === "object" &&
+      data.product === "HEGEVA AI" &&
+      data.type === "chat-backup" &&
+      Array.isArray(data.chats)
+    );
+  }
+
+  function messageCount(data){
+    if(!Array.isArray(data?.chats)){
+      return 0;
+    }
+
+    return data.chats.reduce(
+      (total,chat) =>
+        total +
+        (
+          Array.isArray(chat?.messages)
+            ? chat.messages.length
+            : 0
+        ),
+      0
+    );
+  }
+
+  function formatDate(value){
+    if(!value){
+      return t().unknown;
+    }
+
+    const date = new Date(value);
+
+    if(
+      Number.isNaN(
+        date.getTime()
+      )
+    ){
+      return t().unknown;
+    }
+
+    try{
+      return date.toLocaleString();
+    }catch{
+      return String(value);
+    }
+  }
+
+  function ensureUi(){
+    if(
+      document.getElementById(
+        "v35313Inspect"
+      )
+    ){
+      return;
+    }
+
+    const backupWrap =
+      document.getElementById(
+        "v35312BackupWrap"
+      );
+
+    if(!backupWrap){
+      return;
+    }
+
+    const inspect =
+      document.createElement("button");
+
+    inspect.id =
+      "v35313Inspect";
+
+    inspect.type =
+      "button";
+
+    inspect.textContent =
+      t().inspect;
+
+    const input =
+      document.createElement("input");
+
+    input.id =
+      "v35313File";
+
+    input.type =
+      "file";
+
+    input.accept =
+      ".json,application/json";
+
+    backupWrap.insertAdjacentElement(
+      "afterend",
+      inspect
+    );
+
+    inspect.insertAdjacentElement(
+      "afterend",
+      input
+    );
+
+    const modal =
+      document.createElement("div");
+
+    modal.id =
+      "v35313Modal";
+
+    modal.innerHTML = `
+      <div id="v35313Card">
+        <h3 id="v35313Title"></h3>
+
+        <p id="v35313Subtitle"></p>
+
+        <div id="v35313Validity"></div>
+
+        <div class="v35313-grid">
+
+          <div class="v35313-stat">
+            <span id="v35313CreatedLabel"></span>
+            <strong id="v35313Created">—</strong>
+          </div>
+
+          <div class="v35313-stat">
+            <span id="v35313VersionLabel"></span>
+            <strong id="v35313Version">—</strong>
+          </div>
+
+          <div class="v35313-stat">
+            <span id="v35313ChatsLabel"></span>
+            <strong id="v35313Chats">0</strong>
+          </div>
+
+          <div class="v35313-stat">
+            <span id="v35313MessagesLabel"></span>
+            <strong id="v35313Messages">0</strong>
+          </div>
+
+          <div class="v35313-stat">
+            <span id="v35313PinnedLabel"></span>
+            <strong id="v35313Pinned">0</strong>
+          </div>
+
+          <div class="v35313-stat">
+            <span id="v35313FileLabel"></span>
+            <strong id="v35313FileName">—</strong>
+          </div>
+
+        </div>
+
+        <div style="height:14px"></div>
+
+        <button
+          id="v35313Close"
+          type="button"
+        ></button>
+
+      </div>
+    `;
+
+    document.body.appendChild(
+      modal
+    );
+
+    inspect.addEventListener(
+      "click",
+      () => {
+        input.value = "";
+        input.click();
+      }
+    );
+
+    input.addEventListener(
+      "change",
+      () => {
+        const file =
+          input.files?.[0];
+
+        if(file){
+          inspectFile(file);
+        }
+      }
+    );
+
+    document
+      .getElementById(
+        "v35313Close"
+      )
+      ?.addEventListener(
+        "click",
+        closeModal
+      );
+
+    modal.addEventListener(
+      "click",
+      event => {
+        if(
+          event.target === modal
+        ){
+          closeModal();
+        }
+      }
+    );
+
+    document.addEventListener(
+      "keydown",
+      event => {
+        if(
+          event.key === "Escape"
+        ){
+          closeModal();
+        }
+      }
+    );
+
+    translateUi();
+  }
+
+  function translateUi(){
+    const q = id =>
+      document.getElementById(id);
+
+    if(q("v35313Inspect")){
+      q("v35313Inspect").textContent =
+        t().inspect;
+    }
+
+    if(q("v35313Title")){
+      q("v35313Title").textContent =
+        t().title;
+    }
+
+    if(q("v35313Subtitle")){
+      q("v35313Subtitle").textContent =
+        t().subtitle;
+    }
+
+    if(q("v35313CreatedLabel")){
+      q("v35313CreatedLabel").textContent =
+        t().created;
+    }
+
+    if(q("v35313VersionLabel")){
+      q("v35313VersionLabel").textContent =
+        t().version;
+    }
+
+    if(q("v35313ChatsLabel")){
+      q("v35313ChatsLabel").textContent =
+        t().chats;
+    }
+
+    if(q("v35313MessagesLabel")){
+      q("v35313MessagesLabel").textContent =
+        t().messages;
+    }
+
+    if(q("v35313PinnedLabel")){
+      q("v35313PinnedLabel").textContent =
+        t().pinned;
+    }
+
+    if(q("v35313FileLabel")){
+      q("v35313FileLabel").textContent =
+        t().file;
+    }
+
+    if(q("v35313Close")){
+      q("v35313Close").textContent =
+        t().close;
+    }
+  }
+
+  function inspectFile(file){
+    const reader =
+      new FileReader();
+
+    reader.onload = () => {
+      let data = null;
+
+      try{
+        data =
+          JSON.parse(
+            String(
+              reader.result || ""
+            )
+          );
+      }catch{}
+
+      showResult(
+        data,
+        file
+      );
+    };
+
+    reader.readAsText(file);
+  }
+
+  function showResult(data,file){
+    const valid =
+      validBackup(data);
+
+    const validity =
+      document.getElementById(
+        "v35313Validity"
+      );
+
+    validity.className =
+      valid
+        ? "ok"
+        : "bad";
+
+    validity.textContent =
+      valid
+        ? t().valid
+        : t().invalid;
+
+    document.getElementById(
+      "v35313Created"
+    ).textContent =
+      valid
+        ? formatDate(
+            data.createdAt
+          )
+        : "—";
+
+    document.getElementById(
+      "v35313Version"
+    ).textContent =
+      valid
+        ? String(
+            data.version ||
+            t().unknown
+          )
+        : "—";
+
+    document.getElementById(
+      "v35313Chats"
+    ).textContent =
+      valid
+        ? String(
+            data.chats.length
+          )
+        : "0";
+
+    document.getElementById(
+      "v35313Messages"
+    ).textContent =
+      valid
+        ? String(
+            messageCount(data)
+          )
+        : "0";
+
+    document.getElementById(
+      "v35313Pinned"
+    ).textContent =
+      valid &&
+      Array.isArray(
+        data.pinnedChats
+      )
+        ? String(
+            data.pinnedChats.length
+          )
+        : "0";
+
+    document.getElementById(
+      "v35313FileName"
+    ).textContent =
+      String(
+        file?.name ||
+        "—"
+      ).slice(0,70);
+
+    translateUi();
+
+    document
+      .getElementById(
+        "v35313Modal"
+      )
+      ?.classList.add(
+        "show"
+      );
+  }
+
+  function closeModal(){
+    document
+      .getElementById(
+        "v35313Modal"
+      )
+      ?.classList.remove(
+        "show"
+      );
+  }
+
+  function boot(){
+    ensureUi();
+
+    document
+      .getElementById(
+        "languageSelect"
+      )
+      ?.addEventListener(
+        "change",
+        () => {
+          setTimeout(
+            translateUi,
+            120
+          );
+        }
+      );
+  }
+
+  window.hegevaV35313 = {
+    version:VERSION,
+
+    backupInspector:true,
+    modifiesBackup:false,
+    modifiesChats:false,
+
+    localOnly:true,
+    extraAiRequest:false,
+
+    changesAIBackend:false,
+    changesStripe:false,
+    changesBilling:false,
+    changesAuthentication:false,
+    changesWorkspace:false
+  };
+
+  if(
+    document.readyState ===
+    "loading"
+  ){
+    document.addEventListener(
+      "DOMContentLoaded",
+      boot,
+      {once:true}
+    );
+  }else{
+    boot();
+  }
+
+  console.log(
+    "HEGEVA AI V35.3.13 Backup Inspector active."
+  );
+
+})();
 </script></body>
 </html>
