@@ -17673,5 +17673,99 @@ window.hegevaV351StripeSubscription = {
 })();
 </script>
 
-</body>
+<!-- =========================================================
+     HEGEVA AI V35.2.2
+     SAFE BILLING TEXT CLARITY
+     UI TEXT ONLY
+     ========================================================= -->
+<script>
+(() => {
+  "use strict";
+
+  const TEXT = {
+    en: {
+      subtitle: "Your HEGEVA plan and usage are verified by the backend. Stripe Sandbox is available for payment testing.",
+      notice: "Stripe Sandbox testing is connected and uses test payments only. No real card charge is enabled. Premium or Pro access is activated only after verified backend entitlement.",
+      current: "Plan and usage information comes directly from the HEGEVA backend."
+    },
+
+    hu: {
+      subtitle: "A HEGEVA csomagot és használatot a backend ellenőrzi. A Stripe Sandbox fizetési teszteléshez elérhető.",
+      notice: "A Stripe Sandbox tesztelés csatlakoztatva van, és kizárólag tesztfizetést használ. Valódi kártyaterhelés nincs engedélyezve. Premium vagy Pro hozzáférést csak ellenőrzött backend jogosultság aktiválhat.",
+      current: "A csomag- és használati adatok közvetlenül a HEGEVA backendből érkeznek."
+    },
+
+    de: {
+      subtitle: "Tarif und Nutzung werden vom HEGEVA-Backend bestätigt. Stripe Sandbox steht für Zahlungstests zur Verfügung.",
+      notice: "Stripe Sandbox ist für Testzahlungen verbunden. Es werden keine echten Karten belastet. Premium- oder Pro-Zugriff wird nur durch eine verifizierte Backend-Berechtigung aktiviert.",
+      current: "Tarif- und Nutzungsinformationen kommen direkt vom HEGEVA-Backend."
+    },
+
+    fr: {
+      subtitle: "Le forfait et l’utilisation HEGEVA sont vérifiés par le backend. Stripe Sandbox est disponible pour les tests de paiement.",
+      notice: "Stripe Sandbox est connecté uniquement pour les paiements de test. Aucun débit réel n’est activé. L’accès Premium ou Pro nécessite une autorisation vérifiée par le backend.",
+      current: "Les informations de forfait et d’utilisation proviennent directement du backend HEGEVA."
+    },
+
+    es: {
+      subtitle: "El plan y el uso de HEGEVA son verificados por el backend. Stripe Sandbox está disponible para pruebas de pago.",
+      notice: "Stripe Sandbox está conectado únicamente para pagos de prueba. No se realizan cargos reales. Premium o Pro solo se activa mediante autorización verificada del backend.",
+      current: "La información del plan y del uso proviene directamente del backend de HEGEVA."
+    }
+  };
+
+  function lang(){
+    const value =
+      document.getElementById("languageSelect")?.value || "en";
+
+    return TEXT[value] ? value : "en";
+  }
+
+  function apply(){
+    const pricing = document.getElementById("pricing");
+    if(!pricing) return;
+
+    const t = TEXT[lang()];
+
+    const subtitle =
+      pricing.querySelector('[data-i18n="plans.subtitle"]');
+
+    const notice =
+      pricing.querySelector('[data-i18n="plans.notice"]');
+
+    const currentText =
+      pricing.querySelector('[data-i18n="plans.currentText"]');
+
+    if(subtitle) subtitle.textContent = t.subtitle;
+    if(notice) notice.textContent = t.notice;
+    if(currentText) currentText.textContent = t.current;
+  }
+
+  document
+    .getElementById("languageSelect")
+    ?.addEventListener("change", () => {
+      setTimeout(apply, 150);
+      setTimeout(apply, 500);
+    });
+
+  document.addEventListener("click", event => {
+    if(event.target.closest('[data-page="pricing"]')){
+      setTimeout(apply, 100);
+      setTimeout(apply, 400);
+    }
+  });
+
+  setTimeout(apply, 400);
+  setTimeout(apply, 1200);
+
+  window.hegevaV3522BillingTextClarity = {
+    version: "V35.2.2",
+    apply,
+    changesPaymentLogic: false,
+    changesCheckout: false,
+    changesWebhook: false,
+    changesEntitlement: false
+  };
+})();
+</script></body>
 </html>
