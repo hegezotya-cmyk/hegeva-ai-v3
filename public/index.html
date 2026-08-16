@@ -18164,5 +18164,135 @@ window.hegevaV351StripeSubscription = {
     sendsAutomatically:false
   };
 })();
+</script><!-- =========================================================
+     HEGEVA AI V35.2.4
+     AI RESPONSE LANGUAGE LOCK
+     SAFE /api/chat REQUEST ENHANCEMENT
+     NO STRIPE / BILLING / ENTITLEMENT CHANGES
+     ========================================================= -->
+
+<script>
+(() => {
+  "use strict";
+
+  if (window.__hegevaV3524LanguageLockInstalled) {
+    return;
+  }
+
+  window.__hegevaV3524LanguageLockInstalled = true;
+
+  const originalFetch = window.fetch.bind(window);
+
+  const LANGUAGE_RULES = {
+    en:
+      "IMPORTANT LANGUAGE RULE: Respond only in English. Do not mix other languages into the answer unless the user explicitly asks for translation or another language.",
+
+    hu:
+      "FONTOS NYELVI SZABÁLY: Kizárólag magyarul válaszolj. Ne keverj angol vagy más nyelvű mondatokat a válaszba, kivéve ha a felhasználó kifejezetten fordítást vagy más nyelvet kér.",
+
+    de:
+      "WICHTIGE SPRACHREGEL: Antworte ausschließlich auf Deutsch. Mische keine anderen Sprachen in die Antwort, außer der Benutzer bittet ausdrücklich um eine Übersetzung oder eine andere Sprache.",
+
+    fr:
+      "RÈGLE DE LANGUE IMPORTANTE : Répondez uniquement en français. Ne mélangez pas d'autres langues dans la réponse, sauf si l'utilisateur demande explicitement une traduction ou une autre langue.",
+
+    es:
+      "REGLA DE IDIOMA IMPORTANTE: Responde únicamente en español. No mezcles otros idiomas en la respuesta, salvo que el usuario solicite explícitamente una traducción u otro idioma."
+  };
+
+  function currentLanguage() {
+    const value =
+      String(
+        document.getElementById("languageSelect")?.value || "en"
+      ).toLowerCase();
+
+    return LANGUAGE_RULES[value] ? value : "en";
+  }
+
+  function isChatRequest(input) {
+    try {
+      const url =
+        typeof input === "string"
+          ? input
+          : input?.url || "";
+
+      return (
+        url === "/api/chat" ||
+        url.endsWith("/api/chat")
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  window.fetch = async function(input, init = {}) {
+
+    if (!isChatRequest(input)) {
+      return originalFetch(input, init);
+    }
+
+    try {
+      const language = currentLanguage();
+
+      const body =
+        typeof init.body === "string"
+          ? JSON.parse(init.body)
+          : null;
+
+      if (!body || typeof body !== "object") {
+        return originalFetch(input, init);
+      }
+
+      const originalMessage =
+        String(body.message || "").trim();
+
+      if (!originalMessage) {
+        return originalFetch(input, init);
+      }
+
+      const languageRule =
+        LANGUAGE_RULES[language];
+
+      body.language = language;
+
+      body.message =
+        `${languageRule}\n\nUSER MESSAGE:\n${originalMessage}`;
+
+      const nextInit = {
+        ...init,
+        body: JSON.stringify(body)
+      };
+
+      return originalFetch(
+        input,
+        nextInit
+      );
+
+    } catch (error) {
+
+      console.warn(
+        "HEGEVA V35.2.4 language lock fallback:",
+        error
+      );
+
+      return originalFetch(
+        input,
+        init
+      );
+    }
+  };
+
+  window.hegevaV3524LanguageLock = {
+    version: "V35.2.4",
+    enabled: true,
+    target: "/api/chat",
+    changesStripe: false,
+    changesBilling: false,
+    changesWebhook: false,
+    changesEntitlement: false,
+    handlesCardData: false
+  };
+
+})();
 </script></body>
 </html>
