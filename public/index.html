@@ -23320,5 +23320,567 @@ ${answer}`
     "HEGEVA AI V35.3.11 Smart Chat Search active."
   );
 })();
+</script><!-- =========================================================
+     HEGEVA AI V35.3.12
+     CHAT BACKUP + RESTORE
+     FRONTEND ONLY
+     ========================================================= -->
+
+<style>
+#v35312BackupWrap{
+  display:flex;
+  gap:6px;
+  margin-top:10px;
+  flex-wrap:wrap;
+}
+
+.v35312-btn{
+  flex:1 1 100px;
+  border:1px solid rgba(255,255,255,.13);
+  background:rgba(255,255,255,.045);
+  color:var(--text,#eef3ff);
+  border-radius:9px;
+  padding:8px 9px;
+  font-size:10px;
+  font-weight:800;
+  cursor:pointer;
+  transition:.18s ease;
+}
+
+.v35312-btn:hover{
+  border-color:rgba(246,196,83,.48);
+  background:rgba(246,196,83,.08);
+}
+
+#v35312RestoreInput{
+  display:none;
+}
+</style>
+
+<script>
+(() => {
+  "use strict";
+
+  const VERSION = "V35.3.12";
+
+  const COPY = {
+    en:{
+      backup:"⬇ Backup chats",
+      restore:"⬆ Restore",
+      success:"Chat backup restored.",
+      invalid:"This is not a valid HEGEVA chat backup.",
+      confirm:"Restore chats from this backup? Existing saved chats may be replaced."
+    },
+
+    hu:{
+      backup:"⬇ Chat mentés",
+      restore:"⬆ Visszaállítás",
+      success:"A chat mentés visszaállítva.",
+      invalid:"Ez nem érvényes HEGEVA chat mentés.",
+      confirm:"Visszaállítod a chateket ebből a mentésből? A jelenlegi mentett chatek lecserélődhetnek."
+    },
+
+    de:{
+      backup:"⬇ Chats sichern",
+      restore:"⬆ Wiederherstellen",
+      success:"Chat-Sicherung wiederhergestellt.",
+      invalid:"Dies ist keine gültige HEGEVA-Chat-Sicherung.",
+      confirm:"Chats aus dieser Sicherung wiederherstellen? Bestehende gespeicherte Chats können ersetzt werden."
+    },
+
+    fr:{
+      backup:"⬇ Sauvegarder",
+      restore:"⬆ Restaurer",
+      success:"Sauvegarde des chats restaurée.",
+      invalid:"Ce fichier n'est pas une sauvegarde HEGEVA valide.",
+      confirm:"Restaurer les chats depuis cette sauvegarde ? Les chats enregistrés actuels peuvent être remplacés."
+    },
+
+    es:{
+      backup:"⬇ Copia chats",
+      restore:"⬆ Restaurar",
+      success:"Copia de chats restaurada.",
+      invalid:"Este archivo no es una copia válida de HEGEVA.",
+      confirm:"¿Restaurar los chats desde esta copia? Los chats guardados actuales pueden ser reemplazados."
+    }
+  };
+
+  function language(){
+    const value = String(
+      document.getElementById("languageSelect")?.value || "en"
+    ).toLowerCase();
+
+    return COPY[value] ? value : "en";
+  }
+
+  function labels(){
+    return COPY[language()];
+  }
+
+  function chats(){
+    try{
+      if(typeof getSavedChats === "function"){
+        const result = getSavedChats();
+        return Array.isArray(result) ? result : [];
+      }
+    }catch{}
+
+    return [];
+  }
+
+  function pins(){
+    try{
+      const result = JSON.parse(
+        localStorage.getItem(
+          "hegeva_v3539_pinned_chats"
+        ) || "[]"
+      );
+
+      return Array.isArray(result)
+        ? result
+        : [];
+    }catch{
+      return [];
+    }
+  }
+
+  function downloadBackup(){
+    const data = {
+      product:"HEGEVA AI",
+      type:"chat-backup",
+      version:VERSION,
+      createdAt:new Date().toISOString(),
+      chats:chats(),
+      pinnedChats:pins()
+    };
+
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          data,
+          null,
+          2
+        )
+      ],
+      {
+        type:"application/json;charset=utf-8"
+      }
+    );
+
+    const url =
+      URL.createObjectURL(blob);
+
+    const link =
+      document.createElement("a");
+
+    const stamp =
+      new Date()
+        .toISOString()
+        .slice(0,10);
+
+    link.href = url;
+
+    link.download =
+      `hegeva-chat-backup-${stamp}.json`;
+
+    document.body.appendChild(link);
+
+    link.click();
+    link.remove();
+
+    URL.revokeObjectURL(url);
+  }
+
+  function validBackup(data){
+    return Boolean(
+      data &&
+      typeof data === "object" &&
+      data.product === "HEGEVA AI" &&
+      data.type === "chat-backup" &&
+      Array.isArray(data.chats)
+    );
+  }
+
+  function restoreBackup(data){
+    if(!validBackup(data)){
+      alert(labels().invalid);
+      return;
+    }
+
+    if(!confirm(labels().confirm)){
+      return;
+    }
+
+    try{
+      if(typeof saveChats !== "function"){
+        throw new Error(
+          "saveChats unavailable"
+        );
+      }
+
+      /*
+       * Basic structural cleanup.
+       * We only restore expected chat fields.
+       */
+
+      const cleanChats =
+        data.chats
+          .filter(
+            chat =>
+              chat &&
+              typeof chat === "object" &&
+              chat.id
+          )
+          .slice(0,50)
+          .map(chat => ({
+            id:String(chat.id),
+
+            title:
+              String(
+                chat.title ||
+                "Chat"
+              ).slice(0,100),
+
+            messages:
+              Array.isArray(chat.messages)
+                ? chat.messages
+                    .filter(
+                      message =>
+                        message &&
+                        (
+                          message.role === "user" ||
+                          message.role === "assistant"
+                        )
+                    )
+                    .slice(-50)
+                    .map(
+                      message => ({
+                        role:
+                          message.role,
+
+                        content:
+                          String(
+                            message.content ||
+                            ""
+                          ).slice(0,20000)
+                      })
+                    )
+                : [],
+
+            createdAt:
+              Number(chat.createdAt) ||
+              Date.now()
+          }));
+
+      saveChats(cleanChats);
+
+      const restoredPins =
+        Array.isArray(
+          data.pinnedChats
+        )
+          ? data.pinnedChats
+              .map(String)
+              .filter(
+                id =>
+                  cleanChats.some(
+                    chat =>
+                      chat.id === id
+                  )
+              )
+          : [];
+
+      localStorage.setItem(
+        "hegeva_v3539_pinned_chats",
+        JSON.stringify(
+          restoredPins
+        )
+      );
+
+      /*
+       * Set first restored chat active.
+       */
+
+      if(cleanChats.length){
+        try{
+          const first =
+            cleanChats[0];
+
+          if(
+            typeof ACTIVE_CHAT_KEY !==
+            "undefined"
+          ){
+            localStorage.setItem(
+              ACTIVE_CHAT_KEY,
+              first.id
+            );
+          }
+        }catch{}
+      }
+
+      if(
+        typeof renderSavedChats ===
+        "function"
+      ){
+        renderSavedChats();
+      }
+
+      if(
+        typeof renderCurrentChat ===
+        "function"
+      ){
+        renderCurrentChat();
+      }
+
+      if(
+        typeof refreshCommandMetrics ===
+        "function"
+      ){
+        refreshCommandMetrics();
+      }
+
+      setTimeout(() => {
+        if(
+          typeof window.hegevaV3539 !==
+          "undefined"
+        ){
+          /*
+           * Pinned Chats MutationObserver
+           * will refresh the pin display.
+           */
+        }
+      },100);
+
+      alert(labels().success);
+
+    }catch(error){
+      console.error(
+        "HEGEVA chat restore error:",
+        error
+      );
+
+      alert(labels().invalid);
+    }
+  }
+
+  function handleFile(file){
+    if(!file){
+      return;
+    }
+
+    const reader =
+      new FileReader();
+
+    reader.onload = () => {
+      try{
+        const data =
+          JSON.parse(
+            String(
+              reader.result ||
+              ""
+            )
+          );
+
+        restoreBackup(data);
+
+      }catch(error){
+        console.warn(
+          "Invalid HEGEVA backup:",
+          error
+        );
+
+        alert(
+          labels().invalid
+        );
+      }
+    };
+
+    reader.readAsText(file);
+  }
+
+  function ensureControls(){
+    if(
+      document.getElementById(
+        "v35312BackupWrap"
+      )
+    ){
+      return;
+    }
+
+    const list =
+      document.getElementById(
+        "savedChatsList"
+      );
+
+    if(!list){
+      return;
+    }
+
+    const wrap =
+      document.createElement("div");
+
+    wrap.id =
+      "v35312BackupWrap";
+
+    const backup =
+      document.createElement("button");
+
+    backup.type =
+      "button";
+
+    backup.id =
+      "v35312Backup";
+
+    backup.className =
+      "v35312-btn";
+
+    backup.textContent =
+      labels().backup;
+
+    const restore =
+      document.createElement("button");
+
+    restore.type =
+      "button";
+
+    restore.id =
+      "v35312Restore";
+
+    restore.className =
+      "v35312-btn";
+
+    restore.textContent =
+      labels().restore;
+
+    const file =
+      document.createElement("input");
+
+    file.type =
+      "file";
+
+    file.accept =
+      ".json,application/json";
+
+    file.id =
+      "v35312RestoreInput";
+
+    backup.addEventListener(
+      "click",
+      downloadBackup
+    );
+
+    restore.addEventListener(
+      "click",
+      () => {
+        file.value = "";
+        file.click();
+      }
+    );
+
+    file.addEventListener(
+      "change",
+      () => {
+        handleFile(
+          file.files?.[0]
+        );
+      }
+    );
+
+    wrap.appendChild(
+      backup
+    );
+
+    wrap.appendChild(
+      restore
+    );
+
+    wrap.appendChild(
+      file
+    );
+
+    /*
+     * Place directly below the saved chat list.
+     */
+
+    list.insertAdjacentElement(
+      "afterend",
+      wrap
+    );
+  }
+
+  function translateControls(){
+    const backup =
+      document.getElementById(
+        "v35312Backup"
+      );
+
+    const restore =
+      document.getElementById(
+        "v35312Restore"
+      );
+
+    if(backup){
+      backup.textContent =
+        labels().backup;
+    }
+
+    if(restore){
+      restore.textContent =
+        labels().restore;
+    }
+  }
+
+  function boot(){
+    ensureControls();
+
+    document
+      .getElementById(
+        "languageSelect"
+      )
+      ?.addEventListener(
+        "change",
+        () => {
+          setTimeout(
+            translateControls,
+            120
+          );
+        }
+      );
+  }
+
+  window.hegevaV35312 = {
+    version:VERSION,
+
+    chatBackup:true,
+    chatRestore:true,
+    pinnedChatsIncluded:true,
+
+    localOnly:true,
+    extraAiRequest:false,
+
+    changesAIBackend:false,
+    changesStripe:false,
+    changesBilling:false,
+    changesAuthentication:false,
+    changesWorkspace:false
+  };
+
+  if(
+    document.readyState ===
+    "loading"
+  ){
+    document.addEventListener(
+      "DOMContentLoaded",
+      boot,
+      {once:true}
+    );
+  }else{
+    boot();
+  }
+
+  console.log(
+    "HEGEVA AI V35.3.12 Chat Backup & Restore active."
+  );
+
+})();
 </script></body>
 </html>
