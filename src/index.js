@@ -1,152 +1,146 @@
-set -e
+import { createAuth, getLoggedInUser } from "./auth.js";
 
-echo "Restoring last working src/index.js..."
-git show HEAD~1:src/index.js > src/index.js
+const AI_MODEL = "@cf/meta/llama-3.1-8b-instruct";
 
-python3 <<'PY'
-from pathlib import Path
+function jsonResponse(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8"
+    }
+  });
+}
 
-path = Path("src/index.js")
-code = path.read_text(encoding="utf-8")
+function cleanResponseText(value = "") {
+  let output = String(value || "");
 
-# ============================================================
-# HEGEVA AI V35.3.4
-# FRESH CONVERSATION CORE
-# ============================================================
+  output = output
+    .replace(/^\s*(?:HEGEVA AI\s*)?(?:VÁLASZA|RESPONSE|ANSWER|ANTWORT|RÉPONSE|RESPUESTA)\s*:?\s*/i, "")
+    .replace(/^\s*HEGEVA AI\s+válasza\s*:?\s*/i, "")
+    .replace(/^\s*HEGEVA AI\s+response\s*:?\s*/i, "")
+    .replace(/^\s*HEGEVA AI[\s:-]+/i, "")
+    .replace(/\r\n/g, "\n")
+    .trim();
 
-start_marker = "        const rawHistory ="
-end_marker = """        // =========================================
-        // HEGEVA AI V35.3.3 — CLEAN AI CORE"""
+  return output;
+}
 
-start = code.find(start_marker)
-end = code.find(end_marker, start)
+function buildChatMessages({ message, businessContext, language, mode }) {
+  const contextBlock = String(businessContext || "").trim();
 
-if start == -1 or end == -1:
-    raise SystemExit(
-        "ERROR: V35.3.3 history block not found. Nothing changed."
-    )
+  const userContent = [
+    `Language: ${String(language || "en").trim() || "en"}`,
+    `Mode: ${String(mode || "general").trim() || "general"}`,
+    contextBlock ? `Business context:\n${contextBlock}` : "",
+    `User message:\n${String(message || "").trim()}`
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
-replacement = """        // =========================================
-        // HEGEVA AI V35.3.4 — FRESH CONVERSATION CORE
-        // Old contaminated history is intentionally ignored.
-        // =========================================
+  return [
+    {
+      role: "system",
+      content:
+        "You are HEGEVA AI, a practical business assistant. Keep replies concise, clear, and business-appropriate. Do not add labels such as 'HEGEVA AI RESPONSE' or 'HEGEVA AI VÁLASZA'. If the user asks for a language, follow it."
+    },
+    {
+      role: "user",
+      content: userContent
+    }
+  ];
+}
 
-        const safeHistory = [];
+async function runHegevaAi(env, messages) {
+  if (!env?.AI) {
+    throw new Error("AI binding is not configured.");
+  }
 
-"""
+  const aiResult = await env.AI.run(AI_MODEL, {
+    messages,
+    max_tokens: 700,
+    temperature: 0.7
+  });
 
-code = code[:start] + replacement + code[end:]
+  const text =
+    aiResult?.response ||
+    aiResult?.result ||
+    aiResult?.answer ||
+    aiResult?.output ||
+    aiResult?.message ||
+    aiResult?.choices?.[0]?.message?.content ||
+    "";
 
+  return cleanResponseText(text) || "I could not generate a clear response. Please try again.";
+}
 
-# ------------------------------------------------------------
-# Remove old history injection from AI messages.
-# Only SYSTEM + CURRENT USER MESSAGE will be sent.
-# ------------------------------------------------------------
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
 
-loop_start_marker = "        for (const item of safeHistory) {"
+    if (url.pathname.startsWith("/api/auth") || url.pathname.startsWith("/auth")) {
+      const auth = createAuth(env, request, ctx);
+      return auth.handler(request);
+    }
 
-user_marker = """        messages.push({
-          role: "user",
-          content: message
-        });"""
+    if (url.pathname === "/api/user") {
+      const user = await getLoggedInUser(request, env, ctx);
+      return jsonResponse({ user: user ? { id: user.id, email: user.email, name: user.name } : null });
+    }
 
-loop_start = code.find(loop_start_marker)
-user_start = code.find(user_marker, loop_start)
+    if (url.pathname === "/api/chat") {
+      if (request.method !== "POST") {
+        return jsonResponse({ error: "Method not allowed." }, 405);
+      }
 
-if loop_start != -1 and user_start != -1:
-    code = (
-        code[:loop_start]
-        + user_marker
-        + code[user_start + len(user_marker):]
-    )
+      try {
+        const body = await request.json().catch(() => ({}));
+        const message = String(body?.message || "").trim();
 
-
-# ------------------------------------------------------------
-# Improve server-side cleanup.
-# If the model writes "HEGEVA AI válasza:",
-# keep the actual answer AFTER that label.
-# ------------------------------------------------------------
-
-needle = """        let aiResponse =
-          typeof result?.response === "string"
-            ? result.response.trim()
-            : "";
-
-        // Defensive cleanup for obvious model-control leakage."""
-
-replacement_cleanup = """        let aiResponse =
-          typeof result?.response === "string"
-            ? result.response.trim()
-            : "";
-
-        // =========================================
-        // V35.3.4 RESPONSE NORMALIZER
-        // =========================================
-
-        const answerLabel =
-          /(?:^|\\\\n)\\\\s*HEGEVA AI\\\\s+(?:VÁLASZA|RESPONSE|ANSWER|ANTWORT|RÉPONSE|RESPUESTA)\\\\s*:\\\\s*/i.exec(
-            aiResponse
-          );
-
-        if (answerLabel) {
-          aiResponse =
-            aiResponse
-              .slice(
-                answerLabel.index +
-                answerLabel[0].length
-              )
-              .trim();
+        if (!message) {
+          return jsonResponse({ error: "Missing message." }, 400);
         }
 
-        // Defensive cleanup for obvious model-control leakage."""
+        const safeHistory = [];
+        const messages = buildChatMessages({
+          message,
+          businessContext: body?.businessContext || "",
+          language: body?.language || "en",
+          mode: body?.mode || "general"
+        });
 
-if needle not in code:
-    raise SystemExit(
-        "ERROR: AI response block not found. Nothing changed."
-    )
+        if (Array.isArray(body?.history) && body.history.length > 0) {
+          safeHistory.push(...body.history.slice(-1));
+        }
 
-code = code.replace(
-    needle,
-    replacement_cleanup,
-    1
-)
+        const responseText = await runHegevaAi(env, messages);
+
+        return jsonResponse({
+          response: responseText,
+          history: safeHistory,
+          status: "ok"
+        });
+      } catch (error) {
+        console.error("HEGEVA chat error:", error);
+        return jsonResponse(
+          {
+            error: error?.message || "AI request failed.",
+            response: "AI request failed. Please try again."
+          },
+          500
+        );
+      }
+    }
+
+    if (url.pathname.startsWith("/api/")) {
+      return jsonResponse({ error: "Not found." }, 404);
+    }
+
+    if (env?.ASSETS?.fetch) {
+      return env.ASSETS.fetch(request);
+    }
+
+    return new Response("Not found", { status: 404 });
+  }
+};
 
 
-# ------------------------------------------------------------
-# Update version
-# ------------------------------------------------------------
-
-code = code.replace(
-    "HEGEVA AI V35.3.3 — CLEAN AI CORE",
-    "HEGEVA AI V35.3.4 — FRESH CONVERSATION CORE"
-)
-
-code = code.replace(
-    '"V35.3.3"',
-    '"V35.3.4"'
-)
-
-path.write_text(
-    code,
-    encoding="utf-8"
-)
-
-print("")
-print("✅ HEGEVA AI V35.3.4 INSTALLED")
-print("✅ Broken Terminal text removed from src/index.js")
-print("✅ Old AI history disabled")
-print("✅ Only current user request sent to AI")
-print("✅ HEGEVA AI response-label cleanup improved")
-print("✅ Stripe untouched")
-print("✅ Authentication untouched")
-print("✅ D1 untouched")
-print("✅ Workspace untouched")
-print("")
-PY
-
-echo "Checking JavaScript..."
-node --check src/index.js
-
-echo ""
-echo "✅ SUCCESS — src/index.js syntax is valid"
-echo "✅ READY TO COMMIT"
