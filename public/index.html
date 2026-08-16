@@ -24563,5 +24563,548 @@ ${answer}`
   );
 
 })();
+</script><!-- =========================================================
+     HEGEVA AI V35.3.14
+     SMART CHAT SUMMARY
+     FRONTEND ONLY
+     EN / HU / DE / FR / ES
+     ========================================================= -->
+
+<style>
+#v35314SummaryButton{
+  width:100%;
+  margin-top:7px;
+  border:1px solid rgba(155,108,255,.32);
+  background:rgba(155,108,255,.08);
+  color:var(--text,#eef3ff);
+  border-radius:9px;
+  padding:9px 10px;
+  font-size:10px;
+  font-weight:850;
+  cursor:pointer;
+  transition:.18s ease;
+}
+
+#v35314SummaryButton:hover{
+  border-color:rgba(246,196,83,.50);
+  background:rgba(246,196,83,.08);
+}
+
+#v35314SummaryButton:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+#v35314Status{
+  min-height:14px;
+  margin-top:5px;
+  color:var(--muted,#9ba8c7);
+  font-size:10px;
+}
+</style>
+
+<script>
+(() => {
+  "use strict";
+
+  const VERSION = "V35.3.14";
+
+  const COPY = {
+    en:{
+      button:"📝 Summarise this chat",
+      empty:"There is not enough conversation to summarise yet.",
+      ready:"Summary request added.",
+      working:"Preparing summary...",
+      prompt:
+`Summarise the conversation below.
+
+Requirements:
+- Use clear bullet points.
+- Separate key facts, decisions, open questions and next actions.
+- Do not invent information.
+- Keep it concise and practical.
+- Answer only in English.
+
+CONVERSATION:`
+    },
+
+    hu:{
+      button:"📝 Chat összefoglalása",
+      empty:"Még nincs elég beszélgetés az összefoglaláshoz.",
+      ready:"Az összefoglaló kérés elküldve.",
+      working:"Összefoglaló készítése...",
+      prompt:
+`Foglald össze az alábbi beszélgetést.
+
+Követelmények:
+- Használj világos felsorolást.
+- Különítsd el a fontos tényeket, döntéseket, nyitott kérdéseket és következő lépéseket.
+- Ne találj ki információt.
+- Legyen rövid és gyakorlatias.
+- Kizárólag magyarul válaszolj.
+
+BESZÉLGETÉS:`
+    },
+
+    de:{
+      button:"📝 Chat zusammenfassen",
+      empty:"Es gibt noch nicht genug Gespräch für eine Zusammenfassung.",
+      ready:"Zusammenfassungsanfrage gesendet.",
+      working:"Zusammenfassung wird vorbereitet...",
+      prompt:
+`Fasse die folgende Unterhaltung zusammen.
+
+Anforderungen:
+- Verwende klare Stichpunkte.
+- Trenne wichtige Fakten, Entscheidungen, offene Fragen und nächste Schritte.
+- Erfinde keine Informationen.
+- Halte die Zusammenfassung kurz und praktisch.
+- Antworte ausschließlich auf Deutsch.
+
+UNTERHALTUNG:`
+    },
+
+    fr:{
+      button:"📝 Résumer le chat",
+      empty:"Il n'y a pas encore assez de conversation à résumer.",
+      ready:"Demande de résumé envoyée.",
+      working:"Préparation du résumé...",
+      prompt:
+`Résume la conversation ci-dessous.
+
+Exigences :
+- Utilise des puces claires.
+- Sépare les faits importants, décisions, questions ouvertes et prochaines actions.
+- N'invente aucune information.
+- Reste concis et pratique.
+- Réponds uniquement en français.
+
+CONVERSATION :`
+    },
+
+    es:{
+      button:"📝 Resumir chat",
+      empty:"Todavía no hay suficiente conversación para resumir.",
+      ready:"Solicitud de resumen enviada.",
+      working:"Preparando resumen...",
+      prompt:
+`Resume la conversación siguiente.
+
+Requisitos:
+- Usa viñetas claras.
+- Separa hechos importantes, decisiones, preguntas abiertas y próximos pasos.
+- No inventes información.
+- Mantén el resumen breve y práctico.
+- Responde únicamente en español.
+
+CONVERSACIÓN:`
+    }
+  };
+
+  let busy = false;
+
+  function language(){
+    const value = String(
+      document.getElementById("languageSelect")?.value ||
+      localStorage.getItem("hegeva_language") ||
+      "en"
+    ).toLowerCase();
+
+    return COPY[value]
+      ? value
+      : "en";
+  }
+
+  function t(){
+    return COPY[language()];
+  }
+
+  function getCurrentMessages(){
+    /*
+     * Preferred source:
+     * HEGEVA's saved active chat.
+     */
+
+    try{
+      if(
+        typeof ensureActiveChat ===
+        "function"
+      ){
+        const chat =
+          ensureActiveChat();
+
+        if(
+          Array.isArray(
+            chat?.messages
+          )
+        ){
+          return chat.messages;
+        }
+      }
+    }catch{}
+
+    /*
+     * Visual fallback.
+     */
+
+    const wrap =
+      document.getElementById(
+        "aiChatMessages"
+      );
+
+    if(!wrap){
+      return [];
+    }
+
+    const messages = [];
+
+    wrap
+      .querySelectorAll(
+        ".coming-item"
+      )
+      .forEach(box => {
+        const title =
+          box.querySelector(
+            ":scope > strong"
+          )
+          ?.textContent
+          ?.trim();
+
+        const body =
+          Array.from(
+            box.children
+          )
+          .find(element =>
+            element.tagName === "DIV" &&
+            !element.classList.contains(
+              "chat-actions"
+            ) &&
+            !element.classList.contains(
+              "v3530-actions"
+            ) &&
+            !element.classList.contains(
+              "hegeva-v3537-followups"
+            )
+          );
+
+        const content =
+          body?.innerText?.trim();
+
+        if(!content){
+          return;
+        }
+
+        messages.push({
+          role:
+            title === "HEGEVA AI"
+              ? "assistant"
+              : "user",
+
+          content
+        });
+      });
+
+    return messages;
+  }
+
+  function cleanMessages(messages){
+    return messages
+      .filter(message =>
+        message &&
+        (
+          message.role === "user" ||
+          message.role === "assistant"
+        ) &&
+        typeof message.content ===
+          "string" &&
+        message.content.trim()
+      )
+      .slice(-16)
+      .map(message => ({
+        role:message.role,
+        content:
+          message.content
+            .trim()
+            .slice(0,2500)
+      }));
+  }
+
+  function buildTranscript(){
+    const messages =
+      cleanMessages(
+        getCurrentMessages()
+      );
+
+    if(messages.length < 2){
+      return "";
+    }
+
+    return messages
+      .map(message => {
+        const speaker =
+          message.role ===
+            "assistant"
+            ? "HEGEVA AI"
+            : "USER";
+
+        return `${speaker}:\n${message.content}`;
+      })
+      .join("\n\n");
+  }
+
+  function status(message){
+    const element =
+      document.getElementById(
+        "v35314Status"
+      );
+
+    if(element){
+      element.textContent =
+        message || "";
+    }
+  }
+
+  function sendSummary(){
+    if(busy){
+      return;
+    }
+
+    const transcript =
+      buildTranscript();
+
+    if(!transcript){
+      status(
+        t().empty
+      );
+
+      return;
+    }
+
+    const input =
+      document.getElementById(
+        "aiChatInput"
+      );
+
+    const send =
+      document.getElementById(
+        "sendAiChat"
+      );
+
+    if(
+      !input ||
+      !send
+    ){
+      return;
+    }
+
+    busy = true;
+
+    const button =
+      document.getElementById(
+        "v35314SummaryButton"
+      );
+
+    if(button){
+      button.disabled = true;
+    }
+
+    status(
+      t().working
+    );
+
+    const prompt =
+      `${t().prompt}
+
+${transcript}`;
+
+    /*
+     * Safety cap:
+     * avoid creating an oversized AI request.
+     */
+
+    input.value =
+      prompt.slice(
+        0,
+        10000
+      );
+
+    input.dispatchEvent(
+      new Event(
+        "input",
+        {
+          bubbles:true
+        }
+      )
+    );
+
+    /*
+     * Use the existing HEGEVA send flow.
+     * No new backend endpoint.
+     */
+
+    setTimeout(
+      () => {
+        send.click();
+
+        status(
+          t().ready
+        );
+
+        busy = false;
+
+        if(button){
+          button.disabled =
+            false;
+        }
+      },
+      80
+    );
+  }
+
+  function ensureControls(){
+    if(
+      document.getElementById(
+        "v35314SummaryButton"
+      )
+    ){
+      return;
+    }
+
+    /*
+     * Put the button near the existing
+     * Backup / Restore tools if available.
+     */
+
+    const target =
+      document.getElementById(
+        "v35313Inspect"
+      ) ||
+      document.getElementById(
+        "v35312BackupWrap"
+      ) ||
+      document.getElementById(
+        "savedChatsList"
+      );
+
+    if(!target){
+      return;
+    }
+
+    const button =
+      document.createElement(
+        "button"
+      );
+
+    button.id =
+      "v35314SummaryButton";
+
+    button.type =
+      "button";
+
+    button.textContent =
+      t().button;
+
+    const state =
+      document.createElement(
+        "div"
+      );
+
+    state.id =
+      "v35314Status";
+
+    target.insertAdjacentElement(
+      "afterend",
+      button
+    );
+
+    button.insertAdjacentElement(
+      "afterend",
+      state
+    );
+
+    button.addEventListener(
+      "click",
+      sendSummary
+    );
+  }
+
+  function translate(){
+    const button =
+      document.getElementById(
+        "v35314SummaryButton"
+      );
+
+    if(button){
+      button.textContent =
+        t().button;
+    }
+
+    status("");
+  }
+
+  function boot(){
+    ensureControls();
+
+    document
+      .getElementById(
+        "languageSelect"
+      )
+      ?.addEventListener(
+        "change",
+        () => {
+          setTimeout(
+            translate,
+            120
+          );
+        }
+      );
+  }
+
+  window.hegevaV35314 = {
+    version:VERSION,
+
+    smartChatSummary:true,
+
+    manualOnly:true,
+
+    usesExistingAIEndpoint:true,
+
+    noBackgroundAiUsage:true,
+
+    languages:[
+      "en",
+      "hu",
+      "de",
+      "fr",
+      "es"
+    ],
+
+    changesAIBackend:false,
+    changesStripe:false,
+    changesBilling:false,
+    changesAuthentication:false,
+    changesWorkspace:false
+  };
+
+  if(
+    document.readyState ===
+    "loading"
+  ){
+    document.addEventListener(
+      "DOMContentLoaded",
+      boot,
+      {
+        once:true
+      }
+    );
+  }else{
+    boot();
+  }
+
+  console.log(
+    "HEGEVA AI V35.3.14 Smart Chat Summary active."
+  );
+
+})();
 </script></body>
 </html>
