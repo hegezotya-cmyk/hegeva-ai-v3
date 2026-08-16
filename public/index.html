@@ -20716,5 +20716,468 @@ ${answer}`
     "HEGEVA AI V35.3.0 Smart Actions active."
   );
 })();
+</script><!-- =========================================================
+     HEGEVA AI V35.3.1
+     CLEAN CHAT REQUEST + PROMPT LEAK GUARD
+     COPY + PASTE ONLY
+     ========================================================= -->
+
+<script>
+(() => {
+  "use strict";
+
+  const VERSION = "V35.3.1";
+
+  const FALLBACK = {
+    en: "I couldn't generate a clean answer. Please try again.",
+    hu: "Nem sikerült tiszta választ generálnom. Kérlek, próbáld újra.",
+    de: "Ich konnte keine saubere Antwort erzeugen. Bitte versuche es erneut.",
+    fr: "Je n’ai pas pu générer une réponse correcte. Veuillez réessayer.",
+    es: "No pude generar una respuesta limpia. Inténtalo de nuevo."
+  };
+
+  function currentLanguage() {
+    const value =
+      String(
+        document.getElementById("languageSelect")?.value ||
+        localStorage.getItem("hegeva_language") ||
+        "en"
+      ).toLowerCase();
+
+    return ["en","hu","de","fr","es"].includes(value)
+      ? value
+      : "en";
+  }
+
+  /*
+   * =========================================================
+   * 1. CLEAN THE REQUEST BEFORE IT REACHES /api/chat
+   * =========================================================
+   *
+   * V35.2.8 sends:
+   *
+   * language instruction
+   * USER REQUEST:
+   * actual message
+   *
+   * This patch removes that wrapper and sends ONLY the
+   * user's real message. The language still travels in the
+   * separate "language" field.
+   */
+
+  const originalOpen =
+    XMLHttpRequest.prototype.open;
+
+  const originalSend =
+    XMLHttpRequest.prototype.send;
+
+  XMLHttpRequest.prototype.open =
+    function(method, url, ...rest) {
+
+      this.__hegevaV3531Chat =
+        String(url || "").includes("/api/chat");
+
+      return originalOpen.call(
+        this,
+        method,
+        url,
+        ...rest
+      );
+    };
+
+  XMLHttpRequest.prototype.send =
+    function(body) {
+
+      if (
+        this.__hegevaV3531Chat &&
+        typeof body === "string"
+      ) {
+        try {
+          const payload =
+            JSON.parse(body);
+
+          if (
+            payload &&
+            typeof payload.message === "string"
+          ) {
+            let message =
+              payload.message.trim();
+
+            /*
+             * Extract everything after USER REQUEST:
+             * if the older V35.2.8 wrapper is present.
+             */
+
+            const marker =
+              "USER REQUEST:";
+
+            const position =
+              message.lastIndexOf(marker);
+
+            if (position !== -1) {
+              message =
+                message
+                  .slice(
+                    position +
+                    marker.length
+                  )
+                  .trim();
+            }
+
+            /*
+             * Remove obvious leaked control wording
+             * if an earlier patch added it.
+             */
+
+            message =
+              message
+                .replace(
+                  /^(answer|respond).*?(english|hungarian|german|french|spanish).*?\n+/i,
+                  ""
+                )
+                .trim();
+
+            payload.message =
+              message;
+
+            /*
+             * Keep language separate.
+             */
+
+            payload.language =
+              currentLanguage();
+
+            /*
+             * Keep history clean for now.
+             */
+
+            payload.history = [];
+
+            body =
+              JSON.stringify(payload);
+          }
+        } catch {}
+      }
+
+      return originalSend.call(
+        this,
+        body
+      );
+    };
+
+
+  /*
+   * =========================================================
+   * 2. RESPONSE CLEANER
+   * =========================================================
+   */
+
+  function cleanText(value) {
+
+    let text =
+      String(value || "")
+        .replace(/\r/g, "")
+        .trim();
+
+    if (!text) {
+      return "";
+    }
+
+    const lines =
+      text.split("\n");
+
+    const cleaned = [];
+
+    const seen =
+      new Set();
+
+    for (
+      let rawLine of lines
+    ) {
+
+      let line =
+        rawLine.trim();
+
+      if (!line) {
+        cleaned.push("");
+        continue;
+      }
+
+      /*
+       * Block obvious model/meta/prompt leakage.
+       */
+
+      if (
+        /^\(?note\s*:/i.test(line) ||
+        /^system\s*:/i.test(line) ||
+        /^assistant\s*instructions?\s*:/i.test(line) ||
+        /^developer\s*:/i.test(line) ||
+        /^prompt\s*:/i.test(line) ||
+        /^hidden instructions?/i.test(line) ||
+        /i['’]ll be simulating a conversation/i.test(line) ||
+        /i['’]ll be providing the user['’]s message/i.test(line) ||
+        /you['’]ll be responding as/i.test(line) ||
+        /please respond to the user['’]s message/i.test(line) ||
+        /keeping the conversation.*(hungarian|english|german|french|spanish)/i.test(line) ||
+        /following the provided rules/i.test(line) ||
+        /following the rules/i.test(line)
+      ) {
+        continue;
+      }
+
+      /*
+       * Block language-control echoes.
+       */
+
+      if (
+        /please\s+(respond|answer)\s+in\s+(english|hungarian|german|french|spanish)/i.test(line) ||
+        /(respond|answer)\s+only\s+in\s+(english|hungarian|german|french|spanish)/i.test(line)
+      ) {
+        continue;
+      }
+
+      /*
+       * Remove XML / CDATA leftovers.
+       */
+
+      line =
+        line
+          .replace(/<!\[CDATA\[/gi, "")
+          .replace(/\]\]>/gi, "")
+          .replace(/<\?xml.*?\?>/gi, "")
+          .trim();
+
+      if (!line) {
+        continue;
+      }
+
+      /*
+       * Stop exact repeated lines.
+       */
+
+      const fingerprint =
+        line
+          .toLowerCase()
+          .replace(/\s+/g, " ");
+
+      if (
+        fingerprint.length > 20 &&
+        seen.has(fingerprint)
+      ) {
+        continue;
+      }
+
+      seen.add(
+        fingerprint
+      );
+
+      cleaned.push(
+        line
+      );
+    }
+
+    return cleaned
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+
+  /*
+   * =========================================================
+   * 3. CLEAN AI BUBBLES AFTER THEY APPEAR
+   * =========================================================
+   */
+
+  function cleanAssistantBubble(box) {
+
+    if (!box) {
+      return;
+    }
+
+    const title =
+      box.querySelector(
+        ":scope > strong"
+      );
+
+    if (
+      !title ||
+      title.textContent.trim() !==
+        "HEGEVA AI"
+    ) {
+      return;
+    }
+
+    /*
+     * Find the answer body.
+     * Do not touch Smart Action controls.
+     */
+
+    const body =
+      Array.from(
+        box.children
+      ).find(
+        element =>
+          element.tagName === "DIV" &&
+          !element.classList.contains(
+            "chat-actions"
+          ) &&
+          !element.classList.contains(
+            "v3530-actions"
+          )
+      );
+
+    if (!body) {
+      return;
+    }
+
+    const original =
+      (
+        body.innerText ||
+        body.textContent ||
+        ""
+      ).trim();
+
+    if (!original) {
+      return;
+    }
+
+    const cleaned =
+      cleanText(original);
+
+    if (
+      cleaned !== original
+    ) {
+
+      body.textContent =
+        cleaned ||
+        FALLBACK[currentLanguage()] ||
+        FALLBACK.en;
+    }
+
+    /*
+     * If the entire answer was prompt leakage,
+     * display a safe retry message instead.
+     */
+
+    if (
+      !body.textContent.trim()
+    ) {
+      body.textContent =
+        FALLBACK[currentLanguage()] ||
+        FALLBACK.en;
+    }
+  }
+
+
+  function cleanAll() {
+
+    document
+      .querySelectorAll(
+        "#aiChatMessages .coming-item"
+      )
+      .forEach(
+        cleanAssistantBubble
+      );
+  }
+
+
+  /*
+   * Observe new HEGEVA responses.
+   */
+
+  function startObserver() {
+
+    const wrap =
+      document.getElementById(
+        "aiChatMessages"
+      );
+
+    if (!wrap) {
+      return;
+    }
+
+    const observer =
+      new MutationObserver(
+        () => {
+
+          requestAnimationFrame(
+            cleanAll
+          );
+        }
+      );
+
+    observer.observe(
+      wrap,
+      {
+        childList: true,
+        subtree: true,
+        characterData: true
+      }
+    );
+
+    cleanAll();
+  }
+
+
+  /*
+   * Re-clean when language changes.
+   */
+
+  document
+    .getElementById(
+      "languageSelect"
+    )
+    ?.addEventListener(
+      "change",
+      () => {
+        setTimeout(
+          cleanAll,
+          250
+        );
+      }
+    );
+
+
+  /*
+   * Public diagnostic flag.
+   */
+
+  window.hegevaV3531 = {
+    version: VERSION,
+    cleanChatRequest: true,
+    removesFrontendPromptWrapper: true,
+    promptLeakGuard: true,
+    duplicateLineGuard: true,
+    fiveLanguages: true,
+    keepsSmartActions: true,
+    changesStripe: false,
+    changesBilling: false,
+    changesAuthentication: false
+  };
+
+
+  if (
+    document.readyState ===
+    "loading"
+  ) {
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      startObserver,
+      { once: true }
+    );
+
+  } else {
+
+    startObserver();
+  }
+
+
+  console.log(
+    "HEGEVA AI V35.3.1 clean request and prompt leak guard active."
+  );
+
+})();
 </script></body>
 </html>
