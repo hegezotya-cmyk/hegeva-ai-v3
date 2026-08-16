@@ -25524,5 +25524,696 @@ ${transcript}`;
     "HEGEVA AI V35.3.15 Smart Chat Categories active."
   );
 })();
+</script><!-- =========================================================
+     HEGEVA AI V36.0
+     PRODUCTION RELEASE — PHASE 1
+     CHAT CATEGORY FILTER + RESPONSIVE UX
+     EN / HU / DE / FR / ES
+     ========================================================= -->
+
+<style>
+#hegevaV36CategoryFilter{
+  margin:10px 0;
+  padding:9px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:12px;
+  background:rgba(255,255,255,.025);
+}
+
+#hegevaV36CategoryFilterLabel{
+  margin-bottom:7px;
+  color:var(--muted,#9ba8c7);
+  font-size:10px;
+  font-weight:850;
+}
+
+#hegevaV36CategoryFilterButtons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+}
+
+.hegeva-v36-filter{
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.04);
+  color:var(--text,#eef3ff);
+  border-radius:999px;
+  padding:6px 9px;
+  font-size:9px;
+  font-weight:850;
+  cursor:pointer;
+  transition:.18s ease;
+}
+
+.hegeva-v36-filter:hover{
+  border-color:rgba(246,196,83,.48);
+  transform:translateY(-1px);
+}
+
+.hegeva-v36-filter.active{
+  border-color:rgba(246,196,83,.72);
+  background:rgba(246,196,83,.14);
+  color:#ffe7a3;
+}
+
+.hegeva-v36-category-hidden{
+  display:none !important;
+}
+
+/* =========================================================
+   V36 RESPONSIVE PRODUCTION UX
+   ========================================================= */
+
+html,
+body{
+  max-width:100%;
+  overflow-x:hidden;
+}
+
+img,
+svg,
+video,
+canvas{
+  max-width:100%;
+}
+
+#aiChatMessages{
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+
+#aiChatInput{
+  max-width:100%;
+  box-sizing:border-box;
+}
+
+.saved-chat{
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+@media(max-width:900px){
+
+  .chat-shell{
+    grid-template-columns:1fr !important;
+  }
+
+  .chat-sidebar{
+    width:100% !important;
+    max-width:none !important;
+  }
+
+  .chat-main{
+    min-width:0 !important;
+  }
+
+  #savedChatsList{
+    max-height:280px;
+    overflow:auto;
+  }
+
+  #hegevaV36CategoryFilterButtons{
+    gap:6px;
+  }
+
+  .hegeva-v36-filter{
+    flex:1 1 calc(33.333% - 6px);
+    text-align:center;
+  }
+}
+
+@media(max-width:600px){
+
+  .page{
+    padding-left:12px !important;
+    padding-right:12px !important;
+  }
+
+  .chat-actions{
+    flex-wrap:wrap !important;
+  }
+
+  .mini-action,
+  .v3530-action{
+    min-height:38px;
+  }
+
+  .hegeva-v36-filter{
+    flex:1 1 calc(50% - 6px);
+    padding:8px 7px;
+  }
+
+  #v35312BackupWrap{
+    display:grid !important;
+    grid-template-columns:1fr 1fr;
+  }
+
+  #v35314SummaryButton,
+  #v35313Inspect{
+    min-height:40px;
+  }
+
+  .hegeva-v3537-followup{
+    width:100%;
+  }
+}
+</style>
+
+<script>
+(() => {
+  "use strict";
+
+  const VERSION = "V36.0";
+
+  const CATEGORY_STORE =
+    "hegeva_v35315_chat_categories";
+
+  const FILTER_STORE =
+    "hegeva_v36_category_filter";
+
+  const CATEGORIES = {
+    all:"🌐",
+    favourite:"⭐",
+    business:"💼",
+    finance:"💷",
+    document:"📄",
+    idea:"💡"
+  };
+
+  const COPY = {
+    en:{
+      label:"Filter saved chats",
+      all:"All",
+      favourite:"Favorites",
+      business:"Business",
+      finance:"Finance",
+      document:"Documents",
+      idea:"Ideas"
+    },
+
+    hu:{
+      label:"Mentett chatek szűrése",
+      all:"Összes",
+      favourite:"Kedvenc",
+      business:"Üzlet",
+      finance:"Pénzügy",
+      document:"Dokumentum",
+      idea:"Ötlet"
+    },
+
+    de:{
+      label:"Gespeicherte Chats filtern",
+      all:"Alle",
+      favourite:"Favoriten",
+      business:"Geschäft",
+      finance:"Finanzen",
+      document:"Dokumente",
+      idea:"Ideen"
+    },
+
+    fr:{
+      label:"Filtrer les chats enregistrés",
+      all:"Tous",
+      favourite:"Favoris",
+      business:"Entreprise",
+      finance:"Finance",
+      document:"Documents",
+      idea:"Idées"
+    },
+
+    es:{
+      label:"Filtrar chats guardados",
+      all:"Todos",
+      favourite:"Favoritos",
+      business:"Negocio",
+      finance:"Finanzas",
+      document:"Documentos",
+      idea:"Ideas"
+    }
+  };
+
+  let refreshing = false;
+
+  function language(){
+    const value =
+      String(
+        document.getElementById("languageSelect")?.value ||
+        localStorage.getItem("hegeva_language") ||
+        "en"
+      ).toLowerCase();
+
+    return COPY[value]
+      ? value
+      : "en";
+  }
+
+  function t(){
+    return COPY[language()];
+  }
+
+  function readCategories(){
+    try{
+      const data =
+        JSON.parse(
+          localStorage.getItem(
+            CATEGORY_STORE
+          ) || "{}"
+        );
+
+      return (
+        data &&
+        typeof data === "object"
+      )
+        ? data
+        : {};
+    }catch{
+      return {};
+    }
+  }
+
+  function activeFilter(){
+    const value =
+      localStorage.getItem(
+        FILTER_STORE
+      ) || "all";
+
+    return Object.prototype
+      .hasOwnProperty.call(
+        CATEGORIES,
+        value
+      )
+        ? value
+        : "all";
+  }
+
+  function setFilter(value){
+    if(
+      !Object.prototype
+        .hasOwnProperty.call(
+          CATEGORIES,
+          value
+        )
+    ){
+      value = "all";
+    }
+
+    localStorage.setItem(
+      FILTER_STORE,
+      value
+    );
+
+    apply();
+  }
+
+  function getChats(){
+    try{
+      if(
+        typeof getSavedChats ===
+        "function"
+      ){
+        const chats =
+          getSavedChats();
+
+        return Array.isArray(chats)
+          ? chats
+          : [];
+      }
+    }catch{}
+
+    return [];
+  }
+
+  function identifyChat(button,chats){
+    const id =
+      button.dataset.v3539ChatId ||
+      button.dataset.chatId ||
+      "";
+
+    if(id){
+      const found =
+        chats.find(
+          chat =>
+            String(chat?.id) ===
+            String(id)
+        );
+
+      if(found){
+        return found;
+      }
+    }
+
+    const title =
+      String(
+        button.textContent || ""
+      )
+        .replace(/^📌\s*/,"")
+        .replace(/^[⭐💼💷📄💡]\s*/,"")
+        .trim();
+
+    return chats.find(
+      chat =>
+        String(chat?.title || "")
+          .trim() === title
+    ) || null;
+  }
+
+  function ensureUi(){
+    if(
+      document.getElementById(
+        "hegevaV36CategoryFilter"
+      )
+    ){
+      return;
+    }
+
+    const search =
+      document.getElementById(
+        "v35311ChatSearchWrap"
+      );
+
+    const list =
+      document.getElementById(
+        "savedChatsList"
+      );
+
+    const target =
+      search || list;
+
+    if(!target){
+      return;
+    }
+
+    const wrap =
+      document.createElement("div");
+
+    wrap.id =
+      "hegevaV36CategoryFilter";
+
+    const label =
+      document.createElement("div");
+
+    label.id =
+      "hegevaV36CategoryFilterLabel";
+
+    const buttons =
+      document.createElement("div");
+
+    buttons.id =
+      "hegevaV36CategoryFilterButtons";
+
+    Object.keys(CATEGORIES)
+      .forEach(key => {
+
+        const button =
+          document.createElement(
+            "button"
+          );
+
+        button.type =
+          "button";
+
+        button.className =
+          "hegeva-v36-filter";
+
+        button.dataset.filter =
+          key;
+
+        button.addEventListener(
+          "click",
+          () => {
+            setFilter(key);
+          }
+        );
+
+        buttons.appendChild(
+          button
+        );
+      });
+
+    wrap.append(
+      label,
+      buttons
+    );
+
+    target.insertAdjacentElement(
+      "afterend",
+      wrap
+    );
+
+    translate();
+  }
+
+  function translate(){
+    const label =
+      document.getElementById(
+        "hegevaV36CategoryFilterLabel"
+      );
+
+    if(label){
+      label.textContent =
+        t().label;
+    }
+
+    document
+      .querySelectorAll(
+        ".hegeva-v36-filter"
+      )
+      .forEach(button => {
+
+        const key =
+          button.dataset.filter;
+
+        button.textContent =
+          `${CATEGORIES[key]} ${t()[key]}`;
+      });
+
+    updateButtons();
+  }
+
+  function updateButtons(){
+    const selected =
+      activeFilter();
+
+    document
+      .querySelectorAll(
+        ".hegeva-v36-filter"
+      )
+      .forEach(button => {
+
+        button.classList.toggle(
+          "active",
+          button.dataset.filter ===
+            selected
+        );
+      });
+  }
+
+  function apply(){
+    if(refreshing){
+      return;
+    }
+
+    refreshing = true;
+
+    try{
+      ensureUi();
+
+      const selected =
+        activeFilter();
+
+      const categories =
+        readCategories();
+
+      const chats =
+        getChats();
+
+      const list =
+        document.getElementById(
+          "savedChatsList"
+        );
+
+      if(!list){
+        return;
+      }
+
+      list
+        .querySelectorAll(
+          ".saved-chat"
+        )
+        .forEach(button => {
+
+          const chat =
+            identifyChat(
+              button,
+              chats
+            );
+
+          const category =
+            chat?.id
+              ? categories[
+                  chat.id
+                ] || ""
+              : "";
+
+          const categoryMatch =
+            selected === "all" ||
+            category === selected;
+
+          /*
+           * Preserve V35.3.11 text search.
+           */
+
+          const searchHidden =
+            button.classList.contains(
+              "v35311-search-hidden"
+            );
+
+          button.classList.toggle(
+            "hegeva-v36-category-hidden",
+            !categoryMatch
+          );
+
+          /*
+           * Do not interfere with Smart Search.
+           */
+
+          if(searchHidden){
+            button.classList.add(
+              "v35311-search-hidden"
+            );
+          }
+        });
+
+      updateButtons();
+
+    }finally{
+      refreshing = false;
+    }
+  }
+
+  function boot(){
+    ensureUi();
+    apply();
+
+    const list =
+      document.getElementById(
+        "savedChatsList"
+      );
+
+    if(list){
+      const observer =
+        new MutationObserver(
+          () => {
+            if(refreshing){
+              return;
+            }
+
+            requestAnimationFrame(
+              apply
+            );
+          }
+        );
+
+      observer.observe(
+        list,
+        {
+          childList:true,
+          subtree:true
+        }
+      );
+    }
+
+    document.addEventListener(
+      "click",
+      event => {
+
+        if(
+          event.target.closest?.(
+            ".v35315-category, #v3539PinChat, #createNewSavedChat, #renameCurrentChat, #deleteCurrentChat"
+          )
+        ){
+          setTimeout(
+            apply,
+            100
+          );
+        }
+      },
+      true
+    );
+
+    document
+      .getElementById(
+        "v35311ChatSearch"
+      )
+      ?.addEventListener(
+        "input",
+        () => {
+          setTimeout(
+            apply,
+            20
+          );
+        }
+      );
+
+    document
+      .getElementById(
+        "languageSelect"
+      )
+      ?.addEventListener(
+        "change",
+        () => {
+          setTimeout(
+            () => {
+              translate();
+              apply();
+            },
+            150
+          );
+        }
+      );
+  }
+
+  window.hegevaV360 = {
+    version:VERSION,
+
+    phase:1,
+
+    categoryFilter:true,
+    responsiveUx:true,
+
+    languages:[
+      "en",
+      "hu",
+      "de",
+      "fr",
+      "es"
+    ],
+
+    changesAIBackend:false,
+    changesStripe:false,
+    changesBilling:false,
+    changesAuthentication:false,
+    changesWorkspace:false
+  };
+
+  if(
+    document.readyState ===
+    "loading"
+  ){
+    document.addEventListener(
+      "DOMContentLoaded",
+      boot,
+      {once:true}
+    );
+  }else{
+    boot();
+  }
+
+  console.log(
+    "HEGEVA AI V36.0 Production Release Phase 1 active."
+  );
+
+})();
 </script></body>
 </html>
