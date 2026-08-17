@@ -7742,6 +7742,105 @@
     let hegevaCurrentUser = null;
     let hegevaCurrentSession = null;
 
+    // =========================================================
+    // HEGEVA SAFE BASE 5 — PHASE 1
+    // UNIFIED PLAN STATUS COORDINATOR
+    // =========================================================
+
+    const hegevaPlanStatusCore = (() => {
+      let cached = null;
+      let cachedAt = 0;
+      let pending = null;
+
+      const CACHE_MS = 15000;
+
+      function clear(){
+        cached = null;
+        cachedAt = 0;
+        pending = null;
+      }
+
+      async function get(options = {}){
+        const force = Boolean(options.force);
+
+        if(!hegevaCurrentUser){
+          return {
+            ok:false,
+            guest:true,
+            status:401,
+            data:null
+          };
+        }
+
+        if(
+          !force &&
+          cached &&
+          Date.now() - cachedAt < CACHE_MS
+        ){
+          return cached;
+        }
+
+        if(pending){
+          return pending;
+        }
+
+        pending = (async () => {
+          try{
+            const response = await fetch(
+              "/api/plan/status",
+              {
+                method:"GET",
+                credentials:"include",
+                headers:{
+                  "Accept":"application/json"
+                }
+              }
+            );
+
+            const data =
+              await response.json().catch(() => ({}));
+
+            const result = {
+              ok:response.ok,
+              guest:response.status === 401,
+              status:response.status,
+              data
+            };
+
+            cached = result;
+            cachedAt = Date.now();
+
+            return result;
+
+          }catch(error){
+            return {
+              ok:false,
+              guest:false,
+              status:0,
+              data:null,
+              error
+            };
+          }finally{
+            pending = null;
+          }
+        })();
+
+        return pending;
+      }
+
+      return {
+        get,
+        clear,
+        status(){
+          return {
+            cached:Boolean(cached),
+            pending:Boolean(pending),
+            age:cachedAt ? Date.now() - cachedAt : null
+          };
+        }
+      };
+    })();
+
     const authModalBackdrop = document.getElementById("authModalBackdrop");
     const authOpenButton = document.getElementById("authOpenButton");
     const authCloseButton = document.getElementById("authCloseButton");
@@ -8750,25 +8849,28 @@
       const copy = v48PlanCopy();
 
       try {
-        const response = await fetch("/api/plan/status", {
-          method: "GET",
-          credentials: "include",
-          headers: { "Accept": "application/json" }
-        });
+          const planResult =
+            await hegevaPlanStatusCore.get();
 
-        if (response.status === 401) {
-          badge.textContent = copy.signedOut;
-          usage.textContent = "—";
-          cloud.textContent = copy.signIn;
-          period.textContent = "—";
-          message.textContent = copy.signIn;
-          v48SetMeter(0, 1);
-          v48MarkCurrentPlan("");
-          return;
-        }
+          if (planResult.guest) {
+            badge.textContent = copy.signedOut;
+            usage.textContent = "—";
+            cloud.textContent = copy.signIn;
+            period.textContent = "—";
+            message.textContent = copy.signIn;
+            v48SetMeter(0, 1);
+            v48MarkCurrentPlan("");
+            return;
+          }
 
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+          const data = planResult.data || {};
+
+          if (!planResult.ok) {
+            throw new Error(
+              data.error ||
+              `HTTP ${planResult.status || 0}`
+            );
+          }
 
         const planName = String(data.plan || "basic").toLowerCase();
         const planLabel = planName.toUpperCase();
@@ -8842,23 +8944,34 @@
           workspaceStatus.className = `v50-badge ${ready >= 3 ? "ok" : "warn"}`;
         }
 
-        const response = await fetch("/api/plan/status", {
-          method:"GET",
-          credentials:"include",
-          headers:{"Accept":"application/json"}
-        });
+          const planResult =
+            await hegevaPlanStatusCore.get();
 
-        const planEl = document.getElementById("v50Plan");
-        const usageEl = document.getElementById("v50AiUsage");
+          const planEl = document.getElementById("v50Plan");
+          const usageEl = document.getElementById("v50AiUsage");
 
-        if (response.ok) {
-          const data = await response.json();
-          if (planEl) planEl.textContent = String(data.plan || "basic").toUpperCase();
-          if (usageEl) usageEl.textContent = `${Number(data.usage?.aiMessages || 0)} / ${Number(data.usage?.limit || 0)}`;
-        } else {
-          if (planEl) planEl.textContent = hegevaCurrentUser ? "BASIC" : "—";
-          if (usageEl) usageEl.textContent = "—";
-        }
+          if (planResult.ok) {
+            const data = planResult.data || {};
+
+            if (planEl) {
+              planEl.textContent =
+                String(data.plan || "basic").toUpperCase();
+            }
+
+            if (usageEl) {
+              usageEl.textContent =
+                `${Number(data.usage?.aiMessages || 0)} / ${Number(data.usage?.limit || 0)}`;
+            }
+          } else {
+            if (planEl) {
+              planEl.textContent =
+                hegevaCurrentUser ? "BASIC" : "—";
+            }
+
+            if (usageEl) {
+              usageEl.textContent = "—";
+            }
+          }
       } catch {
         // Dashboard is non-critical and must never break the app.
       }
