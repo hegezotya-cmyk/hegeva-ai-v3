@@ -11289,11 +11289,11 @@ Open planner tasks: ${s.openTasks}`;
 
   const start = () => {
     v31ApplyAll();
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      characterData: true
-    });
+    /*
+     * HEGEVA PERFORMANCE ISOLATION TEST:
+     * continuous V31.0 full-body observer disabled.
+     * Initial localization + language-change localization remain active.
+     */
   };
 
   if (document.readyState === "loading") {
@@ -12968,11 +12968,13 @@ Open planner tasks: ${s.openTasks}`;
   if(document.readyState==="loading"){
     document.addEventListener("DOMContentLoaded",()=>{
       apply();
-      obs.observe(document.body,{subtree:true,childList:true,characterData:true});
+      /* HEGEVA PERFORMANCE ISOLATION TEST:
+             continuous global localization observer disabled */
     },{once:true});
   }else{
     apply();
-    obs.observe(document.body,{subtree:true,childList:true,characterData:true});
+    /* HEGEVA PERFORMANCE ISOLATION TEST:
+             continuous global localization observer disabled */
   }
 
   window.hegevaV315Check=()=>({
@@ -15156,11 +15158,13 @@ Open planner tasks: ${s.openTasks}`;
   if(document.readyState==="loading"){
     document.addEventListener("DOMContentLoaded",()=>{
       render();
-      obs.observe(document.body,{subtree:true,childList:true,characterData:true});
+      /* HEGEVA PERFORMANCE ISOLATION TEST:
+             continuous global localization observer disabled */
     },{once:true});
   }else{
     render();
-    obs.observe(document.body,{subtree:true,childList:true,characterData:true});
+    /* HEGEVA PERFORMANCE ISOLATION TEST:
+             continuous global localization observer disabled */
   }
 
   window.hegevaV323CommandSuite={render,metrics,version:"V32.3"};
