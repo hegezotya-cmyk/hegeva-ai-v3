@@ -6305,6 +6305,10 @@
       }
 
       // If the user is signed in, prefer their cloud-saved settings.
+        if (!hegevaCurrentUser) {
+          return;
+        }
+
       try {
         const response = await fetch("/api/workspace/settings", {
           method: "GET",
@@ -18119,6 +18123,33 @@ function render(){
 async function checkStatus(){
   S.busy = true;
   render();
+
+    if (!hegevaCurrentUser) {
+      S.apiReachable = false;
+      S.providerConnected = false;
+      S.provider = null;
+      S.mode = null;
+      S.secretReady = false;
+      S.premiumReady = false;
+      S.proReady = false;
+      S.checkoutEnabled = false;
+      S.webhookConfigured = false;
+      S.webhookVerified = false;
+      S.lastWebhookEventType = null;
+      S.lastWebhookEventCreatedAt = null;
+      S.currentPlan = "basic";
+      S.aiMessages = 0;
+      S.aiLimit = 0;
+      S.period = null;
+      S.last = {
+        billing:{ok:false,status:401,data:null,guest:true},
+        plan:{ok:false,status:401,data:null,guest:true},
+        time:Date.now()
+      };
+      S.busy = false;
+      render();
+      return S.last;
+    }
 
   const [billing, plan] = await Promise.all([
     request("/api/billing/status"),
