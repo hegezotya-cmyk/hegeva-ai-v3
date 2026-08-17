@@ -26042,12 +26042,34 @@ ${transcript}`;
       document.getElementById("savedChatsList");
 
     if(list){
-      const observer =
-        new MutationObserver(() => {
-          requestAnimationFrame(
-            decorateChats
-          );
-        });
+        let decorateQueued = false;
+
+        const observer =
+          new MutationObserver(() => {
+            if(decorateQueued){
+              return;
+            }
+
+            decorateQueued = true;
+
+            requestAnimationFrame(() => {
+              observer.disconnect();
+
+              try{
+                decorateChats();
+              }finally{
+                observer.observe(
+                  list,
+                  {
+                    childList:true,
+                    subtree:true
+                  }
+                );
+
+                decorateQueued = false;
+              }
+            });
+          });
 
       observer.observe(
         list,
