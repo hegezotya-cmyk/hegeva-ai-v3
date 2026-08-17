@@ -2649,24 +2649,111 @@ QUALITY RULES:
 - Keep answers practical, clear and reasonably concise.
         `.trim();
 
-        const result =
-          await env.AI.run(
-            "@cf/meta/llama-3.1-8b-instruct-fast",
-            {
-              messages: [
-                {
-                  role: "system",
-                  content: systemPrompt
-                },
-                {
-                  role: "user",
-                  content: message
+          // =========================================
+          // SAFE BASE 7 — AI RELIABILITY & COST CONTROL
+          // =========================================
+          const AI_COOLDOWN_MS = 1500;
+          const AI_TIMEOUT_MS = 30000;
+
+          const aiRuntime =
+            globalThis.__hegevaAiRuntime ||
+            (globalThis.__hegevaAiRuntime = {
+              inFlight: new Set(),
+              lastRequest: new Map()
+            });
+
+          const aiUserKey = String(user.id);
+
+          if (aiRuntime.inFlight.has(aiUserKey)) {
+            return Response.json(
+              {
+                error:
+                  "An AI request is already running. Please wait for it to finish."
+              },
+              {
+                status: 429
+              }
+            );
+          }
+
+          const now = Date.now();
+          const lastRequest =
+            Number(aiRuntime.lastRequest.get(aiUserKey) || 0);
+
+          const retryAfterMs =
+            AI_COOLDOWN_MS - (now - lastRequest);
+
+          if (retryAfterMs > 0) {
+            return Response.json(
+              {
+                error:
+                  "Please wait a moment before sending another AI request.",
+                retryAfterMs
+              },
+              {
+                status: 429,
+                headers: {
+                  "Retry-After":
+                    String(
+                      Math.max(
+                        1,
+                        Math.ceil(retryAfterMs / 1000)
+                      )
+                    )
                 }
-              ],
-              temperature: 0.15,
-              max_tokens: 700
+              }
+            );
+          }
+
+          aiRuntime.inFlight.add(aiUserKey);
+          aiRuntime.lastRequest.set(aiUserKey, now);
+
+          let result;
+
+          try {
+            const aiPromise =
+              env.AI.run(
+                "@cf/meta/llama-3.1-8b-instruct-fast",
+                {
+                  messages: [
+                    {
+                      role: "system",
+                      content: systemPrompt
+                    },
+                    {
+                      role: "user",
+                      content: message
+                    }
+                  ],
+                  temperature: 0.15,
+                  max_tokens: 700
+                }
+              );
+
+            let timeoutId;
+
+            const timeoutPromise =
+              new Promise((_, reject) => {
+                timeoutId = setTimeout(
+                  () => reject(
+                    new Error("HEGEVA_AI_TIMEOUT")
+                  ),
+                  AI_TIMEOUT_MS
+                );
+              });
+
+            try {
+              result =
+                await Promise.race([
+                  aiPromise,
+                  timeoutPromise
+                ]);
+            } finally {
+              clearTimeout(timeoutId);
             }
-          );
+          } finally {
+            aiRuntime.inFlight.delete(aiUserKey);
+          }
 
         let aiResponse =
           typeof result?.response === "string"
