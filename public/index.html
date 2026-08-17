@@ -1,6 +1,172 @@
 <!DOCTYPE html>
 <html lang="en" class="notranslate" translate="no">
 <head>
+
+<script>
+/* =========================================================
+   HEGEVA PERFORMANCE CORE — API REQUEST COORDINATOR
+   Deduplicates identical short-lived GET requests.
+   ========================================================= */
+(() => {
+  "use strict";
+
+  if (window.__hegevaApiCoordinatorInstalled) return;
+  window.__hegevaApiCoordinatorInstalled = true;
+
+  const nativeFetch = window.fetch.bind(window);
+  const pending = new Map();
+  const cache = new Map();
+
+  const managedPaths = new Set([
+    "/api/plan/status",
+    "/api/billing/status",
+    "/api/workspace",
+    "/api/workspace/settings",
+    "/api/auth/get-session"
+  ]);
+
+  function normalizedPath(input) {
+    try {
+      const raw =
+        typeof input === "string"
+          ? input
+          : input?.url;
+
+      if (!raw) return null;
+
+      return new URL(
+        raw,
+        location.origin
+      ).pathname;
+    } catch {
+      return null;
+    }
+  }
+
+  function methodOf(input, init) {
+    return String(
+      init?.method ||
+      input?.method ||
+      "GET"
+    ).toUpperCase();
+  }
+
+  function credentialsOf(input, init) {
+    return (
+      init?.credentials ||
+      input?.credentials ||
+      ""
+    );
+  }
+
+  function keyOf(input, init) {
+    const path = normalizedPath(input);
+
+    if (
+      !path ||
+      !managedPaths.has(path) ||
+      methodOf(input, init) !== "GET"
+    ) {
+      return null;
+    }
+
+    return [
+      path,
+      credentialsOf(input, init)
+    ].join("|");
+  }
+
+  function ttlFor(response) {
+    if (response.status === 401 || response.status === 403) {
+      return 15000;
+    }
+
+    if (response.ok) {
+      return 3000;
+    }
+
+    return 1000;
+  }
+
+  window.fetch = async function(input, init) {
+    const key = keyOf(input, init);
+
+    if (!key) {
+      return nativeFetch(input, init);
+    }
+
+    const now = Date.now();
+    const saved = cache.get(key);
+
+    if (
+      saved &&
+      saved.expires > now
+    ) {
+      return saved.response.clone();
+    }
+
+    if (pending.has(key)) {
+      const response =
+        await pending.get(key);
+
+      return response.clone();
+    }
+
+    const requestPromise =
+      nativeFetch(input, init)
+        .then(response => {
+          cache.set(key, {
+            response: response.clone(),
+            expires:
+              Date.now() +
+              ttlFor(response)
+          });
+
+          return response;
+        })
+        .finally(() => {
+          pending.delete(key);
+        });
+
+    pending.set(
+      key,
+      requestPromise
+    );
+
+    const response =
+      await requestPromise;
+
+    return response.clone();
+  };
+
+  window.__hegevaApiCoordinator = {
+    clear() {
+      pending.clear();
+      cache.clear();
+    },
+
+    stats() {
+      return {
+        pending: pending.size,
+        cached: cache.size
+      };
+    },
+
+    paths: [...managedPaths]
+  };
+
+  window.addEventListener(
+    "online",
+    () =>
+      window.__hegevaApiCoordinator.clear()
+  );
+
+  console.log(
+    "HEGEVA API Request Coordinator active."
+  );
+})();
+</script>
+
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13146,7 +13312,11 @@ Open planner tasks: ${s.openTasks}`;
     if(running)return;
     running=true;
     try{
-      walk(document.body);
+      const activePage =
+        document.querySelector(".page.active") ||
+        document.body;
+
+      walk(activePage);
       audit();
     }finally{running=false}
   }
@@ -13162,16 +13332,58 @@ Open planner tasks: ${s.openTasks}`;
     setTimeout(apply,600);
   });
 
-  const observer=new MutationObserver(()=>{if(!running)schedule()});
-  if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",()=>{
-      apply();
-      observer.observe(document.body,{subtree:true,childList:true,characterData:true});
-    },{once:true});
-  }else{
-    apply();
-    observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+  // =========================================================
+  // HEGEVA PERFORMANCE CORE — PHASE 1A
+  // V31.6 Localization Guard
+  //
+  // Previously this module watched the ENTIRE document body
+  // continuously. That caused repeated full-page translation
+  // scans whenever other HEGEVA modules changed the DOM.
+  //
+  // The guard is preserved, but it now runs only:
+  // - on initial page load
+  // - after language changes
+  // - after HEGEVA page navigation
+  // - when manually requested through hegevaV316LanguageAudit()
+  // =========================================================
+
+  function v354ScheduleLanguageAudit(delay=120){
+    clearTimeout(window.__hegevaV354LanguageAuditTimer);
+
+    window.__hegevaV354LanguageAuditTimer =
+      setTimeout(()=>{
+        if(!running){
+          apply();
+        }
+      },delay);
   }
+
+  if(document.readyState==="loading"){
+    document.addEventListener(
+      "DOMContentLoaded",
+      ()=>{
+        v354ScheduleLanguageAudit(0);
+      },
+      {once:true}
+    );
+  }else{
+    v354ScheduleLanguageAudit(0);
+  }
+
+  document.addEventListener(
+    "click",
+    event=>{
+      const navigation =
+        event.target.closest?.(
+          "[data-page],[data-go],.nav-item,.nav-link"
+        );
+
+      if(navigation){
+        v354ScheduleLanguageAudit(120);
+      }
+    },
+    true
+  );
 
   window.hegevaV316LanguageAudit=()=>{
     apply();
@@ -13671,16 +13883,18 @@ Open planner tasks: ${s.openTasks}`;
   document.getElementById("languageSelect")?.addEventListener("change",()=>{
     setTimeout(apply,0);setTimeout(apply,150);setTimeout(apply,500);
   });
+  // HEGEVA Performance Core: global observer disabled.
 
-  const observer=new MutationObserver(()=>{if(!running)setTimeout(apply,70)});
   if(document.readyState==="loading"){
     document.addEventListener("DOMContentLoaded",()=>{
       apply();
-      observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+      // Continuous full-body observation disabled by Performance Core.
+
     },{once:true});
   }else{
     apply();
-    observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+      // Continuous full-body observation disabled by Performance Core.
+
   }
 
   window.hegevaV318NavigationAudit=()=>{
@@ -14022,19 +14236,19 @@ Open planner tasks: ${s.openTasks}`;
     setTimeout(apply,400);
     setTimeout(apply,900);
   });
+  // HEGEVA Performance Core: central global observer disabled.
 
-  const observer=new MutationObserver(()=>{
-    if(!running)schedule();
-  });
 
   if(document.readyState==="loading"){
     document.addEventListener("DOMContentLoaded",()=>{
       apply();
-      observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+      // Continuous full-body observation disabled by Performance Core.
+
     },{once:true});
   }else{
     apply();
-    observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+      // Continuous full-body observation disabled by Performance Core.
+
   }
 
   window.hegevaV32I18n={
@@ -14926,7 +15140,10 @@ Open planner tasks: ${s.openTasks}`;
     if(action==="refresh")render();
   });
 
-  document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(render,80));
+  document.getElementById("languageSelect")?.addEventListener("change",()=>{
+  window.__hegevaPageRenderCore?.invalidatePage("home");
+  window.__hegevaPageRenderCore?.refreshPage("home");
+});
   window.addEventListener("storage",()=>setTimeout(render,80));
 
   const obs=new MutationObserver(()=>{
@@ -14964,6 +15181,197 @@ Open planner tasks: ${s.openTasks}`;
 .v324-note{margin-top:10px;padding:9px 10px;border-radius:10px;background:rgba(121,234,177,.055);color:var(--muted);font-size:10px}
 @media(max-width:900px){.v324-grid{grid-template-columns:1fr}}
 </style>
+
+<script>
+/* =========================================================
+   HEGEVA PERFORMANCE CORE — PHASE 3A
+   Cooperative startup scheduler
+   ========================================================= */
+(() => {
+  if (window.__hegevaStartupScheduler) return;
+
+  const queue = [];
+  let running = false;
+
+  function next() {
+    if (running || !queue.length) return;
+    running = true;
+
+    const job = queue.shift();
+
+    const execute = () => {
+      try {
+        job();
+      } catch (err) {
+        console.warn("[HEGEVA Startup Scheduler]", err);
+      } finally {
+        running = false;
+        if (queue.length) {
+          setTimeout(next, 25);
+        }
+      }
+    };
+
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(execute, { timeout: 500 });
+    } else {
+      setTimeout(execute, 40);
+    }
+  }
+
+  window.__hegevaStartupScheduler = {
+    add(fn) {
+      if (typeof fn !== "function") return;
+      queue.push(fn);
+      next();
+    },
+    size() {
+      return queue.length;
+    }
+  };
+})();
+</script>
+
+<script>
+/* =========================================================
+   HEGEVA PERFORMANCE CORE — PHASE 3B
+   Page-Aware Lazy Render
+   ========================================================= */
+(() => {
+  if (window.__hegevaPageRenderCore) return;
+
+  const jobs = new Map();
+  const dirty = new Set();
+
+  function activePage() {
+    return document.querySelector(".page.active")?.id || "home";
+  }
+
+  function schedule(fn) {
+    if (window.__hegevaStartupScheduler?.add) {
+      window.__hegevaStartupScheduler.add(fn);
+      return;
+    }
+
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(fn, { timeout: 400 });
+    } else {
+      setTimeout(fn, 30);
+    }
+  }
+
+  function run(name) {
+    const job = jobs.get(name);
+    if (!job) return;
+
+    if (activePage() !== job.page) {
+      dirty.add(name);
+      return;
+    }
+
+    dirty.delete(name);
+
+    schedule(() => {
+      if (activePage() !== job.page) {
+        dirty.add(name);
+        return;
+      }
+
+      try {
+        job.render();
+      } catch (err) {
+        console.warn("[HEGEVA Page Render Core]", name, err);
+      }
+    });
+  }
+
+  function register(name, page, render) {
+    if (!name || typeof render !== "function") return;
+
+    jobs.set(name, {
+      page: page || "home",
+      render
+    });
+
+    dirty.add(name);
+
+    if (activePage() === (page || "home")) {
+      run(name);
+    }
+  }
+
+  function invalidatePage(page) {
+    jobs.forEach((job, name) => {
+      if (job.page === page) dirty.add(name);
+    });
+  }
+
+  function refreshPage(page) {
+    jobs.forEach((job, name) => {
+      if (job.page === page && dirty.has(name)) {
+        run(name);
+      }
+    });
+  }
+
+  function refreshActive() {
+    refreshPage(activePage());
+  }
+
+  window.__hegevaPageRenderCore = {
+    register,
+    run,
+    invalidatePage,
+    refreshPage,
+    refreshActive,
+    activePage,
+    size: () => jobs.size
+  };
+
+  // Detect page changes without touching the existing showPage().
+  const observer = new MutationObserver(() => {
+    refreshActive();
+  });
+
+  const start = () => {
+    document.querySelectorAll(".page").forEach(page => {
+      observer.observe(page, {
+        attributes: true,
+        attributeFilter: ["class"]
+      });
+    });
+
+    refreshActive();
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
+
+  // Workspace changes:
+  // mark Home modules dirty, but render only when Home is active.
+  window.addEventListener("storage", () => {
+    invalidatePage("home");
+
+    if (activePage() === "home") {
+      refreshPage("home");
+    }
+  });
+
+  window.hegevaPerformancePhase3B = {
+    installed: true,
+    pageAware: true,
+    lazyHomeRendering: true,
+    changesLocalizationGuard: false,
+    changesAIBackend: false,
+    changesStripe: false,
+    changesAuthentication: false
+  };
+})();
+</script>
+
 <script>
 (() => {
 "use strict";
@@ -15011,8 +15419,11 @@ function brief(){
  render(detail);
 }
 document.addEventListener("click",e=>{const a=e.target.closest("[data-v324]")?.dataset.v324;if(!a)return;if(a==="save")snapshot();if(a==="restore")restore();if(a==="quality")quality();if(a==="brief")brief()});
-document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(()=>render(),80));
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>render(),{once:true});else render();
+document.getElementById("languageSelect")?.addEventListener("change",()=>{
+  window.__hegevaPageRenderCore?.invalidatePage("home");
+  window.__hegevaPageRenderCore?.refreshPage("home");
+});
+window.__hegevaPageRenderCore?.register("hegevaV324Productivity","home",render);
 window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
 })();
 </script>
@@ -15219,10 +15630,17 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
     if(a==="search"&&window.hegevaV322Search?.open)window.hegevaV322Search.open();
   });
 
-  document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(render,80));
+  document.getElementById("languageSelect")?.addEventListener("change",()=>{
+  window.__hegevaPageRenderCore?.invalidatePage("home");
+  window.__hegevaPageRenderCore?.refreshPage("home");
+});
   window.addEventListener("storage",()=>setTimeout(render,80));
 
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",render,{once:true});else render();
+  window.__hegevaPageRenderCore?.register(
+  "hegevaV325OpsPack",
+  "home",
+  render
+);
 
   window.hegevaV325OpsPack={render,version:"V32.5"};
 })();
@@ -15513,10 +15931,17 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
     }
   });
 
-  document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(()=>render(),80));
+  document.getElementById("languageSelect")?.addEventListener("change",()=>{
+  window.__hegevaPageRenderCore?.invalidatePage("home");
+  window.__hegevaPageRenderCore?.refreshPage("home");
+});
   window.addEventListener("storage",()=>setTimeout(()=>render(),80));
 
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>render(),{once:true});else render();
+  window.__hegevaPageRenderCore?.register(
+  "hegevaV326ReportingOps",
+  "home",
+  render
+);
 
   window.hegevaV326ReportingOps={render,dueDocs,version:"V32.6"};
 })();
@@ -15823,10 +16248,17 @@ window.hegevaV324Productivity={render,snapshot,restore,quality,version:"V32.4"};
     }
   });
 
-  document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(()=>render(),80));
+  document.getElementById("languageSelect")?.addEventListener("change",()=>{
+  window.__hegevaPageRenderCore?.invalidatePage("home");
+  window.__hegevaPageRenderCore?.refreshPage("home");
+});
   window.addEventListener("storage",()=>setTimeout(()=>render(),80));
 
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>render(),{once:true});else render();
+  window.__hegevaPageRenderCore?.register(
+  "hegevaV327Intelligence",
+  "home",
+  render
+);
 
   window.hegevaV327Intelligence={render,health,aging,expenseMix,version:"V32.7"};
 })();
@@ -15896,9 +16328,16 @@ function render(custom=""){const r=root();if(!r)return;const x=tx(),m=metrics(),
 </div>`}
 function download(){const text=document.getElementById("v328Report")?.textContent||report(),blob=new Blob([text],{type:"text/plain;charset=utf-8"}),u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download="hegeva-management-report.txt";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 document.addEventListener("click",async e=>{const rb=e.target.closest("[data-v328-route]");if(rb){route(rb.dataset.v328Route);return}const a=e.target.closest("[data-v328]")?.dataset.v328;if(a==="build")render(report());if(a==="download")download();if(a==="copy"){try{await navigator.clipboard.writeText(document.getElementById("v328Report")?.textContent||report());if(typeof showToast==="function")showToast(tx().copied)}catch{}}});
-document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(()=>render(),80));
+document.getElementById("languageSelect")?.addEventListener("change",()=>{
+  window.__hegevaPageRenderCore?.invalidatePage("home");
+  window.__hegevaPageRenderCore?.refreshPage("home");
+});
 window.addEventListener("storage",()=>setTimeout(()=>render(),80));
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>render(),{once:true});else render();
+window.__hegevaPageRenderCore?.register(
+  "hegevaV328Control",
+  "home",
+  render
+);
 window.hegevaV328Control={render,metrics,completeness,report,version:"V32.8"};
 })();
 </script>
@@ -15977,9 +16416,16 @@ function render(custom=""){const r=root();if(!r)return;const x=tx(),open=ts().fi
 <div class="v329-card"><h3>⚠️ ${x.riskT}</h3><p>${x.riskD}</p><div class="v329-actions"><button class="v329-btn" data-v329="build">${x.build}</button><button class="v329-btn" data-v329="copy">${x.copy}</button></div><div class="v329-output" id="v329RiskOutput">${esc(risk)}</div></div>
 </div>`}
 document.addEventListener("click",async e=>{const rb=e.target.closest("[data-v329-route]");if(rb){route(rb.dataset.v329Route);return}const a=e.target.closest("[data-v329]")?.dataset.v329;if(a==="build")render(risks().map(v=>"• "+v).join("\n")||tx().none);if(a==="copy"){try{await navigator.clipboard.writeText(document.getElementById("v329RiskOutput")?.textContent||"");if(typeof showToast==="function")showToast(tx().copied)}catch{}}});
-document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(()=>render(),80));
+document.getElementById("languageSelect")?.addEventListener("change",()=>{
+  window.__hegevaPageRenderCore?.invalidatePage("home");
+  window.__hegevaPageRenderCore?.refreshPage("home");
+});
 window.addEventListener("storage",()=>setTimeout(()=>render(),80));
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>render(),{once:true});else render();
+window.__hegevaPageRenderCore?.register(
+  "hegevaV329Planning",
+  "home",
+  render
+);
 window.hegevaV329Planning={render,risks,counts,version:"V32.9"};
 })();
 </script>
@@ -16261,10 +16707,17 @@ document.addEventListener("click",e=>{
   if(a==="reports")route("reports");
 });
 
-document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(render,80));
+document.getElementById("languageSelect")?.addEventListener("change",()=>{
+  window.__hegevaPageRenderCore?.invalidatePage("home");
+  window.__hegevaPageRenderCore?.refreshPage("home");
+});
 window.addEventListener("storage",()=>setTimeout(render,80));
 
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",render,{once:true});else render();
+window.__hegevaPageRenderCore?.register(
+  "hegevaV330Workflow",
+  "home",
+  render
+);
 
 window.hegevaV330Workflow={render,loadCustomerToAI,loadTaskToAI,version:"V33.0"};
 })();
@@ -16670,10 +17123,19 @@ document.addEventListener("click",async e=>{
  }
 });
 
-document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(render,80));
+document.getElementById("languageSelect")?.addEventListener("change",()=>{
+  window.__hegevaPageRenderCore?.invalidatePage("home");
+  window.__hegevaPageRenderCore?.refreshPage("home");
+});
 window.addEventListener("resize",()=>setTimeout(render,80));
 
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",render,{once:true});else render();
+if(document.readyState==="loading"){
+  document.addEventListener("DOMContentLoaded",()=>{
+    window.__hegevaStartupScheduler?.add(render);
+  },{once:true});
+}else{
+  window.__hegevaStartupScheduler?.add(render);
+}
 
 window.hegevaV338LaunchCandidate={runAll,reportText,state,version:"V33.8"};
 })();
@@ -16799,8 +17261,17 @@ document.addEventListener("click",async e=>{
  if(a==="legal")route("legal");
  if(a==="settings")route("settings");
 });
-document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(render,80));
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",render,{once:true});else render();
+document.getElementById("languageSelect")?.addEventListener("change",()=>{
+  window.__hegevaPageRenderCore?.invalidatePage("home");
+  window.__hegevaPageRenderCore?.refreshPage("home");
+});
+if(document.readyState==="loading"){
+  document.addEventListener("DOMContentLoaded",()=>{
+    window.__hegevaStartupScheduler?.add(render);
+  },{once:true});
+}else{
+  window.__hegevaStartupScheduler?.add(render);
+}
 window.hegevaV341AutomatedCheck={runAll,render,state,version:"V34.1"};
 })();
 </script>
@@ -20639,10 +21110,146 @@ ${answer}`
       `⭐ ${readSaved().length}`;
   }
 
-  const observer =
-    new MutationObserver(() => {
-      enhanceAll();
-    });
+
+  // =========================================================
+  // HEGEVA PERFORMANCE CORE PHASE 2
+  // UNIFIED SMART CHAT COORDINATOR
+  // =========================================================
+
+  if(!window.__hegevaSmartChatCore){
+    window.__hegevaSmartChatCore = (() => {
+
+      const callbacks = new Set();
+
+      let observer = null;
+      let scheduled = false;
+      let running = false;
+      let cooldownUntil = 0;
+
+      function run(){
+        scheduled = false;
+
+        if(running){
+          return;
+        }
+
+        running = true;
+
+        try{
+          for(const callback of callbacks){
+            try{
+              callback();
+            }catch(error){
+              console.warn(
+                "HEGEVA Smart Chat Core callback skipped:",
+                error
+              );
+            }
+          }
+        }finally{
+          running = false;
+
+          // Prevent our own small DOM decorations
+          // from immediately creating another full pass.
+          cooldownUntil =
+            performance.now() + 70;
+        }
+      }
+
+      function schedule(){
+        if(running || scheduled){
+          return;
+        }
+
+        if(
+          performance.now() <
+          cooldownUntil
+        ){
+          return;
+        }
+
+        scheduled = true;
+
+        requestAnimationFrame(
+          run
+        );
+      }
+
+      function connect(){
+        if(observer){
+          return;
+        }
+
+        const chat =
+          document.getElementById(
+            "aiChatMessages"
+          );
+
+        if(!chat){
+          return;
+        }
+
+        observer =
+          new MutationObserver(
+            () => {
+              schedule();
+            }
+          );
+
+        observer.observe(
+          chat,
+          {
+            childList:true,
+            subtree:true,
+            characterData:true
+          }
+        );
+      }
+
+      function register(callback){
+        if(
+          typeof callback !==
+          "function"
+        ){
+          return;
+        }
+
+        callbacks.add(
+          callback
+        );
+
+        connect();
+      }
+
+      function refresh(){
+        schedule();
+      }
+
+      return {
+        register,
+        refresh,
+        connect,
+
+        status(){
+          return {
+            callbacks:
+              callbacks.size,
+
+            connected:
+              Boolean(observer),
+
+            version:
+              "Phase 2"
+          };
+        }
+      };
+
+    })();
+  }
+
+
+  // Smart Actions now uses the shared Smart Chat Core.
+
 
   function boot(){
     ensureSavedButton();
@@ -20655,13 +21262,10 @@ ${answer}`
       );
 
     if(wrap){
-      observer.observe(
-        wrap,
-        {
-          childList:true,
-          subtree:true
-        }
-      );
+      window.__hegevaSmartChatCore
+        ?.register(
+          enhanceAll
+        );
     }
   }
 
@@ -21111,14 +21715,10 @@ ${answer}`
         }
       );
 
-    observer.observe(
-      wrap,
-      {
-        childList: true,
-        subtree: true,
-        characterData: true
-      }
-    );
+    window.__hegevaSmartChatCore
+      ?.register(
+        cleanAll
+      );
 
     cleanAll();
   }
@@ -21502,14 +22102,10 @@ ${answer}`
         );
       });
 
-    observer.observe(
-      wrap,
-      {
-        childList: true,
-        subtree: true,
-        characterData: true
-      }
-    );
+    window.__hegevaSmartChatCore
+      ?.register(
+        cleanAll
+      );
 
     cleanAll();
   }
@@ -21834,13 +22430,10 @@ ${answer}`
           }
         );
 
-      observer.observe(
-        chat,
-        {
-          childList:true,
-          subtree:true
-        }
-      );
+      window.__hegevaSmartChatCore
+        ?.register(
+          refresh
+        );
     }
 
     document
