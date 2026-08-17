@@ -21251,6 +21251,116 @@ ${answer}`
     })();
   }
 
+    // =========================================================
+    // HEGEVA PERFORMANCE CORE — SAFE BASE 4
+    // UNIFIED SAVED CHATS COORDINATOR
+    // Pinned + Search + Categories share one observer
+    // =========================================================
+
+    if(!window.__hegevaSavedChatsCore){
+      window.__hegevaSavedChatsCore = (() => {
+
+        const callbacks = new Set();
+
+        let observer = null;
+        let scheduled = false;
+        let running = false;
+        let cooldownUntil = 0;
+
+        function run(){
+          scheduled = false;
+
+          if(running){
+            return;
+          }
+
+          running = true;
+
+          try{
+            for(const callback of callbacks){
+              try{
+                callback();
+              }catch(error){
+                console.warn(
+                  "HEGEVA Saved Chats Core callback skipped:",
+                  error
+                );
+              }
+            }
+          }finally{
+            running = false;
+            cooldownUntil = performance.now() + 90;
+          }
+        }
+
+        function schedule(){
+          if(running || scheduled){
+            return;
+          }
+
+          if(performance.now() < cooldownUntil){
+            return;
+          }
+
+          scheduled = true;
+          requestAnimationFrame(run);
+        }
+
+        function connect(){
+          if(observer){
+            return;
+          }
+
+          const list =
+            document.getElementById("savedChatsList");
+
+          if(!list){
+            return;
+          }
+
+          observer =
+            new MutationObserver(schedule);
+
+          observer.observe(
+            list,
+            {
+              childList:true,
+              subtree:true
+            }
+          );
+        }
+
+        function register(callback){
+          if(typeof callback !== "function"){
+            return;
+          }
+
+          callbacks.add(callback);
+          connect();
+        }
+
+        function refresh(){
+          schedule();
+        }
+
+        return {
+          register,
+          refresh,
+          connect,
+
+          status(){
+            return {
+              callbacks: callbacks.size,
+              connected: Boolean(observer),
+              version: "SAFE BASE 4"
+            };
+          }
+        };
+
+      })();
+    }
+
+
 
   // Smart Actions now uses the shared Smart Chat Core.
 
@@ -23366,25 +23476,10 @@ ${answer}`
       );
 
     if(list){
-      const observer =
-        new MutationObserver(
-          () => {
-            if(arranging)
-              return;
-
-            requestAnimationFrame(
-              refresh
-            );
-          }
+      window.__hegevaSavedChatsCore
+        ?.register(
+          refresh
         );
-
-      observer.observe(
-        list,
-        {
-          childList:true,
-          subtree:true
-        }
-      );
     }
 
     document.addEventListener(
@@ -23833,22 +23928,10 @@ ${answer}`
       document.getElementById("savedChatsList");
 
     if(list){
-      const observer =
-        new MutationObserver(
-          () => {
-            requestAnimationFrame(
-              refresh
-            );
-          }
+      window.__hegevaSavedChatsCore
+        ?.register(
+          refresh
         );
-
-      observer.observe(
-        list,
-        {
-          childList:true,
-          subtree:true
-        }
-      );
     }
 
     document.addEventListener(
@@ -26042,42 +26125,10 @@ ${transcript}`;
       document.getElementById("savedChatsList");
 
     if(list){
-        let decorateQueued = false;
-
-        const observer =
-          new MutationObserver(() => {
-            if(decorateQueued){
-              return;
-            }
-
-            decorateQueued = true;
-
-            requestAnimationFrame(() => {
-              observer.disconnect();
-
-              try{
-                decorateChats();
-              }finally{
-                observer.observe(
-                  list,
-                  {
-                    childList:true,
-                    subtree:true
-                  }
-                );
-
-                decorateQueued = false;
-              }
-            });
-          });
-
-      observer.observe(
-        list,
-        {
-          childList:true,
-          subtree:true
-        }
-      );
+      window.__hegevaSavedChatsCore
+        ?.register(
+          refresh
+        );
     }
 
     document.addEventListener(
