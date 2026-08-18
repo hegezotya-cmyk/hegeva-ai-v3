@@ -1839,6 +1839,7 @@
   white-space:normal;
 }
 </style>
+<style id="v35316-old-search-fix">#v35311ChatSearchWrap{display:none!important}</style>
 </head>
 
 <body>
@@ -19114,11 +19115,11 @@ window.hegevaV351StripeSubscription = {
     let output = String(value || "");
 
     output = output
-      .replace(/<!\[CDATA\[/gi, "")
+      .replace(new RegExp("<!\\[CDATA\\[", "gi"), "")
       .replace(/\]\]>/gi, "")
-      .replace(/<\?xml[\s\S]*?\?>/gi, "")
-      .replace(/<!--[\s\S]*?-->/g, "")
-      .replace(/<\/?[^>]+>/g, "")
+      .replace(new RegExp("<\\?xml[\\s\\S]*?\\?>", "gi"), "")
+      .replace(new RegExp("<!--[\\s\\S]*?-->", "g"), "")
+      .replace(new RegExp("<\\/?[^>]+>", "g"), "")
       .replace(
         /please\s+(?:respond|answer)\s+in\s+(?:english|hungarian|german|french|spanish)\.?/gi,
         ""
@@ -21808,7 +21809,7 @@ ${answer}`
 
       line =
         line
-          .replace(/<!\[CDATA\[/gi, "")
+          .replace(new RegExp("<!\\[CDATA\\[", "gi"), "")
           .replace(/\]\]>/gi, "")
           .replace(/<\?xml.*?\?>/gi, "")
           .trim();
@@ -22214,10 +22215,10 @@ ${answer}`
 
   function stripMarkup(text) {
     return String(text || "")
-      .replace(/<!\[CDATA\[/gi, "")
+      .replace(new RegExp("<!\\[CDATA\\[", "gi"), "")
       .replace(/\]\]>/gi, "")
-      .replace(/<\?xml[\s\S]*?\?>/gi, "")
-      .replace(/<!--[\s\S]*?-->/g, "")
+      .replace(new RegExp("<\\?xml[\\s\\S]*?\\?>", "gi"), "")
+      .replace(new RegExp("<!--[\\s\\S]*?-->", "g"), "")
       .trim();
   }
 
@@ -26338,5 +26339,6 @@ ${transcript}`;
     "HEGEVA AI V35.3.15 Smart Chat Categories active."
   );
 })();
-</script></body>
+</script><script src="/v35316.js"></script>
+</body>
 </html>
