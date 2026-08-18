@@ -1,8 +1,8 @@
-/* HEGEVA AI V35.4.5 — Home Robot Hero Fix */
+/* HEGEVA AI V35.4.6 — Home Robot Hero Layout Fix */
 (() => {
   "use strict";
 
-  const STYLE_ID = "hegeva-v3545-home-robot-style";
+  const STYLE_ID = "hegeva-v3546-home-robot-style";
 
   function addStyle() {
     if (document.getElementById(STYLE_ID)) return;
@@ -12,6 +12,8 @@
     style.textContent = `
       section.hero {
         position: relative !important;
+          display: block !important;
+          box-sizing: border-box !important;
         overflow: hidden !important;
         min-height: 430px;
         padding-right: 47% !important;
