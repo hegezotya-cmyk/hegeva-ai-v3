@@ -7745,9 +7745,7 @@
     // HEGEVA AI V30.0 — SHARED SESSION STATE
     // =========================================
     let hegevaCurrentUser = null;
-    window.hegevaCurrentUser = null;
     let hegevaCurrentSession = null;
-    window.hegevaCurrentSession = null;
 
     // =========================================================
     // HEGEVA SAFE BASE 5 — PHASE 1
@@ -8003,8 +8001,8 @@
       try{
         const response=await fetch("/api/auth/get-session",{method:"GET",credentials:"include",headers:{"Accept":"application/json"}});
         if(!response.ok){
-          hegevaCurrentUser=null; window.hegevaCurrentUser=null;
-          hegevaCurrentSession=null; window.hegevaCurrentSession=null;
+          hegevaCurrentUser=null;
+          hegevaCurrentSession=null;
           showSignedOut();
           if(typeof refreshV70CommandCenter==="function") refreshV70CommandCenter();
           if(typeof refreshV50Dashboard==="function") refreshV50Dashboard();
@@ -8013,9 +8011,7 @@
         const data=await response.json().catch(()=>null);
         const user=data?.user||data?.session?.user||null;
         hegevaCurrentSession=data;
-        window.hegevaCurrentSession=data;
         hegevaCurrentUser=user;
-        window.hegevaCurrentUser=user;
         if(user){
           showSignedIn(user);
           if(typeof refreshV70CommandCenter==="function") refreshV70CommandCenter();
@@ -8028,8 +8024,8 @@
         if(typeof refreshV50Dashboard==="function") refreshV50Dashboard();
         return null;
       }catch{
-        hegevaCurrentUser=null; window.hegevaCurrentUser=null;
-        hegevaCurrentSession=null; window.hegevaCurrentSession=null;
+        hegevaCurrentUser=null;
+        hegevaCurrentSession=null;
         showSignedOut();
         if(typeof refreshV70CommandCenter==="function") refreshV70CommandCenter();
         if(typeof refreshV50Dashboard==="function") refreshV50Dashboard();
@@ -26353,6 +26349,5 @@ ${transcript}`;
 <script src="/modules/v3541-mobile-i18n.js"></script>
 <script src="/modules/v3541-performance.js"></script>
 <script src="/modules/v3541-release.js"></script>
-<script src="/modules/v3542-final-polish.js"></script>
 </body>
 </html>
