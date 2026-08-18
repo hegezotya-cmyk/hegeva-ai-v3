@@ -1,0 +1,5 @@
+node_modules/
+.wrangler/
+auth-schema-temp.mjs
+.DS_Store
+*.log
