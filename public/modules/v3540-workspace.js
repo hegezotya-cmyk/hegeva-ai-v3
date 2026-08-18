@@ -1,5 +1,5 @@
 /* =========================================================
-   HEGEVA AI V35.4.0
+   HEGEVA AI V35.4.7
    MODULE 3/4 — WORKSPACE PRO
    NOTES + AUTOSAVE + STATUS + LOCAL EXPORT
    EN / HU / DE / FR / ES
@@ -9,7 +9,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "V35.4.0";
+  const VERSION = "V35.4.7";
   const MODULE = "WORKSPACE_PRO";
   const LANGS = ["en","hu","de","fr","es"];
 
@@ -121,6 +121,90 @@
 
   function nowISO(){
     return new Date().toISOString();
+  }
+
+  async function loadNotesFromCloud(){
+    try{
+      const response = await fetch(
+        "/api/workspace/notes",
+        {
+          method:"GET",
+          credentials:"include",
+          headers:{
+            "Accept":"application/json"
+          }
+        }
+      );
+
+      if(response.status === 401) return false;
+      if(!response.ok) return false;
+
+      const result = await response.json();
+
+      if(!result?.found || !result?.data){
+        return false;
+      }
+
+      const cloudNotes = String(result.data.notes || "");
+      const cloudUpdated = String(
+        result.data.updatedAt ||
+        result.updatedAt ||
+        ""
+      );
+
+      const localNotes = safeGet(KEYS.notes);
+      const localUpdated = safeGet(KEYS.updated);
+
+      const cloudTime = Date.parse(cloudUpdated) || 0;
+      const localTime = Date.parse(localUpdated) || 0;
+
+      if(cloudTime > localTime){
+        safeSet(KEYS.notes,cloudNotes);
+
+        if(cloudUpdated){
+          safeSet(KEYS.updated,cloudUpdated);
+        }
+
+        const notes =
+          document.getElementById("v3540WorkspaceNotes");
+
+        if(notes){
+          notes.value = cloudNotes;
+        }
+
+        updateMeta();
+      }
+
+      return true;
+    }catch(_error){
+      return false;
+    }
+  }
+
+  async function saveNotesToCloud(value,updatedAt){
+    try{
+      const response = await fetch(
+        "/api/workspace/notes",
+        {
+          method:"PUT",
+          credentials:"include",
+          headers:{
+            "Content-Type":"application/json",
+            "Accept":"application/json"
+          },
+          body:JSON.stringify({
+            data:{
+              notes:String(value || ""),
+              updatedAt:String(updatedAt || nowISO())
+            }
+          })
+        }
+      );
+
+      return response.ok;
+    }catch(_error){
+      return false;
+    }
   }
 
   function installStyle(){
@@ -330,9 +414,10 @@
     if(!notes) return;
 
     const value = notes.value || "";
+    const updatedAt = nowISO();
 
     safeSet(KEYS.notes,value);
-    safeSet(KEYS.updated,nowISO());
+    safeSet(KEYS.updated,updatedAt);
 
     const badge =
       document.getElementById("v3540WorkspaceBadge");
@@ -342,19 +427,31 @@
     }
 
     updateMeta();
+
+    saveNotesToCloud(
+      value,
+      updatedAt
+    );
   }
 
   function clearNotes(){
     const notes =
       document.getElementById("v3540WorkspaceNotes");
 
+    const updatedAt = nowISO();
+
     if(notes){
       notes.value = "";
       notes.focus();
     }
 
-    safeRemove(KEYS.notes);
-    safeRemove(KEYS.updated);
+    safeSet(KEYS.notes,"");
+    safeSet(KEYS.updated,updatedAt);
+
+    saveNotesToCloud(
+      "",
+      updatedAt
+    );
 
     updateMeta();
   }
@@ -503,6 +600,11 @@
 
     start();
 
+    setTimeout(
+      loadNotesFromCloud,
+      1200
+    );
+
     document
       .getElementById("languageSelect")
       ?.addEventListener(
@@ -516,6 +618,8 @@
       notes:true,
       autosave:true,
       localStorage:true,
+      cloudSync:true,
+      cloudFallback:true,
       localExport:true,
       lastUpdated:true,
       fiveLanguages:true,
