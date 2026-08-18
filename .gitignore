@@ -3,3 +3,10 @@ node_modules/
 auth-schema-temp.mjs
 .DS_Store
 *.log
+
+# HEGEVA local backups / audit archives
+public-v*-backup/
+src-v*-backup/
+wrangler-v*-backup.jsonc
+hegeva-*-audit.zip
+hegeva-*-polished.zip
