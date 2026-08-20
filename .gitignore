@@ -10,3 +10,7 @@ src-v*-backup/
 wrangler-v*-backup.jsonc
 hegeva-*-audit.zip
 hegeva-*-polished.zip
+
+# HEGEVA local development backups
+backups/
+*.before-*
