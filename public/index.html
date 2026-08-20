@@ -7313,7 +7313,9 @@
       document.getElementById("aiTopStatus").textContent = "…";
 
       try {
-        const answer = await callHegeva(msg, document.getElementById("aiMode").value);
+        const chat = ensureActiveChat();
+        const history = chat.messages.slice(0, -1).map(m => ({ role: m.role, content: m.text || m.content || "" }));
+        const answer = await callHegeva(msg, document.getElementById("aiMode").value, history);
         addBubble("assistant", answer || "No usable response.", true);
         status.textContent = localeText({en:"Ready",hu:"Kész",de:"Bereit",fr:"Prêt",es:"Listo"});
       } catch (e) {
@@ -18853,7 +18855,7 @@ window.hegevaV351StripeSubscription = {
     }
   }
 
-  window.fetch = async function(input, init = {}) {
+  if (false) window.fetch = async function(input, init = {}) {
 
     if (!isChatRequest(input)) {
       return originalFetch(input, init);
@@ -19380,7 +19382,7 @@ ${error?.message || ""}`.trim()
    * Capture phase prevents the older HEGEVA chat
    * click handler from sending a second request.
    */
-  document.addEventListener(
+if (false)   document.addEventListener(
     "click",
     event => {
 
@@ -19403,7 +19405,7 @@ ${error?.message || ""}`.trim()
   /*
    * Ctrl+Enter / Cmd+Enter also sends safely.
    */
-  document.addEventListener(
+if (false)   document.addEventListener(
     "keydown",
     event => {
 
@@ -21722,7 +21724,7 @@ ${answer}`
              * Keep history clean for now.
              */
 
-            payload.history = [];
+            payload.history = Array.isArray(payload.history) ? payload.history : [];
 
             body =
               JSON.stringify(payload);
@@ -22340,7 +22342,8 @@ ${answer}`
       .forEach(cleanBubble);
   }
 
-  function boot() {
+  function boot(){ return; }
+  function boot_disabled() {
     const wrap =
       document.getElementById(
         "aiChatMessages"
