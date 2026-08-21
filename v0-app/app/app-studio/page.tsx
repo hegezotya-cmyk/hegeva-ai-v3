@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { ArrowRight, Hammer, Sparkles, Wrench } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
