@@ -802,8 +802,13 @@
   function boot() {
     installStyle();
 
+    let waitAttempts = 0;
+    const maxWaitAttempts = 40;
+
     const waitForV35316 =
       () => {
+        waitAttempts += 1;
+
         const toolbar =
           document.getElementById(
             "hegevaV35316Toolbar"
@@ -818,10 +823,19 @@
           !toolbar ||
           !list
         ) {
-          setTimeout(
-            waitForV35316,
-            120
-          );
+          if (
+            waitAttempts <
+            maxWaitAttempts
+          ) {
+            setTimeout(
+              waitForV35316,
+              120
+            );
+          } else {
+            console.warn(
+              "HEGEVA V35.3.17 saved-chat controls were not available during startup."
+            );
+          }
 
           return;
         }
