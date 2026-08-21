@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { authClient } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
+import { useWorkspaceData } from "@/lib/use-workspace-data"
 
 type ChatMessage = {
   role: "user" | "assistant"
@@ -37,7 +38,7 @@ function detectMessageLanguage(message: string, fallback: SupportedLanguage): Su
 export function AssistantChat() {
   const { locale } = useI18n()
   const { data: session, isPending } = authClient.useSession()
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const { items: messages, setItems: setMessages, syncState } = useWorkspaceData<ChatMessage>("assistant_history")
   const [message, setMessage] = useState("")
   const [sending, setSending] = useState(false)
   const [error, setError] = useState("")
@@ -106,8 +107,8 @@ export function AssistantChat() {
     setMessage("")
     setMessages((current) => [
       ...current,
-      { role: "user", content: cleanMessage },
-    ])
+      { role: "user", content: cleanMessage } as ChatMessage,
+    ].slice(-100))
 
     try {
       const response = await fetch("/api/chat", {
@@ -143,8 +144,8 @@ export function AssistantChat() {
 
       setMessages((current) => [
         ...current,
-        { role: "assistant", content: answer },
-      ])
+        { role: "assistant", content: answer } as ChatMessage,
+      ].slice(-100))
       await loadUsage()
     } catch (requestError) {
       setError(
@@ -195,6 +196,9 @@ export function AssistantChat() {
                 {usage.plan.charAt(0).toUpperCase() + usage.plan.slice(1)} plan · {usage.aiMessages} / {usage.aiLimit} AI messages this month
               </p>
             )}
+            <p className="mt-1 text-xs text-muted-foreground">
+              {syncState === "saving" ? "Saving conversation…" : syncState === "cloud" ? "Conversation cloud synced" : syncState === "error" ? "Cloud sync temporarily unavailable" : "Loading conversation…"}
+            </p>
           </div>
           {messages.length > 0 && (
             <button
