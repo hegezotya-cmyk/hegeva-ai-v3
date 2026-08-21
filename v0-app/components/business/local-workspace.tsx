@@ -5,6 +5,7 @@ import { Cloud, CloudOff, Plus, Search, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/status-badge"
 import { useSession } from "@/lib/auth-client"
+import { useI18n } from "@/lib/i18n/provider"
 
 type Kind = "customers" | "documents" | "expenses"
 type RecordItem = { id: string; title: string; meta?: string; amount?: number; notes?: string; createdAt: string }
@@ -51,7 +52,23 @@ function safeLocalWrite(kind: Kind, items: RecordItem[]) {
 }
 
 export function LocalWorkspace({ kind }: { kind: Kind }) {
-  const cfg = config[kind]
+  const { locale, t } = useI18n()
+  const ui = {
+    en:{cloud:"Cloud synced",saving:"Saving to cloud…",checking:"Checking cloud…",fallback:"Local fallback",local:"Saved in this browser",add:"Add",save:"Save",search:"Search",notes:"Notes",amount:"Amount (£)",total:"Saved expense total",calculated:"Calculated only from entries saved below.",none:"No saved records yet",empty:"Add your first real record. HEGEVA never creates fake business data.",saved:"Saved",del:"Delete"},
+    hu:{cloud:"Felhőbe szinkronizálva",saving:"Mentés a felhőbe…",checking:"Felhő ellenőrzése…",fallback:"Helyi biztonsági másolat",local:"Ebben a böngészőben mentve",add:"Hozzáadás",save:"Mentés",search:"Keresés",notes:"Jegyzetek",amount:"Összeg (£)",total:"Mentett kiadások összege",calculated:"Csak az alább mentett tételekből számítva.",none:"Még nincs mentett adat",empty:"Add hozzá az első valódi adatot. A HEGEVA nem készít hamis üzleti adatokat.",saved:"Mentve",del:"Törlés"},
+    de:{cloud:"Cloud-synchronisiert",saving:"Wird gespeichert…",checking:"Cloud wird geprüft…",fallback:"Lokale Sicherung",local:"Im Browser gespeichert",add:"Hinzufügen",save:"Speichern",search:"Suchen",notes:"Notizen",amount:"Betrag (£)",total:"Gespeicherte Ausgaben",calculated:"Nur aus den unten gespeicherten Einträgen berechnet.",none:"Noch keine Einträge",empty:"Fügen Sie den ersten echten Eintrag hinzu. HEGEVA erstellt keine erfundenen Daten.",saved:"Gespeichert",del:"Löschen"},
+    fr:{cloud:"Synchronisé dans le cloud",saving:"Enregistrement…",checking:"Vérification du cloud…",fallback:"Copie locale",local:"Enregistré dans ce navigateur",add:"Ajouter",save:"Enregistrer",search:"Rechercher",notes:"Notes",amount:"Montant (£)",total:"Total des dépenses enregistrées",calculated:"Calculé uniquement à partir des entrées ci-dessous.",none:"Aucune donnée enregistrée",empty:"Ajoutez votre première donnée réelle. HEGEVA ne crée aucune fausse donnée.",saved:"Enregistré",del:"Supprimer"},
+    es:{cloud:"Sincronizado en la nube",saving:"Guardando…",checking:"Comprobando la nube…",fallback:"Copia local",local:"Guardado en este navegador",add:"Añadir",save:"Guardar",search:"Buscar",notes:"Notas",amount:"Importe (£)",total:"Total de gastos guardados",calculated:"Calculado solo con las entradas guardadas abajo.",none:"Aún no hay datos guardados",empty:"Añade tu primer dato real. HEGEVA no crea datos empresariales falsos.",saved:"Guardado",del:"Eliminar"}
+  }[locale]
+  const detail = {
+    en:{eyebrow:"HEGEVA Business Workspace",customerMeta:"Email / phone / status",documentMeta:"Type / customer / reference",expenseMeta:"Category / date / reference",cloud:"Authenticated cloud sync is active. A local browser copy is kept as a fallback.",saving:"Your latest changes are being saved to your HEGEVA workspace.",error:"Cloud sync is unavailable. Your browser copy remains available.",checking:"HEGEVA is checking your authenticated cloud workspace.",guest:"Sign in to enable cloud sync. Until then, records stay in this browser only."},
+    hu:{eyebrow:"HEGEVA üzleti munkaterület",customerMeta:"Email / telefon / állapot",documentMeta:"Típus / ügyfél / hivatkozás",expenseMeta:"Kategória / dátum / hivatkozás",cloud:"A hitelesített felhőszinkron aktív. Helyi böngészős biztonsági másolat is készül.",saving:"A legújabb változtatások mentése folyamatban van a HEGEVA munkaterületre.",error:"A felhőszinkron nem érhető el. A böngészős másolat továbbra is használható.",checking:"A HEGEVA ellenőrzi a hitelesített felhőalapú munkaterületet.",guest:"Jelentkezz be a felhőszinkronhoz. Addig az adatok csak ebben a böngészőben maradnak."},
+    de:{eyebrow:"HEGEVA Business-Arbeitsbereich",customerMeta:"E-Mail / Telefon / Status",documentMeta:"Typ / Kunde / Referenz",expenseMeta:"Kategorie / Datum / Referenz",cloud:"Authentifizierte Cloud-Synchronisierung ist aktiv. Eine lokale Sicherung bleibt erhalten.",saving:"Die neuesten Änderungen werden gespeichert.",error:"Cloud-Synchronisierung nicht verfügbar. Die Browserkopie bleibt erhalten.",checking:"HEGEVA prüft den authentifizierten Cloud-Arbeitsbereich.",guest:"Melden Sie sich für Cloud-Synchronisierung an. Bis dahin bleiben Daten nur im Browser."},
+    fr:{eyebrow:"Espace professionnel HEGEVA",customerMeta:"E-mail / téléphone / statut",documentMeta:"Type / client / référence",expenseMeta:"Catégorie / date / référence",cloud:"La synchronisation cloud authentifiée est active. Une copie locale est conservée.",saving:"Vos dernières modifications sont en cours d’enregistrement.",error:"Synchronisation cloud indisponible. La copie locale reste accessible.",checking:"HEGEVA vérifie votre espace cloud authentifié.",guest:"Connectez-vous pour activer la synchronisation. Les données restent sinon dans ce navigateur."},
+    es:{eyebrow:"Espacio de negocio HEGEVA",customerMeta:"Correo / teléfono / estado",documentMeta:"Tipo / cliente / referencia",expenseMeta:"Categoría / fecha / referencia",cloud:"La sincronización autenticada está activa. Se conserva una copia local.",saving:"Tus últimos cambios se están guardando.",error:"La sincronización no está disponible. La copia del navegador sigue accesible.",checking:"HEGEVA está comprobando tu espacio autenticado.",guest:"Inicia sesión para activar la sincronización. Hasta entonces, los datos quedan en este navegador."}
+  }[locale]
+  const translated = { customers:{title:t.business.customers,subtitle:t.business.customersDesc,placeholder:t.business.customers}, documents:{title:t.business.documents,subtitle:t.business.documentsDesc,placeholder:t.business.documents}, expenses:{title:t.business.expenses,subtitle:t.business.expensesDesc,placeholder:t.business.expenses} }[kind]
+  const cfg = { ...config[kind], ...translated }
   const { data: session, isPending } = useSession()
   const [items, setItems] = useState<RecordItem[]>([])
   const [title, setTitle] = useState("")
@@ -197,31 +214,31 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
 
   const syncLabel =
     syncState === "cloud"
-      ? "Cloud synced"
+      ? ui.cloud
       : syncState === "saving"
-        ? "Saving to cloud…"
+        ? ui.saving
         : syncState === "checking"
-          ? "Checking cloud…"
+          ? ui.checking
           : syncState === "error"
-            ? "Local fallback"
-            : "Saved in this browser"
+            ? ui.fallback
+            : ui.local
 
   const syncDescription =
     syncState === "cloud"
-      ? "Authenticated D1 workspace sync is active for this section. A local browser copy is also kept as a fallback."
+      ? detail.cloud
       : syncState === "saving"
-        ? "Your latest changes are being saved to the authenticated HEGEVA workspace."
+        ? detail.saving
         : syncState === "error"
-          ? `${syncError || "Cloud sync is unavailable."} Your browser copy remains available.`
+          ? detail.error
           : session?.user
-            ? "HEGEVA is checking your authenticated cloud workspace."
-            : "Sign in to enable HEGEVA cloud workspace sync. Until then, records stay in this browser only."
+            ? detail.checking
+            : detail.guest
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">HEGEVA Business Workspace</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{detail.eyebrow}</p>
           <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{cfg.title}</h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">{cfg.subtitle}</p>
         </div>
@@ -242,35 +259,35 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
 
       {kind === "expenses" && (
         <div className="glass-panel mt-8 rounded-2xl p-5">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Saved expense total</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">{ui.total}</p>
           <p className="mt-2 text-3xl font-semibold text-foreground">£{total.toFixed(2)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Calculated only from entries saved below.</p>
+          <p className="mt-1 text-xs text-muted-foreground">{ui.calculated}</p>
         </div>
       )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[360px_1fr]">
         <form onSubmit={addItem} className="glass-panel h-fit rounded-2xl p-5">
-          <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><Plus className="size-4 text-primary" /> Add {cfg.singular}</div>
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><Plus className="size-4 text-primary" /> {ui.add}</div>
           <div className="mt-5 space-y-3">
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={cfg.placeholder} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
-            <input value={meta} onChange={(e) => setMeta(e.target.value)} placeholder={kind === "customers" ? "Email / phone / status" : kind === "documents" ? "Type / customer / reference" : "Category / date / reference"} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
-            {kind === "expenses" && <input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount (£)" className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />}
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes" rows={4} className="w-full resize-none rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
+            <input value={meta} onChange={(e) => setMeta(e.target.value)} placeholder={kind === "customers" ? detail.customerMeta : kind === "documents" ? detail.documentMeta : detail.expenseMeta} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
+            {kind === "expenses" && <input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={ui.amount} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />}
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={ui.notes} rows={4} className="w-full resize-none rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
           </div>
-          <Button type="submit" className="mt-4 w-full">Save {cfg.singular}</Button>
+          <Button type="submit" className="mt-4 w-full">{ui.save}</Button>
         </form>
 
         <section>
           <div className="glass-panel flex items-center gap-2 rounded-xl px-3 py-2.5">
             <Search className="size-4 text-muted-foreground" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`Search ${cfg.title.toLowerCase()}`} className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`${ui.search}: ${cfg.title}`} className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
           </div>
 
           <div className="mt-4 space-y-3">
             {filtered.length === 0 ? (
               <div className="glass-panel rounded-2xl p-8 text-center">
-                <p className="font-medium text-foreground">No saved {kind} yet</p>
-                <p className="mt-2 text-sm text-muted-foreground">Add your first real record. HEGEVA will not create fake examples and count them as business data.</p>
+                <p className="font-medium text-foreground">{ui.none}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{ui.empty}</p>
               </div>
             ) : filtered.map((item) => (
               <article key={item.id} className="glass-panel flex items-start justify-between gap-4 rounded-2xl p-5">
@@ -279,9 +296,9 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
                   {item.meta && <p className="mt-1 text-sm text-muted-foreground">{item.meta}</p>}
                   {typeof item.amount === "number" && <p className="mt-2 text-lg font-semibold text-primary">£{item.amount.toFixed(2)}</p>}
                   {item.notes && <p className="mt-2 text-sm leading-relaxed text-foreground/75">{item.notes}</p>}
-                  <p className="mt-3 text-[11px] text-muted-foreground">Saved {new Date(item.createdAt).toLocaleString()}</p>
+                  <p className="mt-3 text-[11px] text-muted-foreground">{ui.saved} {new Date(item.createdAt).toLocaleString(locale)}</p>
                 </div>
-                <button type="button" onClick={() => setItems((current) => current.filter((x) => x.id !== item.id))} className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive" aria-label={`Delete ${item.title}`}><Trash2 className="size-4" /></button>
+                <button type="button" onClick={() => setItems((current) => current.filter((x) => x.id !== item.id))} className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive" aria-label={`${ui.del} ${item.title}`}><Trash2 className="size-4" /></button>
               </article>
             ))}
           </div>
