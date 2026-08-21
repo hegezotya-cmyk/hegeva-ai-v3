@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "hegeva-ai-v3-v0",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-08-21",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "HEGEVA_API",
+      "service": "hegeva-ai-v3",
+      "remote": true
+    }
+  ]
+}
