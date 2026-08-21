@@ -140,13 +140,13 @@ export function SiteHeader() {
             </Link>
           ))}
           <Link
-            href="/get-started"
+            href={session?.user ? "/command-center" : "/get-started"}
             className={cn(
               buttonVariants({ size: "lg" }),
               "hidden bg-gold text-gold-foreground hover:bg-gold/90 sm:inline-flex",
             )}
           >
-            {t.nav.getStarted}
+            {session?.user ? "Open workspace" : t.nav.getStarted}
           </Link>
 
           <button
@@ -191,7 +191,7 @@ export function SiteHeader() {
               ) : (
                 <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1")}>{t.nav.login}</Link>
               )}
-              <Link href="/get-started" className={cn(buttonVariants({ size: "lg" }), "flex-1 bg-gold text-gold-foreground hover:bg-gold/90")}>{t.nav.getStarted}</Link>
+              <Link href={session?.user ? "/command-center" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "flex-1 bg-gold text-gold-foreground hover:bg-gold/90")}>{session?.user ? "Workspace" : t.nav.getStarted}</Link>
             </div>
           </nav>
         </div>
