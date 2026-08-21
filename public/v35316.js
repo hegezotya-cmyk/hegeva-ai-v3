@@ -360,8 +360,16 @@
 
     list.dataset.v35316Observed = "true";
 
+    let scheduled = false;
+
     new MutationObserver(() => {
-      filterChats();
+      if (scheduled) return;
+      scheduled = true;
+
+      requestAnimationFrame(() => {
+        scheduled = false;
+        filterChats();
+      });
     }).observe(list, {
       childList: true,
       subtree: true
