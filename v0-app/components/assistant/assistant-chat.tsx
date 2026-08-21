@@ -6,6 +6,7 @@ import { Check, Copy, Trash2 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { authClient } from "@/lib/auth-client"
+import { useI18n } from "@/lib/i18n/provider"
 
 type ChatMessage = {
   role: "user" | "assistant"
@@ -19,7 +20,22 @@ type PlanStatus = {
   period: string
 }
 
+type SupportedLanguage = "en" | "hu" | "de" | "fr" | "es"
+
+function detectMessageLanguage(message: string, fallback: SupportedLanguage): SupportedLanguage {
+  const text = message.toLocaleLowerCase()
+
+  if (/[őűáéíóöü]/u.test(text) || /\b(mit|hogy|vagy|tudunk|csinálni|csinalni|mondj|kérek|kerem|üzleti|uzleti|magyarul|segíts|segits)\b/u.test(text)) return "hu"
+  if (/[äöüß]/u.test(text) || /\b(und|oder|bitte|heute|geschäft|geschaft|ideen|hilf)\b/u.test(text)) return "de"
+  if (/[àâçéèêëîïôûùüÿœ]/u.test(text) || /\b(et|avec|pour|bonjour|idées|idees|entreprise|aide)\b/u.test(text)) return "fr"
+  if (/[áéíñóúü¿¡]/u.test(text) || /\b(y|para|hola|ideas|negocio|ayuda|puedes|quiero)\b/u.test(text)) return "es"
+  if (/\b(the|and|please|business|help|how|what|today|ideas)\b/u.test(text)) return "en"
+
+  return fallback
+}
+
 export function AssistantChat() {
+  const { locale } = useI18n()
   const { data: session, isPending } = authClient.useSession()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [message, setMessage] = useState("")
@@ -103,7 +119,7 @@ export function AssistantChat() {
         body: JSON.stringify({
           message: cleanMessage,
           history: recentHistory,
-          language: "en",
+          language: detectMessageLanguage(cleanMessage, locale),
           mode: "general",
         }),
       })
