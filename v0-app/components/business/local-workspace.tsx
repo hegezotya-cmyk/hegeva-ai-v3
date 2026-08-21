@@ -1,30 +1,32 @@
 "use client"
 
-import { FormEvent, useEffect, useMemo, useState } from "react"
-import { Plus, Search, Trash2 } from "lucide-react"
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react"
+import { Cloud, CloudOff, Plus, Search, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/status-badge"
+import { useSession } from "@/lib/auth-client"
 
 type Kind = "customers" | "documents" | "expenses"
 type RecordItem = { id: string; title: string; meta?: string; amount?: number; notes?: string; createdAt: string }
+type SyncState = "checking" | "cloud" | "local" | "saving" | "error"
 
 const config: Record<Kind, { title: string; singular: string; subtitle: string; placeholder: string }> = {
   customers: {
     title: "Customers & CRM",
     singular: "customer",
-    subtitle: "Save real customer records in this browser. No demo customers are invented.",
+    subtitle: "Manage real customer records. Signed-in accounts sync through the HEGEVA cloud workspace.",
     placeholder: "Customer or company name",
   },
   documents: {
     title: "Documents",
     singular: "document",
-    subtitle: "Create and save lightweight document records locally while the cloud document backend is prepared.",
+    subtitle: "Keep lightweight document records with authenticated cloud sync and a local browser fallback.",
     placeholder: "Document title",
   },
   expenses: {
     title: "Expenses",
     singular: "expense",
-    subtitle: "Track real expense entries saved in this browser. Totals are calculated only from your entries.",
+    subtitle: "Track real expense entries. Totals are calculated only from records you add.",
     placeholder: "Supplier or expense name",
   },
 }
@@ -33,29 +35,136 @@ function storageKey(kind: Kind) {
   return `hegeva:v0:${kind}`
 }
 
+function safeLocalRead(kind: Kind): RecordItem[] {
+  try {
+    const raw = localStorage.getItem(storageKey(kind))
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function safeLocalWrite(kind: Kind, items: RecordItem[]) {
+  try {
+    localStorage.setItem(storageKey(kind), JSON.stringify(items))
+  } catch {}
+}
+
 export function LocalWorkspace({ kind }: { kind: Kind }) {
   const cfg = config[kind]
+  const { data: session, isPending } = useSession()
   const [items, setItems] = useState<RecordItem[]>([])
   const [title, setTitle] = useState("")
   const [meta, setMeta] = useState("")
   const [amount, setAmount] = useState("")
   const [notes, setNotes] = useState("")
   const [query, setQuery] = useState("")
+  const [syncState, setSyncState] = useState<SyncState>("checking")
+  const [syncError, setSyncError] = useState("")
+  const readyToSave = useRef(false)
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey(kind))
-      if (raw) setItems(JSON.parse(raw))
-    } catch {
-      setItems([])
+    let cancelled = false
+    readyToSave.current = false
+    setSyncError("")
+
+    async function loadWorkspace() {
+      if (isPending) {
+        setSyncState("checking")
+        return
+      }
+
+      if (!session?.user) {
+        const local = safeLocalRead(kind)
+        if (!cancelled) {
+          setItems(local)
+          setSyncState("local")
+          readyToSave.current = true
+        }
+        return
+      }
+
+      setSyncState("checking")
+
+      try {
+        const response = await fetch(`/api/workspace/${encodeURIComponent(kind)}`, {
+          method: "GET",
+          credentials: "include",
+          headers: { Accept: "application/json" },
+        })
+
+        if (!response.ok) {
+          throw new Error(response.status === 401 ? "Authentication required for cloud sync." : "Cloud workspace could not be loaded.")
+        }
+
+        const payload = await response.json()
+        const cloudItems = Array.isArray(payload?.data) ? payload.data : []
+
+        if (!cancelled) {
+          setItems(cloudItems)
+          safeLocalWrite(kind, cloudItems)
+          setSyncState("cloud")
+          readyToSave.current = true
+        }
+      } catch (error) {
+        const local = safeLocalRead(kind)
+        if (!cancelled) {
+          setItems(local)
+          setSyncState("error")
+          setSyncError(error instanceof Error ? error.message : "Cloud sync is temporarily unavailable.")
+          readyToSave.current = true
+        }
+      }
     }
-  }, [kind])
+
+    void loadWorkspace()
+    return () => {
+      cancelled = true
+    }
+  }, [kind, session?.user, isPending])
 
   useEffect(() => {
-    try {
-      localStorage.setItem(storageKey(kind), JSON.stringify(items))
-    } catch {}
-  }, [items, kind])
+    if (!readyToSave.current) return
+
+    safeLocalWrite(kind, items)
+
+    if (!session?.user) {
+      setSyncState("local")
+      return
+    }
+
+    const controller = new AbortController()
+    const timer = window.setTimeout(async () => {
+      setSyncState("saving")
+      setSyncError("")
+
+      try {
+        const response = await fetch(`/api/workspace/${encodeURIComponent(kind)}`, {
+          method: "PUT",
+          credentials: "include",
+          signal: controller.signal,
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ data: items }),
+        })
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => null)
+          throw new Error(payload?.error || "Cloud workspace could not be saved.")
+        }
+
+        setSyncState("cloud")
+      } catch (error) {
+        if (controller.signal.aborted) return
+        setSyncState("error")
+        setSyncError(error instanceof Error ? error.message : "Cloud sync is temporarily unavailable.")
+      }
+    }, 500)
+
+    return () => {
+      window.clearTimeout(timer)
+      controller.abort()
+    }
+  }, [items, kind, session?.user])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -86,6 +195,28 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
     setNotes("")
   }
 
+  const syncLabel =
+    syncState === "cloud"
+      ? "Cloud synced"
+      : syncState === "saving"
+        ? "Saving to cloud…"
+        : syncState === "checking"
+          ? "Checking cloud…"
+          : syncState === "error"
+            ? "Local fallback"
+            : "Saved in this browser"
+
+  const syncDescription =
+    syncState === "cloud"
+      ? "Authenticated D1 workspace sync is active for this section. A local browser copy is also kept as a fallback."
+      : syncState === "saving"
+        ? "Your latest changes are being saved to the authenticated HEGEVA workspace."
+        : syncState === "error"
+          ? `${syncError || "Cloud sync is unavailable."} Your browser copy remains available.`
+          : session?.user
+            ? "HEGEVA is checking your authenticated cloud workspace."
+            : "Sign in to enable HEGEVA cloud workspace sync. Until then, records stay in this browser only."
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -95,6 +226,18 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">{cfg.subtitle}</p>
         </div>
         <StatusBadge status="working" />
+      </div>
+
+      <div className="glass-panel mt-6 flex items-start gap-3 rounded-2xl p-4">
+        {syncState === "cloud" || syncState === "saving" || syncState === "checking" ? (
+          <Cloud className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+        ) : (
+          <CloudOff className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+        )}
+        <div>
+          <p className="text-sm font-medium text-foreground">{syncLabel}</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{syncDescription}</p>
+        </div>
       </div>
 
       {kind === "expenses" && (
@@ -115,7 +258,6 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes" rows={4} className="w-full resize-none rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
           </div>
           <Button type="submit" className="mt-4 w-full">Save {cfg.singular}</Button>
-          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">This version stores data in this browser only. Cloud sync will be connected later and will not be claimed as active until verified.</p>
         </form>
 
         <section>
