@@ -127,11 +127,11 @@ export function SiteHeader() {
             <div className="hidden items-center gap-1 sm:flex">
               <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "gap-2")}>
                 <UserRound className="size-4" aria-hidden />
-                Account
+                {t.nav.account}
               </Link>
               <button type="button" onClick={() => void logout()} className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "gap-2 text-muted-foreground")}>
                 <LogOut className="size-4" aria-hidden />
-                Logout
+                {t.nav.logout}
               </button>
             </div>
           ) : (
@@ -146,7 +146,7 @@ export function SiteHeader() {
               "hidden bg-gold text-gold-foreground hover:bg-gold/90 sm:inline-flex",
             )}
           >
-            {session?.user ? "Open workspace" : t.nav.getStarted}
+            {session?.user ? t.nav.openWorkspace : t.nav.getStarted}
           </Link>
 
           <button
@@ -186,12 +186,12 @@ export function SiteHeader() {
               <LanguageSwitcher />
               {session?.user ? (
                 <button type="button" onClick={() => void logout()} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1 gap-2")}>
-                  <LogOut className="size-4" aria-hidden /> Logout
+                  <LogOut className="size-4" aria-hidden /> {t.nav.logout}
                 </button>
               ) : (
                 <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1")}>{t.nav.login}</Link>
               )}
-              <Link href={session?.user ? "/command-center" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "flex-1 bg-gold text-gold-foreground hover:bg-gold/90")}>{session?.user ? "Workspace" : t.nav.getStarted}</Link>
+              <Link href={session?.user ? "/command-center" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "flex-1 bg-gold text-gold-foreground hover:bg-gold/90")}>{session?.user ? t.nav.openWorkspace : t.nav.getStarted}</Link>
             </div>
           </nav>
         </div>
