@@ -313,12 +313,6 @@
   function createUI(){
     if(document.getElementById("v3540Workspace")) return;
 
-    const anchor =
-      document.getElementById("savedChatsList") ||
-      document.getElementById("aiChatInput");
-
-    if(!anchor) return;
-
     const section = document.createElement("section");
     section.id = "v3540Workspace";
 
@@ -580,23 +574,8 @@
   function boot(){
     installStyle();
 
-    let attempts = 0;
-
-    const start = () => {
-      attempts += 1;
-
-      createUI();
-      translate();
-
-      if(
-        !document.getElementById("v3540Workspace") &&
-        attempts < 80
-      ){
-        setTimeout(start,100);
-      }
-    };
-
-    start();
+    createUI();
+    translate();
 
     setTimeout(
       loadNotesFromCloud,
