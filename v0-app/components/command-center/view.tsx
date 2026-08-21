@@ -18,6 +18,7 @@ import { PageHeader } from "@/components/page-header"
 import { StatusBadge, type FeatureStatus } from "@/components/status-badge"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useSession } from "@/lib/auth-client"
 
 type ModuleDef = {
   icon: LucideIcon
@@ -29,6 +30,7 @@ type ModuleDef = {
 
 export function CommandCenterView() {
   const { t } = useI18n()
+  const { data: session } = useSession()
 
   const modules: ModuleDef[] = [
     { icon: Users, title: t.capabilities.crm.title, desc: t.capabilities.crm.desc, status: "coming", href: "/business" },
@@ -48,8 +50,8 @@ export function CommandCenterView() {
         title={t.commandCenter.title}
         subtitle={t.commandCenter.subtitle}
         action={
-          <Link href="/get-started" className={cn(buttonVariants({ size: "lg" }), "bg-gold text-gold-foreground hover:bg-gold/90")}>
-            {t.dashboard.connect}
+          <Link href={session?.user ? "/business" : "/login"} className={cn(buttonVariants({ size: "lg" }), "bg-gold text-gold-foreground hover:bg-gold/90")}>
+            {session?.user ? t.nav.business : t.dashboard.connect}
           </Link>
         }
       />
