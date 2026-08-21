@@ -23,14 +23,14 @@ export default function AppStudioPage() {
             icon={Hammer}
             moduleKey="build"
             href="/app-studio/build-my-app"
-            status="coming"
+            status="beta"
             accent="cyan"
           />
           <StudioModuleCard
             icon={Wrench}
             moduleKey="fix"
             href="/app-studio/fix-my-app"
-            status="coming"
+            status="beta"
             accent="gold"
           />
         </div>
