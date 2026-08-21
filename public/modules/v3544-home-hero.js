@@ -2,6 +2,7 @@
 (() => {
   "use strict";
   const STYLE_ID = "hegeva-premium-neon-ui";
+  const FINAL_BADGE = "HEGEVA AI • SMART BUSINESS WORKSPACE";
 
   function addStyle(){
     if(document.getElementById(STYLE_ID)) return;
@@ -25,7 +26,7 @@ section.hero>.badge,section.hero>h2,section.hero>p,section.hero>.hero-buttons{po
 html.hegeva-premium-ui body section.hero .vision-visual,
 html.hegeva-premium-ui body section.hero .vision-visual *{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}
 
-html.hegeva-premium-ui body section.hero .hegeva-robot-layer{display:block!important;visibility:visible!important;opacity:1!important;position:absolute!important;z-index:3!important;right:-1%!important;top:50%!important;width:53%!important;height:104%!important;transform:translateY(-50%)!important;pointer-events:none!important;background-image:url("/assets/hegeva-home-hero.png")!important;background-position:center center!important;background-size:contain!important;background-repeat:no-repeat!important;filter:saturate(1.14) contrast(1.06) drop-shadow(0 28px 36px rgba(0,0,0,.48))!important}
+html.hegeva-premium-ui body section.hero .hegeva-robot-layer{display:block!important;visibility:visible!important;opacity:1!important;position:absolute!important;z-index:3!important;right:-1%!important;top:50%!important;width:53%!important;height:104%!important;transform:translateY(-50%)!important;pointer-events:none!important;background-image:url("/assets/hegeva-home-hero.png?v=3")!important;background-position:center center!important;background-size:contain!important;background-repeat:no-repeat!important;filter:saturate(1.14) contrast(1.06) drop-shadow(0 28px 36px rgba(0,0,0,.48))!important}
 .hegeva-robot-layer::before{content:"";position:absolute;inset:8% 4% 8% 4%;z-index:-1;border-radius:50%;background:radial-gradient(circle,rgba(150,255,0,.20),rgba(58,255,0,.06) 42%,transparent 70%);filter:blur(8px)}
 .hero-buttons{display:flex!important;flex-wrap:wrap;gap:12px!important;margin-top:24px!important}
 
@@ -54,15 +55,27 @@ html.hegeva-premium-ui body section.hero .hegeva-robot-layer{display:block!impor
     target.prepend(img);
   }
 
+  function enforceBadge(hero){
+    const badge=hero.querySelector(".badge,[data-i18n='home.badge']");
+    if(badge && badge.textContent !== FINAL_BADGE){
+      badge.textContent=FINAL_BADGE;
+      badge.removeAttribute("data-i18n");
+    }
+  }
+
   function tuneHero(){
     const hero=document.querySelector("section.hero");
     if(!hero) return false;
     hero.classList.add("hegeva-premium-hero");
 
-    const badge=hero.querySelector(".badge,[data-i18n='home.badge']");
-    if(badge && /V30\.0|HUMAN-FIRST/i.test(badge.textContent||"")){
-      badge.textContent="HEGEVA AI • SMART BUSINESS WORKSPACE";
-    }
+    enforceBadge(hero);
+
+    hero.querySelectorAll(".vision-visual").forEach(el=>{
+      el.setAttribute("aria-hidden","true");
+      el.style.setProperty("display","none","important");
+      el.style.setProperty("visibility","hidden","important");
+      el.style.setProperty("opacity","0","important");
+    });
 
     let layer=hero.querySelector(".hegeva-robot-layer");
     if(!layer){
@@ -86,13 +99,23 @@ html.hegeva-premium-ui body section.hero .hegeva-robot-layer{display:block!impor
     return true;
   }
 
+  function installObserver(){
+    if(window.__hegevaHeroObserver) return;
+    const observer=new MutationObserver(()=>{
+      const hero=document.querySelector("section.hero");
+      if(hero) tuneHero();
+    });
+    observer.observe(document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:["class","data-i18n","style"]});
+    window.__hegevaHeroObserver=observer;
+  }
+
   function install(){
     document.documentElement.classList.add("hegeva-premium-ui");
     addStyle();
     addBrandLogo();
     tuneHero();
-    setTimeout(tuneHero,300);
-    setTimeout(tuneHero,1000);
+    installObserver();
+    [100,300,700,1200,2200].forEach(ms=>setTimeout(tuneHero,ms));
   }
 
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",install,{once:true});
