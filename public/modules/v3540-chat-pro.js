@@ -286,7 +286,11 @@
 
     wrap.dataset.v3540Observed = "true";
 
-    new MutationObserver(() => {
+    let scheduled = false;
+
+    const refreshState = () => {
+      scheduled = false;
+
       const field = input();
 
       if(field){
@@ -295,6 +299,12 @@
 
       const state = document.getElementById("v3540ChatProState");
       if(state) state.textContent = "✓ " + text().ready;
+    };
+
+    new MutationObserver(() => {
+      if(scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(refreshState);
     }).observe(wrap,{
       childList:true,
       subtree:true
@@ -321,25 +331,12 @@
   function boot(){
     installStyles();
 
-    let attempts = 0;
-
-    const start = () => {
-      attempts += 1;
-
-      ensureToolbar();
-      watchChat();
-      keyboard();
-      translate();
-
-      if(
-        !document.getElementById("v3540ChatProBar") &&
-        attempts < 80
-      ){
-        setTimeout(start,100);
-      }
-    };
-
-    start();
+    // Core chat elements already exist by DOMContentLoaded.
+    // Avoid the old 80 x 100ms startup polling loop.
+    ensureToolbar();
+    watchChat();
+    keyboard();
+    translate();
 
     document
       .getElementById("languageSelect")
@@ -355,6 +352,8 @@
       keyboardUX:true,
       languageAware:true,
       localEnhancement:true,
+      finiteStartup:true,
+      observerCoalesced:true,
       extraAiRequest:false,
       changesAIBackend:false,
       changesBilling:false,
