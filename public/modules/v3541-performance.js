@@ -132,8 +132,16 @@
     markReadyModules();
   }
 
-  function scheduleCleanup() {
+  function scheduleCleanup(force = false) {
     if (state.scheduled) return;
+
+    if (
+      !force &&
+      state.lastRun &&
+      Date.now() - state.lastRun < 1500
+    ) {
+      return;
+    }
 
     state.scheduled = true;
 
@@ -147,31 +155,20 @@
     }
   }
 
-  function visibilityHandler() {
-    document.addEventListener(
-      "visibilitychange",
-      () => {
-        if (
-          document.visibilityState === "visible"
-        ) {
-          scheduleCleanup();
-        }
-      }
-    );
-  }
-
   function boot() {
-    scheduleCleanup();
-    visibilityHandler();
+    // One idle cleanup after initial rendering is enough for normal startup.
+    // Dynamic modules may call refresh() explicitly when they add new content.
+    scheduleCleanup(true);
 
     window.hegevaV3541Performance = {
       version: VERSION,
       module: MODULE,
-      refresh: scheduleCleanup,
+      refresh: () => scheduleCleanup(false),
       state,
       safeCleanup: true,
       lazyImages: true,
       externalLinkProtection: true,
+      repeatedVisibilityScan: false,
       extraAIRequest: false,
       changesAIBackend: false,
       changesStripe: false,
