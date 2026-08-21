@@ -1,21 +1,24 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { ChevronDown, Hammer, Menu, Sparkles, Wrench, X } from "lucide-react"
+import { ChevronDown, Hammer, LogOut, Menu, Sparkles, UserRound, Wrench, X } from "lucide-react"
 import { HegevaLogo } from "@/components/hegeva-logo"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { StatusBadge } from "@/components/status-badge"
 import { useI18n } from "@/lib/i18n/provider"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { authClient } from "@/lib/auth-client"
 
 const studioIcons = { prompt: Sparkles, build: Hammer, fix: Wrench }
 
 export function SiteHeader() {
   const { t } = useI18n()
   const pathname = usePathname()
+  const router = useRouter()
+  const { data: session, isPending: sessionPending } = authClient.useSession()
   const [studioOpen, setStudioOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const studioRef = useRef<HTMLDivElement>(null)
@@ -39,6 +42,12 @@ export function SiteHeader() {
     { key: "build" as const, href: "/app-studio/build-my-app", title: t.studio.build, desc: t.studio.buildDesc, status: "coming" as const },
     { key: "fix" as const, href: "/app-studio/fix-my-app", title: t.studio.fix, desc: t.studio.fixDesc, status: "coming" as const },
   ]
+
+  async function logout() {
+    await authClient.signOut()
+    router.push("/")
+    router.refresh()
+  }
 
   const navLink = (href: string, label: string) => {
     const active = pathname === href
@@ -114,9 +123,22 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-2">
           <LanguageSwitcher className="hidden sm:block" />
-          <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "hidden sm:inline-flex")}>
-            {t.nav.login}
-          </Link>
+          {!sessionPending && (session?.user ? (
+            <div className="hidden items-center gap-1 sm:flex">
+              <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "gap-2")}>
+                <UserRound className="size-4" aria-hidden />
+                Account
+              </Link>
+              <button type="button" onClick={() => void logout()} className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "gap-2 text-muted-foreground")}>
+                <LogOut className="size-4" aria-hidden />
+                Logout
+              </button>
+            </div>
+          ) : (
+            <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "hidden sm:inline-flex")}>
+              {t.nav.login}
+            </Link>
+          ))}
           <Link
             href="/get-started"
             className={cn(
@@ -162,7 +184,13 @@ export function SiteHeader() {
 
             <div className="mt-3 flex items-center gap-2 border-t border-border pt-4">
               <LanguageSwitcher />
-              <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1")}>{t.nav.login}</Link>
+              {session?.user ? (
+                <button type="button" onClick={() => void logout()} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1 gap-2")}>
+                  <LogOut className="size-4" aria-hidden /> Logout
+                </button>
+              ) : (
+                <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1")}>{t.nav.login}</Link>
+              )}
               <Link href="/get-started" className={cn(buttonVariants({ size: "lg" }), "flex-1 bg-gold text-gold-foreground hover:bg-gold/90")}>{t.nav.getStarted}</Link>
             </div>
           </nav>
