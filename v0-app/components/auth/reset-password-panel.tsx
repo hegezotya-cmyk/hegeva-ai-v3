@@ -3,6 +3,8 @@
 import { FormEvent, useState } from "react"
 import Link from "next/link"
 import { authClient } from "@/lib/auth-client"
+import { useI18n } from "@/lib/i18n/provider"
+import { AUTH_COPY } from "@/lib/i18n/auth-copy"
 
 type ResetPasswordPanelProps = {
   token?: string
@@ -10,10 +12,12 @@ type ResetPasswordPanelProps = {
 }
 
 export function ResetPasswordPanel({ token, tokenError }: ResetPasswordPanelProps) {
+  const { locale } = useI18n()
+  const c = AUTH_COPY[locale]
   const [password, setPassword] = useState("")
   const [confirmation, setConfirmation] = useState("")
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(tokenError ? "This reset link is invalid or has expired." : "")
+  const [error, setError] = useState(tokenError ? c.invalid : "")
   const [complete, setComplete] = useState(false)
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -21,12 +25,12 @@ export function ResetPasswordPanel({ token, tokenError }: ResetPasswordPanelProp
     setError("")
 
     if (!token) {
-      setError("This reset link is invalid or has expired.")
+      setError(c.invalid)
       return
     }
 
     if (password !== confirmation) {
-      setError("The passwords do not match.")
+      setError(c.mismatch)
       return
     }
 
@@ -54,12 +58,12 @@ export function ResetPasswordPanel({ token, tokenError }: ResetPasswordPanelProp
   if (complete) {
     return (
       <div className="glass-panel rounded-2xl p-6 sm:p-8">
-        <h2 className="text-2xl font-semibold">Password updated</h2>
+        <h2 className="text-2xl font-semibold">{c.updated}</h2>
         <p className="mt-3 text-sm text-muted-foreground">
           Your existing sessions were securely closed. Sign in again with your new password.
         </p>
         <Link href="/login" className="mt-6 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">
-          Return to login
+          {c.returnLogin}
         </Link>
       </div>
     )
@@ -68,7 +72,7 @@ export function ResetPasswordPanel({ token, tokenError }: ResetPasswordPanelProp
   return (
     <form onSubmit={submit} className="glass-panel space-y-4 rounded-2xl p-6 sm:p-8">
       <label className="block">
-        <span className="mb-1.5 block text-sm font-medium">New password</span>
+        <span className="mb-1.5 block text-sm font-medium">{c.newPassword}</span>
         <input
           type="password"
           value={password}
@@ -81,7 +85,7 @@ export function ResetPasswordPanel({ token, tokenError }: ResetPasswordPanelProp
         />
       </label>
       <label className="block">
-        <span className="mb-1.5 block text-sm font-medium">Confirm new password</span>
+        <span className="mb-1.5 block text-sm font-medium">{c.confirm}</span>
         <input
           type="password"
           value={confirmation}
@@ -103,10 +107,10 @@ export function ResetPasswordPanel({ token, tokenError }: ResetPasswordPanelProp
         disabled={busy || !token}
         className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
       >
-        {busy ? "Updating…" : "Update password"}
+        {busy ? c.updating : c.update}
       </button>
       <Link href="/login" className="block text-center text-sm font-medium text-muted-foreground hover:text-foreground">
-        Back to login
+        {c.back}
       </Link>
     </form>
   )

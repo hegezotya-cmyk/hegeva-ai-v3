@@ -3,9 +3,13 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { authClient, signIn, signUp, useSession } from "@/lib/auth-client"
+import { useI18n } from "@/lib/i18n/provider"
+import { AUTH_COPY } from "@/lib/i18n/auth-copy"
 
 export function AuthPanel() {
   const router = useRouter()
+  const { locale } = useI18n()
+  const c = AUTH_COPY[locale]
   const { data: session, isPending } = useSession()
   const [mode, setMode] = useState<"login" | "register" | "forgot">("login")
   const [name, setName] = useState("")
@@ -69,20 +73,20 @@ export function AuthPanel() {
   }
 
   if (isPending) {
-    return <p className="text-sm text-muted-foreground">Checking your session…</p>
+    return <p className="text-sm text-muted-foreground">{c.checking}</p>
   }
 
   if (session?.user) {
     return (
       <div className="glass-panel rounded-2xl p-6">
-        <p className="text-sm text-muted-foreground">You are signed in as</p>
+        <p className="text-sm text-muted-foreground">{c.signedIn}</p>
         <p className="mt-1 font-semibold">{session.user.email}</p>
         <button
           type="button"
           onClick={() => router.push("/command-center")}
           className="mt-5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
         >
-          Open Command Center
+          {c.open}
         </button>
       </div>
     )
@@ -100,7 +104,7 @@ export function AuthPanel() {
           }}
           className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${mode === "login" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
         >
-          Login
+          {c.login}
         </button>
         <button
           type="button"
@@ -111,27 +115,27 @@ export function AuthPanel() {
           }}
           className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${mode === "register" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
         >
-          Register
+          {c.register}
         </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {mode === "register" && (
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium">Name</span>
+            <span className="mb-1.5 block text-sm font-medium">{c.name}</span>
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
               required
               autoComplete="name"
               className="w-full rounded-xl border border-input bg-input/30 px-3.5 py-3 text-sm outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-              placeholder="Your name"
+              placeholder={c.yourName}
             />
           </label>
         )}
 
         <label className="block">
-          <span className="mb-1.5 block text-sm font-medium">Email</span>
+          <span className="mb-1.5 block text-sm font-medium">{c.email}</span>
           <input
             type="email"
             value={email}
@@ -145,7 +149,7 @@ export function AuthPanel() {
 
         {mode !== "forgot" && (
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium">Password</span>
+            <span className="mb-1.5 block text-sm font-medium">{c.password}</span>
             <input
               type="password"
               value={password}
@@ -155,7 +159,7 @@ export function AuthPanel() {
               maxLength={128}
               autoComplete={mode === "login" ? "current-password" : "new-password"}
               className="w-full rounded-xl border border-input bg-input/30 px-3.5 py-3 text-sm outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-              placeholder="Minimum 8 characters"
+              placeholder={c.minPassword}
             />
           </label>
         )}
@@ -170,7 +174,7 @@ export function AuthPanel() {
             }}
             className="text-sm font-medium text-primary hover:underline"
           >
-            Forgot your password?
+            {c.forgot}
           </button>
         )}
 
@@ -191,7 +195,7 @@ export function AuthPanel() {
           disabled={busy}
           className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
         >
-          {busy ? "Please wait…" : mode === "login" ? "Login" : mode === "register" ? "Create account" : "Send reset link"}
+          {busy ? c.wait : mode === "login" ? c.login : mode === "register" ? c.create : c.sendReset}
         </button>
 
         {mode === "forgot" && (
@@ -204,7 +208,7 @@ export function AuthPanel() {
             }}
             className="w-full text-sm font-medium text-muted-foreground hover:text-foreground"
           >
-            Back to login
+            {c.back}
           </button>
         )}
       </form>
