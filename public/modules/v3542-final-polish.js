@@ -131,21 +131,17 @@
     document.addEventListener("change",e=>{if(e.target?.id==="btDocType"){e.stopImmediatePropagation();refreshNumber();}},true);
   }
 
-  function boot(){installStyle();delegatedEvents();polish();document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(polish,30));let timer;
-new MutationObserver(mutations=>{
-  const meaningful = mutations.some(m =>
-    [...m.addedNodes, ...m.removedNodes].some(
-      node => node.nodeType === 1
-    )
-  );
+  function boot(){
+  installStyle();
+  delegatedEvents();
+  polish();
 
-  if(!meaningful) return;
-
-  clearTimeout(timer);
-  timer=setTimeout(polish,180);
-}).observe(document.body,{
-  childList:true,
-  subtree:true
-});window.hegevaV3542={version:VERSION,businessToolsRepair:true,languagePolish:true,sessionPolish:true,mobilePolish:true,printPolish:true};console.log("HEGEVA AI V35.4.2 full audit polish active.");}
+  document
+    .getElementById("languageSelect")
+    ?.addEventListener(
+      "change",
+      () => setTimeout(polish,30)
+    );
+window.hegevaV3542={version:VERSION,businessToolsRepair:true,languagePolish:true,sessionPolish:true,mobilePolish:true,printPolish:true};console.log("HEGEVA AI V35.4.2 full audit polish active.");}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot();
 })();

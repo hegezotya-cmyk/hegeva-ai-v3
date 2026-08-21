@@ -364,14 +364,12 @@
       </div>
     `;
 
-    const parent =
-      anchor.closest("section") ||
-      anchor.parentElement;
+      const settingsPage =
+        document.getElementById("settings");
 
-    parent?.insertAdjacentElement(
-      "afterend",
-      section
-    );
+      if(!settingsPage) return;
+
+      settingsPage.appendChild(section);
 
     const notes =
       document.getElementById("v3540WorkspaceNotes");

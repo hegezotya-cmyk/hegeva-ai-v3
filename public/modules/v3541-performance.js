@@ -147,41 +147,6 @@
     }
   }
 
-  function observer() {
-    if (!document.body) return;
-
-    if (
-      document.body.dataset
-        .v3541PerformanceObserved === "true"
-    ) {
-      return;
-    }
-
-    document.body.dataset
-      .v3541PerformanceObserved = "true";
-
-    const mutationObserver =
-      new MutationObserver(mutations => {
-        const meaningful =
-          mutations.some(mutation =>
-            mutation.addedNodes.length ||
-            mutation.removedNodes.length
-          );
-
-        if (meaningful) {
-          scheduleCleanup();
-        }
-      });
-
-    mutationObserver.observe(
-      document.body,
-      {
-        childList: true,
-        subtree: true
-      }
-    );
-  }
-
   function visibilityHandler() {
     document.addEventListener(
       "visibilitychange",
@@ -197,7 +162,6 @@
 
   function boot() {
     scheduleCleanup();
-    observer();
     visibilityHandler();
 
     window.hegevaV3541Performance = {

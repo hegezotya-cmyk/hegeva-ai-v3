@@ -167,36 +167,10 @@
         }
       });
   }
-
-  function observe(){
-    if(document.body?.dataset.v3541I18nObserved === "true") return;
-
-    if(document.body){
-      document.body.dataset.v3541I18nObserved = "true";
-    }
-
-    let timer = null;
-
-    new MutationObserver(() => {
-      clearTimeout(timer);
-
-      timer = setTimeout(
-        syncLanguage,
-        80
-      );
-    }).observe(
-      document.body,
-      {
-        childList:true,
-        subtree:true
-      }
-    );
-  }
-
   function boot(){
+
     installStyle();
     syncLanguage();
-    observe();
 
     document
       .getElementById("languageSelect")

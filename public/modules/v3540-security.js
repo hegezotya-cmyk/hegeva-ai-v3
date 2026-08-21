@@ -353,10 +353,12 @@
       <div id="v3540SecurityStatus"></div>
     `;
 
-    anchor.insertAdjacentElement(
-      "afterend",
-      section
-    );
+      const settingsPage =
+        document.getElementById("settings");
+
+      if(!settingsPage) return;
+
+      settingsPage.appendChild(section);
 
     document
       .getElementById("v3540SecurityRefresh")

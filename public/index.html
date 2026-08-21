@@ -6251,8 +6251,11 @@
         });
       }
 
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0, behavior: "auto" });
     }
+
+      // HEGEVA CENTRAL PAGE ROUTER
+      window.showPage = showPage;
 
     document.querySelectorAll(".nav-button").forEach((button) => {
       button.addEventListener("click", () => showPage(button.dataset.page));
@@ -8988,7 +8991,7 @@
       }
     }
 
-    setTimeout(refreshV50Dashboard, 700);
+    // HEGEVA PERF: dashboard refreshes when Home/Pricing is opened
     document.querySelector('[data-page="home"]')?.addEventListener("click", () => setTimeout(refreshV50Dashboard, 80));
     document.querySelector('[data-page="pricing"]')?.addEventListener("click", () => setTimeout(refreshV50Dashboard, 120));
 
@@ -9095,16 +9098,16 @@
           }
         }
 
-        const r=await fetch("/api/plan/status",{method:"GET",credentials:"include",headers:{"Accept":"application/json"}});
-        if(r.status===401){
+        const planResult=await hegevaPlanStatusCore.get();
+        if(planResult.guest || planResult.status===401){
           setText("v70Plan","—");setText("v70Ai","—");
           if(backendLive){backendLive.textContent="Sign in required";backendLive.className="warn";}
           if(usageLive)usageLive.textContent="—";
           if(usageBar)usageBar.style.width="0%";
           return;
         }
-        if(!r.ok) throw new Error(`HTTP ${r.status}`);
-        const data=await r.json();
+        if(!planResult.ok) throw new Error(`HTTP ${planResult.status || 0}`);
+        const data=planResult.data || {};
         const plan=String(data.plan||"basic").toUpperCase();
         const used=Number(data.usage?.aiMessages||0);
         const limit=Number(data.usage?.limit||0);
@@ -9122,7 +9125,7 @@
       }
     }
 
-    setTimeout(async()=>{await refreshAuthSession(); await refreshV70CommandCenter();}, 900);
+    // HEGEVA PERF: Command Center refreshes after session/page activity
     document.querySelector('[data-page="home"]')?.addEventListener("click", () => setTimeout(refreshV70CommandCenter, 100));
 
 
@@ -9293,7 +9296,7 @@
       const del=e.target.closest("[data-crm-delete]");if(del)return crmDelete(del.dataset.crmDelete);
     });
     document.querySelector('[data-page="customers"]')?.addEventListener("click",()=>setTimeout(crmRender,50));
-    setTimeout(crmRender,700);
+    // HEGEVA PERF: CRM renders when Customers is opened
 
 
 
@@ -9391,9 +9394,9 @@
       if(profile){profile.textContent=profileReady?"Profile Ready":"Profile Needs details";profile.className=`v12-pill ${profileReady?"ok":""}`;}
 
       try{
-        const r=await fetch("/api/plan/status",{credentials:"include",headers:{"Accept":"application/json"}});
-        if(r.ok){
-          const data=await r.json();
+        const planResult=await hegevaPlanStatusCore.get();
+        if(planResult.ok){
+          const data=planResult.data || {};
           if(plan){plan.textContent=`Plan ${String(data.plan||"basic").toUpperCase()}`;plan.className="v12-pill ok";}
         }else if(plan){plan.textContent="Plan —";}
       }catch{if(plan)plan.textContent="Plan —";}
@@ -9429,15 +9432,15 @@
     document.getElementById("v12RefreshReports")?.addEventListener("click",v12Refresh);
     document.getElementById("v12ExportSummary")?.addEventListener("click",v12ExportSummary);
     document.querySelector('[data-page="reports"]')?.addEventListener("click",()=>setTimeout(v12Refresh,80));
-    setTimeout(v12Refresh,1000);
+    // HEGEVA PERF: Reports refresh when Reports is opened
 
 
 
     async function v13RefreshBilling(){
       try{
-        const r=await fetch("/api/plan/status",{credentials:"include",headers:{"Accept":"application/json"}});
-        if(!r.ok)return;
-        const data=await r.json();
+        const planResult=await hegevaPlanStatusCore.get();
+        if(!planResult.ok)return;
+        const data=planResult.data || {};
         const plan=String(data.plan||"basic").toLowerCase();
         const badge=document.getElementById("v13BillingPlan");
         if(badge)badge.textContent=plan.toUpperCase();
@@ -9447,7 +9450,7 @@
       }catch{}
     }
     document.querySelector('[data-page="pricing"]')?.addEventListener("click",()=>setTimeout(v13RefreshBilling,80));
-    setTimeout(v13RefreshBilling,1000);
+    // HEGEVA PERF: Billing refreshes when Pricing is opened
 
 
     // =========================================
@@ -9703,7 +9706,7 @@ Give me 3 practical next business actions.`;
     document.addEventListener("click",e=>{
       if(e.target.closest("#saveDocument,#addExpense,#plannerAdd,#crmSaveBtn,[data-crm-delete]"))setTimeout(v21Refresh,120);
     });
-    setTimeout(v21Refresh,850);
+    // HEGEVA PERF: workspace search refreshes on relevant activity
 
 
 
@@ -10285,9 +10288,9 @@ Create a concise weekly business review with: what needs attention, what looks o
       v25SetStatus("v25Cloud",signedIn?(cloudOk?"Active":"Signed in"):"Unavailable",signedIn?"ok":"warn");
 
       try{
-        const r=await fetch("/api/plan/status",{credentials:"include",headers:{"Accept":"application/json"}});
-        if(!r.ok)throw new Error(`HTTP ${r.status}`);
-        const data=await r.json();
+        const planResult=await hegevaPlanStatusCore.get();
+        if(!planResult.ok)throw new Error(`HTTP ${planResult.status || 0}`);
+        const data=planResult.data || {};
         const plan=String(data.plan||"basic").toUpperCase();
         const used=Number(data.aiUsed ?? data.used ?? data.usage ?? 0);
         const limit=Number(data.aiLimit ?? data.limit ?? 50);
@@ -10521,7 +10524,7 @@ Open planner tasks: ${s.openTasks}`;
         setTimeout(v27Render,180);
       }
     });
-    setTimeout(v27Render,1300);
+    // HEGEVA PERF: diagnostics render on demand
 
 
     // =========================================
@@ -10577,10 +10580,10 @@ Open planner tasks: ${s.openTasks}`;
       push(signedIn,signedIn?"Account session active":"Account session not active");
 
       try{
-        const r=await fetch("/api/plan/status",{credentials:"include",headers:{"Accept":"application/json"}});
-        push(r.ok,r.ok?"Plan backend connected":`Plan backend returned HTTP ${r.status}`);
-        if(r.ok){
-          const data=await r.json();
+        const planResult=await hegevaPlanStatusCore.get();
+        push(planResult.ok,planResult.ok?"Plan backend connected":`Plan backend returned HTTP ${planResult.status || 0}`);
+        if(planResult.ok){
+          const data=planResult.data || {};
           const plan=document.getElementById("v20Plan");
           if(plan){plan.textContent=String(data.plan||"basic").toUpperCase();plan.className="ok";}
         }
@@ -10672,7 +10675,7 @@ Open planner tasks: ${s.openTasks}`;
     loadSettings();
     translatePage(getLanguage());
     setTimeout(refreshAuthSession, 250);
-    if (typeof refreshV50Dashboard === "function") setTimeout(refreshV50Dashboard, 200);
+    // HEGEVA PERF: avoid duplicate dashboard startup refresh
     if (typeof renderDocumentCenterV49 === "function") renderDocumentCenterV49();
   </script>
 
@@ -10719,7 +10722,7 @@ Open planner tasks: ${s.openTasks}`;
   });
 
   // Initial cross-module reconciliation.
-  setTimeout(() => window.hegevaV29Refresh?.(), 1800);
+  // HEGEVA PERF: avoid duplicate cross-module startup reconciliation
 })();
 </script>
 
@@ -10752,9 +10755,11 @@ Open planner tasks: ${s.openTasks}`;
       timestamp: new Date().toISOString()
     };
     try {
-      const r = await fetch("/api/plan/status", {credentials:"include", headers:{"Accept":"application/json"}});
-      result.backendReachable = r.status !== 404 && r.status < 500;
-      result.planStatus = r.status;
+      const planResult = await hegevaPlanStatusCore.get();
+      result.backendReachable =
+        planResult.guest ||
+        (planResult.status !== 404 && planResult.status < 500);
+      result.planStatus = planResult.status;
     } catch {
       result.backendReachable = false;
     }
@@ -11390,26 +11395,10 @@ Open planner tasks: ${s.openTasks}`;
       applying = false;
     }
   }
+    document.getElementById("languageSelect")?.addEventListener("change", () => {
+      requestAnimationFrame(v31ApplyAll);
+    });
 
-  const scheduleApply = (() => {
-    let timer = 0;
-    return () => {
-      clearTimeout(timer);
-      timer = setTimeout(v31ApplyAll, 40);
-    };
-  })();
-
-  document.getElementById("languageSelect")?.addEventListener("change", () => {
-    setTimeout(v31ApplyAll, 0);
-    setTimeout(v31ApplyAll, 160);
-  });
-
-  const observer = new MutationObserver((mutations) => {
-    if (applying) return;
-    if (mutations.some(m => m.type === "childList" || m.type === "characterData")) {
-      scheduleApply();
-    }
-  });
 
   const start = () => {
     v31ApplyAll();
@@ -11714,10 +11703,6 @@ Open planner tasks: ${s.openTasks}`;
   const apply=()=>translateLegal();
   document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(apply,0));
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",apply,{once:true});else apply();
-
-  const observer=new MutationObserver(()=>setTimeout(apply,25));
-  const legal=document.getElementById("legal");
-  if(legal)observer.observe(legal,{childList:true,subtree:true,characterData:true});
 })();
 </script>
 
@@ -13074,22 +13059,7 @@ Open planner tasks: ${s.openTasks}`;
       active=false;
     }
   }
-
-  const schedule=()=>{
-    clearTimeout(window.__hegevaV315Timer);
-    window.__hegevaV315Timer=setTimeout(apply,50);
-  };
-
-  document.getElementById("languageSelect")?.addEventListener("change",()=>{
-    setTimeout(apply,0);
-    setTimeout(apply,180);
-  });
-
-  const obs=new MutationObserver(()=>{
-    if(!active)schedule();
-  });
-
-  if(document.readyState==="loading"){
+if(document.readyState==="loading"){
     document.addEventListener("DOMContentLoaded",()=>{
       apply();
       /* HEGEVA PERFORMANCE ISOLATION TEST:
@@ -13841,14 +13811,7 @@ Open planner tasks: ${s.openTasks}`;
     document.getElementById(id)?.addEventListener("input",()=>setTimeout(render,40));
     document.getElementById(id)?.addEventListener("change",()=>setTimeout(render,40));
   });
-
-  const legal=document.getElementById("legal");
-  if(legal){
-    const obs=new MutationObserver(()=>{ if(!rendering) setTimeout(render,70); });
-    obs.observe(legal,{subtree:true,childList:true,characterData:true});
-  }
-
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",render,{once:true});
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",render,{once:true});
   else render();
 
   window.hegevaV317LegalI18n=render;
@@ -14007,8 +13970,8 @@ Open planner tasks: ${s.openTasks}`;
   }
 
   document.getElementById("languageSelect")?.addEventListener("change",()=>{
-    setTimeout(apply,0);setTimeout(apply,150);setTimeout(apply,500);
-  });
+      requestAnimationFrame(apply);
+    });
   // HEGEVA Performance Core: global observer disabled.
 
   if(document.readyState==="loading"){
@@ -14357,10 +14320,7 @@ Open planner tasks: ${s.openTasks}`;
     const l=currentLanguage();
     localStorage.setItem("hegeva_language",l);
     document.documentElement.dataset.hegevaLanguage=l;
-    setTimeout(apply,0);
-    setTimeout(apply,120);
-    setTimeout(apply,400);
-    setTimeout(apply,900);
+    schedule();
   });
   // HEGEVA Performance Core: central global observer disabled.
 
@@ -15271,13 +15231,6 @@ Open planner tasks: ${s.openTasks}`;
   window.__hegevaPageRenderCore?.refreshPage("home");
 });
   window.addEventListener("storage",()=>setTimeout(render,80));
-
-  const obs=new MutationObserver(()=>{
-    if(document.getElementById("home")?.classList.contains("active")){
-      clearTimeout(window.__v323Refresh);
-      window.__v323Refresh=setTimeout(render,120);
-    }
-  });
 
   if(document.readyState==="loading"){
     document.addEventListener("DOMContentLoaded",()=>{
@@ -17686,11 +17639,6 @@ $("v342RunPreflight")?.addEventListener("click",runPreflight);
 $("v342RunCheckout")?.addEventListener("click",testCheckout);
 document.getElementById("languageSelect")?.addEventListener("change",()=>setTimeout(localize,80));
 
-const observer=new MutationObserver(()=>{
- clearTimeout(window.__v342LangTimer);
- window.__v342LangTimer=setTimeout(()=>{polishLegacyBilling();translateKnownStatuses()},100);
-});
-const pricing=$("pricing");if(pricing)observer.observe(pricing,{subtree:true,childList:true,characterData:true});
 
 localize();
 window.hegevaV342PaymentTest={runPreflight,testCheckout,state:S,version:"V34.2",chargesRealMoney:false,changesEntitlement:false};
@@ -18275,15 +18223,6 @@ document.getElementById("languageSelect")?.addEventListener("change", () => {
   }, 90);
 });
 
-const observer = new MutationObserver(() => {
-  clearTimeout(window.__v351PolishTimer);
-  window.__v351PolishTimer = setTimeout(applyLanguagePolish, 100);
-});
-
-const pricing = $("pricing");
-if(pricing){
-  observer.observe(pricing, {subtree:true, childList:true, characterData:true});
-}
 
 ensurePanel();
 render();
@@ -18794,684 +18733,8 @@ window.hegevaV351StripeSubscription = {
     sendsAutomatically:false
   };
 })();
-</script><!-- =========================================================
-     HEGEVA AI V35.2.4
-     AI RESPONSE LANGUAGE LOCK
-     SAFE /api/chat REQUEST ENHANCEMENT
-     NO STRIPE / BILLING / ENTITLEMENT CHANGES
-     ========================================================= -->
-
-<script>
-(() => { return;
-  "use strict";
-
-  if (window.__hegevaV3524LanguageLockInstalled) {
-    return;
-  }
-
-  window.__hegevaV3524LanguageLockInstalled = true;
-
-  const originalFetch = window.fetch.bind(window);
-
-  const LANGUAGE_RULES = {
-    en:
-      "IMPORTANT LANGUAGE RULE: Respond only in English. Do not mix other languages into the answer unless the user explicitly asks for translation or another language.",
-
-    hu:
-      "FONTOS NYELVI SZABÁLY: Kizárólag magyarul válaszolj. Ne keverj angol vagy más nyelvű mondatokat a válaszba, kivéve ha a felhasználó kifejezetten fordítást vagy más nyelvet kér.",
-
-    de:
-      "WICHTIGE SPRACHREGEL: Antworte ausschließlich auf Deutsch. Mische keine anderen Sprachen in die Antwort, außer der Benutzer bittet ausdrücklich um eine Übersetzung oder eine andere Sprache.",
-
-    fr:
-      "RÈGLE DE LANGUE IMPORTANTE : Répondez uniquement en français. Ne mélangez pas d'autres langues dans la réponse, sauf si l'utilisateur demande explicitement une traduction ou une autre langue.",
-
-    es:
-      "REGLA DE IDIOMA IMPORTANTE: Responde únicamente en español. No mezcles otros idiomas en la respuesta, salvo que el usuario solicite explícitamente una traducción u otro idioma."
-  };
-
-  function currentLanguage() {
-    const value =
-      String(
-        document.getElementById("languageSelect")?.value || "en"
-      ).toLowerCase();
-
-    return LANGUAGE_RULES[value] ? value : "en";
-  }
-
-  function isChatRequest(input) {
-    try {
-      const url =
-        typeof input === "string"
-          ? input
-          : input?.url || "";
-
-      return (
-        url === "/api/chat" ||
-        url.endsWith("/api/chat")
-      );
-    } catch {
-      return false;
-    }
-  }
-
-  if (false) window.fetch = async function(input, init = {}) {
-
-    if (!isChatRequest(input)) {
-      return originalFetch(input, init);
-    }
-
-    try {
-      const language = currentLanguage();
-
-      const body =
-        typeof init.body === "string"
-          ? JSON.parse(init.body)
-          : null;
-
-      if (!body || typeof body !== "object") {
-        return originalFetch(input, init);
-      }
-
-      const originalMessage =
-        String(body.message || "").trim();
-
-      if (!originalMessage) {
-        return originalFetch(input, init);
-      }
-
-      const languageRule =
-        LANGUAGE_RULES[language];
-
-      body.language = language;
-
-      body.message =
-        `${languageRule}\n\nUSER MESSAGE:\n${originalMessage}`;
-
-      const nextInit = {
-        ...init,
-        body: JSON.stringify(body)
-      };
-
-      return originalFetch(
-        input,
-        nextInit
-      );
-
-    } catch (error) {
-
-      console.warn(
-        "HEGEVA V35.2.4 language lock fallback:",
-        error
-      );
-
-      return originalFetch(
-        input,
-        init
-      );
-    }
-  };
-
-  window.hegevaV3524LanguageLock = {
-    version: "V35.2.4",
-    enabled: true,
-    target: "/api/chat",
-    changesStripe: false,
-    changesBilling: false,
-    changesWebhook: false,
-    changesEntitlement: false,
-    handlesCardData: false
-  };
-
-})();
 </script>
 <!-- =========================================================
-     HEGEVA AI V35.2.5
-     REMOVE V35.2.4 FRONTEND LANGUAGE FETCH OVERRIDE
-     RESTORE NORMAL BACKEND CHAT REQUEST
-     ========================================================= -->
-
-<script>
-(() => { return;
-  "use strict";
-
-  /*
-    V35.2.4 modified window.fetch for /api/chat.
-    This patch restores clean chat requests without
-    injecting extra language instructions into the user's message.
-  */
-
-  if (!window.__hegevaOriginalFetchV3525) {
-    window.__hegevaOriginalFetchV3525 =
-      window.fetch.bind(window);
-  }
-
-  const cleanFetch =
-    window.__hegevaOriginalFetchV3525;
-
-  window.fetch = function(input, init = {}) {
-
-    let url = "";
-
-    try {
-      url =
-        typeof input === "string"
-          ? input
-          : input?.url || "";
-    } catch {}
-
-    const isChat =
-      url === "/api/chat" ||
-      url.endsWith("/api/chat");
-
-    if (!isChat) {
-      return cleanFetch(input, init);
-    }
-
-    try {
-
-      if (
-        typeof init.body === "string"
-      ) {
-
-        const body =
-          JSON.parse(init.body);
-
-        if (
-          body &&
-          typeof body === "object" &&
-          typeof body.message === "string"
-        ) {
-
-          const marker =
-            "USER MESSAGE:\n";
-
-          if (
-            body.message.includes(marker)
-          ) {
-
-            body.message =
-              body.message
-                .split(marker)
-                .slice(1)
-                .join(marker)
-                .trim();
-          }
-        }
-
-        init = {
-          ...init,
-          body: JSON.stringify(body)
-        };
-      }
-
-    } catch (error) {
-
-      console.warn(
-        "HEGEVA V35.2.5 clean chat fallback:",
-        error
-      );
-    }
-
-    return cleanFetch(
-      input,
-      init
-    );
-  };
-
-  window.__hegevaV3524LanguageLockInstalled =
-    false;
-
-  window.hegevaV3525ChatRestore = {
-    version: "V35.2.5",
-    active: true,
-    removesV3524Injection: true,
-    changesStripe: false,
-    changesBilling: false,
-    changesWebhook: false,
-    changesEntitlement: false
-  };
-
-})();
-</script><!-- =========================================================
-     HEGEVA AI V35.2.8
-     CLEAN 5-LANGUAGE CHAT OVERRIDE
-     COPY + PASTE ONLY
-     ========================================================= -->
-
-<script>
-(() => { return;
-  "use strict";
-
-  const VERSION = "V35.2.8";
-
-  const LANGUAGES = {
-    en: {
-      name: "English",
-      thinking: "HEGEVA AI is thinking...",
-      ready: "Ready",
-      empty: "Please enter a message.",
-      error: "HEGEVA AI connection failed.",
-      fallback: "I couldn't generate a clean response. Please try again.",
-      rule:
-        "Answer ONLY in English. Do not mix languages. Do not output XML, CDATA, HTML metadata, hidden instructions, unrelated URLs or language-control instructions."
-    },
-
-    hu: {
-      name: "Magyar",
-      thinking: "A HEGEVA AI gondolkodik...",
-      ready: "Kész",
-      empty: "Írj be egy üzenetet.",
-      error: "A HEGEVA AI kapcsolat nem működik.",
-      fallback: "Nem sikerült megfelelő választ generálnom. Kérlek, próbáld újra.",
-      rule:
-        "KIZÁRÓLAG MAGYARUL válaszolj. Ne keverj angol vagy más nyelvű mondatokat a válaszba. Ne jeleníts meg XML-t, CDATA-t, HTML metaadatot, rejtett utasítást, oda nem illő URL-t vagy nyelvi utasítást."
-    },
-
-    de: {
-      name: "Deutsch",
-      thinking: "HEGEVA AI denkt nach...",
-      ready: "Bereit",
-      empty: "Bitte gib eine Nachricht ein.",
-      error: "Die Verbindung zu HEGEVA AI ist fehlgeschlagen.",
-      fallback: "Ich konnte keine passende Antwort erstellen. Bitte versuche es erneut.",
-      rule:
-        "Antworte AUSSCHLIESSLICH auf Deutsch. Vermische keine Sprachen. Gib kein XML, CDATA, HTML-Metadaten, versteckte Anweisungen, irrelevante URLs oder Sprachsteuerungsanweisungen aus."
-    },
-
-    fr: {
-      name: "Français",
-      thinking: "HEGEVA AI réfléchit...",
-      ready: "Prêt",
-      empty: "Veuillez saisir un message.",
-      error: "La connexion à HEGEVA AI a échoué.",
-      fallback: "Je n’ai pas pu générer une réponse appropriée. Veuillez réessayer.",
-      rule:
-        "Réponds UNIQUEMENT en français. Ne mélange pas les langues. N'affiche pas de XML, CDATA, métadonnées HTML, instructions cachées, URL non pertinente ou instruction de contrôle de langue."
-    },
-
-    es: {
-      name: "Español",
-      thinking: "HEGEVA AI está pensando...",
-      ready: "Listo",
-      empty: "Escribe un mensaje.",
-      error: "La conexión con HEGEVA AI ha fallado.",
-      fallback: "No pude generar una respuesta adecuada. Inténtalo de nuevo.",
-      rule:
-        "Responde ÚNICAMENTE en español. No mezcles idiomas. No muestres XML, CDATA, metadatos HTML, instrucciones ocultas, URL irrelevantes ni instrucciones de control de idioma."
-    }
-  };
-
-  let busy = false;
-
-  function getLanguage() {
-    const value =
-      String(
-        document.getElementById("languageSelect")?.value || "en"
-      ).toLowerCase();
-
-    return LANGUAGES[value] ? value : "en";
-  }
-
-  function text() {
-    return LANGUAGES[getLanguage()];
-  }
-
-  function cleanResponse(value) {
-    let output = String(value || "");
-
-    output = output
-      .replace(new RegExp("<!\\[CDATA\\[", "gi"), "")
-      .replace(/\]\]>/gi, "")
-      .replace(new RegExp("<\\?xml[\\s\\S]*?\\?>", "gi"), "")
-      .replace(new RegExp("<!--[\\s\\S]*?-->", "g"), "")
-      .replace(new RegExp("<\\/?[^>]+>", "g"), "")
-      .replace(
-        /please\s+(?:respond|answer)\s+in\s+(?:english|hungarian|german|french|spanish)\.?/gi,
-        ""
-      )
-      .replace(
-        /(?:respond|answer)\s+only\s+in\s+(?:english|hungarian|german|french|spanish)\.?/gi,
-        ""
-      )
-      .replace(
-        /https?:\/\/[^\s)>\]]+/gi,
-        ""
-      )
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-
-    return output || text().fallback;
-  }
-
-  function addMessage(role, value) {
-    const wrap =
-      document.getElementById("aiChatMessages");
-
-    if (!wrap) return;
-
-    const box =
-      document.createElement("div");
-
-    box.className = "coming-item";
-
-    box.style.marginTop = "10px";
-
-    box.style.borderColor =
-      role === "assistant"
-        ? "rgba(246,196,83,.30)"
-        : "rgba(55,200,255,.26)";
-
-    const title =
-      document.createElement("strong");
-
-    title.textContent =
-      role === "assistant"
-        ? "HEGEVA AI"
-        : {
-            en: "You",
-            hu: "Te",
-            de: "Du",
-            fr: "Vous",
-            es: "Tú"
-          }[getLanguage()];
-
-    const body =
-      document.createElement("div");
-
-    body.style.cssText =
-      "margin-top:7px;white-space:pre-wrap;line-height:1.6";
-
-    body.textContent = value;
-
-    box.append(
-      title,
-      body
-    );
-
-    wrap.appendChild(box);
-
-    wrap.scrollTop =
-      wrap.scrollHeight;
-  }
-
-  function requestAI(payload) {
-    return new Promise(
-      (resolve, reject) => {
-
-        const xhr =
-          new XMLHttpRequest();
-
-        xhr.open(
-          "POST",
-          "/api/chat",
-          true
-        );
-
-        xhr.withCredentials = true;
-
-        xhr.setRequestHeader(
-          "Content-Type",
-          "application/json"
-        );
-
-        xhr.onload = () => {
-          let data = {};
-
-          try {
-            data =
-              JSON.parse(
-                xhr.responseText || "{}"
-              );
-          } catch {}
-
-          if (
-            xhr.status >= 200 &&
-            xhr.status < 300
-          ) {
-            resolve(data);
-          } else {
-            reject(
-              new Error(
-                data?.error ||
-                `HTTP ${xhr.status}`
-              )
-            );
-          }
-        };
-
-        xhr.onerror = () =>
-          reject(
-            new Error(
-              text().error
-            )
-          );
-
-        xhr.send(
-          JSON.stringify(payload)
-        );
-      }
-    );
-  }
-
-  async function sendCleanMessage() {
-    if (busy) return;
-
-    const input =
-      document.getElementById("aiChatInput");
-
-    const button =
-      document.getElementById("sendAiChat");
-
-    const status =
-      document.getElementById("aiChatStatus");
-
-    if (!input) return;
-
-    const message =
-      input.value.trim();
-
-    if (!message) {
-      if (status) {
-        status.textContent =
-          text().empty;
-      }
-
-      return;
-    }
-
-    const language =
-      getLanguage();
-
-    const lang =
-      LANGUAGES[language];
-
-    const mode =
-      document.getElementById("aiMode")?.value ||
-      "general";
-
-    const businessContext =
-      String(
-        document.getElementById("aiBusinessContext")?.value ||
-        ""
-      )
-        .slice(0, 500)
-        .trim();
-
-    busy = true;
-
-    if (button) {
-      button.disabled = true;
-    }
-
-    addMessage(
-      "user",
-      message
-    );
-
-    input.value = "";
-
-    if (status) {
-      status.textContent =
-        lang.thinking;
-    }
-
-    try {
-      const controlledMessage =
-        `${lang.rule}
-
-USER REQUEST:
-${message}`;
-
-      const data =
-        await requestAI({
-          message:
-            controlledMessage,
-
-          mode,
-
-          language,
-
-          businessContext,
-
-          // IMPORTANT:
-          // no contaminated old multilingual history
-          history: []
-        });
-
-      const answer =
-        cleanResponse(
-          data?.response
-        );
-
-      addMessage(
-        "assistant",
-        answer
-      );
-
-      if (status) {
-        status.textContent =
-          lang.ready;
-      }
-
-    } catch (error) {
-
-      addMessage(
-        "assistant",
-        `${lang.error}
-
-${error?.message || ""}`.trim()
-      );
-
-      if (status) {
-        status.textContent =
-          lang.error;
-      }
-
-    } finally {
-
-      busy = false;
-
-      if (button) {
-        button.disabled = false;
-      }
-    }
-  }
-
-  /*
-   * Capture phase prevents the older HEGEVA chat
-   * click handler from sending a second request.
-   */
-if (false)   document.addEventListener(
-    "click",
-    event => {
-
-      const button =
-        event.target.closest(
-          "#sendAiChat"
-        );
-
-      if (!button) return;
-
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
-
-      sendCleanMessage();
-    },
-    true
-  );
-
-  /*
-   * Ctrl+Enter / Cmd+Enter also sends safely.
-   */
-if (false)   document.addEventListener(
-    "keydown",
-    event => {
-
-      const input =
-        event.target.closest?.(
-          "#aiChatInput"
-        );
-
-      if (!input) return;
-
-      if (
-        event.key === "Enter" &&
-        (event.ctrlKey || event.metaKey)
-      ) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-
-        sendCleanMessage();
-      }
-    },
-    true
-  );
-
-  /*
-   * Language change starts a visually clean chat.
-   */
-  document
-    .getElementById("languageSelect")
-    ?.addEventListener(
-      "change",
-      () => {
-
-        const wrap =
-          document.getElementById("aiChatMessages");
-
-        if (wrap) {
-          wrap.innerHTML = "";
-        }
-
-        const status =
-          document.getElementById("aiChatStatus");
-
-        if (status) {
-          status.textContent =
-            LANGUAGES[getLanguage()].ready;
-        }
-      },
-      true
-    );
-
-  window.hegevaV3528 = {
-    version: VERSION,
-    languages:
-      Object.keys(LANGUAGES),
-    cleanChat: true,
-    isolatedHistory: true,
-    copyPasteOnly: true
-  };
-
-  console.log(
-    "HEGEVA AI V35.2.8 clean multilingual chat active."
-  );
-
-})();
-</script><!-- =========================================================
      HEGEVA AI V35.2.9
      SMART LANGUAGE SYNC
      COPY + PASTE ONLY
@@ -21970,16 +21233,6 @@ ${answer}`
       return;
     }
 
-    const observer =
-      new MutationObserver(
-        () => {
-
-          requestAnimationFrame(
-            cleanAll
-          );
-        }
-      );
-
     window.__hegevaSmartChatCore
       ?.register(
         cleanAll
@@ -22341,43 +21594,10 @@ ${answer}`
       )
       .forEach(cleanBubble);
   }
+    function boot(){ return; }
 
-  function boot(){ return; }
-  function boot_disabled() {
-    const wrap =
-      document.getElementById(
-        "aiChatMessages"
-      );
-
-    if (!wrap) return;
-
-    const observer =
-      new MutationObserver(() => {
-        requestAnimationFrame(
-          cleanAll
-        );
-
-        setTimeout(
-          cleanAll,
-          50
-        );
-
-        setTimeout(
-          cleanAll,
-          250
-        );
-      });
-
-    window.__hegevaSmartChatCore
-      ?.register(
-        cleanAll
-      );
-
-    cleanAll();
-  }
-
-  document
-    .getElementById(
+    document
+      .getElementById(
       "languageSelect"
     )
     ?.addEventListener(
@@ -22681,26 +21901,10 @@ ${answer}`
   function boot(){
     refresh();
 
-    const chat =
-      document.getElementById(
-        "aiChatMessages"
+    window.__hegevaSmartChatCore
+      ?.register(
+        refresh
       );
-
-    if(chat){
-      const observer =
-        new MutationObserver(
-          () => {
-            requestAnimationFrame(
-              refresh
-            );
-          }
-        );
-
-      window.__hegevaSmartChatCore
-        ?.register(
-          refresh
-        );
-    }
 
     document
       .getElementById(
