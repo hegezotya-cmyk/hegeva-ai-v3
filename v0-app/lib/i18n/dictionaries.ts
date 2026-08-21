@@ -92,7 +92,15 @@ const dictionaries = {
   },
 } as const
 
-type Dict = (typeof dictionaries)["en"]
+type WidenStrings<T> = {
+  [K in keyof T]: T[K] extends string
+    ? string
+    : T[K] extends object
+      ? WidenStrings<T[K]>
+      : T[K]
+}
+
+type Dict = WidenStrings<(typeof dictionaries)["en"]>
 
 // Localized overrides. Anything not overridden falls back to English so the UI is never blank.
 const overrides: Partial<Record<Locale, DeepPartial<Dict>>> = {

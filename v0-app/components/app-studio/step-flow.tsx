@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Check, ChevronRight, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { StatusBadge, type Status } from "@/components/status-badge"
+import { StatusBadge, type FeatureStatus } from "@/components/status-badge"
 
 export type FlowStep = {
   key: string
@@ -22,7 +22,7 @@ export function StepFlow({
   note,
 }: {
   steps: FlowStep[]
-  status?: Status
+  status?: FeatureStatus
   note: string
 }) {
   const [active, setActive] = useState(0)
