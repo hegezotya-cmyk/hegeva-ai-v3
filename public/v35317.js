@@ -496,10 +496,14 @@
 
     rememberOriginalOrder();
 
-    const cards = [
+    const currentCards = [
       ...list.querySelectorAll(
         ".saved-chat"
       )
+    ];
+
+    const cards = [
+      ...currentCards
     ];
 
     cards.sort(
@@ -533,6 +537,14 @@
         return tb - ta;
       }
     );
+
+    const changed =
+      cards.some(
+        (card, index) =>
+          card !== currentCards[index]
+      );
+
+    if (!changed) return;
 
     const fragment =
       document
