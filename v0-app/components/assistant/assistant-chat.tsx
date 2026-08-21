@@ -36,7 +36,7 @@ function detectMessageLanguage(message: string, fallback: SupportedLanguage): Su
 }
 
 export function AssistantChat() {
-  const { locale } = useI18n()
+  const { locale, t } = useI18n()
   const { data: session, isPending } = authClient.useSession()
   const { items: messages, setItems: setMessages, syncState } = useWorkspaceData<ChatMessage>("assistant_history")
   const [message, setMessage] = useState("")
@@ -85,7 +85,7 @@ export function AssistantChat() {
       setCopiedIndex(index)
       window.setTimeout(() => setCopiedIndex(null), 1800)
     } catch {
-      setError("The answer could not be copied.")
+      setError(t.assistant.copyError)
     }
   }
 
@@ -129,7 +129,7 @@ export function AssistantChat() {
 
       if (!response.ok) {
         throw new Error(
-          data?.error || "HEGEVA AI is temporarily unavailable."
+          data?.error || t.assistant.unavailable
         )
       }
 
@@ -139,7 +139,7 @@ export function AssistantChat() {
           : ""
 
       if (!answer) {
-        throw new Error("HEGEVA AI returned an empty response.")
+        throw new Error(t.assistant.emptyResponse)
       }
 
       setMessages((current) => [
@@ -151,7 +151,7 @@ export function AssistantChat() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "HEGEVA AI is temporarily unavailable."
+          : t.assistant.unavailable
       )
     } finally {
       setSending(false)
@@ -161,7 +161,7 @@ export function AssistantChat() {
   if (isPending) {
     return (
       <div className="rounded-3xl border border-border bg-card p-8 text-sm text-muted-foreground">
-        Checking your HEGEVA account…
+        {t.assistant.checkingAccount}
       </div>
     )
   }
@@ -169,15 +169,15 @@ export function AssistantChat() {
   if (!session?.user) {
     return (
       <div className="rounded-3xl border border-border bg-card p-8">
-        <h2 className="text-2xl font-semibold">Sign in to use HEGEVA Assistant</h2>
+        <h2 className="text-2xl font-semibold">{t.assistant.signInTitle}</h2>
         <p className="mt-3 text-muted-foreground">
-          The live assistant uses your authenticated HEGEVA account and your real monthly AI usage limit.
+          {t.assistant.signInBody}
         </p>
         <Link
           href="/login"
           className="mt-6 inline-flex rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground"
         >
-          Go to login
+          {t.assistant.goLogin}
         </Link>
       </div>
     )
@@ -189,15 +189,15 @@ export function AssistantChat() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm text-muted-foreground">
-              Signed in as {session.user.email}
+              {t.assistant.signedIn} {session.user.email}
             </p>
             {usage && (
               <p className="mt-1 text-xs text-muted-foreground">
-                {usage.plan.charAt(0).toUpperCase() + usage.plan.slice(1)} plan · {usage.aiMessages} / {usage.aiLimit} AI messages this month
+                {usage.plan.charAt(0).toUpperCase() + usage.plan.slice(1)} {t.assistant.plan} · {usage.aiMessages} / {usage.aiLimit} {t.assistant.messagesMonth}
               </p>
             )}
             <p className="mt-1 text-xs text-muted-foreground">
-              {syncState === "saving" ? "Saving conversation…" : syncState === "cloud" ? "Conversation cloud synced" : syncState === "error" ? "Cloud sync temporarily unavailable" : "Loading conversation…"}
+              {syncState === "saving" ? t.assistant.saving : syncState === "cloud" ? t.assistant.synced : syncState === "error" ? t.assistant.syncError : t.assistant.loading}
             </p>
           </div>
           {messages.length > 0 && (
@@ -210,7 +210,7 @@ export function AssistantChat() {
               className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <Trash2 className="size-3.5" aria-hidden />
-              Clear chat
+              {t.assistant.clear}
             </button>
           )}
         </div>
@@ -219,7 +219,7 @@ export function AssistantChat() {
       <div className="min-h-[420px] space-y-4 p-5 sm:p-6">
         {messages.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-6 text-muted-foreground">
-            Ask HEGEVA for practical business help. No demo conversation is inserted here.
+            {t.assistant.empty}
           </div>
         ) : (
           messages.map((item, index) => (
@@ -254,8 +254,8 @@ export function AssistantChat() {
                   <button
                     type="button"
                     onClick={() => void copyAnswer(item.content, index)}
-                    aria-label="Copy answer"
-                    title="Copy answer"
+                    aria-label={t.assistant.copy}
+                    title={t.assistant.copy}
                     className="absolute right-2 top-2 rounded-lg p-2 text-muted-foreground opacity-70 transition hover:bg-background hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
                   >
                     {copiedIndex === index ? <Check className="size-4 text-primary" aria-hidden /> : <Copy className="size-4" aria-hidden />}
@@ -268,7 +268,7 @@ export function AssistantChat() {
 
         {sending && (
           <div className="mr-auto max-w-[90%] rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground">
-            HEGEVA is thinking…
+            {t.assistant.thinking}
           </div>
         )}
 
@@ -291,7 +291,7 @@ export function AssistantChat() {
             onKeyDown={handleComposerKeyDown}
             maxLength={2500}
             rows={3}
-            placeholder="Ask HEGEVA AI…"
+            placeholder={t.assistant.placeholder}
             className="min-h-24 flex-1 resize-none rounded-2xl border border-input bg-background px-4 py-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
           />
           <button
@@ -299,11 +299,11 @@ export function AssistantChat() {
             disabled={sending || !message.trim()}
             className="self-end rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {sending ? "Sending…" : "Send"}
+            {sending ? t.assistant.sending : t.assistant.send}
           </button>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          Enter to send · Shift+Enter for a new line · Maximum 2,500 characters. Usage is counted by the live HEGEVA backend.
+          {t.assistant.hint}
         </p>
       </form>
     </div>
