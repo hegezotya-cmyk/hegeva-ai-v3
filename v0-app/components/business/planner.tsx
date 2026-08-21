@@ -1,7 +1,8 @@
 "use client"
 
-import { FormEvent, useEffect, useMemo, useState } from "react"
-import { CheckCircle2, Circle, Plus, Trash2 } from "lucide-react"
+import { FormEvent, useMemo, useState } from "react"
+import { CheckCircle2, Circle, Cloud, CloudOff, Plus, Trash2 } from "lucide-react"
+import { useWorkspaceData } from "@/lib/use-workspace-data"
 
 type Task = {
   id: string
@@ -11,24 +12,11 @@ type Task = {
   done: boolean
 }
 
-const KEY = "hegeva:v0:planner"
-
 export function LocalPlanner() {
-  const [tasks, setTasks] = useState<Task[]>([])
+  const { items: tasks, setItems: setTasks, syncState, syncError, cloudEnabled } = useWorkspaceData<Task>("planner")
   const [title, setTitle] = useState("")
   const [due, setDue] = useState("")
   const [priority, setPriority] = useState<Task["priority"]>("medium")
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(KEY)
-      if (saved) setTasks(JSON.parse(saved))
-    } catch {}
-  }, [])
-
-  useEffect(() => {
-    localStorage.setItem(KEY, JSON.stringify(tasks))
-  }, [tasks])
 
   function addTask(e: FormEvent) {
     e.preventDefault()
@@ -46,7 +34,15 @@ export function LocalPlanner() {
   const openCount = useMemo(() => tasks.filter((t) => !t.done).length, [tasks])
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+    <div>
+      <div className="glass-panel mb-6 flex items-start gap-3 rounded-2xl p-4">
+        {cloudEnabled && syncState !== "error" ? <Cloud className="mt-0.5 size-4 text-primary" /> : <CloudOff className="mt-0.5 size-4 text-muted-foreground" />}
+        <div>
+          <p className="text-sm font-medium text-foreground">{syncState === "saving" ? "Saving to cloud…" : syncState === "cloud" ? "Cloud synced" : cloudEnabled ? "Checking cloud…" : "Saved in this browser"}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{syncError || (cloudEnabled ? "Planner tasks sync to your authenticated HEGEVA workspace." : "Sign in to enable cloud sync.")}</p>
+        </div>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
       <form onSubmit={addTask} className="glass-panel h-fit rounded-2xl p-5">
         <h2 className="text-lg font-semibold text-foreground">Add task</h2>
         <p className="mt-1 text-sm text-muted-foreground">Create only the work you actually want to track.</p>
@@ -94,6 +90,7 @@ export function LocalPlanner() {
           </div>
         )}
       </section>
+      </div>
     </div>
   )
 }

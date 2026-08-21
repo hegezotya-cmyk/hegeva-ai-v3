@@ -9,7 +9,7 @@ export default function MessagesPage() {
         <PageHeader
           eyebrow="Business Workspace"
           title="Message Studio"
-          subtitle="Draft customer replies, follow-ups, reminders and business messages. Drafts stay in HEGEVA until you explicitly send them through a supported integration."
+          subtitle="Draft customer replies, follow-ups, reminders and business messages. Signed-in drafts sync to your workspace but are never presented as sent."
         />
         <div className="mt-8">
           <MessageStudio />

@@ -1,31 +1,16 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo } from "react"
+import { useWorkspaceData } from "@/lib/use-workspace-data"
 
 type RecordItem = { id: string; amount?: number }
 type Task = { id: string; done: boolean }
 
-function readArray<T>(key: string): T[] {
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
-}
-
 export function LocalReports() {
-  const [customers, setCustomers] = useState<RecordItem[]>([])
-  const [documents, setDocuments] = useState<RecordItem[]>([])
-  const [expenses, setExpenses] = useState<RecordItem[]>([])
-  const [tasks, setTasks] = useState<Task[]>([])
-
-  useEffect(() => {
-    setCustomers(readArray("hegeva:v0:customers"))
-    setDocuments(readArray("hegeva:v0:documents"))
-    setExpenses(readArray("hegeva:v0:expenses"))
-    setTasks(readArray("hegeva:v0:planner"))
-  }, [])
+  const { items: customers, syncState: customerSync } = useWorkspaceData<RecordItem>("customers")
+  const { items: documents } = useWorkspaceData<RecordItem>("documents")
+  const { items: expenses } = useWorkspaceData<RecordItem>("expenses")
+  const { items: tasks } = useWorkspaceData<Task>("planner")
 
   const expenseTotal = useMemo(() => expenses.reduce((sum, item) => sum + (item.amount || 0), 0), [expenses])
   const openTasks = useMemo(() => tasks.filter((task) => !task.done).length, [tasks])
@@ -53,7 +38,7 @@ export function LocalReports() {
       <div className="glass-panel mt-6 rounded-2xl p-6">
         <h2 className="text-lg font-semibold text-foreground">Report integrity</h2>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          Every figure above is derived from records stored by this HEGEVA browser workspace. Revenue, profit, conversion, savings and other performance numbers are intentionally not shown because this local version does not have verified source data for them yet.
+          Every figure above is derived from records stored in your {customerSync === "cloud" ? "authenticated HEGEVA cloud workspace" : "HEGEVA browser workspace"}. Revenue, profit, conversion, savings and other performance numbers are intentionally not shown because HEGEVA does not have verified source data for them yet.
         </p>
       </div>
     </div>

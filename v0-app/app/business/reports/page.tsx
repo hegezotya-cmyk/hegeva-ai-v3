@@ -9,7 +9,7 @@ export default function ReportsPage() {
         <PageHeader
           eyebrow="Business Workspace"
           title="Reports"
-          subtitle="Summaries are calculated from data actually saved in this browser. No demo revenue, customers or activity are invented."
+          subtitle="Summaries are calculated from your real cloud workspace data, with a browser-local fallback. No demo revenue, customers or activity are invented."
         />
         <div className="mt-8">
           <LocalReports />

@@ -9,7 +9,7 @@ export default function PlannerPage() {
         <PageHeader
           eyebrow="Business Workspace"
           title="Planner / Time Saver"
-          subtitle="Capture priorities, due dates and quick tasks in one place. Everything shown here comes from what you actually save."
+          subtitle="Capture priorities, due dates and quick tasks in one place. Signed-in accounts keep this real data synced to their cloud workspace."
         />
         <div className="mt-8">
           <LocalPlanner />

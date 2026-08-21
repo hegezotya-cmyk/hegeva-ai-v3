@@ -1,7 +1,8 @@
 "use client"
 
-import { FormEvent, useEffect, useState } from "react"
-import { Copy, Plus, Trash2 } from "lucide-react"
+import { FormEvent, useState } from "react"
+import { Cloud, CloudOff, Copy, Plus, Trash2 } from "lucide-react"
+import { useWorkspaceData } from "@/lib/use-workspace-data"
 
 type Draft = {
   id: string
@@ -13,26 +14,13 @@ type Draft = {
   createdAt: string
 }
 
-const KEY = "hegeva:v0:messages"
-
 export function MessageStudio() {
-  const [drafts, setDrafts] = useState<Draft[]>([])
+  const { items: drafts, setItems: setDrafts, syncState, syncError, cloudEnabled } = useWorkspaceData<Draft>("messages")
   const [type, setType] = useState("Customer reply")
   const [tone, setTone] = useState("Professional")
   const [recipient, setRecipient] = useState("")
   const [subject, setSubject] = useState("")
   const [body, setBody] = useState("")
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY)
-      if (raw) setDrafts(JSON.parse(raw))
-    } catch {}
-  }, [])
-
-  useEffect(() => {
-    localStorage.setItem(KEY, JSON.stringify(drafts))
-  }, [drafts])
 
   function saveDraft(e: FormEvent) {
     e.preventDefault()
@@ -56,7 +44,15 @@ export function MessageStudio() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
+    <div>
+      <div className="glass-panel mb-6 flex items-start gap-3 rounded-2xl p-4">
+        {cloudEnabled && syncState !== "error" ? <Cloud className="mt-0.5 size-4 text-primary" /> : <CloudOff className="mt-0.5 size-4 text-muted-foreground" />}
+        <div>
+          <p className="text-sm font-medium text-foreground">{syncState === "saving" ? "Saving to cloud…" : syncState === "cloud" ? "Cloud synced" : cloudEnabled ? "Checking cloud…" : "Saved in this browser"}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{syncError || (cloudEnabled ? "Drafts sync to your authenticated HEGEVA workspace." : "Sign in to enable cloud sync.")}</p>
+        </div>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
       <form onSubmit={saveDraft} className="glass-panel h-fit rounded-2xl p-5">
         <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><Plus className="size-4 text-primary" /> New draft</div>
         <div className="mt-5 space-y-3">
@@ -110,6 +106,7 @@ export function MessageStudio() {
           </div>
         )}
       </section>
+      </div>
     </div>
   )
 }
