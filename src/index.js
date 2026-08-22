@@ -1309,6 +1309,151 @@ export default {
     }
 
     // =========================================
+    // OWNER CONTACT LEAD INBOX
+    // =========================================
+
+    if (
+      url.pathname ===
+      "/api/admin/contact-leads"
+    ) {
+      if (
+        request.method !== "GET" &&
+        request.method !== "PATCH"
+      ) {
+        return Response.json(
+          { error: "Method not allowed." },
+          { status: 405 }
+        );
+      }
+
+      try {
+        const user =
+          await getLoggedInUser(
+            request,
+            env,
+            ctx
+          );
+
+        const adminEmail =
+          typeof env.ADMIN_EMAIL === "string"
+            ? env.ADMIN_EMAIL.trim().toLowerCase()
+            : "";
+
+        if (
+          !user?.email ||
+          !adminEmail ||
+          user.email.trim().toLowerCase() !== adminEmail
+        ) {
+          return Response.json(
+            { error: "Owner access required." },
+            {
+              status: 403,
+              headers: {
+                "Cache-Control": "no-store"
+              }
+            }
+          );
+        }
+
+        if (request.method === "GET") {
+          const result =
+            await env.DB
+              .prepare(`
+                SELECT
+                  id,
+                  name,
+                  email,
+                  company,
+                  message,
+                  locale,
+                  status,
+                  createdAt
+                FROM contact_leads
+                ORDER BY createdAt DESC
+                LIMIT 100
+              `)
+              .all();
+
+          return Response.json(
+            {
+              ok: true,
+              leads:
+                Array.isArray(result?.results)
+                  ? result.results
+                  : []
+            },
+            {
+              headers: {
+                "Cache-Control": "no-store"
+              }
+            }
+          );
+        }
+
+        const body =
+          await request.json();
+
+        const id =
+          typeof body?.id === "string"
+            ? body.id.trim()
+            : "";
+
+        const status =
+          typeof body?.status === "string"
+            ? body.status.trim()
+            : "";
+
+        if (
+          !/^[0-9a-f-]{36}$/i.test(id) ||
+          !["new", "read", "closed"].includes(status)
+        ) {
+          return Response.json(
+            { error: "Invalid lead update." },
+            { status: 400 }
+          );
+        }
+
+        const updated =
+          await env.DB
+            .prepare(`
+              UPDATE contact_leads
+              SET status = ?1
+              WHERE id = ?2
+            `)
+            .bind(status, id)
+            .run();
+
+        if (
+          Number(updated?.meta?.changes || 0) < 1
+        ) {
+          return Response.json(
+            { error: "Lead not found." },
+            { status: 404 }
+          );
+        }
+
+        return Response.json(
+          { ok: true, id, status },
+          {
+            headers: {
+              "Cache-Control": "no-store"
+            }
+          }
+        );
+      } catch (error) {
+        console.error(
+          "HEGEVA owner lead inbox error:",
+          error
+        );
+
+        return Response.json(
+          { error: "Lead inbox temporarily unavailable." },
+          { status: 500 }
+        );
+      }
+    }
+
+    // =========================================
     // PLAN STATUS
     // =========================================
 

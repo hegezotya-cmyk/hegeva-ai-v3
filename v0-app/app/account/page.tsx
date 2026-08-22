@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/page-header"
 import { authClient } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
 import { ACCOUNT_COPY } from "@/lib/i18n/account-copy"
+import { LEADS_COPY } from "@/lib/i18n/leads-copy"
 
 type PlanStatus = { plan:string; aiMessages:number; aiLimit:number; period:string }
 
@@ -15,6 +16,8 @@ export default function AccountPage() {
   const router = useRouter()
   const { locale } = useI18n()
   const c = ACCOUNT_COPY[locale]
+  const leadsCopy = LEADS_COPY[locale]
+  const [isOwner, setIsOwner] = useState(false)
   const { data: session, isPending } = authClient.useSession()
   const [plan, setPlan] = useState<PlanStatus | null>(null)
   const [planError, setPlanError] = useState(false)
@@ -34,6 +37,9 @@ export default function AccountPage() {
         })
       })
       .catch(() => { if (active) setPlanError(true) })
+    fetch("/api/admin/contact-leads", { credentials:"include", cache:"no-store" })
+      .then((response) => { if (active) setIsOwner(response.ok) })
+      .catch(() => {})
     return () => { active = false }
   }, [session?.user])
 
@@ -73,6 +79,7 @@ export default function AccountPage() {
           <Link href="/command-center" className="rounded-xl bg-primary px-5 py-3 text-center text-sm font-semibold text-primary-foreground">{c.workspace}</Link>
           <Link href="/assistant" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.assistant}</Link>
           <Link href="/pricing" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.pricing}</Link>
+          {isOwner && <Link href="/admin/contact-leads" className="rounded-xl border border-primary/30 bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary transition-colors hover:bg-primary/15">{leadsCopy.inbox}</Link>}
           <Link href="/contact" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.support}</Link>
           <button type="button" onClick={() => void logout()} className="mt-3 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">{c.logout}</button>
         </aside>
