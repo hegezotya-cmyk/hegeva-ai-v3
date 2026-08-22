@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { AppShell } from "@/components/app-shell"
 import { PageHeader } from "@/components/page-header"
 import { useI18n } from "@/lib/i18n/provider"
@@ -14,6 +14,8 @@ export default function ContactLeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [state, setState] = useState<"loading"|"ready"|"denied"|"error">("loading")
   const [updating, setUpdating] = useState<string | null>(null)
+  const [filter, setFilter] = useState<"all"|Lead["status"]>("all")
+  const [query, setQuery] = useState("")
 
   const load = useCallback(async () => {
     setState("loading")
@@ -43,6 +45,8 @@ export default function ContactLeadsPage() {
   }
 
   const statusLabel = (status:Lead["status"]) => status === "new" ? c.new : status === "read" ? c.read : c.closed
+  const counts = useMemo(() => ({all:leads.length,new:leads.filter((lead)=>lead.status==="new").length,read:leads.filter((lead)=>lead.status==="read").length,closed:leads.filter((lead)=>lead.status==="closed").length}),[leads])
+  const visible = useMemo(() => {const q=query.trim().toLowerCase();return leads.filter((lead)=>(filter==="all"||lead.status===filter)&&(!q||`${lead.name} ${lead.email} ${lead.company||""} ${lead.message}`.toLowerCase().includes(q)))},[leads,filter,query])
 
   return <AppShell>
     <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
@@ -54,8 +58,8 @@ export default function ContactLeadsPage() {
       {state === "denied" && <div className="glass-panel mt-8 rounded-3xl p-8"><h2 className="text-xl font-semibold">{c.deniedTitle}</h2><p className="mt-3 text-sm leading-7 text-muted-foreground">{c.deniedBody}</p></div>}
       {state === "error" && <div role="alert" className="mt-8 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{c.error}</div>}
       {state === "ready" && leads.length === 0 && <div className="glass-panel mt-8 rounded-3xl p-8 text-sm text-muted-foreground">{c.empty}</div>}
-      {state === "ready" && leads.length > 0 && <div className="mt-8 space-y-4">
-        {leads.map((lead) => <article key={lead.id} className="glass-panel rounded-2xl p-5 sm:p-6">
+      {state === "ready" && leads.length > 0 && <><div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">{(["all","new","read","closed"] as const).map((value)=><button key={value} type="button" onClick={()=>setFilter(value)} className={`glass-panel rounded-2xl border p-4 text-left ${filter===value?"border-primary/50":"border-border"}`}><span className="text-xs text-muted-foreground">{value==="all"?c.title:statusLabel(value)}</span><strong className="mt-2 block text-2xl">{counts[value]}</strong></button>)}</div><input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder={`${c.title}…`} className="mt-4 w-full rounded-xl border border-border bg-input/30 px-4 py-3 text-sm outline-none focus:border-primary/50"/><div className="mt-4 space-y-4">
+        {visible.map((lead) => <article key={lead.id} className="glass-panel rounded-2xl p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div><h2 className="font-semibold">{lead.name}</h2><a href={`mailto:${lead.email}`} className="mt-1 block break-all text-sm text-primary hover:underline">{lead.email}</a>{lead.company && <p className="mt-1 text-sm text-muted-foreground">{c.company}: {lead.company}</p>}</div>
             <span className={lead.status === "new" ? "rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary" : "rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground"}>{statusLabel(lead.status)}</span>
@@ -69,7 +73,7 @@ export default function ContactLeadsPage() {
             </div>
           </div>
         </article>)}
-      </div>}
+      </div></>}
     </main>
   </AppShell>
 }
