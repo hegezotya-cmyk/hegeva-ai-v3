@@ -30,18 +30,32 @@ export default function AccountPage() {
   useEffect(() => {
     if (!session?.user) return
     let active = true
-    fetch("/api/plan/status", { credentials:"include" })
-      .then(async (response) => {
-        const data = await response.json().catch(() => null)
-        if (!response.ok || !data) throw new Error("plan")
-        if (active) setPlan({
-          plan: typeof data.plan === "string" ? data.plan : "basic",
-          aiMessages: Number(data.aiMessages) || 0,
-          aiLimit: Number(data.aiLimit) || 0,
-          period: typeof data.period === "string" ? data.period : "",
-        })
+    const loadPlan = async () => {
+      const params = new URLSearchParams(window.location.search)
+      const sessionId = params.get("session_id")
+      if (params.get("billing") === "success" && sessionId?.startsWith("cs_test_")) {
+        await fetch("/api/billing/confirm", {
+          method:"POST",
+          credentials:"include",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({sessionId}),
+        }).catch(() => null)
+      }
+      const response = await fetch("/api/plan/status", { credentials:"include", cache:"no-store" })
+      const data = await response.json().catch(() => null)
+      if (!response.ok || !data) throw new Error("plan")
+      if (active) setPlan({
+        plan: typeof data.plan === "string" ? data.plan : "basic",
+        aiMessages: Number(data.aiMessages) || 0,
+        aiLimit: Number(data.aiLimit) || 0,
+        period: typeof data.period === "string" ? data.period : "",
       })
+    }
+    loadPlan()
       .catch(() => { if (active) setPlanError(true) })
+    /*
+      The separate admin check must not block plan confirmation or display.
+    */
     fetch("/api/admin/contact-leads", { credentials:"include", cache:"no-store" })
       .then((response) => { if (active) setIsOwner(response.ok) })
       .catch(() => {})
