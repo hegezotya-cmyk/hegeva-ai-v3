@@ -33,11 +33,11 @@ export function AuthPanel() {
         })
 
         if (result.error) {
-          setError(result.error.message || "Password reset could not be requested.")
+          setError(c.authFailed)
           return
         }
 
-        setSuccess("If this email belongs to a HEGEVA account, a secure reset link has been sent.")
+        setSuccess(c.resetSent)
         return
       } else if (mode === "register") {
         const result = await signUp.email({
@@ -47,7 +47,7 @@ export function AuthPanel() {
         })
 
         if (result.error) {
-          setError(result.error.message || "Registration failed.")
+          setError(c.authFailed)
           return
         }
       } else {
@@ -57,7 +57,7 @@ export function AuthPanel() {
         })
 
         if (result.error) {
-          setError(result.error.message || "Login failed.")
+          setError(c.authFailed)
           return
         }
       }
@@ -66,7 +66,7 @@ export function AuthPanel() {
       router.push("/command-center")
       router.refresh()
     } catch {
-      setError("Authentication is temporarily unavailable.")
+      setError(c.authUnavailable)
     } finally {
       setBusy(false)
     }
@@ -214,7 +214,7 @@ export function AuthPanel() {
       </form>
 
       <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
-        HEGEVA uses the connected Better Auth backend. Account access is only shown as active after a real authenticated session is returned.
+        {c.honesty}
       </p>
     </div>
   )

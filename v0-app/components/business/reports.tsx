@@ -2,11 +2,15 @@
 
 import { useMemo } from "react"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
+import { useI18n } from "@/lib/i18n/provider"
+import { getBusinessModulesCopy } from "@/lib/i18n/business-modules-copy"
 
 type RecordItem = { id: string; amount?: number }
 type Task = { id: string; done: boolean }
 
 export function LocalReports() {
+  const { locale } = useI18n()
+  const c = getBusinessModulesCopy(locale).reports
   const { items: customers, syncState: customerSync } = useWorkspaceData<RecordItem>("customers")
   const { items: documents } = useWorkspaceData<RecordItem>("documents")
   const { items: expenses } = useWorkspaceData<RecordItem>("expenses")
@@ -17,10 +21,10 @@ export function LocalReports() {
   const doneTasks = tasks.length - openTasks
 
   const cards = [
-    { label: "Customers", value: customers.length.toString(), note: "Saved customer records" },
-    { label: "Documents", value: documents.length.toString(), note: "Saved document records" },
-    { label: "Expenses", value: `£${expenseTotal.toFixed(2)}`, note: `${expenses.length} saved expense entries` },
-    { label: "Open tasks", value: openTasks.toString(), note: `${doneTasks} completed tasks` },
+    { label: c.customers, value: customers.length.toString(), note: c.customerNote },
+    { label: c.documents, value: documents.length.toString(), note: c.documentNote },
+    { label: c.expenses, value: `£${expenseTotal.toFixed(2)}`, note: `${expenses.length} ${c.expenseEntries}` },
+    { label: c.openTasks, value: openTasks.toString(), note: `${doneTasks} ${c.completedTasks}` },
   ]
 
   return (
@@ -36,9 +40,9 @@ export function LocalReports() {
       </div>
 
       <div className="glass-panel mt-6 rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-foreground">Report integrity</h2>
+        <h2 className="text-lg font-semibold text-foreground">{c.integrity}</h2>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          Every figure above is derived from records stored in your {customerSync === "cloud" ? "authenticated HEGEVA cloud workspace" : "HEGEVA browser workspace"}. Revenue, profit, conversion, savings and other performance numbers are intentionally not shown because HEGEVA does not have verified source data for them yet.
+          {customerSync === "cloud" ? c.integrityCloud : c.integrityBrowser} {c.integrityNote}
         </p>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { ArrowRight, type LucideIcon } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { StatusBadge, type FeatureStatus } from "@/components/status-badge"
 import { cn } from "@/lib/utils"
+import { getStudioCopy } from "@/lib/i18n/studio-copy"
 
 type Accent = "emerald" | "cyan" | "gold"
 
@@ -27,7 +28,8 @@ export function StudioModuleCard({
   status: FeatureStatus
   accent: Accent
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const c = getStudioCopy(locale)
   const title = t.studio[moduleKey]
   const desc = t.studio[`${moduleKey}Desc` as const]
 
@@ -46,7 +48,7 @@ export function StudioModuleCard({
       </div>
 
       <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground/80 transition-colors group-hover:text-foreground">
-        Open module
+        {c.open}
         <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
       </span>
     </Link>

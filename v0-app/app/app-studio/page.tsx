@@ -5,6 +5,8 @@ import { ArrowRight, Hammer, Sparkles, Wrench } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { PageHeader } from "@/components/page-header"
 import { StudioModuleCard } from "@/components/app-studio/module-card"
+import { useI18n } from "@/lib/i18n/provider"
+import { getStudioCopy } from "@/lib/i18n/studio-copy"
 
 export default function AppStudioPage() {
   return (
@@ -40,17 +42,19 @@ export default function AppStudioPage() {
 }
 
 function AppStudioHubHeader() {
+  const { locale } = useI18n()
+  const c = getStudioCopy(locale)
   return (
     <PageHeader
       eyebrow="HEGEVA App Studio"
-      title="Build software the HEGEVA way"
-      subtitle="Three flagship modules take you from a raw idea to a professional, production-ready application — guided end to end by HEGEVA AI."
+      title={c.hubTitle}
+      subtitle={c.hubSub}
       action={
         <Link
           href="/app-studio/prompt-my-app"
           className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 glow-emerald"
         >
-          Start with an idea
+          {c.start}
           <ArrowRight className="size-4" aria-hidden />
         </Link>
       }

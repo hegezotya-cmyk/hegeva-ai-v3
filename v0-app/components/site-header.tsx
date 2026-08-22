@@ -15,7 +15,8 @@ import { authClient } from "@/lib/auth-client"
 const studioIcons = { prompt: Sparkles, build: Hammer, fix: Wrench }
 
 export function SiteHeader() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const aria = { en:{primary:"Primary navigation",menu:"Toggle menu",mobile:"Mobile navigation"}, hu:{primary:"Elsődleges navigáció",menu:"Menü megnyitása vagy bezárása",mobile:"Mobil navigáció"}, de:{primary:"Hauptnavigation",menu:"Menü umschalten",mobile:"Mobile Navigation"}, fr:{primary:"Navigation principale",menu:"Ouvrir ou fermer le menu",mobile:"Navigation mobile"}, es:{primary:"Navegación principal",menu:"Abrir o cerrar menú",mobile:"Navegación móvil"} }[locale]
   const pathname = usePathname()
   const router = useRouter()
   const { data: session, isPending: sessionPending } = authClient.useSession()
@@ -69,7 +70,7 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
           <HegevaLogo priority />
-          <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Primary">
+          <nav className="hidden items-center gap-0.5 lg:flex" aria-label={aria.primary}>
             {navLink("/", t.nav.home)}
             {navLink("/command-center", t.nav.commandCenter)}
 
@@ -152,7 +153,7 @@ export function SiteHeader() {
           <button
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
-            aria-label="Toggle menu"
+            aria-label={aria.menu}
             aria-expanded={mobileOpen}
             className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-input/30 text-foreground lg:hidden"
           >
@@ -163,7 +164,7 @@ export function SiteHeader() {
 
       {mobileOpen && (
         <div className="border-t border-border bg-background/95 backdrop-blur-xl lg:hidden">
-          <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4 sm:px-6" aria-label="Mobile">
+          <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4 sm:px-6" aria-label={aria.mobile}>
             <Link href="/" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.home}</Link>
             <Link href="/command-center" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.commandCenter}</Link>
 

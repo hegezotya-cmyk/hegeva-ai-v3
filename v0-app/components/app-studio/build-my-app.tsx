@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import {
   ArrowLeft,
@@ -16,6 +18,9 @@ import {
 import { PageHeader } from "@/components/page-header"
 import { StepFlow, type FlowStep } from "@/components/app-studio/step-flow"
 import { StatusBadge } from "@/components/status-badge"
+import { useI18n } from "@/lib/i18n/provider"
+import { getStudioCopy } from "@/lib/i18n/studio-copy"
+import { getWorkflowsCopy } from "@/lib/i18n/workflows-copy"
 
 const buildSteps: FlowStep[] = [
   {
@@ -124,6 +129,10 @@ const architectureItems = [
 ]
 
 export function BuildMyApp() {
+  const { locale } = useI18n()
+  const shared = getStudioCopy(locale)
+  const c = getWorkflowsCopy(locale).build
+  const steps = c.steps.map(([title, description], index) => ({ key: buildSteps[index].key, title, description }))
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="mb-6">
@@ -132,14 +141,14 @@ export function BuildMyApp() {
           className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-4" aria-hidden />
-          Back to App Studio
+          {shared.backStudio}
         </Link>
       </div>
 
       <PageHeader
         eyebrow="HEGEVA App Studio"
-        title="Build My App X10"
-        subtitle="Turn an application idea into a clear, structured build plan — architecture, interface, data, authentication, AI, payments and security."
+        title={c.title}
+        subtitle={c.sub}
         action={<StatusBadge status="beta" />}
       />
 
@@ -151,13 +160,10 @@ export function BuildMyApp() {
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground">
-                X10 Project Architect
+                {c.architect}
               </p>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                This version structures your project and prepares the build
-                specification. It does not claim that a production application
-                has been generated or deployed unless a real build system is
-                connected and verifies that result.
+                {c.architectBody}
               </p>
             </div>
           </div>
@@ -167,37 +173,38 @@ export function BuildMyApp() {
           <div className="flex items-center gap-2">
             <Sparkles className="size-4 text-primary" aria-hidden />
             <span className="text-sm font-semibold text-foreground">
-              X10 status
+              {c.status}
             </span>
           </div>
-          <p className="mt-3 text-2xl font-semibold text-foreground">Beta</p>
+          <p className="mt-3 text-2xl font-semibold text-foreground">{c.beta}</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Guided project planning is available. Automated production builds
-            will be connected in a later verified phase.
+            {c.statusBody}
           </p>
         </div>
       </div>
 
       <div className="mt-8">
         <StepFlow
-          steps={buildSteps}
+          steps={steps}
           status="beta"
-          note="X10 currently guides and structures the build process. Moving through these steps does not mean code, infrastructure, payments or deployment have already been created."
+          note={c.note}
         />
       </div>
 
       <section className="mt-10">
         <div className="mb-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-            X10 Architecture
+            {c.section}
           </p>
           <h2 className="mt-2 text-2xl font-semibold text-foreground">
-            What the build plan covers
+            {c.covers}
           </h2>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {architectureItems.map(({ icon: Icon, title, text }) => (
+          {architectureItems.map(({ icon: Icon }, index) => {
+            const [title, text] = c.items[index]
+            return (
             <article key={title} className="glass-panel rounded-2xl p-5">
               <div className="flex size-9 items-center justify-center rounded-lg border border-border bg-secondary/50">
                 <Icon className="size-4 text-primary" aria-hidden />
@@ -209,7 +216,7 @@ export function BuildMyApp() {
                 {text}
               </p>
             </article>
-          ))}
+          )})}
         </div>
       </section>
     </div>

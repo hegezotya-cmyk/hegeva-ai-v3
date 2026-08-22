@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import Link from "next/link"
 import { ArrowRight, MessageSquareText, Sparkles } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
@@ -12,10 +11,15 @@ export function Hero() {
   const pills = [t.hero.pillBuild, t.hero.pillManage, t.hero.pillAutomate, t.hero.pillGrow]
 
   return (
-    <section className="relative overflow-hidden">
-      <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-6 lg:py-20 lg:px-8">
+    <section
+      className="relative isolate min-h-[650px] overflow-hidden bg-cover bg-[70%_center] sm:bg-[65%_center] lg:bg-center"
+      style={{ backgroundImage: "url('/hegeva-hero-background.png')" }}
+    >
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(2,10,8,.98)_0%,rgba(2,10,8,.92)_34%,rgba(2,10,8,.5)_57%,rgba(2,10,8,.08)_78%)] max-lg:bg-[linear-gradient(90deg,rgba(2,10,8,.97)_0%,rgba(2,10,8,.88)_45%,rgba(2,10,8,.28)_100%)]" aria-hidden />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-background to-transparent" aria-hidden />
+      <div className="mx-auto flex min-h-[650px] max-w-7xl items-center px-4 py-14 sm:px-6 lg:py-20 lg:px-8">
         {/* Copy */}
-        <div className="relative z-10 max-w-xl">
+        <div className="relative z-10 max-w-xl rounded-3xl bg-background/10 py-4 backdrop-blur-[1px]">
           <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             <Sparkles className="size-3.5" aria-hidden />
             {t.hero.badge}
@@ -57,30 +61,6 @@ export function Hero() {
           </ul>
         </div>
 
-        {/* Approved male HEGEVA robot */}
-        <div className="relative">
-          {/* Atmospheric emerald + cyan illumination behind the character */}
-          <div
-            className="pointer-events-none absolute left-1/2 top-1/2 -z-0 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-80 blur-2xl"
-            style={{
-              background:
-                "radial-gradient(45% 45% at 55% 45%, oklch(0.74 0.165 158 / 0.45), transparent 70%), radial-gradient(40% 40% at 40% 70%, oklch(0.8 0.12 196 / 0.3), transparent 70%)",
-            }}
-            aria-hidden
-          />
-          <div className="relative mx-auto w-full max-w-md">
-            <div className="glass-panel overflow-hidden rounded-3xl">
-              <Image
-                src="/hegeva-robot.png"
-                alt="HEGEVA AI — the HEGEVA robot presenting the HEGEVA emblem"
-                width={520}
-                height={520}
-                priority
-                className="h-auto w-full object-cover"
-              />
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Hairline transition into dashboard */}

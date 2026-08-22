@@ -18,6 +18,9 @@ import {
 import { PageHeader } from "@/components/page-header"
 import { StepFlow, type FlowStep } from "@/components/app-studio/step-flow"
 import { StatusBadge } from "@/components/status-badge"
+import { useI18n } from "@/lib/i18n/provider"
+import { getStudioCopy } from "@/lib/i18n/studio-copy"
+import { getWorkflowsCopy } from "@/lib/i18n/workflows-copy"
 
 const fixSteps: FlowStep[] = [
   {
@@ -70,6 +73,10 @@ const categories = [
 ]
 
 export function FixMyApp() {
+  const { locale } = useI18n()
+  const shared = getStudioCopy(locale)
+  const c = getWorkflowsCopy(locale).fix
+  const steps = c.steps.map(([title, description], index) => ({ key: fixSteps[index].key, title, description }))
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="mb-6">
@@ -78,14 +85,14 @@ export function FixMyApp() {
           className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-4" aria-hidden />
-          Back to App Studio
+          {shared.backStudio}
         </Link>
       </div>
 
       <PageHeader
         eyebrow="HEGEVA App Studio"
-        title="Fix My App X10"
-        subtitle="Diagnose an existing application carefully, build a safe repair plan, and verify changes before anything is described as fixed."
+        title={c.title}
+        subtitle={c.sub}
         action={<StatusBadge status="beta" />}
       />
 
@@ -96,9 +103,9 @@ export function FixMyApp() {
               <Wrench className="size-5 text-gold" aria-hidden />
             </div>
             <div>
-              <p className="text-sm font-semibold text-foreground">X10 App Doctor</p>
+              <p className="text-sm font-semibold text-foreground">{c.doctor}</p>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                This beta structures diagnosis and verification. It does not claim that code was changed, a security scan ran, or a bug was fixed unless a real connected workflow actually performs and verifies that work.
+                {c.doctorBody}
               </p>
             </div>
           </div>
@@ -107,27 +114,29 @@ export function FixMyApp() {
         <div className="glass-panel rounded-2xl p-5">
           <div className="flex items-center gap-2">
             <AlertTriangle className="size-4 text-gold" aria-hidden />
-            <span className="text-sm font-semibold text-foreground">Trust rule</span>
+            <span className="text-sm font-semibold text-foreground">{c.trust}</span>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-            Diagnosis stays evidence-based. Unverified causes are labelled as likely, and unresolved issues are never shown as fixed.
+            {c.trustBody}
           </p>
         </div>
       </div>
 
       <div className="mt-8">
         <StepFlow
-          steps={fixSteps}
+          steps={steps}
           status="beta"
-          note="Fix My App X10 currently provides a guided diagnostic workflow. Automated repository changes, tests and repair execution will only be marked available after they are genuinely connected and verified."
+          note={c.note}
         />
       </div>
 
       <section className="mt-10">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold">Diagnostic coverage</p>
-        <h2 className="mt-2 text-2xl font-semibold text-foreground">Areas X10 can structure for review</h2>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold">{c.section}</p>
+        <h2 className="mt-2 text-2xl font-semibold text-foreground">{c.covers}</h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {categories.map(({ icon: Icon, title, text }) => (
+          {categories.map(({ icon: Icon }, index) => {
+            const [title, text] = c.items[index]
+            return (
             <article key={title} className="glass-panel rounded-2xl p-5">
               <div className="flex size-9 items-center justify-center rounded-lg border border-border bg-secondary/50">
                 <Icon className="size-4 text-gold" aria-hidden />
@@ -135,7 +144,7 @@ export function FixMyApp() {
               <h3 className="mt-4 text-sm font-semibold text-foreground">{title}</h3>
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{text}</p>
             </article>
-          ))}
+          )})}
         </div>
       </section>
     </div>

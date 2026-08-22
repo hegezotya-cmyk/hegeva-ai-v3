@@ -43,13 +43,13 @@ export function ResetPasswordPanel({ token, tokenError }: ResetPasswordPanelProp
       })
 
       if (result.error) {
-        setError(result.error.message || "Password reset failed.")
+        setError(c.resetFailed)
         return
       }
 
       setComplete(true)
     } catch {
-      setError("Password reset is temporarily unavailable.")
+      setError(c.resetUnavailable)
     } finally {
       setBusy(false)
     }
@@ -60,7 +60,7 @@ export function ResetPasswordPanel({ token, tokenError }: ResetPasswordPanelProp
       <div className="glass-panel rounded-2xl p-6 sm:p-8">
         <h2 className="text-2xl font-semibold">{c.updated}</h2>
         <p className="mt-3 text-sm text-muted-foreground">
-          Your existing sessions were securely closed. Sign in again with your new password.
+          {c.sessionsClosed}
         </p>
         <Link href="/login" className="mt-6 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">
           {c.returnLogin}

@@ -4,6 +4,8 @@ import { useState } from "react"
 import { Check, ChevronRight, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { StatusBadge, type FeatureStatus } from "@/components/status-badge"
+import { useI18n } from "@/lib/i18n/provider"
+import { getStudioCopy } from "@/lib/i18n/studio-copy"
 
 export type FlowStep = {
   key: string
@@ -25,6 +27,8 @@ export function StepFlow({
   status?: FeatureStatus
   note: string
 }) {
+  const { locale } = useI18n()
+  const c = getStudioCopy(locale)
   const [active, setActive] = useState(0)
 
   return (
@@ -75,7 +79,7 @@ export function StepFlow({
       <div className="glass-panel rounded-2xl p-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <span>Step {active + 1}</span>
+            <span>{c.step} {active + 1}</span>
             <ChevronRight className="size-3.5" aria-hidden />
             <span className="text-foreground">{steps[active].title}</span>
           </div>
@@ -99,7 +103,7 @@ export function StepFlow({
             disabled={active === 0}
             className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Back
+            {c.back}
           </button>
           <button
             type="button"
@@ -107,7 +111,7 @@ export function StepFlow({
             disabled={active === steps.length - 1}
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Next step
+            {c.next}
             <ChevronRight className="size-4" aria-hidden />
           </button>
         </div>
