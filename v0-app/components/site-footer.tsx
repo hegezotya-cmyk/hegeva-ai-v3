@@ -1,11 +1,14 @@
 "use client"
 
+import Link from "next/link"
 import { CloudCog, Globe, Headphones, ShieldCheck, Wallet } from "lucide-react"
 import { HegevaLogo } from "@/components/hegeva-logo"
 import { useI18n } from "@/lib/i18n/provider"
+import { LEGAL_COPY } from "@/lib/i18n/legal-copy"
 
 export function SiteFooter() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const legal = LEGAL_COPY[locale]
 
   const trust = [
     { icon: ShieldCheck, label: t.footer.encryption },
@@ -24,17 +27,19 @@ export function SiteFooter() {
               <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10">
                 <Icon className="size-4 text-primary" aria-hidden />
               </span>
-              <span className="text-xs font-medium leading-tight text-muted-foreground text-balance">{label}</span>
+              <span className="text-balance text-xs font-medium leading-tight text-muted-foreground">{label}</span>
             </li>
           ))}
         </ul>
 
         <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
-          <div className="flex items-center gap-3">
-            <HegevaLogo href={null} />
-          </div>
+          <HegevaLogo href={null} />
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{t.footer.tagline}</p>
-          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} HEGEVA AI</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+            <Link href="/privacy" className="transition-colors hover:text-foreground">{legal.privacyLink}</Link>
+            <Link href="/terms" className="transition-colors hover:text-foreground">{legal.termsLink}</Link>
+            <span>© {new Date().getFullYear()} HEGEVA AI</span>
+          </div>
         </div>
       </div>
     </footer>
