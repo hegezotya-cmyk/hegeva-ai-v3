@@ -17,6 +17,7 @@ const esc=(v:string)=>v.replace(/[&<>"']/g,(ch)=>({"&":"&amp;","<":"&lt;",">":"&
 export default function InvoicePage(){
  const {locale}=useI18n();const c=INVOICE_COPY[locale];const {items:docs,setItems:setDocs,syncState}=useWorkspaceData<Doc>("invoice_documents");const {items:customers}=useWorkspaceData<Customer>("customers");const {items:profiles,setItems:setProfiles}=useWorkspaceData<BusinessProfile>("business_profile");const [doc,setDoc]=useState<Doc>(()=>blank())
  useEffect(()=>{const profile=profiles[0];if(profile&&doc.id==="draft"&&!doc.businessName){setDoc((current)=>({...current,businessName:profile.name,businessDetails:profile.details}))}},[profiles,doc.id,doc.businessName])
+ useEffect(()=>{if(doc.id==="draft"&&docs.some((item)=>item.number===doc.number)){setDoc((current)=>({...current,number:nextNumber(current.type,docs)}))}},[docs,doc.id,doc.number])
  const symbol=({GBP:"£",EUR:"€",USD:"$",HUF:"Ft"} as Record<string,string>)[doc.currency]||doc.currency
  const totals=useMemo(()=>{const subtotal=doc.items.reduce((sum,item)=>sum+(Number(item.quantity)||0)*(Number(item.unitPrice)||0),0);const vat=subtotal*(Number(doc.vatRate)||0)/100;return{subtotal,vat,total:subtotal+vat}},[doc.items,doc.vatRate])
  const money=(n:number)=>`${symbol}${n.toLocaleString(locale,{minimumFractionDigits:2,maximumFractionDigits:2})}`
@@ -30,7 +31,7 @@ export default function InvoicePage(){
  const syncText=syncState==="cloud"?c.syncCloud:syncState==="saving"?c.syncSaving:syncState==="error"?c.syncError:c.syncLocal
  return <AppShell><main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8"><PageHeader eyebrow={c.eyebrow} title={c.title} subtitle={c.subtitle}/><p className="mt-6 rounded-xl border border-border bg-card/60 p-3 text-xs text-muted-foreground">{syncText}</p>
  <div className="mt-8 grid gap-6 xl:grid-cols-[1fr_20rem]"><section className="glass-panel rounded-3xl p-5 sm:p-7"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
- <label className="text-sm font-medium">{c.documentType}<select value={doc.type} onChange={(e)=>set({type:e.target.value as Doc["type"]})} className={input}><option value="invoice">{c.invoice}</option><option value="quote">{c.quote}</option></select></label>
+ <label className="text-sm font-medium">{c.documentType}<select value={doc.type} onChange={(e)=>{const type=e.target.value as Doc["type"];set({type,number:nextNumber(type,docs)})}} className={input}><option value="invoice">{c.invoice}</option><option value="quote">{c.quote}</option></select></label>
  <label className="text-sm font-medium">{c.number}<input value={doc.number} onChange={(e)=>set({number:e.target.value})} maxLength={50} className={input}/></label>
  <label className="text-sm font-medium">{c.currency}<select value={doc.currency} onChange={(e)=>set({currency:e.target.value})} className={input}>{["GBP","EUR","USD","HUF"].map(x=><option key={x}>{x}</option>)}</select></label>
  <label className="text-sm font-medium">{c.issueDate}<input type="date" value={doc.issueDate} onChange={(e)=>set({issueDate:e.target.value})} className={input}/></label>
