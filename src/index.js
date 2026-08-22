@@ -626,6 +626,53 @@ async function applyStripePlanEvent(
   return true;
 }
 
+async function applyVerifiedStripeCheckoutPlan(
+  env,
+  userId,
+  plan
+) {
+  if (
+    typeof userId !== "string" ||
+    !userId.trim() ||
+    !validStripePlan(plan)
+  ) {
+    return false;
+  }
+
+  const now =
+    new Date().toISOString();
+
+  await env.DB
+    .prepare(`
+      INSERT INTO user_plans (
+        userId,
+        plan,
+        createdAt,
+        updatedAt
+      )
+      VALUES (
+        ?1,
+        ?2,
+        ?3,
+        ?3
+      )
+
+      ON CONFLICT(userId)
+
+      DO UPDATE SET
+        plan = excluded.plan,
+        updatedAt = excluded.updatedAt
+    `)
+    .bind(
+      userId.trim(),
+      plan,
+      now
+    )
+    .run();
+
+  return true;
+}
+
 async function markStripeWebhookVerified(
   env,
   userId,
@@ -2223,20 +2270,10 @@ export default {
           );
         }
 
-        await applyStripePlanEvent(
+        await applyVerifiedStripeCheckoutPlan(
           env,
           String(user.id),
-          plan,
-          {
-            id:
-              stripeSession.id,
-            type:
-              "checkout.session.confirmed",
-            created:
-              stripeSession.created,
-            livemode:
-              false
-          }
+          plan
         );
 
         return Response.json({
