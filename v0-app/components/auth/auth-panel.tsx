@@ -19,6 +19,11 @@ export function AuthPanel() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
+  function safeCallbackURL() {
+    const value = new URLSearchParams(window.location.search).get("callbackURL")
+    return value?.startsWith("/") && !value.startsWith("//") ? value : "/command-center"
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError("")
@@ -63,7 +68,7 @@ export function AuthPanel() {
       }
 
       await authClient.getSession()
-      router.push("/command-center")
+      router.push(safeCallbackURL())
       router.refresh()
     } catch {
       setError(c.authUnavailable)
@@ -83,7 +88,7 @@ export function AuthPanel() {
         <p className="mt-1 font-semibold">{session.user.email}</p>
         <button
           type="button"
-          onClick={() => router.push("/command-center")}
+          onClick={() => router.push(safeCallbackURL())}
           className="mt-5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
         >
           {c.open}
