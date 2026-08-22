@@ -2068,6 +2068,203 @@ export default {
     }
 
     // =========================================
+    // STRIPE CHECKOUT CONFIRMATION
+    // =========================================
+
+    if (
+      url.pathname ===
+      "/api/billing/confirm"
+    ) {
+      if (
+        request.method !==
+        "POST"
+      ) {
+        return Response.json(
+          {
+            error:
+              "Method not allowed."
+          },
+          {
+            status: 405
+          }
+        );
+      }
+
+      try {
+        const user =
+          await getLoggedInUser(
+            request,
+            env,
+            ctx
+          );
+
+        if (!user) {
+          return Response.json(
+            {
+              error:
+                "Authentication required."
+            },
+            {
+              status: 401
+            }
+          );
+        }
+
+        const body =
+          await request
+            .json()
+            .catch(() => null);
+
+        const sessionId =
+          typeof body?.sessionId ===
+            "string"
+            ? body.sessionId.trim()
+            : "";
+
+        const secretKey =
+          typeof env.STRIPE_SECRET_KEY ===
+            "string"
+            ? env.STRIPE_SECRET_KEY.trim()
+            : "";
+
+        if (
+          !sessionId.startsWith(
+            "cs_test_"
+          ) ||
+          !isStripeTestSecret(
+            secretKey
+          )
+        ) {
+          return Response.json(
+            {
+              error:
+                "Invalid Sandbox checkout confirmation."
+            },
+            {
+              status: 400
+            }
+          );
+        }
+
+        const stripeResponse =
+          await fetch(
+            `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}`,
+            {
+              headers: {
+                Authorization:
+                  `Bearer ${secretKey}`
+              }
+            }
+          );
+
+        const stripeSession =
+          await stripeResponse
+            .json()
+            .catch(() => null);
+
+        if (
+          !stripeResponse.ok ||
+          !stripeSession
+        ) {
+          return Response.json(
+            {
+              error:
+                "Stripe Sandbox checkout could not be verified."
+            },
+            {
+              status:
+                stripeResponse.status ||
+                502
+            }
+          );
+        }
+
+        const mappedUserId =
+          typeof stripeSession
+            .metadata?.userId ===
+            "string"
+            ? stripeSession.metadata.userId.trim()
+            : "";
+
+        const plan =
+          typeof stripeSession
+            .metadata?.hegevaPlan ===
+            "string"
+            ? stripeSession.metadata.hegevaPlan
+                .trim()
+                .toLowerCase()
+            : "";
+
+        const paid =
+          [
+            "paid",
+            "no_payment_required"
+          ].includes(
+            stripeSession.payment_status
+          );
+
+        if (
+          stripeSession.livemode === true ||
+          stripeSession.mode !==
+            "subscription" ||
+          !paid ||
+          mappedUserId !==
+            String(user.id) ||
+          !validStripePlan(plan)
+        ) {
+          return Response.json(
+            {
+              error:
+                "This Sandbox checkout does not belong to the authenticated account or is not paid."
+            },
+            {
+              status: 403
+            }
+          );
+        }
+
+        await applyStripePlanEvent(
+          env,
+          String(user.id),
+          plan,
+          {
+            id:
+              stripeSession.id,
+            type:
+              "checkout.session.confirmed",
+            created:
+              stripeSession.created,
+            livemode:
+              false
+          }
+        );
+
+        return Response.json({
+          ok: true,
+          verified: true,
+          plan,
+          sessionId:
+            stripeSession.id
+        });
+      } catch (error) {
+        console.error(
+          "HEGEVA Stripe confirmation error:",
+          error
+        );
+
+        return Response.json(
+          {
+            error:
+              "Stripe Sandbox checkout confirmation is temporarily unavailable."
+          },
+          {
+            status: 500
+          }
+        );
+      }
+    }
+
+    // =========================================
     // STRIPE CHECKOUT
     // =========================================
 
