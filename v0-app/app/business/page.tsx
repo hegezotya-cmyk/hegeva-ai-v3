@@ -4,9 +4,10 @@ import Link from "next/link"
 import { AppShell } from "@/components/app-shell"
 import { PageHeader } from "@/components/page-header"
 import { StatusBadge } from "@/components/status-badge"
-import { Users, FileText, ReceiptText, ArrowRight, CalendarCheck2, BarChart3, MessageSquareText, Wrench } from "lucide-react"
+import { Users, FileText, ReceiptText, ArrowRight, CalendarCheck2, BarChart3, MessageSquareText, Wrench, FolderLock } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { TOOLS_COPY } from "@/lib/i18n/tools-copy"
+import { VAULT_COPY } from "@/lib/i18n/vault-copy"
 
 export default function BusinessPage() {
   const { t, locale } = useI18n()
@@ -18,6 +19,7 @@ export default function BusinessPage() {
     { href: "/business/reports", title: t.business.reports, text: t.business.reportsDesc, icon: BarChart3 },
     { href: "/business/messages", title: t.business.messages, text: t.business.messagesDesc, icon: MessageSquareText },
     { href: "/business/tools", title: TOOLS_COPY[locale].moduleTitle, text: TOOLS_COPY[locale].moduleDesc, icon: Wrench },
+    { href: "/business/vault", title: VAULT_COPY[locale].moduleTitle, text: VAULT_COPY[locale].moduleDesc, icon: FolderLock },
   ]
   return (
     <AppShell>
