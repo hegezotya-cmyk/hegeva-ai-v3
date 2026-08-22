@@ -8,7 +8,7 @@ const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono'
 const sora = Sora({ subsets: ['latin'], variable: '--font-sora' })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://hegeva-ai-v3-v0.hegezotya.workers.dev'),
+  metadataBase: new URL('https://hegevaai.co.uk'),
   title: {
     default: 'HEGEVA AI — AI Business Workspace',
     template: '%s | HEGEVA AI',
