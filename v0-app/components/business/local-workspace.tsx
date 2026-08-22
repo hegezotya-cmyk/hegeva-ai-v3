@@ -8,7 +8,7 @@ import { useSession } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
 
 type Kind = "customers" | "documents" | "expenses"
-type RecordItem = { id: string; title: string; meta?: string; amount?: number; notes?: string; createdAt: string }
+type RecordItem = { id: string; title: string; meta?: string; amount?: number; notes?: string; followUp?: string; customerStatus?: "lead" | "active" | "paused"; createdAt: string }
 type SyncState = "checking" | "cloud" | "local" | "saving" | "error"
 
 const config: Record<Kind, { title: string; singular: string; subtitle: string; placeholder: string }> = {
@@ -67,6 +67,13 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
     fr:{eyebrow:"Espace professionnel HEGEVA",customerMeta:"E-mail / téléphone / statut",documentMeta:"Type / client / référence",expenseMeta:"Catégorie / date / référence",cloud:"La synchronisation cloud authentifiée est active. Une copie locale est conservée.",saving:"Vos dernières modifications sont en cours d’enregistrement.",error:"Synchronisation cloud indisponible. La copie locale reste accessible.",checking:"HEGEVA vérifie votre espace cloud authentifié.",guest:"Connectez-vous pour activer la synchronisation. Les données restent sinon dans ce navigateur."},
     es:{eyebrow:"Espacio de negocio HEGEVA",customerMeta:"Correo / teléfono / estado",documentMeta:"Tipo / cliente / referencia",expenseMeta:"Categoría / fecha / referencia",cloud:"La sincronización autenticada está activa. Se conserva una copia local.",saving:"Tus últimos cambios se están guardando.",error:"La sincronización no está disponible. La copia del navegador sigue accesible.",checking:"HEGEVA está comprobando tu espacio autenticado.",guest:"Inicia sesión para activar la sincronización. Hasta entonces, los datos quedan en este navegador."}
   }[locale]
+  const crm = {
+    en:{followUp:"Next follow-up",lead:"Lead",active:"Active customer",paused:"Paused",overdue:"Follow-up overdue",today:"Follow-up today",markDone:"Complete follow-up",all:"All customers",due:"Needs follow-up"},
+    hu:{followUp:"Következő utánkövetés",lead:"Érdeklődő",active:"Aktív ügyfél",paused:"Szüneteltetve",overdue:"Lejárt utánkövetés",today:"Mai utánkövetés",markDone:"Utánkövetés teljesítése",all:"Minden ügyfél",due:"Utánkövetést igényel"},
+    de:{followUp:"Nächste Nachverfolgung",lead:"Interessent",active:"Aktiver Kunde",paused:"Pausiert",overdue:"Nachverfolgung überfällig",today:"Nachverfolgung heute",markDone:"Nachverfolgung abschließen",all:"Alle Kunden",due:"Nachverfolgung nötig"},
+    fr:{followUp:"Prochain suivi",lead:"Prospect",active:"Client actif",paused:"En pause",overdue:"Suivi en retard",today:"Suivi aujourd’hui",markDone:"Terminer le suivi",all:"Tous les clients",due:"Suivi nécessaire"},
+    es:{followUp:"Próximo seguimiento",lead:"Cliente potencial",active:"Cliente activo",paused:"En pausa",overdue:"Seguimiento vencido",today:"Seguimiento hoy",markDone:"Completar seguimiento",all:"Todos los clientes",due:"Necesita seguimiento"}
+  }[locale]
   const translated = { customers:{title:t.business.customers,subtitle:t.business.customersDesc,placeholder:t.business.customers}, documents:{title:t.business.documents,subtitle:t.business.documentsDesc,placeholder:t.business.documents}, expenses:{title:t.business.expenses,subtitle:t.business.expensesDesc,placeholder:t.business.expenses} }[kind]
   const cfg = { ...config[kind], ...translated }
   const { data: session, isPending } = useSession()
@@ -75,7 +82,10 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
   const [meta, setMeta] = useState("")
   const [amount, setAmount] = useState("")
   const [notes, setNotes] = useState("")
+  const [followUp, setFollowUp] = useState("")
+  const [customerStatus, setCustomerStatus] = useState<RecordItem["customerStatus"]>("lead")
   const [query, setQuery] = useState("")
+  const [customerFilter, setCustomerFilter] = useState<"all"|"due">("all")
   const [syncState, setSyncState] = useState<SyncState>("checking")
   const [syncError, setSyncError] = useState("")
   const readyToSave = useRef(false)
@@ -186,8 +196,11 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return items
-    return items.filter((item) => `${item.title} ${item.meta ?? ""} ${item.notes ?? ""}`.toLowerCase().includes(q))
-  }, [items, query])
+    const searched = q ? items.filter((item) => `${item.title} ${item.meta ?? ""} ${item.notes ?? ""}`.toLowerCase().includes(q)) : items
+    if (kind !== "customers" || customerFilter === "all") return searched
+    const now = new Date().toISOString().slice(0,10)
+    return searched.filter((item) => Boolean(item.followUp) && item.followUp! <= now)
+  }, [items, query, kind, customerFilter])
 
   const total = useMemo(() => items.reduce((sum, item) => sum + (item.amount || 0), 0), [items])
 
@@ -202,6 +215,8 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
         meta: meta.trim() || undefined,
         amount: kind === "expenses" && amount ? Number(amount) : undefined,
         notes: notes.trim() || undefined,
+        followUp: kind === "customers" ? followUp || undefined : undefined,
+        customerStatus: kind === "customers" ? customerStatus : undefined,
         createdAt: new Date().toISOString(),
       },
       ...current,
@@ -210,6 +225,8 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
     setMeta("")
     setAmount("")
     setNotes("")
+    setFollowUp("")
+    setCustomerStatus("lead")
   }
 
   const syncLabel =
@@ -272,12 +289,14 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={cfg.placeholder} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
             <input value={meta} onChange={(e) => setMeta(e.target.value)} placeholder={kind === "customers" ? detail.customerMeta : kind === "documents" ? detail.documentMeta : detail.expenseMeta} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
             {kind === "expenses" && <input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={ui.amount} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />}
+            {kind === "customers" && <><select value={customerStatus} onChange={(e) => setCustomerStatus(e.target.value as RecordItem["customerStatus"])} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50"><option value="lead">{crm.lead}</option><option value="active">{crm.active}</option><option value="paused">{crm.paused}</option></select><label className="block text-xs text-muted-foreground">{crm.followUp}<input type="date" value={followUp} onChange={(e)=>setFollowUp(e.target.value)} className="mt-1 w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50"/></label></>}
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={ui.notes} rows={4} className="w-full resize-none rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
           </div>
           <Button type="submit" className="mt-4 w-full">{ui.save}</Button>
         </form>
 
         <section>
+          {kind === "customers" && <div className="mb-3 flex gap-2">{(["all","due"] as const).map((value)=><button key={value} type="button" onClick={()=>setCustomerFilter(value)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${customerFilter===value?"border-primary bg-primary/10 text-primary":"border-border text-muted-foreground"}`}>{value==="all"?crm.all:crm.due}</button>)}</div>}
           <div className="glass-panel flex items-center gap-2 rounded-xl px-3 py-2.5">
             <Search className="size-4 text-muted-foreground" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`${ui.search}: ${cfg.title}`} className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
@@ -296,6 +315,7 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
                   {item.meta && <p className="mt-1 text-sm text-muted-foreground">{item.meta}</p>}
                   {typeof item.amount === "number" && <p className="mt-2 text-lg font-semibold text-primary">£{item.amount.toFixed(2)}</p>}
                   {item.notes && <p className="mt-2 text-sm leading-relaxed text-foreground/75">{item.notes}</p>}
+                  {kind === "customers" && <div className="mt-3 flex flex-wrap items-center gap-2"><span className="rounded-full border border-border px-2 py-1 text-[11px] text-muted-foreground">{item.customerStatus === "active" ? crm.active : item.customerStatus === "paused" ? crm.paused : crm.lead}</span>{item.followUp && <span className={`rounded-full border px-2 py-1 text-[11px] ${item.followUp <= new Date().toISOString().slice(0,10)?"border-gold/40 bg-gold/10 text-gold":"border-border text-muted-foreground"}`}>{item.followUp === new Date().toISOString().slice(0,10)?crm.today:item.followUp < new Date().toISOString().slice(0,10)?crm.overdue:`${crm.followUp}: ${item.followUp}`}</span>}{item.followUp && item.followUp <= new Date().toISOString().slice(0,10) && <button type="button" onClick={()=>setItems((current)=>current.map((entry)=>entry.id===item.id?{...entry,followUp:undefined}:entry))} className="rounded-lg border border-primary/30 px-2 py-1 text-[11px] text-primary">{crm.markDone}</button>}</div>}
                   <p className="mt-3 text-[11px] text-muted-foreground">{ui.saved} {new Date(item.createdAt).toLocaleString(locale)}</p>
                 </div>
                 <button type="button" onClick={() => setItems((current) => current.filter((x) => x.id !== item.id))} className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive" aria-label={`${ui.del} ${item.title}`}><Trash2 className="size-4" /></button>
