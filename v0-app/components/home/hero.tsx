@@ -12,7 +12,7 @@ export function Hero() {
 
   return (
     <section
-      className="relative isolate min-h-[650px] overflow-hidden bg-cover bg-[70%_center] sm:bg-[65%_center] lg:bg-center"
+      className="relative isolate min-h-[650px] overflow-hidden bg-cover bg-[70%_20%] sm:bg-[65%_20%] lg:bg-[center_18%]"
       style={{ backgroundImage: "url('/hegeva-hero-background.webp')" }}
     >
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(2,10,8,.98)_0%,rgba(2,10,8,.92)_34%,rgba(2,10,8,.5)_57%,rgba(2,10,8,.08)_78%)] max-lg:bg-[linear-gradient(90deg,rgba(2,10,8,.97)_0%,rgba(2,10,8,.88)_45%,rgba(2,10,8,.28)_100%)]" aria-hidden />
