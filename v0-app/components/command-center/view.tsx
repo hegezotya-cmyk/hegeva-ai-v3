@@ -13,6 +13,10 @@ import {
   Wrench,
   FileSpreadsheet,
   Cloud,
+  Bot,
+  Blocks,
+  Hammer,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
@@ -21,6 +25,8 @@ import { StatusBadge, type FeatureStatus } from "@/components/status-badge"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
+import { WorkspaceOverview } from "@/components/command-center/workspace-overview"
+import { COMMAND_OVERVIEW_COPY } from "@/lib/i18n/command-overview-copy"
 
 type ModuleDef = {
   icon: LucideIcon
@@ -31,7 +37,8 @@ type ModuleDef = {
 }
 
 export function CommandCenterView() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const copy = COMMAND_OVERVIEW_COPY[locale]
   const { data: session, isPending } = authClient.useSession()
 
   const modules: ModuleDef[] = [
@@ -44,6 +51,12 @@ export function CommandCenterView() {
     { icon: MessageSquareText, title: t.commandCenter.messageStudio, desc: t.commandCenter.messageDesc, status: "working", href: "/business/messages" },
     { icon: FolderLock, title: t.commandCenter.vault, desc: t.commandCenter.vaultDesc, status: "working", href: "/business/vault" },
     { icon: Wrench, title: t.commandCenter.tools, desc: t.commandCenter.toolsDesc, status: "working", href: "/business/tools" },
+  ]
+  const aiModules: ModuleDef[] = [
+    {icon:Bot,title:copy.assistantTitle,desc:copy.assistantDesc,status:"working",href:"/assistant"},
+    {icon:Sparkles,title:copy.promptTitle,desc:copy.promptDesc,status:"working",href:"/app-studio/prompt-my-app"},
+    {icon:Hammer,title:copy.buildTitle,desc:copy.buildDesc,status:"working",href:"/app-studio/build-my-app"},
+    {icon:Blocks,title:copy.fixTitle,desc:copy.fixDesc,status:"working",href:"/app-studio/fix-my-app"},
   ]
 
   return (
@@ -66,7 +79,20 @@ export function CommandCenterView() {
         </p>
       </div>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <WorkspaceOverview />
+
+      <h2 className="mt-10 text-xl font-semibold text-foreground">{copy.aiModules}</h2>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {aiModules.map(({ icon: Icon, title, desc, status, href }) => (
+          <Link key={title} href={href} className="glass-panel glass-panel-hover group flex flex-col gap-3 rounded-2xl p-5">
+            <div className="flex items-center justify-between"><span className="flex size-11 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary"><Icon className="size-5" aria-hidden /></span><StatusBadge status={status} /></div>
+            <div><h3 className="text-base font-semibold text-foreground">{title}</h3><p className="mt-1 text-sm leading-relaxed text-muted-foreground text-pretty">{desc}</p></div>
+          </Link>
+        ))}
+      </div>
+
+      <h2 className="mt-10 text-xl font-semibold text-foreground">{copy.businessModules}</h2>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {modules.map(({ icon: Icon, title, desc, status, href }) => (
           <Link key={title} href={href} className="glass-panel glass-panel-hover group flex flex-col gap-3 rounded-2xl p-5">
             <div className="flex items-center justify-between">
