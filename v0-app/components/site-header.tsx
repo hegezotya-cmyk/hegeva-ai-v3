@@ -119,6 +119,7 @@ export function SiteHeader() {
 
             {navLink("/business", t.nav.business)}
             {navLink("/pricing", t.nav.pricing)}
+            {navLink("/contact", t.nav.contact)}
           </nav>
         </div>
 
@@ -182,6 +183,7 @@ export function SiteHeader() {
 
             <Link href="/business" className="mt-1 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.business}</Link>
             <Link href="/pricing" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.pricing}</Link>
+            <Link href="/contact" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.contact}</Link>
 
             <div className="mt-3 flex items-center gap-2 border-t border-border pt-4">
               <LanguageSwitcher />

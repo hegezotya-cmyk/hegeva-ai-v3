@@ -1154,6 +1154,161 @@ export default {
     }
 
     // =========================================
+    // PUBLIC CONTACT LEADS
+    // =========================================
+
+    if (
+      url.pathname ===
+      "/api/contact"
+    ) {
+      if (
+        request.method !==
+        "POST"
+      ) {
+        return Response.json(
+          { error: "Method not allowed." },
+          { status: 405 }
+        );
+      }
+
+      try {
+        const contentLength =
+          Number(
+            request.headers.get(
+              "content-length"
+            ) || 0
+          );
+
+        if (
+          Number.isFinite(contentLength) &&
+          contentLength > 16384
+        ) {
+          return Response.json(
+            { error: "Contact request is too large." },
+            { status: 413 }
+          );
+        }
+
+        const body =
+          await request.json();
+
+        const name =
+          typeof body?.name === "string"
+            ? body.name.trim().slice(0, 100)
+            : "";
+
+        const email =
+          typeof body?.email === "string"
+            ? body.email.trim().toLowerCase().slice(0, 254)
+            : "";
+
+        const company =
+          typeof body?.company === "string"
+            ? body.company.trim().slice(0, 120)
+            : "";
+
+        const message =
+          typeof body?.message === "string"
+            ? body.message.trim().slice(0, 3000)
+            : "";
+
+        const locale =
+          ["en", "hu", "de", "fr", "es"].includes(body?.locale)
+            ? body.locale
+            : "en";
+
+        const website =
+          typeof body?.website === "string"
+            ? body.website.trim()
+            : "";
+
+        const startedAt =
+          Number(body?.startedAt);
+
+        const elapsed =
+          Date.now() - startedAt;
+
+        if (website) {
+          return Response.json({ ok: true });
+        }
+
+        if (
+          !name ||
+          !email ||
+          !message ||
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+          message.length < 10 ||
+          !Number.isFinite(startedAt) ||
+          elapsed < 2000 ||
+          elapsed > 86400000
+        ) {
+          return Response.json(
+            { error: "Please check the contact form fields." },
+            { status: 400 }
+          );
+        }
+
+        const oneHourAgo =
+          new Date(
+            Date.now() - 3600000
+          ).toISOString();
+
+        const recent =
+          await env.DB
+            .prepare(`
+              SELECT COUNT(*) AS total
+              FROM contact_leads
+              WHERE email = ?1
+                AND createdAt >= ?2
+            `)
+            .bind(email, oneHourAgo)
+            .first();
+
+        if (Number(recent?.total || 0) >= 3) {
+          return Response.json(
+            { error: "Please wait before sending another message." },
+            { status: 429 }
+          );
+        }
+
+        const createdAt =
+          new Date().toISOString();
+
+        await env.DB
+          .prepare(`
+            INSERT INTO contact_leads (
+              id, name, email, company, message, locale, status, createdAt
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'new', ?7)
+          `)
+          .bind(
+            crypto.randomUUID(),
+            name,
+            email,
+            company || null,
+            message,
+            locale,
+            createdAt
+          )
+          .run();
+
+        return Response.json({
+          ok: true,
+          createdAt
+        });
+      } catch (error) {
+        console.error(
+          "HEGEVA contact error:",
+          error
+        );
+
+        return Response.json(
+          { error: "Contact service temporarily unavailable." },
+          { status: 500 }
+        );
+      }
+    }
+
+    // =========================================
     // PLAN STATUS
     // =========================================
 
