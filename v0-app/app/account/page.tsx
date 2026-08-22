@@ -21,6 +21,11 @@ export default function AccountPage() {
   const { data: session, isPending } = authClient.useSession()
   const [plan, setPlan] = useState<PlanStatus | null>(null)
   const [planError, setPlanError] = useState(false)
+  const [billingSuccess, setBillingSuccess] = useState(false)
+
+  useEffect(() => {
+    setBillingSuccess(new URLSearchParams(window.location.search).get("billing") === "success")
+  }, [])
 
   useEffect(() => {
     if (!session?.user) return
@@ -51,7 +56,7 @@ export default function AccountPage() {
 
   if (isPending) return <AppShell><main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8"><div className="glass-panel rounded-3xl p-8 text-sm text-muted-foreground">{c.checking}</div></main></AppShell>
 
-  if (!session?.user) return <AppShell><main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8"><PageHeader eyebrow={c.eyebrow} title={c.signInTitle} subtitle={c.signInBody}/><Link href="/login" className="mt-8 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">{c.signIn}</Link></main></AppShell>
+  if (!session?.user) return <AppShell><main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8"><PageHeader eyebrow={c.eyebrow} title={c.signInTitle} subtitle={c.signInBody}/>{billingSuccess && <p role="status" className="mt-6 rounded-xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground">{c.billingSignIn}</p>}<Link href="/login?callbackURL=%2Faccount%3Fbilling%3Dsuccess" className="mt-8 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">{c.signIn}</Link></main></AppShell>
 
   const used = plan?.aiMessages || 0
   const limit = plan?.aiLimit || 0
@@ -60,6 +65,7 @@ export default function AccountPage() {
   return <AppShell>
     <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
       <PageHeader eyebrow={c.eyebrow} title={c.title} subtitle={c.subtitle}/>
+      {billingSuccess && <p role="status" className="mt-6 rounded-xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground">{c.billingSuccess}</p>}
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
         <section className="glass-panel rounded-3xl p-6 sm:p-8">
           <h2 className="text-lg font-semibold">{c.details}</h2>
