@@ -85,8 +85,20 @@ function queueEmail(ctx, promise) {
 }
 
 export function createAuth(env, request, ctx) {
+  const requestUrl =
+    new URL(request.url);
+
   const origin =
-    new URL(request.url).origin;
+    requestUrl.origin;
+
+  const isHegevaDomain =
+    requestUrl.hostname === "hegevaai.co.uk" ||
+    requestUrl.hostname.endsWith(".hegevaai.co.uk");
+
+  const publicAppUrl =
+    isHegevaDomain
+      ? "https://hegevaai.co.uk"
+      : origin;
 
   return betterAuth({
     database: env.DB,
@@ -95,7 +107,26 @@ export function createAuth(env, request, ctx) {
       env.BETTER_AUTH_SECRET,
 
     baseURL:
-      origin,
+      publicAppUrl,
+
+    trustedOrigins: [
+      "https://hegevaai.co.uk",
+      "https://www.hegevaai.co.uk",
+      origin
+    ],
+
+    advanced: {
+      useSecureCookies:
+        isHegevaDomain,
+
+      crossSubDomainCookies: {
+        enabled:
+          isHegevaDomain,
+
+        domain:
+          "hegevaai.co.uk"
+      }
+    },
 
     emailAndPassword: {
       enabled: true,
