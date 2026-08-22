@@ -41,7 +41,7 @@ export function CommandCenterView() {
     { icon: BarChart3, title: t.capabilities.reports.title, desc: t.capabilities.reports.desc, status: "working", href: "/business/reports" },
     { icon: MessageSquareText, title: t.commandCenter.messageStudio, desc: t.commandCenter.messageDesc, status: "working", href: "/business/messages" },
     { icon: FolderLock, title: t.commandCenter.vault, desc: t.commandCenter.vaultDesc, status: "planned", href: "/business" },
-    { icon: Wrench, title: t.commandCenter.tools, desc: t.commandCenter.toolsDesc, status: "planned", href: "/business" },
+    { icon: Wrench, title: t.commandCenter.tools, desc: t.commandCenter.toolsDesc, status: "working", href: "/business/tools" },
   ]
 
   return (

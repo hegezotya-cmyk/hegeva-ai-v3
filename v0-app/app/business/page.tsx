@@ -4,11 +4,12 @@ import Link from "next/link"
 import { AppShell } from "@/components/app-shell"
 import { PageHeader } from "@/components/page-header"
 import { StatusBadge } from "@/components/status-badge"
-import { Users, FileText, ReceiptText, ArrowRight, CalendarCheck2, BarChart3, MessageSquareText } from "lucide-react"
+import { Users, FileText, ReceiptText, ArrowRight, CalendarCheck2, BarChart3, MessageSquareText, Wrench } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
+import { TOOLS_COPY } from "@/lib/i18n/tools-copy"
 
 export default function BusinessPage() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const modules = [
     { href: "/business/customers", title: t.business.customers, text: t.business.customersDesc, icon: Users },
     { href: "/business/documents", title: t.business.documents, text: t.business.documentsDesc, icon: FileText },
@@ -16,6 +17,7 @@ export default function BusinessPage() {
     { href: "/business/planner", title: t.business.planner, text: t.business.plannerDesc, icon: CalendarCheck2 },
     { href: "/business/reports", title: t.business.reports, text: t.business.reportsDesc, icon: BarChart3 },
     { href: "/business/messages", title: t.business.messages, text: t.business.messagesDesc, icon: MessageSquareText },
+    { href: "/business/tools", title: TOOLS_COPY[locale].moduleTitle, text: TOOLS_COPY[locale].moduleDesc, icon: Wrench },
   ]
   return (
     <AppShell>
