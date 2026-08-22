@@ -862,12 +862,12 @@ async function createStripeCheckoutSession(
 
   form.set(
     "success_url",
-    `${appUrl}/?billing=success&session_id={CHECKOUT_SESSION_ID}`
+    `${appUrl}/account?billing=success&session_id={CHECKOUT_SESSION_ID}`
   );
 
   form.set(
     "cancel_url",
-    `${appUrl}/?billing=cancelled`
+    `${appUrl}/pricing?billing=cancelled`
   );
 
   form.set(
