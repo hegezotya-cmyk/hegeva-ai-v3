@@ -9,6 +9,7 @@
   "vars": {
     "PAYMENT_PROVIDER": "stripe",
     "PAYMENT_MODE": "test",
+    "PUBLIC_APP_URL": "https://hegevaai.co.uk",
     "STRIPE_PREMIUM_PRICE_ID": "price_1U4YwrHH1vUED8ZNhhfKfzNK",
     "STRIPE_PRO_PRICE_ID": "price_1U4YzOHH1vUED8ZNWbKbl3FH"
   },
