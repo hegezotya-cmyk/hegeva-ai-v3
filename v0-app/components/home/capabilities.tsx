@@ -11,7 +11,7 @@ export function Capabilities() {
   const items: { icon: LucideIcon; title: string; desc: string; status: FeatureStatus; href: string }[] = [
     { icon: Bot, title: t.capabilities.assistant.title, desc: t.capabilities.assistant.desc, status: "beta", href: "/assistant" },
     { icon: BarChart3, title: t.capabilities.reports.title, desc: t.capabilities.reports.desc, status: "working", href: "/business/reports" },
-    { icon: FileText, title: t.capabilities.invoices.title, desc: t.capabilities.invoices.desc, status: "coming", href: "/command-center" },
+    { icon: FileText, title: t.capabilities.invoices.title, desc: t.capabilities.invoices.desc, status: "working", href: "/business/invoices" },
     { icon: FolderLock, title: t.capabilities.documents.title, desc: t.capabilities.documents.desc, status: "working", href: "/business/documents" },
     { icon: Users, title: t.capabilities.crm.title, desc: t.capabilities.crm.desc, status: "working", href: "/business/customers" },
     { icon: LayoutGrid, title: t.capabilities.studio.title, desc: t.capabilities.studio.desc, status: "beta", href: "/app-studio" },
