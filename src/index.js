@@ -2185,7 +2185,11 @@ export default {
           return Response.json(
             {
               error:
-                "Invalid Sandbox checkout confirmation."
+                "Invalid Sandbox checkout confirmation.",
+              code:
+                !sessionId.startsWith("cs_test_")
+                  ? "invalid_session_id"
+                  : "stripe_test_secret_unavailable"
             },
             {
               status: 400
@@ -2216,7 +2220,11 @@ export default {
           return Response.json(
             {
               error:
-                "Stripe Sandbox checkout could not be verified."
+                "Stripe Sandbox checkout could not be verified.",
+              code:
+                "stripe_session_lookup_failed",
+              stripeStatus:
+                stripeResponse.status
             },
             {
               status:
@@ -2262,7 +2270,22 @@ export default {
           return Response.json(
             {
               error:
-                "This Sandbox checkout does not belong to the authenticated account or is not paid."
+                "This Sandbox checkout does not belong to the authenticated account or is not paid.",
+              code:
+                "stripe_session_validation_failed",
+              checks: {
+                testMode:
+                  stripeSession.livemode !== true,
+                subscriptionMode:
+                  stripeSession.mode === "subscription",
+                paid,
+                userMapped:
+                  Boolean(mappedUserId),
+                authenticatedUserMatches:
+                  mappedUserId === String(user.id),
+                validPlan:
+                  validStripePlan(plan)
+              }
             },
             {
               status: 403
@@ -2292,7 +2315,9 @@ export default {
         return Response.json(
           {
             error:
-              "Stripe Sandbox checkout confirmation is temporarily unavailable."
+              "Stripe Sandbox checkout confirmation is temporarily unavailable.",
+            code:
+              "stripe_confirmation_internal_error"
           },
           {
             status: 500
