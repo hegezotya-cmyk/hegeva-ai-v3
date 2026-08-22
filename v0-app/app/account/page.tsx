@@ -22,7 +22,7 @@ export default function AccountPage() {
   const [plan, setPlan] = useState<PlanStatus | null>(null)
   const [planError, setPlanError] = useState(false)
   const [billingSuccess, setBillingSuccess] = useState(false)
-  const [billingConfirmError, setBillingConfirmError] = useState(false)
+  const [billingConfirmError, setBillingConfirmError] = useState("")
 
   useEffect(() => {
     setBillingSuccess(new URLSearchParams(window.location.search).get("billing") === "success")
@@ -42,9 +42,11 @@ export default function AccountPage() {
           body:JSON.stringify({sessionId}),
         }).catch(() => null)
         if (!confirmResponse?.ok) {
-          if (active) setBillingConfirmError(true)
+          const errorData = await confirmResponse?.json().catch(() => null)
+          const code = typeof errorData?.code === "string" ? errorData.code : `http_${confirmResponse?.status || 0}`
+          if (active) setBillingConfirmError(code)
         } else if (active) {
-          setBillingConfirmError(false)
+          setBillingConfirmError("")
         }
       }
       const response = await fetch("/api/plan/status", { credentials:"include", cache:"no-store" })
@@ -86,7 +88,7 @@ export default function AccountPage() {
     <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
       <PageHeader eyebrow={c.eyebrow} title={c.title} subtitle={c.subtitle}/>
       {billingSuccess && <p role="status" className="mt-6 rounded-xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground">{c.billingSuccess}</p>}
-      {billingConfirmError && <p role="alert" className="mt-4 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{c.unavailable}</p>}
+      {billingConfirmError && <p role="alert" className="mt-4 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{c.unavailable} <span className="font-mono">({billingConfirmError})</span></p>}
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
         <section className="glass-panel rounded-3xl p-6 sm:p-8">
           <h2 className="text-lg font-semibold">{c.details}</h2>
