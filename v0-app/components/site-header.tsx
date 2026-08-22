@@ -127,7 +127,7 @@ export function SiteHeader() {
           <LanguageSwitcher className="hidden sm:block" />
           {!sessionPending && (session?.user ? (
             <div className="hidden items-center gap-1 sm:flex">
-              <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "gap-2")}>
+              <Link href="/account" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "gap-2")}>
                 <UserRound className="size-4" aria-hidden />
                 {t.nav.account}
               </Link>
