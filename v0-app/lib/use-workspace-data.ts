@@ -5,22 +5,22 @@ import { useSession } from "@/lib/auth-client"
 
 export type WorkspaceSyncState = "checking" | "cloud" | "local" | "saving" | "error"
 
-function localKey(type: string) {
-  return `hegeva:v0:${type}`
+function localKey(type: string, ownerKey: string) {
+  return `hegeva:v0:${ownerKey}:${type}`
 }
 
-function readLocal<T>(type: string): T[] {
+function readLocal<T>(type: string, ownerKey: string): T[] {
   try {
-    const parsed = JSON.parse(localStorage.getItem(localKey(type)) || "[]")
+    const parsed = JSON.parse(localStorage.getItem(localKey(type, ownerKey)) || "[]")
     return Array.isArray(parsed) ? parsed : []
   } catch {
     return []
   }
 }
 
-function writeLocal<T>(type: string, items: T[]) {
+function writeLocal<T>(type: string, ownerKey: string, items: T[]) {
   try {
-    localStorage.setItem(localKey(type), JSON.stringify(items))
+    localStorage.setItem(localKey(type, ownerKey), JSON.stringify(items))
   } catch {}
 }
 
@@ -33,6 +33,7 @@ export function useWorkspaceData<T>(type: string): {
 } {
   const { data: session, isPending } = useSession()
   const userId = session?.user?.id
+  const ownerKey = userId ? `user:${userId}` : "guest"
   const [items, setItems] = useState<T[]>([])
   const [syncState, setSyncState] = useState<WorkspaceSyncState>("checking")
   const [syncError, setSyncError] = useState("")
@@ -51,7 +52,7 @@ export function useWorkspaceData<T>(type: string): {
 
       if (!userId) {
         if (!cancelled) {
-          setItems(readLocal<T>(type))
+          setItems(readLocal<T>(type, ownerKey))
           setSyncState("local")
           readyToSave.current = true
         }
@@ -74,13 +75,13 @@ export function useWorkspaceData<T>(type: string): {
         const cloudItems = Array.isArray(payload?.data) ? payload.data as T[] : []
         if (!cancelled) {
           setItems(cloudItems)
-          writeLocal(type, cloudItems)
+          writeLocal(type, ownerKey, cloudItems)
           setSyncState("cloud")
           readyToSave.current = true
         }
       } catch (error) {
         if (!cancelled) {
-          setItems(readLocal<T>(type))
+          setItems(readLocal<T>(type, ownerKey))
           setSyncState("error")
           setSyncError(error instanceof Error ? error.message : "Cloud sync is temporarily unavailable.")
           readyToSave.current = true
@@ -92,11 +93,11 @@ export function useWorkspaceData<T>(type: string): {
     return () => {
       cancelled = true
     }
-  }, [isPending, type, userId])
+  }, [isPending, type, userId, ownerKey])
 
   useEffect(() => {
     if (!readyToSave.current) return
-    writeLocal(type, items)
+    writeLocal(type, ownerKey, items)
 
     if (!userId) {
       setSyncState("local")
@@ -134,7 +135,7 @@ export function useWorkspaceData<T>(type: string): {
       window.clearTimeout(timer)
       controller.abort()
     }
-  }, [items, type, userId])
+  }, [items, type, userId, ownerKey])
 
   return {
     items,
