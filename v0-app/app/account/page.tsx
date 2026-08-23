@@ -12,6 +12,8 @@ import { LEADS_COPY } from "@/lib/i18n/leads-copy"
 
 type PlanStatus = { plan:string; aiMessages:number; aiLimit:number; period:string }
 
+const PAID_PLANS = new Set(["premium", "pro"])
+
 export default function AccountPage() {
   const router = useRouter()
   const { locale } = useI18n()
@@ -22,83 +24,76 @@ export default function AccountPage() {
   const [plan, setPlan] = useState<PlanStatus | null>(null)
   const [planError, setPlanError] = useState(false)
   const [billingReturn, setBillingReturn] = useState(false)
-  const [billingSessionId, setBillingSessionId] = useState("")
   const [billingSuccess, setBillingSuccess] = useState(false)
   const [billingConfirmError, setBillingConfirmError] = useState("")
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     setBillingReturn(params.get("billing") === "success")
-    const sessionId = params.get("session_id") || ""
-    setBillingSessionId(sessionId.startsWith("cs_test_") ? sessionId : "")
   }, [])
 
   const loginCallbackHref = useMemo(() => {
-    const target = new URLSearchParams()
-    if (billingReturn) target.set("billing", "success")
-    if (billingSessionId) target.set("session_id", billingSessionId)
-    const callback = target.size > 0 ? `/account?${target.toString()}` : "/account"
+    const callback = billingReturn ? "/account?billing=success" : "/account"
     return `/login?callbackURL=${encodeURIComponent(callback)}`
-  }, [billingReturn, billingSessionId])
+  }, [billingReturn])
 
   useEffect(() => {
     if (!session?.user) return
     let active = true
-    const loadPlan = async () => {
-      const params = new URLSearchParams(window.location.search)
-      const returnedFromCheckout = params.get("billing") === "success"
-      const sessionId = params.get("session_id")
 
-      if (returnedFromCheckout) {
-        if (!sessionId?.startsWith("cs_test_")) {
-          if (active) {
-            setBillingSuccess(false)
-            setBillingConfirmError("missing_session_id")
-          }
-        } else {
-          const confirmResponse = await fetch("/api/billing/confirm", {
-            method:"POST",
-            credentials:"include",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({sessionId}),
-          }).catch(() => null)
-          if (!confirmResponse?.ok) {
-            const errorData = await confirmResponse?.json().catch(() => null)
-            const code = typeof errorData?.code === "string" ? errorData.code : `http_${confirmResponse?.status || 0}`
-            if (active) {
-              setBillingSuccess(false)
-              setBillingConfirmError(code)
-            }
-          } else if (active) {
-            setBillingConfirmError("")
-            setBillingSuccess(true)
-          }
+    const fetchPlan = async () => {
+      const response = await fetch("/api/plan/status", {
+        credentials:"include",
+        cache:"no-store",
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok || !data) throw new Error("plan")
+      return {
+        plan: typeof data.plan === "string" ? data.plan : "basic",
+        aiMessages: Number(data.aiMessages) || 0,
+        aiLimit: Number(data.aiLimit) || 0,
+        period: typeof data.period === "string" ? data.period : "",
+      } satisfies PlanStatus
+    }
+
+    const loadPlan = async () => {
+      const returnedFromCheckout = new URLSearchParams(window.location.search).get("billing") === "success"
+      let latest = await fetchPlan()
+
+      if (returnedFromCheckout && !PAID_PLANS.has(latest.plan)) {
+        for (let attempt = 0; attempt < 4 && active; attempt += 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, 1200))
+          latest = await fetchPlan()
+          if (PAID_PLANS.has(latest.plan)) break
         }
       }
 
-      const response = await fetch("/api/plan/status", { credentials:"include", cache:"no-store" })
-      const data = await response.json().catch(() => null)
-      if (!response.ok || !data) throw new Error("plan")
-      if (active) {
-        setPlanError(false)
-        setPlan({
-          plan: typeof data.plan === "string" ? data.plan : "basic",
-          aiMessages: Number(data.aiMessages) || 0,
-          aiLimit: Number(data.aiLimit) || 0,
-          period: typeof data.period === "string" ? data.period : "",
-        })
+      if (!active) return
+      setPlanError(false)
+      setPlan(latest)
+
+      if (returnedFromCheckout) {
+        const paid = PAID_PLANS.has(latest.plan)
+        setBillingSuccess(paid)
+        setBillingConfirmError(paid ? "" : "entitlement_pending")
       }
     }
-    loadPlan()
-      .catch(() => { if (active) setPlanError(true) })
-    /*
-      The separate admin check must not block plan confirmation or display.
-    */
+
+    loadPlan().catch(() => {
+      if (!active) return
+      setPlanError(true)
+      if (billingReturn) {
+        setBillingSuccess(false)
+        setBillingConfirmError("plan_status_unavailable")
+      }
+    })
+
     fetch("/api/admin/contact-leads", { credentials:"include", cache:"no-store" })
       .then((response) => { if (active) setIsOwner(response.ok) })
       .catch(() => {})
+
     return () => { active = false }
-  }, [session?.user])
+  }, [billingReturn, session?.user])
 
   async function logout() {
     await authClient.signOut()
@@ -118,7 +113,7 @@ export default function AccountPage() {
     <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
       <PageHeader eyebrow={c.eyebrow} title={c.title} subtitle={c.subtitle}/>
       {billingSuccess && <p role="status" className="mt-6 rounded-xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground">{c.billingSuccess}</p>}
-      {billingConfirmError && <p role="alert" className="mt-4 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{c.unavailable} <span className="font-mono">({billingConfirmError})</span></p>}
+      {billingConfirmError && <p role="alert" className="mt-4 rounded-xl border border-gold/30 bg-gold/10 p-4 text-sm text-muted-foreground">{c.unavailable} <span className="font-mono">({billingConfirmError})</span></p>}
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
         <section className="glass-panel rounded-3xl p-6 sm:p-8">
           <h2 className="text-lg font-semibold">{c.details}</h2>
