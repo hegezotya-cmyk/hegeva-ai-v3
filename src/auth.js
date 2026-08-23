@@ -64,26 +64,6 @@ export async function sendResendEmail(
   return data;
 }
 
-function queueEmail(ctx, promise) {
-  if (ctx?.waitUntil) {
-    ctx.waitUntil(
-      promise.catch((error) =>
-        console.error(
-          "HEGEVA queued email error:",
-          error
-        )
-      )
-    );
-  } else {
-    void promise.catch((error) =>
-      console.error(
-        "HEGEVA email error:",
-        error
-      )
-    );
-  }
-}
-
 export function createAuth(env, request, ctx) {
   const requestUrl =
     new URL(request.url);
@@ -145,17 +125,20 @@ export function createAuth(env, request, ctx) {
           const safeUrl =
             escapeHtml(url);
 
-          const emailPromise =
-            sendResendEmail(
-              env,
-              {
-                to:
-                  user.email,
+          // Password reset is a user-facing delivery action. Await the
+          // provider here so Better Auth can report a real failure instead of
+          // telling the UI an email was sent when Resend is missing or rejects
+          // the request.
+          await sendResendEmail(
+            env,
+            {
+              to:
+                user.email,
 
-                subject:
-                  "Reset your HEGEVA AI password",
+              subject:
+                "Reset your HEGEVA AI password",
 
-                text:
+              text:
 `Hello ${user?.name || "there"},
 
 Use this secure link to reset your HEGEVA AI password:
@@ -163,7 +146,7 @@ ${url}
 
 This link expires after one hour. If you did not request this, you can ignore this email.`,
 
-                html:
+              html:
 `<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#172033">
   <h2>HEGEVA AI password reset</h2>
 
@@ -189,14 +172,9 @@ This link expires after one hour. If you did not request this, you can ignore th
   </p>
 </div>`,
 
-                idempotencyKey:
-                  `hegeva-reset-${crypto.randomUUID()}`
-              }
-            );
-
-          queueEmail(
-            ctx,
-            emailPromise
+              idempotencyKey:
+                `hegeva-reset-${crypto.randomUUID()}`
+            }
           );
         }
     },
