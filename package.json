@@ -12,7 +12,7 @@
     "deploy:api": "wrangler deploy",
     "deploy:ui": "npm --prefix v0-app run cf:deploy",
     "release:remote-state": "npm run db:migrations:list:remote",
-    "release:check": "npm run worker:check && npm run db:migrations:local && npm run deploy:dry-run && npm --prefix v0-app exec tsc -- --noEmit && npm --prefix v0-app run build && npm --prefix v0-app run cf:build",
+    "release:check": "npm run worker:check && npm run db:migrations:local && npm run deploy:dry-run && cd v0-app && npx tsc --noEmit && npm run build && npm run cf:build",
     "release:smoke": "node scripts/release-smoke.mjs",
     "v0:build": "npm --prefix v0-app run cf:build"
   },
