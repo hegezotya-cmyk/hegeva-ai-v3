@@ -20,11 +20,11 @@ const copy = {
     body: "Converts the latest working browser prototype into a real small project with separate HTML, CSS and JavaScript files, then runs basic integrity checks before export.",
     waiting: "Build a working prototype above first. The latest successful prototype will appear here automatically.",
     verified: "Project checks passed",
-    failed: "Project checks need attention",
+    failed: "Project checks need attention — export stays locked until all checks pass",
     refresh: "Refresh from latest build",
     download: "Download",
     checks: "Verification",
-    html: "HTML document present",
+    html: "Complete HTML document present",
     css: "CSS extracted",
     js: "JavaScript extracted",
     links: "External file links inserted",
@@ -34,11 +34,11 @@ const copy = {
     body: "A legutóbbi működő böngészős prototípust valódi kis projektté alakítja külön HTML-, CSS- és JavaScript-fájlokkal, majd export előtt alapvető épségi ellenőrzéseket futtat.",
     waiting: "Először készíts fent egy működő prototípust. A legutóbbi sikeres prototípus itt automatikusan megjelenik.",
     verified: "A projektellenőrzések sikeresek",
-    failed: "A projektellenőrzés figyelmet igényel",
+    failed: "A projektellenőrzés figyelmet igényel — az export zárolva marad, amíg minden ellenőrzés sikeres",
     refresh: "Frissítés a legutóbbi buildből",
     download: "Letöltés",
     checks: "Ellenőrzés",
-    html: "HTML dokumentum megvan",
+    html: "Teljes HTML dokumentum megvan",
     css: "CSS külön fájlba került",
     js: "JavaScript külön fájlba került",
     links: "Külső fájlhivatkozások bekerültek",
@@ -48,11 +48,11 @@ const copy = {
     body: "Wandelt den letzten funktionierenden Browser-Prototyp in ein echtes kleines Projekt mit getrennten HTML-, CSS- und JavaScript-Dateien um und prüft die Integrität vor dem Export.",
     waiting: "Erstelle oben zuerst einen funktionierenden Prototyp. Der letzte erfolgreiche Build erscheint hier automatisch.",
     verified: "Projektprüfungen bestanden",
-    failed: "Projektprüfung benötigt Aufmerksamkeit",
+    failed: "Projektprüfung benötigt Aufmerksamkeit — Export bleibt gesperrt, bis alle Prüfungen bestanden sind",
     refresh: "Aus letztem Build aktualisieren",
     download: "Herunterladen",
     checks: "Prüfung",
-    html: "HTML-Dokument vorhanden",
+    html: "Vollständiges HTML-Dokument vorhanden",
     css: "CSS extrahiert",
     js: "JavaScript extrahiert",
     links: "Externe Dateiverweise eingefügt",
@@ -62,11 +62,11 @@ const copy = {
     body: "Convertit le dernier prototype navigateur fonctionnel en petit projet réel avec fichiers HTML, CSS et JavaScript séparés, puis effectue des contrôles d’intégrité avant export.",
     waiting: "Créez d’abord un prototype fonctionnel ci-dessus. Le dernier prototype réussi apparaîtra ici automatiquement.",
     verified: "Vérifications du projet réussies",
-    failed: "Les vérifications nécessitent une attention",
+    failed: "Les vérifications nécessitent une attention — l’export reste verrouillé jusqu’à leur réussite",
     refresh: "Actualiser depuis le dernier build",
     download: "Télécharger",
     checks: "Vérification",
-    html: "Document HTML présent",
+    html: "Document HTML complet présent",
     css: "CSS extrait",
     js: "JavaScript extrait",
     links: "Liens de fichiers externes insérés",
@@ -76,11 +76,11 @@ const copy = {
     body: "Convierte el último prototipo funcional del navegador en un pequeño proyecto real con archivos HTML, CSS y JavaScript separados y ejecuta comprobaciones básicas antes de exportar.",
     waiting: "Primero crea arriba un prototipo funcional. El último prototipo correcto aparecerá aquí automáticamente.",
     verified: "Comprobaciones del proyecto superadas",
-    failed: "Las comprobaciones requieren atención",
+    failed: "Las comprobaciones requieren atención — la exportación permanece bloqueada hasta superarlas",
     refresh: "Actualizar desde el último build",
     download: "Descargar",
     checks: "Verificación",
-    html: "Documento HTML presente",
+    html: "Documento HTML completo presente",
     css: "CSS extraído",
     js: "JavaScript extraído",
     links: "Referencias externas insertadas",
@@ -153,7 +153,7 @@ export function ProjectExport() {
   const checks = useMemo(() => {
     if (!files) return []
     return [
-      [c.html, /<!doctype html|<html/i.test(files["index.html"])],
+      [c.html, /<!doctype html/i.test(files["index.html"]) && /<html(?:\s|>)/i.test(files["index.html"]) && /<\/html>/i.test(files["index.html"])],
       [c.css, files["styles.css"].trim().length > 0],
       [c.js, files["app.js"].trim().length > 0],
       [c.links, (!files["styles.css"] || files["index.html"].includes('href="styles.css"')) && (!files["app.js"] || files["index.html"].includes('src="app.js"'))],
@@ -203,7 +203,7 @@ export function ProjectExport() {
               <button
                 key={name}
                 type="button"
-                disabled={!content}
+                disabled={!allPassed || !content}
                 onClick={() => downloadTextFile(name, content, name.endsWith(".html") ? "text/html;charset=utf-8" : name.endsWith(".css") ? "text/css;charset=utf-8" : name.endsWith(".js") ? "text/javascript;charset=utf-8" : "text/markdown;charset=utf-8")}
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-3 py-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
               >
