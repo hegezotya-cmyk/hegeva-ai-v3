@@ -10,6 +10,8 @@ import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { buildLocalizedSpecification, getStudioCopy } from "@/lib/i18n/studio-copy"
 
+const APP_STUDIO_HANDOFF_KEY = "hegeva:app-studio:prompt-to-build"
+
 /**
  * Prompt My App — structures a raw idea into a professional specification.
  * Runs fully client-side (deterministic). It does NOT claim AI generation happened;
@@ -37,6 +39,25 @@ export function PromptMyApp() {
     await navigator.clipboard.writeText(spec)
     setCopied(true)
     setTimeout(() => setCopied(false), 1600)
+  }
+
+  function saveBuildHandoff() {
+    if (!spec) return
+    try {
+      sessionStorage.setItem(
+        APP_STUDIO_HANDOFF_KEY,
+        JSON.stringify({
+          idea: idea.trim(),
+          specification: spec,
+          appType: c.types[appTypeIndex],
+          audience: c.audiences[audienceIndex],
+          locale,
+          createdAt: Date.now(),
+        }),
+      )
+    } catch {
+      // Navigation must still work if browser storage is unavailable.
+    }
   }
 
   return (
@@ -161,7 +182,11 @@ export function PromptMyApp() {
 
           {spec && (
             <div className="mt-4 flex flex-wrap gap-3">
-              <Link href="/app-studio/build-my-app" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-2")}>
+              <Link
+                href="/app-studio/build-my-app"
+                onClick={saveBuildHandoff}
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-2")}
+              >
                 {c.prompt.continue}
                 <StatusBadge status="beta" />
               </Link>
