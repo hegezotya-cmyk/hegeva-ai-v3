@@ -1,0 +1,219 @@
+"use client"
+
+import { useEffect, useMemo, useState } from "react"
+import { CheckCircle2, Download, FileCode2, RefreshCw, XCircle } from "lucide-react"
+import { useI18n } from "@/lib/i18n/provider"
+import { downloadTextFile } from "@/lib/app-studio-ai"
+
+const LAST_BUILD_KEY = "hegeva:app-studio:last-built-html"
+
+type ProjectFiles = {
+  "index.html": string
+  "styles.css": string
+  "app.js": string
+  "README.md": string
+}
+
+const copy = {
+  en: {
+    title: "Multi-file project export",
+    body: "Converts the latest working browser prototype into a real small project with separate HTML, CSS and JavaScript files, then runs basic integrity checks before export.",
+    waiting: "Build a working prototype above first. The latest successful prototype will appear here automatically.",
+    verified: "Project checks passed",
+    failed: "Project checks need attention",
+    refresh: "Refresh from latest build",
+    download: "Download",
+    checks: "Verification",
+    html: "HTML document present",
+    css: "CSS extracted",
+    js: "JavaScript extracted",
+    links: "External file links inserted",
+  },
+  hu: {
+    title: "Többfájlos projekt export",
+    body: "A legutóbbi működő böngészős prototípust valódi kis projektté alakítja külön HTML-, CSS- és JavaScript-fájlokkal, majd export előtt alapvető épségi ellenőrzéseket futtat.",
+    waiting: "Először készíts fent egy működő prototípust. A legutóbbi sikeres prototípus itt automatikusan megjelenik.",
+    verified: "A projektellenőrzések sikeresek",
+    failed: "A projektellenőrzés figyelmet igényel",
+    refresh: "Frissítés a legutóbbi buildből",
+    download: "Letöltés",
+    checks: "Ellenőrzés",
+    html: "HTML dokumentum megvan",
+    css: "CSS külön fájlba került",
+    js: "JavaScript külön fájlba került",
+    links: "Külső fájlhivatkozások bekerültek",
+  },
+  de: {
+    title: "Mehrdatei-Projektexport",
+    body: "Wandelt den letzten funktionierenden Browser-Prototyp in ein echtes kleines Projekt mit getrennten HTML-, CSS- und JavaScript-Dateien um und prüft die Integrität vor dem Export.",
+    waiting: "Erstelle oben zuerst einen funktionierenden Prototyp. Der letzte erfolgreiche Build erscheint hier automatisch.",
+    verified: "Projektprüfungen bestanden",
+    failed: "Projektprüfung benötigt Aufmerksamkeit",
+    refresh: "Aus letztem Build aktualisieren",
+    download: "Herunterladen",
+    checks: "Prüfung",
+    html: "HTML-Dokument vorhanden",
+    css: "CSS extrahiert",
+    js: "JavaScript extrahiert",
+    links: "Externe Dateiverweise eingefügt",
+  },
+  fr: {
+    title: "Export de projet multi-fichiers",
+    body: "Convertit le dernier prototype navigateur fonctionnel en petit projet réel avec fichiers HTML, CSS et JavaScript séparés, puis effectue des contrôles d’intégrité avant export.",
+    waiting: "Créez d’abord un prototype fonctionnel ci-dessus. Le dernier prototype réussi apparaîtra ici automatiquement.",
+    verified: "Vérifications du projet réussies",
+    failed: "Les vérifications nécessitent une attention",
+    refresh: "Actualiser depuis le dernier build",
+    download: "Télécharger",
+    checks: "Vérification",
+    html: "Document HTML présent",
+    css: "CSS extrait",
+    js: "JavaScript extrait",
+    links: "Liens de fichiers externes insérés",
+  },
+  es: {
+    title: "Exportación de proyecto multifichero",
+    body: "Convierte el último prototipo funcional del navegador en un pequeño proyecto real con archivos HTML, CSS y JavaScript separados y ejecuta comprobaciones básicas antes de exportar.",
+    waiting: "Primero crea arriba un prototipo funcional. El último prototipo correcto aparecerá aquí automáticamente.",
+    verified: "Comprobaciones del proyecto superadas",
+    failed: "Las comprobaciones requieren atención",
+    refresh: "Actualizar desde el último build",
+    download: "Descargar",
+    checks: "Verificación",
+    html: "Documento HTML presente",
+    css: "CSS extraído",
+    js: "JavaScript extraído",
+    links: "Referencias externas insertadas",
+  },
+} as const
+
+function splitPrototype(html: string): ProjectFiles {
+  const styleMatches = [...html.matchAll(/<style(?:\s[^>]*)?>([\s\S]*?)<\/style>/gi)]
+  const scriptMatches = [...html.matchAll(/<script(?![^>]*\bsrc=)(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
+
+  const css = styleMatches.map((match) => match[1].trim()).filter(Boolean).join("\n\n")
+  const js = scriptMatches.map((match) => match[1].trim()).filter(Boolean).join("\n\n")
+
+  let index = html
+    .replace(/<style(?:\s[^>]*)?>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script(?![^>]*\bsrc=)(?:\s[^>]*)?>[\s\S]*?<\/script>/gi, "")
+
+  if (css) {
+    index = /<\/head>/i.test(index)
+      ? index.replace(/<\/head>/i, '  <link rel="stylesheet" href="styles.css">\n</head>')
+      : `<link rel="stylesheet" href="styles.css">\n${index}`
+  }
+
+  if (js) {
+    index = /<\/body>/i.test(index)
+      ? index.replace(/<\/body>/i, '  <script src="app.js"><\/script>\n</body>')
+      : `${index}\n<script src="app.js"><\/script>`
+  }
+
+  const readme = [
+    "# HEGEVA generated browser project",
+    "",
+    "Files:",
+    "- index.html — application markup",
+    "- styles.css — extracted styles",
+    "- app.js — extracted browser logic",
+    "",
+    "Open index.html in a browser to run the project.",
+    "This export does not claim server-side authentication, cloud database, payment processing or deployment unless those integrations were separately implemented and verified.",
+  ].join("\n")
+
+  return {
+    "index.html": index.trim(),
+    "styles.css": css,
+    "app.js": js,
+    "README.md": readme,
+  }
+}
+
+export function ProjectExport() {
+  const { locale } = useI18n()
+  const c = copy[locale]
+  const [html, setHtml] = useState("")
+
+  function refresh() {
+    try {
+      setHtml(localStorage.getItem(LAST_BUILD_KEY)?.trim() || "")
+    } catch {
+      setHtml("")
+    }
+  }
+
+  useEffect(() => {
+    refresh()
+    const id = window.setInterval(refresh, 1500)
+    return () => window.clearInterval(id)
+  }, [])
+
+  const files = useMemo(() => (html ? splitPrototype(html) : null), [html])
+  const checks = useMemo(() => {
+    if (!files) return []
+    return [
+      [c.html, /<!doctype html|<html/i.test(files["index.html"])],
+      [c.css, files["styles.css"].trim().length > 0],
+      [c.js, files["app.js"].trim().length > 0],
+      [c.links, (!files["styles.css"] || files["index.html"].includes('href="styles.css"')) && (!files["app.js"] || files["index.html"].includes('src="app.js"'))],
+    ] as const
+  }, [c, files])
+
+  const allPassed = checks.length > 0 && checks.every(([, ok]) => ok)
+
+  return (
+    <section className="mt-8 glass-panel rounded-2xl p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-3xl">
+          <div className="flex items-center gap-2">
+            <FileCode2 className="size-4 text-primary" aria-hidden />
+            <h2 className="text-lg font-semibold text-foreground">{c.title}</h2>
+          </div>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{c.body}</p>
+        </div>
+        <button type="button" onClick={refresh} className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium">
+          <RefreshCw className="size-4" aria-hidden />
+          {c.refresh}
+        </button>
+      </div>
+
+      {!files ? (
+        <p className="mt-5 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">{c.waiting}</p>
+      ) : (
+        <>
+          <div className="mt-5 rounded-xl border border-border bg-background/40 p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              {allPassed ? <CheckCircle2 className="size-4 text-primary" aria-hidden /> : <XCircle className="size-4 text-destructive" aria-hidden />}
+              {allPassed ? c.verified : c.failed}
+            </div>
+            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">{c.checks}</p>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {checks.map(([label, ok]) => (
+                <div key={label} className="flex items-center gap-2 text-sm">
+                  {ok ? <CheckCircle2 className="size-4 text-primary" aria-hidden /> : <XCircle className="size-4 text-destructive" aria-hidden />}
+                  <span>{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {(Object.entries(files) as [keyof ProjectFiles, string][]).map(([name, content]) => (
+              <button
+                key={name}
+                type="button"
+                disabled={!content}
+                onClick={() => downloadTextFile(name, content, name.endsWith(".html") ? "text/html;charset=utf-8" : name.endsWith(".css") ? "text/css;charset=utf-8" : name.endsWith(".js") ? "text/javascript;charset=utf-8" : "text/markdown;charset=utf-8")}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-3 py-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Download className="size-4" aria-hidden />
+                {c.download} {name}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
+  )
+}
