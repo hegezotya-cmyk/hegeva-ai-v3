@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "hegeva-ai-v3",
-  "main": "src/index.js",
+  "main": "src/index-ledger.js",
   "compatibility_date": "2026-08-10",
   "workers_dev": true,
   "keep_vars": true,
