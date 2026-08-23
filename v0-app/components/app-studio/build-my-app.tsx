@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useState } from "react"
 import {
   ArrowLeft,
   Boxes,
@@ -133,6 +134,13 @@ export function BuildMyApp() {
   const shared = getStudioCopy(locale)
   const c = getWorkflowsCopy(locale).build
   const steps = c.steps.map(([title, description], index) => ({ key: buildSteps[index].key, title, description }))
+  const [idea, setIdea] = useState("")
+  const [plan, setPlan] = useState("")
+  function createPlan() {
+    const value = idea.trim()
+    if (!value) return
+    setPlan([`# ${c.title}`, "", value, "", ...steps.map((step, index) => `## ${index + 1}. ${step.title}\n${step.description}`)].join("\n"))
+  }
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="mb-6">
@@ -190,6 +198,18 @@ export function BuildMyApp() {
           note={c.note}
         />
       </div>
+
+      <section className="mt-8 grid gap-4 lg:grid-cols-2">
+        <div className="glass-panel rounded-2xl p-5">
+          <label htmlFor="build-idea" className="text-sm font-semibold text-foreground">{shared.prompt.idea}</label>
+          <textarea id="build-idea" value={idea} onChange={(event) => setIdea(event.target.value)} rows={7} placeholder={shared.prompt.placeholder} className="mt-3 w-full rounded-xl border border-input bg-input/30 p-3 text-sm outline-none focus:border-primary/50" />
+          <button type="button" disabled={!idea.trim()} onClick={createPlan} className="mt-4 w-full rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50">{shared.prompt.generate}</button>
+        </div>
+        <div className="glass-panel rounded-2xl p-5">
+          <h2 className="text-sm font-semibold text-foreground">{c.covers}</h2>
+          {plan ? <><pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-border bg-background/50 p-4 text-xs leading-relaxed">{plan}</pre><button type="button" onClick={() => navigator.clipboard.writeText(plan)} className="mt-3 rounded-xl border border-border px-4 py-2 text-sm">{shared.prompt.copy}</button></> : <p className="mt-3 text-sm text-muted-foreground">{shared.prompt.emptyBody}</p>}
+        </div>
+      </section>
 
       <section className="mt-10">
         <div className="mb-5">
