@@ -11,7 +11,7 @@
     "v0:build": "npm --prefix v0-app run cf:build"
   },
   "dependencies": {
-    "better-auth": "^1.5.0"
+    "better-auth": "^1.7.1"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
