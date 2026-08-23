@@ -18,6 +18,14 @@ const PLAN_CHANGE_COPY = {
   es: "Cambio de plan próximamente",
 } as const
 
+const BILLING_CANCELLED_COPY = {
+  en: "Checkout was cancelled. Your current plan was not changed and no HEGEVA entitlement was activated.",
+  hu: "A fizetési folyamat megszakadt. A jelenlegi csomagod nem változott, és nem aktiválódott új HEGEVA jogosultság.",
+  de: "Der Checkout wurde abgebrochen. Dein aktueller Tarif wurde nicht geändert und es wurde keine neue HEGEVA-Berechtigung aktiviert.",
+  fr: "Le paiement a été annulé. Votre offre actuelle n’a pas été modifiée et aucun nouvel accès HEGEVA n’a été activé.",
+  es: "El pago fue cancelado. Tu plan actual no cambió y no se activó ningún nuevo acceso de HEGEVA.",
+} as const
+
 export default function PricingPage() {
   const router = useRouter()
   const { locale } = useI18n()
@@ -26,6 +34,17 @@ export default function PricingPage() {
   const [opening, setOpening] = useState<PaidPlan | null>(null)
   const [error, setError] = useState("")
   const [currentPlan, setCurrentPlan] = useState<string | null>(null)
+  const [billingCancelled, setBillingCancelled] = useState(false)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("billing") === "cancelled") {
+      setBillingCancelled(true)
+      params.delete("billing")
+      const query = params.toString()
+      window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`)
+    }
+  }, [])
 
   useEffect(() => {
     if (!session?.user) { setCurrentPlan(null); return }
@@ -41,7 +60,8 @@ export default function PricingPage() {
   }, [session?.user])
 
   async function checkout(plan: PaidPlan) {
-    if (!session?.user) { router.push("/login"); return }
+    if (!session?.user) { router.push("/login?callbackURL=%2Fpricing"); return }
+    setBillingCancelled(false)
     setOpening(plan); setError("")
     try {
       const response = await fetch("/api/billing/checkout", { method:"POST", credentials:"include", headers:{"Content-Type":"application/json"}, body:JSON.stringify({plan, mode:"test"}) })
@@ -65,6 +85,7 @@ export default function PricingPage() {
       <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">{c.title}</h1>
       <p className="mt-4 text-base leading-7 text-muted-foreground">{c.subtitle}</p>
       <p className="mt-5 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-gold">{c.sandbox}</p>
+      {billingCancelled && <p role="status" className="mt-4 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">{BILLING_CANCELLED_COPY[locale]}</p>}
     </div>
     <div className="mt-10 grid gap-5 lg:grid-cols-3">
       {plans.map((plan) => <section key={plan.key} className={`glass-panel flex rounded-3xl p-6 sm:p-8 ${"featured" in plan && plan.featured ? "border-primary/50 ring-1 ring-primary/25" : ""}`}>
