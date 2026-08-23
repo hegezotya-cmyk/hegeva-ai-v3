@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono, Sora } from 'next/font/google'
 import { I18nProvider } from '@/lib/i18n/provider'
+import { WorkspaceLocalPrivacyGuard } from '@/components/workspace-local-privacy-guard'
 import './globals.css'
 
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
@@ -58,7 +59,10 @@ export default function RootLayout({
       className={`dark bg-background ${geistSans.variable} ${geistMono.variable} ${sora.variable}`}
     >
       <body className="antialiased font-sans">
-        <I18nProvider>{children}</I18nProvider>
+        <I18nProvider>
+          <WorkspaceLocalPrivacyGuard />
+          {children}
+        </I18nProvider>
       </body>
     </html>
   )
