@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Boxes,
   Database,
+  Download,
   KeyRound,
   Palette,
   ShieldCheck,
@@ -22,8 +23,16 @@ import { StatusBadge } from "@/components/status-badge"
 import { useI18n } from "@/lib/i18n/provider"
 import { getStudioCopy } from "@/lib/i18n/studio-copy"
 import { getWorkflowsCopy } from "@/lib/i18n/workflows-copy"
+import {
+  downloadTextFile,
+  looksLikeHtmlDocument,
+  runStudioAI,
+  stripCodeFence,
+  type StudioLocale,
+} from "@/lib/app-studio-ai"
 
 const APP_STUDIO_HANDOFF_KEY = "hegeva:app-studio:prompt-to-build"
+const LAST_BUILD_KEY = "hegeva:app-studio:last-built-html"
 
 const buildSteps: FlowStep[] = [
   { key: "idea", title: "Idea", description: "Define what the application should do, who it is for, and the real problem it should solve." },
@@ -57,28 +66,90 @@ const finishLabels: Record<string, string> = {
   es: "Crear plan de construcción",
 }
 
+const prototypeCopy = {
+  en: {
+    title: "Working browser prototype",
+    body: "Beta currently creates a real single-file HTML app that runs in the browser. Server databases, authentication, payments and deployment are not silently simulated; they remain separate build stages.",
+    button: "Build working prototype",
+    building: "Building prototype…",
+    preview: "Live preview",
+    code: "Generated index.html",
+    download: "Download index.html",
+    error: "Prototype generation failed.",
+  },
+  hu: {
+    title: "Működő böngészős prototípus",
+    body: "A béta jelenleg valódi, egyfájlos HTML alkalmazást készít, amely a böngészőben fut. A szerveres adatbázist, belépést, fizetést és deployt nem szimuláljuk hamisan; ezek külön építési lépések maradnak.",
+    button: "Működő prototípus építése",
+    building: "Prototípus építése…",
+    preview: "Élő előnézet",
+    code: "Generált index.html",
+    download: "index.html letöltése",
+    error: "A prototípus generálása sikertelen.",
+  },
+  de: {
+    title: "Funktionierender Browser-Prototyp",
+    body: "Die Beta erstellt derzeit eine echte Ein-Datei-HTML-App, die im Browser läuft. Server-Datenbank, Anmeldung, Zahlungen und Deployment werden nicht vorgetäuscht und bleiben separate Ausbaustufen.",
+    button: "Funktionierenden Prototyp bauen",
+    building: "Prototyp wird erstellt…",
+    preview: "Live-Vorschau",
+    code: "Generierte index.html",
+    download: "index.html herunterladen",
+    error: "Prototyp konnte nicht erstellt werden.",
+  },
+  fr: {
+    title: "Prototype navigateur fonctionnel",
+    body: "La bêta crée actuellement une vraie application HTML en un seul fichier qui fonctionne dans le navigateur. Base de données serveur, authentification, paiements et déploiement ne sont pas simulés et restent des étapes séparées.",
+    button: "Construire le prototype fonctionnel",
+    building: "Construction du prototype…",
+    preview: "Aperçu en direct",
+    code: "index.html généré",
+    download: "Télécharger index.html",
+    error: "La génération du prototype a échoué.",
+  },
+  es: {
+    title: "Prototipo funcional en navegador",
+    body: "La beta crea actualmente una aplicación HTML real de un solo archivo que funciona en el navegador. Base de datos del servidor, autenticación, pagos y despliegue no se simulan y siguen siendo etapas separadas.",
+    button: "Crear prototipo funcional",
+    building: "Creando prototipo…",
+    preview: "Vista previa en vivo",
+    code: "index.html generado",
+    download: "Descargar index.html",
+    error: "No se pudo generar el prototipo.",
+  },
+} as const
+
+const milestoneCopy = {
+  en: ["Foundation", "Core product", "Integrations", "Launch readiness"],
+  hu: ["Alapok", "Alaptermék", "Integrációk", "Indulásra kész állapot"],
+  de: ["Grundlage", "Kernprodukt", "Integrationen", "Startbereitschaft"],
+  fr: ["Fondations", "Produit principal", "Intégrations", "Préparation au lancement"],
+  es: ["Fundamentos", "Producto principal", "Integraciones", "Preparación para lanzamiento"],
+} as const
+
 export function BuildMyApp() {
   const { locale } = useI18n()
   const shared = getStudioCopy(locale)
   const c = getWorkflowsCopy(locale).build
   const steps = c.steps.map(([title, description], index) => ({ key: buildSteps[index].key, title, description }))
+  const labels = prototypeCopy[locale]
+  const milestones = milestoneCopy[locale]
   const [idea, setIdea] = useState("")
   const [plan, setPlan] = useState("")
   const [sourceSpec, setSourceSpec] = useState("")
+  const [prototype, setPrototype] = useState("")
+  const [buildingPrototype, setBuildingPrototype] = useState(false)
+  const [prototypeError, setPrototypeError] = useState("")
 
   useEffect(() => {
     let raw: string | null = null
     try {
       raw = sessionStorage.getItem(APP_STUDIO_HANDOFF_KEY)
-    } catch {
-      // Continue with localStorage fallback.
-    }
+    } catch {}
     if (!raw) {
       try {
         raw = localStorage.getItem(APP_STUDIO_HANDOFF_KEY)
-      } catch {
-        // Browser storage may be restricted.
-      }
+      } catch {}
     }
     if (!raw) return
 
@@ -93,9 +164,7 @@ export function BuildMyApp() {
       }
       try { sessionStorage.removeItem(APP_STUDIO_HANDOFF_KEY) } catch {}
       try { localStorage.removeItem(APP_STUDIO_HANDOFF_KEY) } catch {}
-    } catch {
-      // Malformed handoff data must never break the page.
-    }
+    } catch {}
   }, [])
 
   function createPlan() {
@@ -108,66 +177,61 @@ export function BuildMyApp() {
       `## 1. ${steps[0].title}`,
       value,
       "",
-      `## 2. ${steps[1].title}`,
-      steps[1].description,
-      "- Define must-have features before nice-to-have features.",
-      "- Identify primary users, permissions, validation rules and acceptance criteria.",
-      "",
-      `## 3. ${steps[2].title}`,
-      steps[2].description,
-      "- Separate UI, application logic, data access and external integrations.",
-      "- Keep secrets and privileged operations server-side.",
-      "",
-      `## 4. ${steps[3].title}`,
-      steps[3].description,
-      "- Design responsive desktop and mobile flows.",
-      "- Reuse a consistent component system and accessible interaction states.",
-      "",
-      `## 5. ${steps[4].title}`,
-      steps[4].description,
-      "- Define entities, ownership, relationships, timestamps and lifecycle rules.",
-      "- Validate all writes and avoid invented or simulated stored data.",
-      "",
-      `## 6. ${steps[5].title}`,
-      steps[5].description,
-      "- Protect account and workspace data by authenticated ownership.",
-      "- Define session expiry, logout and authorization checks.",
-      "",
-      `## 7. ${steps[6].title}`,
-      steps[6].description,
-      "- Send only necessary context to AI services.",
-      "- Add usage limits, error handling and clear beta/availability states.",
-      "",
-      `## 8. ${steps[7].title}`,
-      steps[7].description,
-      "- Treat provider confirmation as the source of truth for payments.",
-      "- Prevent duplicate subscriptions and keep plan state auditable.",
-      "",
-      `## 9. ${steps[8].title}`,
-      steps[8].description,
-      "- Keep API keys out of client code and validate every privileged request.",
-      "- Review data exposure, rate limits and failure behaviour before launch.",
-      "",
+      ...steps.slice(1, 9).flatMap((step, index) => [
+        `## ${index + 2}. ${step.title}`,
+        step.description,
+        "",
+      ]),
       `## 10. ${steps[9].title}`,
-      "### Milestone 1 — Foundation",
-      "- Confirm requirements, routes, data model and access rules.",
-      "- Acceptance: project builds cleanly and core navigation works.",
+      steps[9].description,
       "",
-      "### Milestone 2 — Core product",
-      "- Implement real CRUD workflows, account isolation and validation.",
-      "- Acceptance: critical user journeys pass end-to-end tests.",
-      "",
-      "### Milestone 3 — AI and payments",
-      "- Connect production AI/payment services with limits and failure handling.",
-      "- Acceptance: usage tracking and provider-confirmed payment state are correct.",
-      "",
-      "### Milestone 4 — Launch readiness",
-      "- Run security, responsive, multilingual and regression checks.",
-      "- Acceptance: no blocking errors, misleading claims or broken primary flows.",
-      sourceSpec ? "\n## Source specification\n" + sourceSpec : "",
+      ...milestones.flatMap((milestone, index) => [
+        `### ${index + 1}. ${milestone}`,
+        steps[Math.min(index * 3, steps.length - 1)].description,
+        "",
+      ]),
+      sourceSpec ? `## ${shared.prompt.spec}\n${sourceSpec}` : "",
     ].filter(Boolean).join("\n")
 
     setPlan(generated)
+  }
+
+  async function buildPrototype() {
+    const value = idea.trim()
+    if (!value || buildingPrototype) return
+
+    setPrototypeError("")
+    setBuildingPrototype(true)
+
+    const specification = sourceSpec || plan
+    const instruction = [
+      "You are the HEGEVA Build My App X10 browser-prototype builder.",
+      `Target language: ${locale}.`,
+      "Create a genuinely working, self-contained browser prototype as ONE complete index.html file.",
+      "Return ONLY HTML code. No Markdown fences, explanations or preface.",
+      "Use inline CSS and vanilla JavaScript so the file runs locally without dependencies.",
+      "Implement meaningful interactions that fit the idea, using localStorage when local persistence is useful.",
+      "Do not fake server authentication, cloud database, payments, email or external API success. If the idea requires those, show them clearly as unavailable/integration-required rather than pretending they work.",
+      "Keep the code compact enough for the response limit, responsive and usable on mobile.",
+      `APP IDEA:\n${value}`,
+      specification ? `SPECIFICATION:\n${specification.slice(0, 5000)}` : "",
+    ].filter(Boolean).join("\n\n")
+
+    try {
+      const answer = await runStudioAI(instruction, locale as StudioLocale)
+      const html = stripCodeFence(answer)
+      if (!looksLikeHtmlDocument(html)) {
+        throw new Error(labels.error)
+      }
+      setPrototype(html)
+      try {
+        localStorage.setItem(LAST_BUILD_KEY, html)
+      } catch {}
+    } catch (error) {
+      setPrototypeError(error instanceof Error ? error.message : labels.error)
+    } finally {
+      setBuildingPrototype(false)
+    }
   }
 
   return (
@@ -217,12 +281,65 @@ export function BuildMyApp() {
         <div className="glass-panel rounded-2xl p-5">
           <label htmlFor="build-idea" className="text-sm font-semibold text-foreground">{shared.prompt.idea}</label>
           <textarea id="build-idea" value={idea} onChange={(event) => setIdea(event.target.value)} rows={7} placeholder={shared.prompt.placeholder} className="mt-3 w-full rounded-xl border border-input bg-input/30 p-3 text-sm outline-none focus:border-primary/50" />
-          <button type="button" disabled={!idea.trim()} onClick={createPlan} className="mt-4 w-full rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50">{shared.prompt.generate}</button>
+          <button type="button" disabled={!idea.trim()} onClick={createPlan} className="mt-4 w-full rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50">{finishLabels[locale] || finishLabels.en}</button>
         </div>
         <div className="glass-panel rounded-2xl p-5">
           <h2 className="text-sm font-semibold text-foreground">{c.covers}</h2>
           {plan ? <><pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-border bg-background/50 p-4 text-xs leading-relaxed">{plan}</pre><button type="button" onClick={() => navigator.clipboard.writeText(plan)} className="mt-3 rounded-xl border border-border px-4 py-2 text-sm">{shared.prompt.copy}</button></> : <p className="mt-3 text-sm text-muted-foreground">{shared.prompt.emptyBody}</p>}
         </div>
+      </section>
+
+      <section className="mt-8 glass-panel rounded-2xl p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-3xl">
+            <div className="flex items-center gap-2">
+              <FileCode2 className="size-4 text-primary" aria-hidden />
+              <h2 className="text-lg font-semibold text-foreground">{labels.title}</h2>
+              <StatusBadge status="beta" />
+            </div>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{labels.body}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void buildPrototype()}
+            disabled={!idea.trim() || buildingPrototype}
+            className="rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {buildingPrototype ? labels.building : labels.button}
+          </button>
+        </div>
+
+        {prototypeError && (
+          <p className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{prototypeError}</p>
+        )}
+
+        {prototype && (
+          <div className="mt-6 grid gap-5 xl:grid-cols-2">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">{labels.preview}</h3>
+              <iframe
+                title={labels.preview}
+                srcDoc={prototype}
+                sandbox="allow-scripts"
+                className="mt-3 h-[520px] w-full rounded-xl border border-border bg-white"
+              />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-foreground">{labels.code}</h3>
+                <button
+                  type="button"
+                  onClick={() => downloadTextFile("index.html", prototype, "text/html;charset=utf-8")}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium"
+                >
+                  <Download className="size-4" aria-hidden />
+                  {labels.download}
+                </button>
+              </div>
+              <pre className="mt-3 h-[520px] overflow-auto whitespace-pre-wrap rounded-xl border border-border bg-background/60 p-4 text-xs leading-relaxed">{prototype}</pre>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="mt-10">
