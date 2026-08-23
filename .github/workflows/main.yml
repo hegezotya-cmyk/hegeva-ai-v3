@@ -38,7 +38,13 @@ jobs:
         run: npm ci
 
       - name: Worker syntax check
-        run: node --check src/index.js && node --check src/auth.js
+        run: |
+          node --check src/index-ledger.js
+          node --check src/index.js
+          node --check src/auth.js
+
+      - name: Apply D1 migrations locally
+        run: npm run db:migrations:local
 
       - name: Worker deploy dry run
         run: npm run deploy:dry-run
