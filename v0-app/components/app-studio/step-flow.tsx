@@ -22,18 +22,22 @@ export function StepFlow({
   steps,
   status = "beta",
   note,
+  onFinish,
+  finishLabel,
 }: {
   steps: FlowStep[]
   status?: FeatureStatus
   note: string
+  onFinish?: () => void
+  finishLabel?: string
 }) {
   const { locale } = useI18n()
   const c = getStudioCopy(locale)
   const [active, setActive] = useState(0)
+  const isLast = active === steps.length - 1
 
   return (
     <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-      {/* Steps rail */}
       <ol className="glass-panel h-fit rounded-2xl p-3">
         {steps.map((step, i) => {
           const isActive = i === active
@@ -75,7 +79,6 @@ export function StepFlow({
         })}
       </ol>
 
-      {/* Active step detail */}
       <div className="glass-panel rounded-2xl p-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
@@ -107,12 +110,18 @@ export function StepFlow({
           </button>
           <button
             type="button"
-            onClick={() => setActive((a) => Math.min(steps.length - 1, a + 1))}
-            disabled={active === steps.length - 1}
+            onClick={() => {
+              if (isLast) {
+                onFinish?.()
+                return
+              }
+              setActive((a) => Math.min(steps.length - 1, a + 1))
+            }}
+            disabled={isLast && !onFinish}
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {c.next}
-            <ChevronRight className="size-4" aria-hidden />
+            {isLast && onFinish ? finishLabel || c.next : c.next}
+            {!isLast && <ChevronRight className="size-4" aria-hidden />}
           </button>
         </div>
       </div>
