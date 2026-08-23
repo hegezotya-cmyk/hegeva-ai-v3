@@ -17,7 +17,7 @@ type ProjectFiles = {
 const copy = {
   en: {
     title: "Multi-file project export",
-    body: "Converts the latest working browser prototype into a real small project with separate HTML, CSS and JavaScript files, then runs basic integrity checks before export.",
+    body: "Converts the latest verified browser prototype into a real small project with separate HTML, CSS and JavaScript files, then checks the split project before export.",
     waiting: "Build a working prototype above first. The latest successful prototype will appear here automatically.",
     verified: "Project checks passed",
     failed: "Project checks need attention — export stays locked until all checks pass",
@@ -28,10 +28,13 @@ const copy = {
     css: "CSS extracted",
     js: "JavaScript extracted",
     links: "External file links inserted",
+    syntax: "JavaScript parses after split",
+    clean: "Inline CSS and JavaScript removed from index.html",
+    readme: "README included",
   },
   hu: {
     title: "Többfájlos projekt export",
-    body: "A legutóbbi működő böngészős prototípust valódi kis projektté alakítja külön HTML-, CSS- és JavaScript-fájlokkal, majd export előtt alapvető épségi ellenőrzéseket futtat.",
+    body: "A legutóbbi ellenőrzött böngészős prototípust valódi kis projektté alakítja külön HTML-, CSS- és JavaScript-fájlokkal, majd export előtt magát a szétválasztott projektet is ellenőrzi.",
     waiting: "Először készíts fent egy működő prototípust. A legutóbbi sikeres prototípus itt automatikusan megjelenik.",
     verified: "A projektellenőrzések sikeresek",
     failed: "A projektellenőrzés figyelmet igényel — az export zárolva marad, amíg minden ellenőrzés sikeres",
@@ -42,10 +45,13 @@ const copy = {
     css: "CSS külön fájlba került",
     js: "JavaScript külön fájlba került",
     links: "Külső fájlhivatkozások bekerültek",
+    syntax: "A JavaScript a szétválasztás után is értelmezhető",
+    clean: "Az inline CSS és JavaScript kikerült az index.html-ből",
+    readme: "README fájl elkészült",
   },
   de: {
     title: "Mehrdatei-Projektexport",
-    body: "Wandelt den letzten funktionierenden Browser-Prototyp in ein echtes kleines Projekt mit getrennten HTML-, CSS- und JavaScript-Dateien um und prüft die Integrität vor dem Export.",
+    body: "Wandelt den letzten geprüften Browser-Prototyp in ein echtes kleines Projekt mit getrennten HTML-, CSS- und JavaScript-Dateien um und prüft anschließend auch das aufgeteilte Projekt.",
     waiting: "Erstelle oben zuerst einen funktionierenden Prototyp. Der letzte erfolgreiche Build erscheint hier automatisch.",
     verified: "Projektprüfungen bestanden",
     failed: "Projektprüfung benötigt Aufmerksamkeit — Export bleibt gesperrt, bis alle Prüfungen bestanden sind",
@@ -56,10 +62,13 @@ const copy = {
     css: "CSS extrahiert",
     js: "JavaScript extrahiert",
     links: "Externe Dateiverweise eingefügt",
+    syntax: "JavaScript ist nach der Aufteilung syntaktisch gültig",
+    clean: "Inline-CSS und -JavaScript aus index.html entfernt",
+    readme: "README vorhanden",
   },
   fr: {
     title: "Export de projet multi-fichiers",
-    body: "Convertit le dernier prototype navigateur fonctionnel en petit projet réel avec fichiers HTML, CSS et JavaScript séparés, puis effectue des contrôles d’intégrité avant export.",
+    body: "Convertit le dernier prototype navigateur vérifié en petit projet réel avec fichiers HTML, CSS et JavaScript séparés, puis vérifie également le projet séparé avant export.",
     waiting: "Créez d’abord un prototype fonctionnel ci-dessus. Le dernier prototype réussi apparaîtra ici automatiquement.",
     verified: "Vérifications du projet réussies",
     failed: "Les vérifications nécessitent une attention — l’export reste verrouillé jusqu’à leur réussite",
@@ -70,10 +79,13 @@ const copy = {
     css: "CSS extrait",
     js: "JavaScript extrait",
     links: "Liens de fichiers externes insérés",
+    syntax: "JavaScript valide après séparation",
+    clean: "CSS et JavaScript inline retirés de index.html",
+    readme: "README inclus",
   },
   es: {
     title: "Exportación de proyecto multifichero",
-    body: "Convierte el último prototipo funcional del navegador en un pequeño proyecto real con archivos HTML, CSS y JavaScript separados y ejecuta comprobaciones básicas antes de exportar.",
+    body: "Convierte el último prototipo verificado del navegador en un pequeño proyecto real con archivos HTML, CSS y JavaScript separados y comprueba también el proyecto dividido antes de exportarlo.",
     waiting: "Primero crea arriba un prototipo funcional. El último prototipo correcto aparecerá aquí automáticamente.",
     verified: "Comprobaciones del proyecto superadas",
     failed: "Las comprobaciones requieren atención — la exportación permanece bloqueada hasta superarlas",
@@ -84,6 +96,9 @@ const copy = {
     css: "CSS extraído",
     js: "JavaScript extraído",
     links: "Referencias externas insertadas",
+    syntax: "JavaScript válido después de separar archivos",
+    clean: "CSS y JavaScript inline eliminados de index.html",
+    readme: "README incluido",
   },
 } as const
 
@@ -130,6 +145,18 @@ function splitPrototype(html: string): ProjectFiles {
   }
 }
 
+function javascriptParses(value: string) {
+  if (!value.trim()) return false
+  try {
+    // Syntax-only compilation. Generated code is not executed here.
+    // eslint-disable-next-line no-new-func
+    new Function(value)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function ProjectExport() {
   const { locale } = useI18n()
   const c = copy[locale]
@@ -152,11 +179,24 @@ export function ProjectExport() {
   const files = useMemo(() => (html ? splitPrototype(html) : null), [html])
   const checks = useMemo(() => {
     if (!files) return []
+
+    const index = files["index.html"]
+    const css = files["styles.css"]
+    const js = files["app.js"]
+    const readme = files["README.md"]
+
+    const cleanIndex =
+      !/<style(?:\s|>)/i.test(index) &&
+      !/<script(?![^>]*\bsrc=)(?:\s|>)/i.test(index)
+
     return [
-      [c.html, /<!doctype html/i.test(files["index.html"]) && /<html(?:\s|>)/i.test(files["index.html"]) && /<\/html>/i.test(files["index.html"])],
-      [c.css, files["styles.css"].trim().length > 0],
-      [c.js, files["app.js"].trim().length > 0],
-      [c.links, (!files["styles.css"] || files["index.html"].includes('href="styles.css"')) && (!files["app.js"] || files["index.html"].includes('src="app.js"'))],
+      [c.html, /<!doctype html/i.test(index) && /<html(?:\s|>)/i.test(index) && /<head(?:\s|>)/i.test(index) && /<body(?:\s|>)/i.test(index) && /<\/html>/i.test(index)],
+      [c.css, css.trim().length > 0],
+      [c.js, js.trim().length > 0],
+      [c.links, index.includes('href="styles.css"') && index.includes('src="app.js"')],
+      [c.syntax, javascriptParses(js)],
+      [c.clean, cleanIndex],
+      [c.readme, readme.includes("# HEGEVA generated browser project") && readme.includes("index.html") && readme.includes("styles.css") && readme.includes("app.js")],
     ] as const
   }, [c, files])
 
