@@ -1,0 +1,110 @@
+name: HEGEVA Cloudflare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "Release stage to run"
+        required: true
+        default: "check"
+        type: choice
+        options:
+          - check
+          - remote-state
+          - migrate
+          - deploy-api
+          - deploy-ui
+          - smoke
+          - full
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hegeva-cloudflare-release
+  cancel-in-progress: false
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: v0-rebuild
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            v0-app/package-lock.json
+
+      - name: Install Worker dependencies
+        run: npm ci
+
+      - name: Install V0 dependencies
+        working-directory: v0-app
+        run: npm ci
+
+      - name: Release preflight
+        run: npm run release:check
+
+  cloudflare:
+    needs: preflight
+    if: ${{ inputs.stage != 'check' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: v0-rebuild
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            v0-app/package-lock.json
+
+      - name: Install Worker dependencies
+        run: npm ci
+
+      - name: Install V0 dependencies
+        working-directory: v0-app
+        run: npm ci
+
+      - name: Require Cloudflare credentials
+        if: ${{ inputs.stage != 'smoke' }}
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN repository secret"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing CLOUDFLARE_ACCOUNT_ID repository secret"; exit 1; }
+
+      - name: Show remote D1 migration state
+        if: ${{ inputs.stage == 'remote-state' || inputs.stage == 'migrate' || inputs.stage == 'full' }}
+        run: npm run release:remote-state
+
+      - name: Apply remote D1 migrations
+        if: ${{ inputs.stage == 'migrate' || inputs.stage == 'full' }}
+        run: npm run db:migrate:remote
+
+      - name: Deploy API Worker
+        if: ${{ inputs.stage == 'deploy-api' || inputs.stage == 'full' }}
+        run: npm run deploy:api
+
+      - name: Deploy V0 UI Worker
+        if: ${{ inputs.stage == 'deploy-ui' || inputs.stage == 'full' }}
+        run: npm run deploy:ui
+
+      - name: Run live smoke test
+        if: ${{ inputs.stage == 'smoke' || inputs.stage == 'full' }}
+        run: npm run release:smoke
