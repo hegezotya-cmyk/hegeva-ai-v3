@@ -116,6 +116,7 @@ function extractMetadata(eventType, object) {
 
   if (
     eventType === "checkout.session.completed" ||
+    eventType === "customer.subscription.updated" ||
     eventType === "customer.subscription.deleted"
   ) {
     return object.metadata || {};
@@ -151,8 +152,8 @@ async function claimStripeEvent(env, event) {
     typeof metadata?.hegevaPlan === "string"
       ? metadata.hegevaPlan.trim().toLowerCase()
       : null;
+  const eventCreatedAt = stripeEventTimeIso(event);
 
-  const now = new Date().toISOString();
   const result = await env.DB
     .prepare(`
       INSERT INTO stripe_webhook_events (
@@ -172,8 +173,8 @@ async function claimStripeEvent(env, event) {
       eventType,
       userId,
       plan,
-      stripeEventTimeIso(event),
-      now,
+      eventCreatedAt,
+      new Date().toISOString(),
     )
     .run();
 
@@ -185,7 +186,27 @@ async function claimStripeEvent(env, event) {
     eventType,
     userId,
     plan,
+    eventCreatedAt,
   };
+}
+
+async function hasNewerAppliedStripeEvent(env, claim) {
+  if (!claim?.userId || !claim?.eventCreatedAt) return false;
+
+  const row = await env.DB
+    .prepare(`
+      SELECT eventId
+      FROM stripe_webhook_events
+      WHERE userId = ?1
+        AND outcome = 'applied'
+        AND eventCreatedAt > ?2
+      ORDER BY eventCreatedAt DESC
+      LIMIT 1
+    `)
+    .bind(claim.userId, claim.eventCreatedAt)
+    .first();
+
+  return Boolean(row?.eventId);
 }
 
 async function finalizeStripeEvent(env, eventId, responseData) {
@@ -210,6 +231,55 @@ async function releaseStripeEvent(env, eventId) {
     .prepare(`DELETE FROM stripe_webhook_events WHERE eventId = ?1`)
     .bind(eventId)
     .run();
+}
+
+async function downgradeTerminalSubscription(env, event, claim) {
+  if (
+    claim?.eventType !== "customer.subscription.updated" ||
+    !claim?.userId
+  ) {
+    return null;
+  }
+
+  const status = String(event?.data?.object?.status || "").toLowerCase();
+  const terminal = ["canceled", "unpaid", "incomplete_expired"].includes(status);
+
+  // cancel_at_period_end is intentionally not terminal. The subscriber keeps
+  // access until Stripe actually ends the subscription.
+  if (!terminal) return null;
+
+  const result = await env.DB
+    .prepare(`
+      INSERT INTO user_plans (
+        userId,
+        plan,
+        createdAt,
+        updatedAt
+      )
+      VALUES (?1, 'basic', ?2, ?2)
+      ON CONFLICT(userId)
+      DO UPDATE SET
+        plan = 'basic',
+        updatedAt = excluded.updatedAt
+      WHERE user_plans.updatedAt IS NULL
+         OR user_plans.updatedAt <= excluded.updatedAt
+    `)
+    .bind(claim.userId, claim.eventCreatedAt)
+    .run();
+
+  const changed = Number(result?.meta?.changes || 0) > 0;
+
+  return {
+    received: true,
+    verified: true,
+    eventId: claim.eventId,
+    eventType: claim.eventType,
+    ignored: !changed,
+    entitlementChanged: changed,
+    resultingPlan: changed ? "basic" : null,
+    userMapped: true,
+    subscriptionStatus: status,
+  };
 }
 
 async function handleStripeWebhook(request, env, ctx) {
@@ -285,6 +355,39 @@ async function handleStripeWebhook(request, env, ctx) {
     });
   }
 
+  try {
+    if (await hasNewerAppliedStripeEvent(env, claim)) {
+      const responseData = {
+        received: true,
+        verified: true,
+        stale: true,
+        eventId: claim.eventId,
+        eventType: claim.eventType,
+        entitlementChanged: false,
+        ignored: true,
+      };
+      await finalizeStripeEvent(env, claim.eventId, responseData);
+      return Response.json(responseData);
+    }
+
+    const terminalSubscriptionResult =
+      await downgradeTerminalSubscription(env, event, claim);
+
+    if (terminalSubscriptionResult) {
+      await finalizeStripeEvent(env, claim.eventId, terminalSubscriptionResult);
+      return Response.json(terminalSubscriptionResult);
+    }
+  } catch (error) {
+    console.error("HEGEVA Stripe stale/cancellation guard error:", error);
+    try {
+      await releaseStripeEvent(env, claim.eventId);
+    } catch {}
+    return Response.json(
+      { error: "Stripe webhook guard failed." },
+      { status: 500 },
+    );
+  }
+
   const delegatedRequest = new Request(request.url, {
     method: request.method,
     headers: request.headers,
@@ -322,6 +425,19 @@ export default {
       request.method === "POST"
     ) {
       return handleStripeWebhook(request, env, ctx);
+    }
+
+    if (
+      url.pathname === "/api/billing/confirm" &&
+      request.method === "POST"
+    ) {
+      return Response.json(
+        {
+          error: "Checkout confirmation no longer grants paid entitlement. Stripe webhooks are the source of truth.",
+          code: "webhook_entitlement_required",
+        },
+        { status: 410 },
+      );
     }
 
     return hegevaWorker.fetch(request, env, ctx);
