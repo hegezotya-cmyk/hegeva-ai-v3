@@ -40,8 +40,8 @@ export function SiteHeader() {
 
   const studioItems = [
     { key: "prompt" as const, href: "/app-studio/prompt-my-app", title: t.studio.prompt, desc: t.studio.promptDesc, status: "beta" as const },
-    { key: "build" as const, href: "/app-studio/build-my-app", title: t.studio.build, desc: t.studio.buildDesc, status: "coming" as const },
-    { key: "fix" as const, href: "/app-studio/fix-my-app", title: t.studio.fix, desc: t.studio.fixDesc, status: "coming" as const },
+    { key: "build" as const, href: "/app-studio/build-my-app", title: t.studio.build, desc: t.studio.buildDesc, status: "beta" as const },
+    { key: "fix" as const, href: "/app-studio/fix-my-app", title: t.studio.fix, desc: t.studio.fixDesc, status: "beta" as const },
   ]
 
   async function logout() {
