@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useState } from "react"
 import {
   Accessibility,
   AlertTriangle,
@@ -77,6 +78,23 @@ export function FixMyApp() {
   const shared = getStudioCopy(locale)
   const c = getWorkflowsCopy(locale).fix
   const steps = c.steps.map(([title, description], index) => ({ key: fixSteps[index].key, title, description }))
+  const labels = {
+    en: ["Describe the problem", "Create diagnostic plan", "Diagnostic plan"],
+    hu: ["Írd le a problémát", "Hibakeresési terv készítése", "Hibakeresési terv"],
+    de: ["Problem beschreiben", "Diagnoseplan erstellen", "Diagnoseplan"],
+    fr: ["Décrivez le problème", "Créer le plan de diagnostic", "Plan de diagnostic"],
+    es: ["Describe el problema", "Crear plan de diagnóstico", "Plan de diagnóstico"],
+  }[locale]
+  const [problem, setProblem] = useState("")
+  const [diagnosis, setDiagnosis] = useState("")
+
+  function createDiagnosis() {
+    const value = problem.trim()
+    if (!value) return
+    setDiagnosis(
+      [`# ${c.title}`, "", value, "", ...steps.map((step, index) => `## ${index + 1}. ${step.title}\n${step.description}`)].join("\n"),
+    )
+  }
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="mb-6">
@@ -129,6 +147,18 @@ export function FixMyApp() {
           note={c.note}
         />
       </div>
+
+      <section className="mt-8 grid gap-4 lg:grid-cols-2">
+        <div className="glass-panel rounded-2xl p-5">
+          <label htmlFor="fix-problem" className="text-sm font-semibold">{labels[0]}</label>
+          <textarea id="fix-problem" value={problem} onChange={(event) => setProblem(event.target.value)} rows={7} className="mt-3 w-full rounded-xl border border-input bg-input/30 p-3 text-sm outline-none focus:border-primary/50" />
+          <button type="button" disabled={!problem.trim()} onClick={createDiagnosis} className="mt-4 w-full rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50">{labels[1]}</button>
+        </div>
+        <div className="glass-panel rounded-2xl p-5">
+          <h2 className="text-sm font-semibold">{labels[2]}</h2>
+          {diagnosis ? <><pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-border bg-background/50 p-4 text-xs leading-relaxed">{diagnosis}</pre><button type="button" onClick={() => navigator.clipboard.writeText(diagnosis)} className="mt-3 rounded-xl border border-border px-4 py-2 text-sm">{shared.prompt.copy}</button></> : <p className="mt-3 text-sm text-muted-foreground">{c.trustBody}</p>}
+        </div>
+      </section>
 
       <section className="mt-10">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold">{c.section}</p>
