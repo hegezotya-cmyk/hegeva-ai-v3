@@ -6,16 +6,25 @@ import { HegevaLogo } from "@/components/hegeva-logo"
 import { useI18n } from "@/lib/i18n/provider"
 import { LEGAL_COPY } from "@/lib/i18n/legal-copy"
 
+const trustCopy = {
+  en: { encrypted: "Encrypted connections", cloud: "Cloud workspace sync", languages: "5 languages", support: "Contact support", fees: "No hidden HEGEVA fees" },
+  hu: { encrypted: "Titkosított kapcsolat", cloud: "Felhőalapú szinkron", languages: "5 nyelv", support: "Kapcsolati támogatás", fees: "Nincs rejtett HEGEVA-díj" },
+  de: { encrypted: "Verschlüsselte Verbindungen", cloud: "Cloud-Arbeitsbereich-Sync", languages: "5 Sprachen", support: "Kontakt-Support", fees: "Keine versteckten HEGEVA-Gebühren" },
+  fr: { encrypted: "Connexions chiffrées", cloud: "Synchronisation cloud", languages: "5 langues", support: "Assistance par contact", fees: "Aucun frais HEGEVA caché" },
+  es: { encrypted: "Conexiones cifradas", cloud: "Sincronización en la nube", languages: "5 idiomas", support: "Soporte por contacto", fees: "Sin cargos HEGEVA ocultos" },
+} as const
+
 export function SiteFooter() {
   const { t, locale } = useI18n()
   const legal = LEGAL_COPY[locale]
+  const c = trustCopy[locale]
 
   const trust = [
-    { icon: ShieldCheck, label: t.footer.encryption },
-    { icon: CloudCog, label: t.footer.cloud },
-    { icon: Globe, label: `${t.footer.languages} · EN | HU | DE | FR | ES` },
-    { icon: Headphones, label: t.footer.support },
-    { icon: Wallet, label: t.footer.noFees },
+    { icon: ShieldCheck, label: c.encrypted },
+    { icon: CloudCog, label: c.cloud },
+    { icon: Globe, label: `${c.languages} · EN | HU | DE | FR | ES` },
+    { icon: Headphones, label: c.support },
+    { icon: Wallet, label: c.fees },
   ]
 
   return (
