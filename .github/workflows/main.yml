@@ -7,6 +7,8 @@ on:
       - v0-rebuild
     paths:
       - "v0-app/**"
+      - "src/**"
+      - "wrangler.jsonc"
       - ".github/workflows/main.yml"
 
 permissions:
@@ -33,6 +35,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Worker syntax check
+        run: node --check ../src/index.js && node --check ../src/auth.js
 
       - name: TypeScript check
         run: npx tsc --noEmit
