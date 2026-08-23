@@ -9,10 +9,12 @@ on:
       - "v0-app/**"
       - "src/**"
       - "migrations/**"
+      - "scripts/**"
       - "package.json"
       - "package-lock.json"
       - "wrangler.jsonc"
       - ".github/workflows/main.yml"
+      - ".github/workflows/release.yml"
 
 permissions:
   contents: read
