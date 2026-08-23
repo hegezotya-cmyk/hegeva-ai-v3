@@ -8,6 +8,9 @@
     "db:migrations:list:remote": "wrangler d1 migrations list hegeva-ai-db --remote",
     "db:migrate:remote": "wrangler d1 migrations apply hegeva-ai-db --remote",
     "deploy:dry-run": "wrangler deploy --dry-run",
+    "deploy:api": "wrangler deploy",
+    "deploy:ui": "npm --prefix v0-app run cf:deploy",
+    "release:check": "npm run db:migrations:local && npm run deploy:dry-run && npm --prefix v0-app run build && npm --prefix v0-app run cf:build",
     "v0:build": "npm --prefix v0-app run cf:build"
   },
   "dependencies": {
