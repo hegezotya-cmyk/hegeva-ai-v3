@@ -1,24 +1,29 @@
 "use client"
 
 import { useMemo } from "react"
-import { useWorkspaceData } from "@/lib/use-workspace-data"
+import { useWorkspaceData, type WorkspaceSyncState } from "@/lib/use-workspace-data"
 import { useI18n } from "@/lib/i18n/provider"
 import { getBusinessModulesCopy } from "@/lib/i18n/business-modules-copy"
 
 type RecordItem = { id: string; amount?: number }
 type Task = { id: string; done: boolean }
 
+function allSourcesCloud(states: WorkspaceSyncState[]) {
+  return states.length > 0 && states.every((state) => state === "cloud")
+}
+
 export function LocalReports() {
   const { locale } = useI18n()
   const c = getBusinessModulesCopy(locale).reports
   const { items: customers, syncState: customerSync } = useWorkspaceData<RecordItem>("customers")
-  const { items: documents } = useWorkspaceData<RecordItem>("documents")
-  const { items: expenses } = useWorkspaceData<RecordItem>("expenses")
-  const { items: tasks } = useWorkspaceData<Task>("planner")
+  const { items: documents, syncState: documentSync } = useWorkspaceData<RecordItem>("documents")
+  const { items: expenses, syncState: expenseSync } = useWorkspaceData<RecordItem>("expenses")
+  const { items: tasks, syncState: plannerSync } = useWorkspaceData<Task>("planner")
 
   const expenseTotal = useMemo(() => expenses.reduce((sum, item) => sum + (item.amount || 0), 0), [expenses])
   const openTasks = useMemo(() => tasks.filter((task) => !task.done).length, [tasks])
   const doneTasks = tasks.length - openTasks
+  const cloudIntegrity = allSourcesCloud([customerSync, documentSync, expenseSync, plannerSync])
 
   const cards = [
     { label: c.customers, value: customers.length.toString(), note: c.customerNote },
@@ -42,7 +47,7 @@ export function LocalReports() {
       <div className="glass-panel mt-6 rounded-2xl p-6">
         <h2 className="text-lg font-semibold text-foreground">{c.integrity}</h2>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          {customerSync === "cloud" ? c.integrityCloud : c.integrityBrowser} {c.integrityNote}
+          {cloudIntegrity ? c.integrityCloud : c.integrityBrowser} {c.integrityNote}
         </p>
       </div>
     </div>
