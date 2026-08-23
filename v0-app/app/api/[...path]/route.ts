@@ -12,7 +12,25 @@ async function proxyToHegevaApi(request: Request) {
     )
   }
 
-  return env.HEGEVA_API.fetch(request)
+  // Service bindings can expose the target Worker's hostname to the
+  // receiving Worker. Better Auth uses the request URL when it builds its
+  // secure cookie configuration, so always forward the public HEGEVA URL.
+  // This keeps sign-in and subsequent session checks on the same origin.
+  const incomingUrl = new URL(request.url)
+  const publicUrl = new URL(incomingUrl.pathname + incomingUrl.search, "https://hegevaai.co.uk")
+  const headers = new Headers(request.headers)
+
+  headers.set("x-forwarded-host", "hegevaai.co.uk")
+  headers.set("x-forwarded-proto", "https")
+
+  const upstreamRequest = new Request(publicUrl, {
+    method: request.method,
+    headers,
+    body: request.body,
+    redirect: "manual",
+  })
+
+  return env.HEGEVA_API.fetch(upstreamRequest)
 }
 
 export const GET = proxyToHegevaApi
