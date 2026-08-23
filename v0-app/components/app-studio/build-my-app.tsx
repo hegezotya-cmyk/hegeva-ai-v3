@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   ArrowLeft,
   Boxes,
@@ -22,6 +22,8 @@ import { StatusBadge } from "@/components/status-badge"
 import { useI18n } from "@/lib/i18n/provider"
 import { getStudioCopy } from "@/lib/i18n/studio-copy"
 import { getWorkflowsCopy } from "@/lib/i18n/workflows-copy"
+
+const APP_STUDIO_HANDOFF_KEY = "hegeva:app-studio:prompt-to-build"
 
 const buildSteps: FlowStep[] = [
   {
@@ -136,6 +138,24 @@ export function BuildMyApp() {
   const steps = c.steps.map(([title, description], index) => ({ key: buildSteps[index].key, title, description }))
   const [idea, setIdea] = useState("")
   const [plan, setPlan] = useState("")
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(APP_STUDIO_HANDOFF_KEY)
+      if (!raw) return
+      const payload = JSON.parse(raw) as {
+        idea?: unknown
+        specification?: unknown
+      }
+      const transferredIdea = typeof payload.idea === "string" ? payload.idea.trim() : ""
+      const transferredSpec = typeof payload.specification === "string" ? payload.specification.trim() : ""
+      if (transferredIdea) setIdea(transferredIdea)
+      if (transferredSpec) setPlan(transferredSpec)
+    } catch {
+      // A malformed or unavailable handoff must never break the Build My App page.
+    }
+  }, [])
+
   function createPlan() {
     const value = idea.trim()
     if (!value) return
