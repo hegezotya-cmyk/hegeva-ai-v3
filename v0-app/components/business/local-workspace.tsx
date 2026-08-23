@@ -32,22 +32,23 @@ const config: Record<Kind, { title: string; singular: string; subtitle: string; 
   },
 }
 
-function storageKey(kind: Kind) {
-  return `hegeva:v0:${kind}`
+function storageKey(kind: Kind, scope: string) {
+  return `hegeva:v0:${scope}:${kind}`
 }
 
-function safeLocalRead(kind: Kind): RecordItem[] {
+function safeLocalRead(kind: Kind, scope: string): RecordItem[] {
   try {
-    const raw = localStorage.getItem(storageKey(kind))
-    return raw ? JSON.parse(raw) : []
+    const raw = localStorage.getItem(storageKey(kind, scope))
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed : []
   } catch {
     return []
   }
 }
 
-function safeLocalWrite(kind: Kind, items: RecordItem[]) {
+function safeLocalWrite(kind: Kind, scope: string, items: RecordItem[]) {
   try {
-    localStorage.setItem(storageKey(kind), JSON.stringify(items))
+    localStorage.setItem(storageKey(kind, scope), JSON.stringify(items))
   } catch {}
 }
 
@@ -77,6 +78,8 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
   const translated = { customers:{title:t.business.customers,subtitle:t.business.customersDesc,placeholder:t.business.customers}, documents:{title:t.business.documents,subtitle:t.business.documentsDesc,placeholder:t.business.documents}, expenses:{title:t.business.expenses,subtitle:t.business.expensesDesc,placeholder:t.business.expenses} }[kind]
   const cfg = { ...config[kind], ...translated }
   const { data: session, isPending } = useSession()
+  const userId = session?.user?.id
+  const storageScope = userId ? `user:${userId}` : "guest"
   const [items, setItems] = useState<RecordItem[]>([])
   const [title, setTitle] = useState("")
   const [meta, setMeta] = useState("")
@@ -101,8 +104,8 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
         return
       }
 
-      if (!session?.user) {
-        const local = safeLocalRead(kind)
+      if (!userId) {
+        const local = safeLocalRead(kind, storageScope)
         if (!cancelled) {
           setItems(local)
           setSyncState("local")
@@ -129,12 +132,12 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
 
         if (!cancelled) {
           setItems(cloudItems)
-          safeLocalWrite(kind, cloudItems)
+          safeLocalWrite(kind, storageScope, cloudItems)
           setSyncState("cloud")
           readyToSave.current = true
         }
       } catch (error) {
-        const local = safeLocalRead(kind)
+        const local = safeLocalRead(kind, storageScope)
         if (!cancelled) {
           setItems(local)
           setSyncState("error")
@@ -148,14 +151,14 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
     return () => {
       cancelled = true
     }
-  }, [kind, session?.user, isPending])
+  }, [kind, userId, storageScope, isPending])
 
   useEffect(() => {
     if (!readyToSave.current) return
 
-    safeLocalWrite(kind, items)
+    safeLocalWrite(kind, storageScope, items)
 
-    if (!session?.user) {
+    if (!userId) {
       setSyncState("local")
       return
     }
@@ -191,13 +194,16 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
       window.clearTimeout(timer)
       controller.abort()
     }
-  }, [items, kind, session?.user])
+  }, [items, kind, userId, storageScope])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return items
-    const searched = q ? items.filter((item) => `${item.title} ${item.meta ?? ""} ${item.notes ?? ""}`.toLowerCase().includes(q)) : items
+    const searched = q
+      ? items.filter((item) => `${item.title} ${item.meta ?? ""} ${item.notes ?? ""}`.toLowerCase().includes(q))
+      : items
+
     if (kind !== "customers" || customerFilter === "all") return searched
+
     const now = new Date().toISOString().slice(0,10)
     return searched.filter((item) => Boolean(item.followUp) && item.followUp! <= now)
   }, [items, query, kind, customerFilter])
@@ -247,7 +253,7 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
         ? detail.saving
         : syncState === "error"
           ? detail.error
-          : session?.user
+          : userId
             ? detail.checking
             : detail.guest
 
