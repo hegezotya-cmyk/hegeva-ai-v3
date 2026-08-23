@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { authClient, signIn, signUp, useSession } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
@@ -18,6 +18,29 @@ export function AuthPanel() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [passwordRecoveryAvailable, setPasswordRecoveryAvailable] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let active = true
+
+    fetch("/api/system/email-status", {
+      credentials: "include",
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null)
+        if (!active) return
+        setPasswordRecoveryAvailable(Boolean(response.ok && payload?.passwordRecovery === true))
+      })
+      .catch(() => {
+        if (active) setPasswordRecoveryAvailable(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   function safeCallbackURL() {
     const value = new URLSearchParams(window.location.search).get("callbackURL")
@@ -32,6 +55,11 @@ export function AuthPanel() {
 
     try {
       if (mode === "forgot") {
+        if (passwordRecoveryAvailable === false) {
+          setError(c.authUnavailable)
+          return
+        }
+
         const result = await authClient.requestPasswordReset({
           email: email.trim(),
           redirectTo: "/reset-password",
@@ -173,9 +201,13 @@ export function AuthPanel() {
           <button
             type="button"
             onClick={() => {
-              setMode("forgot")
               setError("")
               setSuccess("")
+              if (passwordRecoveryAvailable === false) {
+                setError(c.authUnavailable)
+                return
+              }
+              setMode("forgot")
             }}
             className="text-sm font-medium text-primary hover:underline"
           >
@@ -197,7 +229,7 @@ export function AuthPanel() {
 
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || (mode === "forgot" && passwordRecoveryAvailable === false)}
           className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
         >
           {busy ? c.wait : mode === "login" ? c.login : mode === "register" ? c.create : c.sendReset}
