@@ -41,7 +41,8 @@ export function stripCodeFence(value: string) {
 
 export function looksLikeHtmlDocument(value: string) {
   const text = value.trim().toLowerCase()
-  return text.includes("<!doctype html") || text.includes("<html")
+  const hasStart = text.includes("<!doctype html") || text.includes("<html")
+  return hasStart && text.includes("</html>")
 }
 
 export function downloadTextFile(filename: string, content: string, type = "text/plain;charset=utf-8") {
