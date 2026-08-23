@@ -6,9 +6,17 @@ import { useI18n } from "@/lib/i18n/provider"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
+const honestHero = {
+  en: { subtitle: "One connected workspace for AI assistance, customers, documents, expenses, planning, reports and app planning — built around the features HEGEVA has working today.", pills: ["AI Assistant", "CRM", "Business Tools", "App Studio Beta"] },
+  hu: { subtitle: "Egy összekapcsolt munkaterület AI-segítséghez, ügyfelekhez, dokumentumokhoz, kiadásokhoz, tervezéshez, jelentésekhez és alkalmazástervezéshez — a HEGEVA ma működő funkcióira építve.", pills: ["AI Asszisztens", "CRM", "Üzleti eszközök", "App Stúdió Béta"] },
+  de: { subtitle: "Ein verbundener Arbeitsbereich für KI-Unterstützung, Kunden, Dokumente, Ausgaben, Planung, Berichte und App-Planung — auf den heute funktionierenden HEGEVA-Funktionen aufgebaut.", pills: ["KI-Assistent", "CRM", "Business-Tools", "App Studio Beta"] },
+  fr: { subtitle: "Un espace connecté pour l’assistance IA, les clients, documents, dépenses, la planification, les rapports et la conception d’applications — basé sur les fonctions HEGEVA déjà opérationnelles.", pills: ["Assistant IA", "CRM", "Outils pro", "App Studio Bêta"] },
+  es: { subtitle: "Un espacio conectado para asistencia con IA, clientes, documentos, gastos, planificación, informes y diseño de apps — basado en las funciones de HEGEVA que ya están operativas.", pills: ["Asistente IA", "CRM", "Herramientas", "App Studio Beta"] },
+} as const
+
 export function Hero() {
-  const { t } = useI18n()
-  const pills = [t.hero.pillBuild, t.hero.pillManage, t.hero.pillAutomate, t.hero.pillGrow]
+  const { t, locale } = useI18n()
+  const copy = honestHero[locale]
 
   return (
     <section
@@ -17,8 +25,7 @@ export function Hero() {
     >
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(2,10,8,.98)_0%,rgba(2,10,8,.92)_34%,rgba(2,10,8,.5)_57%,rgba(2,10,8,.08)_78%)] max-lg:bg-[linear-gradient(90deg,rgba(2,10,8,.97)_0%,rgba(2,10,8,.88)_45%,rgba(2,10,8,.28)_100%)]" aria-hidden />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-background to-transparent" aria-hidden />
-      <div className="mx-auto flex min-h-[650px] max-w-7xl items-center px-4 py-14 sm:px-6 lg:py-20 lg:px-8">
-        {/* Copy */}
+      <div className="mx-auto flex min-h-[650px] max-w-7xl items-center px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
         <div className="relative z-10 max-w-xl rounded-3xl bg-background/10 py-4 backdrop-blur-[1px]">
           <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             <Sparkles className="size-3.5" aria-hidden />
@@ -32,7 +39,7 @@ export function Hero() {
           </h1>
 
           <p className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground text-pretty">
-            {t.hero.subtitle}
+            {copy.subtitle}
           </p>
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -50,7 +57,7 @@ export function Hero() {
           </div>
 
           <ul className="mt-8 flex flex-wrap gap-2">
-            {pills.map((p) => (
+            {copy.pills.map((p) => (
               <li
                 key={p}
                 className="rounded-lg border border-border bg-card/40 px-3 py-1.5 text-xs font-medium tracking-wide text-foreground/80"
@@ -60,10 +67,8 @@ export function Hero() {
             ))}
           </ul>
         </div>
-
       </div>
 
-      {/* Hairline transition into dashboard */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="h-px w-full bg-gradient-to-r from-transparent via-border to-transparent" />
       </div>
