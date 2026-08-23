@@ -113,14 +113,10 @@ export function createAuth(env, request, ctx) {
     ],
 
     advanced: {
-      useSecureCookies: true,
-
-      crossSubDomainCookies: {
-        enabled: true,
-
-        domain:
-          "hegevaai.co.uk"
-      }
+      // Authentication is exposed through the same-origin Next.js proxy at
+      // hegevaai.co.uk/api/auth. A host-only secure cookie is both safer and
+      // more reliable than a Domain cookie here (especially after redirects).
+      useSecureCookies: true
     },
 
     emailAndPassword: {
