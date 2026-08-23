@@ -30,7 +30,20 @@ async function proxyToHegevaApi(request: Request) {
     redirect: "manual",
   })
 
-  return env.HEGEVA_API.fetch(upstreamRequest)
+  const upstreamResponse = await env.HEGEVA_API.fetch(upstreamRequest)
+  const responseHeaders = new Headers(upstreamResponse.headers)
+
+  // Authentication, workspace and billing responses must never be retained
+  // by a browser, CDN or intermediary cache.
+  responseHeaders.set("Cache-Control", "no-store, max-age=0")
+  responseHeaders.set("Pragma", "no-cache")
+  responseHeaders.set("X-Content-Type-Options", "nosniff")
+
+  return new Response(upstreamResponse.body, {
+    status: upstreamResponse.status,
+    statusText: upstreamResponse.statusText,
+    headers: responseHeaders,
+  })
 }
 
 export const GET = proxyToHegevaApi
