@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState } from "react"
 import { Copy, Check, FileCode2, Sparkles, Info } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
@@ -48,7 +49,6 @@ export function PromptMyApp() {
       />
 
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
-        {/* Input */}
         <div className="glass-panel rounded-3xl p-6">
           <div className="flex items-center gap-2">
             <Sparkles className="size-4 text-primary" aria-hidden />
@@ -125,7 +125,6 @@ export function PromptMyApp() {
           </div>
         </div>
 
-        {/* Output */}
         <div className="glass-panel rounded-3xl p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -162,10 +161,10 @@ export function PromptMyApp() {
 
           {spec && (
             <div className="mt-4 flex flex-wrap gap-3">
-              <span className={cn(buttonVariants({ variant: "outline", size: "sm" }), "cursor-default gap-2")}>
+              <Link href="/app-studio/build-my-app" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-2")}>
                 {c.prompt.continue}
-                <StatusBadge status="coming" />
-              </span>
+                <StatusBadge status="beta" />
+              </Link>
             </div>
           )}
         </div>
