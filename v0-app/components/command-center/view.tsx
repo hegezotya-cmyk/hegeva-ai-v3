@@ -53,7 +53,7 @@ export function CommandCenterView() {
     { icon: Wrench, title: t.commandCenter.tools, desc: t.commandCenter.toolsDesc, status: "working", href: "/business/tools" },
   ]
   const aiModules: ModuleDef[] = [
-    {icon:Bot,title:copy.assistantTitle,desc:copy.assistantDesc,status:"working",href:"/assistant"},
+    {icon:Bot,title:copy.assistantTitle,desc:copy.assistantDesc,status:"beta",href:"/assistant"},
     {icon:Sparkles,title:copy.promptTitle,desc:copy.promptDesc,status:"beta",href:"/app-studio/prompt-my-app"},
     {icon:Hammer,title:copy.buildTitle,desc:copy.buildDesc,status:"beta",href:"/app-studio/build-my-app"},
     {icon:Blocks,title:copy.fixTitle,desc:copy.fixDesc,status:"beta",href:"/app-studio/fix-my-app"},
