@@ -10,6 +10,14 @@ import { PRICING_COPY } from "@/lib/i18n/pricing-copy"
 
 type PaidPlan = "premium" | "pro"
 
+const PLAN_CHANGE_COPY = {
+  en: "Plan changes are coming soon",
+  hu: "Csomagváltás hamarosan",
+  de: "Tarifwechsel folgt bald",
+  fr: "Changement d’offre bientôt disponible",
+  es: "Cambio de plan próximamente",
+} as const
+
 export default function PricingPage() {
   const router = useRouter()
   const { locale } = useI18n()
@@ -49,6 +57,8 @@ export default function PricingPage() {
     {key:"pro", name:c.pro, price:"£29.99", features:c.proFeatures},
   ] as const
 
+  const hasPaidPlan = currentPlan === "premium" || currentPlan === "pro"
+
   return <AppShell><main className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
     <div className="mx-auto max-w-3xl text-center">
       <p className="text-sm font-semibold tracking-[0.18em] text-primary">{c.eyebrow}</p>
@@ -62,7 +72,7 @@ export default function PricingPage() {
           <h2 className="text-xl font-semibold">{plan.name}</h2>
           <div className="mt-5 flex items-end gap-2"><strong className="text-4xl font-bold">{plan.price}</strong>{plan.key !== "basic" && <span className="pb-1 text-sm text-muted-foreground">/ {c.month}</span>}</div>
           <ul className="mt-7 space-y-3">{plan.features.map((feature) => <li key={feature} className="flex gap-3 text-sm text-muted-foreground"><Check className="mt-0.5 size-4 shrink-0 text-primary"/><span>{feature}</span></li>)}</ul>
-          {plan.key === "basic" ? <button type="button" disabled className="mt-8 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground">{currentPlan === "basic" ? c.current : c.free}</button> : <button type="button" disabled={opening !== null || isPending || currentPlan === plan.key} onClick={() => void checkout(plan.key)} className="mt-8 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-60">{currentPlan === plan.key ? c.current : opening === plan.key ? c.opening : !session?.user && !isPending ? c.signIn : c.choose}</button>}
+          {plan.key === "basic" ? <button type="button" disabled className="mt-8 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground">{currentPlan === "basic" ? c.current : c.free}</button> : <button type="button" disabled={opening !== null || isPending || currentPlan === plan.key || hasPaidPlan} onClick={() => void checkout(plan.key)} className="mt-8 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-60">{currentPlan === plan.key ? c.current : hasPaidPlan ? PLAN_CHANGE_COPY[locale] : opening === plan.key ? c.opening : !session?.user && !isPending ? c.signIn : c.choose}</button>}
         </div>
       </section>)}
     </div>
