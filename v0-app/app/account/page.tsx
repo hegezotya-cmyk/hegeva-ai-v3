@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { AppShell } from "@/components/app-shell"
 import { PageHeader } from "@/components/page-header"
@@ -21,43 +21,73 @@ export default function AccountPage() {
   const { data: session, isPending } = authClient.useSession()
   const [plan, setPlan] = useState<PlanStatus | null>(null)
   const [planError, setPlanError] = useState(false)
+  const [billingReturn, setBillingReturn] = useState(false)
+  const [billingSessionId, setBillingSessionId] = useState("")
   const [billingSuccess, setBillingSuccess] = useState(false)
   const [billingConfirmError, setBillingConfirmError] = useState("")
 
   useEffect(() => {
-    setBillingSuccess(new URLSearchParams(window.location.search).get("billing") === "success")
+    const params = new URLSearchParams(window.location.search)
+    setBillingReturn(params.get("billing") === "success")
+    const sessionId = params.get("session_id") || ""
+    setBillingSessionId(sessionId.startsWith("cs_test_") ? sessionId : "")
   }, [])
+
+  const loginCallbackHref = useMemo(() => {
+    const target = new URLSearchParams()
+    if (billingReturn) target.set("billing", "success")
+    if (billingSessionId) target.set("session_id", billingSessionId)
+    const callback = target.size > 0 ? `/account?${target.toString()}` : "/account"
+    return `/login?callbackURL=${encodeURIComponent(callback)}`
+  }, [billingReturn, billingSessionId])
 
   useEffect(() => {
     if (!session?.user) return
     let active = true
     const loadPlan = async () => {
       const params = new URLSearchParams(window.location.search)
+      const returnedFromCheckout = params.get("billing") === "success"
       const sessionId = params.get("session_id")
-      if (params.get("billing") === "success" && sessionId?.startsWith("cs_test_")) {
-        const confirmResponse = await fetch("/api/billing/confirm", {
-          method:"POST",
-          credentials:"include",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({sessionId}),
-        }).catch(() => null)
-        if (!confirmResponse?.ok) {
-          const errorData = await confirmResponse?.json().catch(() => null)
-          const code = typeof errorData?.code === "string" ? errorData.code : `http_${confirmResponse?.status || 0}`
-          if (active) setBillingConfirmError(code)
-        } else if (active) {
-          setBillingConfirmError("")
+
+      if (returnedFromCheckout) {
+        if (!sessionId?.startsWith("cs_test_")) {
+          if (active) {
+            setBillingSuccess(false)
+            setBillingConfirmError("missing_session_id")
+          }
+        } else {
+          const confirmResponse = await fetch("/api/billing/confirm", {
+            method:"POST",
+            credentials:"include",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({sessionId}),
+          }).catch(() => null)
+          if (!confirmResponse?.ok) {
+            const errorData = await confirmResponse?.json().catch(() => null)
+            const code = typeof errorData?.code === "string" ? errorData.code : `http_${confirmResponse?.status || 0}`
+            if (active) {
+              setBillingSuccess(false)
+              setBillingConfirmError(code)
+            }
+          } else if (active) {
+            setBillingConfirmError("")
+            setBillingSuccess(true)
+          }
         }
       }
+
       const response = await fetch("/api/plan/status", { credentials:"include", cache:"no-store" })
       const data = await response.json().catch(() => null)
       if (!response.ok || !data) throw new Error("plan")
-      if (active) setPlan({
-        plan: typeof data.plan === "string" ? data.plan : "basic",
-        aiMessages: Number(data.aiMessages) || 0,
-        aiLimit: Number(data.aiLimit) || 0,
-        period: typeof data.period === "string" ? data.period : "",
-      })
+      if (active) {
+        setPlanError(false)
+        setPlan({
+          plan: typeof data.plan === "string" ? data.plan : "basic",
+          aiMessages: Number(data.aiMessages) || 0,
+          aiLimit: Number(data.aiLimit) || 0,
+          period: typeof data.period === "string" ? data.period : "",
+        })
+      }
     }
     loadPlan()
       .catch(() => { if (active) setPlanError(true) })
@@ -78,7 +108,7 @@ export default function AccountPage() {
 
   if (isPending) return <AppShell><main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8"><div className="glass-panel rounded-3xl p-8 text-sm text-muted-foreground">{c.checking}</div></main></AppShell>
 
-  if (!session?.user) return <AppShell><main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8"><PageHeader eyebrow={c.eyebrow} title={c.signInTitle} subtitle={c.signInBody}/>{billingSuccess && <p role="status" className="mt-6 rounded-xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground">{c.billingSignIn}</p>}<Link href="/login?callbackURL=%2Faccount%3Fbilling%3Dsuccess" className="mt-8 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">{c.signIn}</Link></main></AppShell>
+  if (!session?.user) return <AppShell><main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8"><PageHeader eyebrow={c.eyebrow} title={c.signInTitle} subtitle={c.signInBody}/>{billingReturn && <p role="status" className="mt-6 rounded-xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground">{c.billingSignIn}</p>}<Link href={loginCallbackHref} className="mt-8 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">{c.signIn}</Link></main></AppShell>
 
   const used = plan?.aiMessages || 0
   const limit = plan?.aiLimit || 0
