@@ -91,14 +91,11 @@ export function createAuth(env, request, ctx) {
   const origin =
     requestUrl.origin;
 
-  const isHegevaDomain =
-    requestUrl.hostname === "hegevaai.co.uk" ||
-    requestUrl.hostname.endsWith(".hegevaai.co.uk");
-
   const publicAppUrl =
-    isHegevaDomain
-      ? "https://hegevaai.co.uk"
-      : origin;
+    typeof env.PUBLIC_APP_URL === "string" &&
+    env.PUBLIC_APP_URL.startsWith("https://")
+      ? env.PUBLIC_APP_URL.replace(/\/$/, "")
+      : "https://hegevaai.co.uk";
 
   return betterAuth({
     database: env.DB,
@@ -116,12 +113,10 @@ export function createAuth(env, request, ctx) {
     ],
 
     advanced: {
-      useSecureCookies:
-        isHegevaDomain,
+      useSecureCookies: true,
 
       crossSubDomainCookies: {
-        enabled:
-          isHegevaDomain,
+        enabled: true,
 
         domain:
           "hegevaai.co.uk"
