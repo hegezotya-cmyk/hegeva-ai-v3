@@ -223,6 +223,44 @@ function getPublicAppUrl(
   ).origin;
 }
 
+function isAllowedMutationOrigin(
+  request,
+  env,
+  pathname
+) {
+  if (
+    ["GET", "HEAD", "OPTIONS"].includes(
+      request.method
+    ) ||
+    pathname === "/api/billing/webhook" ||
+    pathname.startsWith("/api/auth/")
+  ) {
+    return true;
+  }
+
+  const origin =
+    request.headers.get("Origin");
+
+  // Non-browser service calls may not send Origin. Authentication and
+  // webhook verification still protect those requests. When a browser does
+  // send Origin, require the public HEGEVA origin to prevent cross-site form
+  // and fetch requests from using an authenticated session.
+  if (!origin) {
+    return true;
+  }
+
+  const publicOrigin =
+    getPublicAppUrl(request, env);
+
+  const allowed = new Set([
+    publicOrigin,
+    "https://hegevaai.co.uk",
+    "https://www.hegevaai.co.uk"
+  ]);
+
+  return allowed.has(origin);
+}
+
 function getStripePriceId(
   env,
   plan
@@ -1019,6 +1057,28 @@ export default {
       new URL(
         request.url
       );
+
+    if (
+      !isAllowedMutationOrigin(
+        request,
+        env,
+        url.pathname
+      )
+    ) {
+      return Response.json(
+        {
+          error:
+            "Cross-site request blocked."
+        },
+        {
+          status: 403,
+          headers: {
+            "Cache-Control":
+              "no-store"
+          }
+        }
+      );
+    }
 
     // =========================================
     // BETTER AUTH
