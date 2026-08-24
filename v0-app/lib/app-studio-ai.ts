@@ -101,6 +101,46 @@ function isHtmlBuildRequest(message: string) {
   return /return\s+only[\s\S]{0,80}html/i.test(message) && /(index\.html|html document|html code|self-contained html)/i.test(message)
 }
 
+function x20FragmentInstruction(message: string, language: StudioLocale) {
+  return [
+    "HEGEVA Build My App X20 compact application body generator.",
+    `Visible UI language: ${language}.`,
+    "Return ONLY the content that belongs INSIDE the body element. Do not output doctype, html, head, body, style, Markdown or explanation.",
+    "Keep the entire response compact enough to finish completely.",
+    "Build a real application UI, not a landing page: include navigation, meaningful sections, forms or buttons, and concise inline JavaScript when interaction is needed.",
+    "Use localStorage for local persistence when the request needs saved data.",
+    "Do not use external images or external libraries. Do not fake payments, email, authentication, cloud writes or external-service success.",
+    "Prefer fewer fully working features over many unfinished features.",
+    `APP REQUEST:\n${message.slice(0, 1350)}`,
+  ].join("\n\n")
+}
+
+function cleanX20Fragment(value: string) {
+  let fragment = stripCodeFence(value).trim()
+
+  const bodyMatch = fragment.match(/<body(?:\s[^>]*)?>([\s\S]*?)(?:<\/body>|$)/i)
+  if (bodyMatch) fragment = bodyMatch[1].trim()
+
+  fragment = fragment
+    .replace(/<!doctype[^>]*>/gi, "")
+    .replace(/<\/?html(?:\s[^>]*)?>/gi, "")
+    .replace(/<head(?:\s[^>]*)?>[\s\S]*?<\/head>/gi, "")
+    .replace(/<\/?body(?:\s[^>]*)?>/gi, "")
+    .trim()
+
+  return fragment
+}
+
+function wrapX20Fragment(fragment: string, language: StudioLocale) {
+  const safeLang = ["en", "hu", "de", "fr", "es"].includes(language) ? language : "en"
+  return `<!doctype html>\n<html lang="${safeLang}">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>HEGEVA X20 App</title>\n${X20_WOW_STYLE}\n</head>\n<body>\n${fragment}\n</body>\n</html>`
+}
+
+async function buildCompactX20(message: string, language: StudioLocale) {
+  const fragment = cleanX20Fragment(await requestStudioAI(x20FragmentInstruction(message, language), language))
+  return closeSafeHtmlStructure(wrapX20Fragment(fragment, language))
+}
+
 async function repairHtml(
   html: string,
   originalMessage: string,
@@ -140,9 +180,29 @@ async function repairHtml(
 
 export async function runStudioAI(message: string, language: StudioLocale) {
   const x20 = isX20Request(message)
-  const firstAnswer = await requestStudioAI(message, language)
+  const htmlRequest = isHtmlBuildRequest(message)
 
-  if (!isHtmlBuildRequest(message)) return firstAnswer
+  if (x20 && htmlRequest) {
+    let html = await buildCompactX20(message, language)
+    let verification = verifyBrowserPrototype(html)
+
+    if (!verification.ok) {
+      html = await buildCompactX20(
+        `${message}\n\nPrevious compact attempt failed: ${verificationIssues(verification).join("; ")}. Make the body smaller and fully complete.`,
+        language,
+      )
+      verification = verifyBrowserPrototype(html)
+    }
+
+    if (!verification.ok) {
+      throw new Error(`HEGEVA X20 compact build failed: ${verificationIssues(verification).join("; ")}`)
+    }
+
+    return html
+  }
+
+  const firstAnswer = await requestStudioAI(message, language)
+  if (!htmlRequest) return firstAnswer
 
   let html = closeSafeHtmlStructure(stripCodeFence(firstAnswer))
   let verification = verifyBrowserPrototype(html)
@@ -159,12 +219,6 @@ export async function runStudioAI(message: string, language: StudioLocale) {
 
   if (!verification.ok) {
     throw new Error(`HEGEVA verification failed after recovery: ${verificationIssues(verification).join("; ")}`)
-  }
-
-  if (x20) {
-    html = applyX20WowLayer(html)
-    verification = verifyBrowserPrototype(html)
-    if (!verification.ok) throw new Error(`HEGEVA X20 WOW verification failed: ${verificationIssues(verification).join("; ")}`)
   }
 
   return html
