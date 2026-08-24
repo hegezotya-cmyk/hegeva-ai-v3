@@ -11,6 +11,7 @@ export type PrototypeVerification = {
 
 function inlineScripts(html: string) {
   return [...html.matchAll(/<script(?![^>]*\bsrc=)(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
+    .filter((match) => !/data-hegeva-x20=["']wow-core["']/i.test(match[0]))
     .map((match) => match[1].trim())
     .filter(Boolean)
 }
@@ -49,6 +50,8 @@ export function verifyBrowserPrototype(html: string): PrototypeVerification {
   for (const script of scripts) {
     try {
       // Syntax-only compile. The generated application is not executed here.
+      // The static HEGEVA WOW helper is excluded above because it is trusted app code,
+      // while every AI-generated inline script is still parsed here.
       // eslint-disable-next-line no-new-func
       new Function(script)
     } catch {
@@ -59,7 +62,7 @@ export function verifyBrowserPrototype(html: string): PrototypeVerification {
   add(
     "javascript",
     scriptSyntaxOk,
-    scripts.length ? "Inline JavaScript parses" : "No inline JavaScript syntax errors",
+    scripts.length ? "AI-generated inline JavaScript parses" : "No AI-generated inline JavaScript syntax errors",
   )
 
   const buttonCount = (source.match(/<button\b/gi) || []).length
