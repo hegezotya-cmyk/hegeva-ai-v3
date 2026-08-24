@@ -15,6 +15,32 @@ function fitStudioMessage(message: string) {
   return `${value.slice(0, headLength)}${marker}${value.slice(-tailLength)}`
 }
 
+function closeSafeHtmlStructure(value: string) {
+  let html = value.trim()
+
+  const hasHeadOpen = /<head(?:\s|>)/i.test(html)
+  const hasBodyOpen = /<body(?:\s|>)/i.test(html)
+  const hasHtmlOpen = /<html(?:\s|>)/i.test(html)
+
+  if (hasHeadOpen && !/<\/head>/i.test(html) && hasBodyOpen) {
+    html = html.replace(/<body(?:\s|>)/i, (match) => `</head>\n${match}`)
+  }
+
+  if (hasBodyOpen && !/<\/body>/i.test(html)) {
+    if (/<\/html>/i.test(html)) {
+      html = html.replace(/<\/html>/i, "</body>\n</html>")
+    } else {
+      html = `${html}\n</body>`
+    }
+  }
+
+  if (hasHtmlOpen && !/<\/html>/i.test(html)) {
+    html = `${html}\n</html>`
+  }
+
+  return html.trim()
+}
+
 async function requestStudioAI(message: string, language: StudioLocale) {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), 30000)
@@ -72,7 +98,7 @@ export async function runStudioAI(message: string, language: StudioLocale) {
 
   if (!isHtmlBuildRequest(message)) return firstAnswer
 
-  let html = stripCodeFence(firstAnswer)
+  let html = closeSafeHtmlStructure(stripCodeFence(firstAnswer))
   let verification = verifyBrowserPrototype(html)
   if (verification.ok) return html
 
@@ -83,16 +109,17 @@ export async function runStudioAI(message: string, language: StudioLocale) {
     "The previous HTML output failed mandatory integrity or trust checks.",
     "Repair the document so every listed verification issue is resolved while preserving working behaviour and the original application intent.",
     "Return ONLY one complete self-contained HTML document. No Markdown fences, explanation, preface or commentary.",
+    "Keep the repaired document compact and always finish with valid closing body and html tags.",
     "The result must contain <!doctype html>, html, head and body with correct closing tags.",
     "Inline JavaScript must parse without syntax errors.",
     "Do not fake successful payments, subscriptions, email delivery, account creation, cloud database writes, authentication or other external-service success when no real integration exists.",
     `FAILED CHECKS:\n${issues.map((issue) => `- ${issue}`).join("\n")}`,
-    `ORIGINAL TASK:\n${message.slice(0, 6000)}`,
-    `FAILED HTML:\n${html.slice(0, 9000)}`,
+    `ORIGINAL TASK:\n${message.slice(0, 900)}`,
+    `FAILED HTML:\n${html.slice(0, 1050)}`,
   ].join("\n\n")
 
   const repairedAnswer = await requestStudioAI(repairInstruction, language)
-  html = stripCodeFence(repairedAnswer)
+  html = closeSafeHtmlStructure(stripCodeFence(repairedAnswer))
   verification = verifyBrowserPrototype(html)
 
   if (!verification.ok) {
@@ -112,7 +139,7 @@ export function stripCodeFence(value: string) {
 }
 
 export function looksLikeHtmlDocument(value: string) {
-  return verifyBrowserPrototype(value).ok
+  return verifyBrowserPrototype(closeSafeHtmlStructure(value)).ok
 }
 
 export type VerifiedHtmlResult = {
@@ -125,7 +152,7 @@ export async function runVerifiedStudioHtml(
   instruction: string,
   language: StudioLocale,
 ): Promise<VerifiedHtmlResult> {
-  const html = stripCodeFence(await runStudioAI(instruction, language))
+  const html = closeSafeHtmlStructure(stripCodeFence(await runStudioAI(instruction, language)))
   const verification = verifyBrowserPrototype(html)
   if (!verification.ok) {
     throw new Error(`HEGEVA verification failed: ${verificationIssues(verification).join("; ")}`)
