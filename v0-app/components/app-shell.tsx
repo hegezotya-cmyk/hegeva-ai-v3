@@ -8,7 +8,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="pointer-events-none absolute inset-0 hegeva-grid opacity-60" aria-hidden />
       <div className="relative flex min-h-dvh flex-col">
         <SiteHeader />
-        <main className="flex-1">{children}</main>
+        <div className="flex-1">{children}</div>
         <SiteFooter />
       </div>
     </div>
