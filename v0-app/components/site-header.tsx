@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { ChevronDown, Hammer, LogOut, Menu, Sparkles, UserRound, Wrench, X } from "lucide-react"
+import { ChevronDown, Hammer, LogOut, Menu, Rocket, Sparkles, UserRound, Wrench, X } from "lucide-react"
 import { HegevaLogo } from "@/components/hegeva-logo"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { StatusBadge } from "@/components/status-badge"
@@ -12,7 +12,15 @@ import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
 
-const studioIcons = { prompt: Sparkles, build: Hammer, fix: Wrench }
+const studioIcons = { prompt: Sparkles, build: Hammer, x20: Rocket, fix: Wrench }
+
+const x20Copy = {
+  en: { title: "Build My App X20", desc: "Pro beta app builder with verified builds, live preview and AI improvement passes." },
+  hu: { title: "Build My App X20", desc: "Pro béta appépítő ellenőrzött buildekkel, élő előnézettel és AI-fejlesztésekkel." },
+  de: { title: "Build My App X20", desc: "Pro-Beta-App-Builder mit geprüften Builds, Live-Vorschau und KI-Verbesserungen." },
+  fr: { title: "Build My App X20", desc: "Builder Pro bêta avec builds vérifiés, aperçu en direct et améliorations IA." },
+  es: { title: "Build My App X20", desc: "Builder Pro beta con builds verificados, vista previa y mejoras con IA." },
+} as const
 
 export function SiteHeader() {
   const { t, locale } = useI18n()
@@ -39,9 +47,10 @@ export function SiteHeader() {
   }, [pathname])
 
   const studioItems = [
-    { key: "prompt" as const, href: "/app-studio/prompt-my-app", title: t.studio.prompt, desc: t.studio.promptDesc, status: "beta" as const },
-    { key: "build" as const, href: "/app-studio/build-my-app", title: t.studio.build, desc: t.studio.buildDesc, status: "beta" as const },
-    { key: "fix" as const, href: "/app-studio/fix-my-app", title: t.studio.fix, desc: t.studio.fixDesc, status: "beta" as const },
+    { key: "prompt" as const, href: "/app-studio/prompt-my-app", title: t.studio.prompt, desc: t.studio.promptDesc, status: "beta" as const, pro: false },
+    { key: "build" as const, href: "/app-studio/build-my-app", title: t.studio.build, desc: t.studio.buildDesc, status: "beta" as const, pro: false },
+    { key: "x20" as const, href: "/app-studio/build-my-app-x20", title: x20Copy[locale].title, desc: x20Copy[locale].desc, status: "beta" as const, pro: true },
+    { key: "fix" as const, href: "/app-studio/fix-my-app", title: t.studio.fix, desc: t.studio.fixDesc, status: "beta" as const, pro: false },
   ]
 
   async function logout() {
@@ -96,7 +105,7 @@ export function SiteHeader() {
               </button>
 
               {studioOpen && (
-                <div className="glass-panel absolute left-0 z-50 mt-2 w-80 rounded-2xl p-2" role="menu">
+                <div className="glass-panel absolute left-0 z-50 mt-2 w-96 rounded-2xl p-2" role="menu">
                   {studioItems.map((item) => {
                     const Icon = studioIcons[item.key]
                     return (
@@ -104,14 +113,21 @@ export function SiteHeader() {
                         key={item.key}
                         href={item.href}
                         role="menuitem"
-                        className="flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-secondary"
+                        className={cn(
+                          "flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-secondary",
+                          item.pro && "border border-gold/20 bg-gold/5",
+                        )}
                       >
-                        <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10">
-                          <Icon className="size-4 text-primary" aria-hidden />
+                        <span className={cn(
+                          "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border",
+                          item.pro ? "border-gold/30 bg-gold/10" : "border-primary/25 bg-primary/10",
+                        )}>
+                          <Icon className={cn("size-4", item.pro ? "text-gold" : "text-primary")} aria-hidden />
                         </span>
-                        <span className="min-w-0">
+                        <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-2">
                             <span className="text-sm font-semibold text-foreground">{item.title}</span>
+                            {item.pro ? <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] font-bold text-gold">PRO</span> : null}
                             <StatusBadge status={item.status} />
                           </span>
                           <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">{item.desc}</span>
@@ -179,9 +195,10 @@ export function SiteHeader() {
             {studioItems.map((item) => {
               const Icon = studioIcons[item.key]
               return (
-                <Link key={item.key} href={item.href} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-secondary">
-                  <Icon className="size-4 text-primary" aria-hidden />
+                <Link key={item.key} href={item.href} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-secondary", item.pro && "border border-gold/20 bg-gold/5")}>
+                  <Icon className={cn("size-4", item.pro ? "text-gold" : "text-primary")} aria-hidden />
                   <span className="flex-1 text-sm font-medium text-foreground">{item.title}</span>
+                  {item.pro ? <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] font-bold text-gold">PRO</span> : null}
                   <StatusBadge status={item.status} />
                 </Link>
               )
