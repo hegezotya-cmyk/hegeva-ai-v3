@@ -22,6 +22,7 @@ export function SiteHeader() {
   const { data: session, isPending: sessionPending } = authClient.useSession()
   const [studioOpen, setStudioOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
   const studioRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -32,7 +33,6 @@ export function SiteHeader() {
     return () => document.removeEventListener("mousedown", onClick)
   }, [])
 
-  // Close menus on route change
   useEffect(() => {
     setStudioOpen(false)
     setMobileOpen(false)
@@ -45,9 +45,15 @@ export function SiteHeader() {
   ]
 
   async function logout() {
-    await authClient.signOut()
-    router.push("/")
-    router.refresh()
+    if (loggingOut) return
+    setLoggingOut(true)
+    try {
+      await authClient.signOut()
+      router.replace("/")
+      router.refresh()
+    } finally {
+      setLoggingOut(false)
+    }
   }
 
   const navLink = (href: string, label: string) => {
@@ -131,7 +137,7 @@ export function SiteHeader() {
                 <UserRound className="size-4" aria-hidden />
                 {t.nav.account}
               </Link>
-              <button type="button" onClick={() => void logout()} className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "gap-2 text-muted-foreground")}>
+              <button type="button" disabled={loggingOut} onClick={() => void logout()} className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "gap-2 text-muted-foreground disabled:opacity-60")}>
                 <LogOut className="size-4" aria-hidden />
                 {t.nav.logout}
               </button>
@@ -188,7 +194,7 @@ export function SiteHeader() {
             <div className="mt-3 flex items-center gap-2 border-t border-border pt-4">
               <LanguageSwitcher />
               {session?.user ? (
-                <button type="button" onClick={() => void logout()} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1 gap-2")}>
+                <button type="button" disabled={loggingOut} onClick={() => void logout()} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1 gap-2 disabled:opacity-60")}>
                   <LogOut className="size-4" aria-hidden /> {t.nav.logout}
                 </button>
               ) : (
