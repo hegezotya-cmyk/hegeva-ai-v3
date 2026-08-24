@@ -2,6 +2,75 @@ import { getCloudflareContext } from "@opennextjs/cloudflare"
 
 export const dynamic = "force-dynamic"
 
+type WorkspaceItem = Record<string, unknown>
+
+function publicApiUrl(pathname: string, search = "") {
+  return new URL(`${pathname}${search}`, "https://hegevaai.co.uk")
+}
+
+function forwardedHeaders(request: Request) {
+  const headers = new Headers(request.headers)
+  headers.set("x-forwarded-host", "hegevaai.co.uk")
+  headers.set("x-forwarded-proto", "https")
+  headers.delete("content-length")
+  return headers
+}
+
+async function readWorkspaceItems(
+  binding: Fetcher,
+  request: Request,
+  type: string,
+): Promise<WorkspaceItem[]> {
+  const response = await binding.fetch(
+    new Request(publicApiUrl(`/api/workspace/${encodeURIComponent(type)}`), {
+      method: "GET",
+      headers: forwardedHeaders(request),
+      redirect: "manual",
+    }),
+  )
+
+  if (!response.ok) return []
+
+  const payload = await response.json().catch(() => null) as { data?: unknown } | null
+  return Array.isArray(payload?.data) ? payload.data as WorkspaceItem[] : []
+}
+
+async function buildWorkspaceContext(binding: Fetcher, request: Request) {
+  try {
+    const [customers, documents, expenses, tasks, invoices] = await Promise.all([
+      readWorkspaceItems(binding, request, "customers"),
+      readWorkspaceItems(binding, request, "documents"),
+      readWorkspaceItems(binding, request, "expenses"),
+      readWorkspaceItems(binding, request, "planner"),
+      readWorkspaceItems(binding, request, "invoice_documents"),
+    ])
+
+    const expenseTotal = expenses.reduce((sum, item) => {
+      const amount = Number(item.amount)
+      return sum + (Number.isFinite(amount) ? amount : 0)
+    }, 0)
+
+    const openTasks = tasks.filter((item) => item.done !== true).length
+    const paidInvoices = invoices.filter(
+      (item) => item.type === "invoice" && item.status === "paid",
+    ).length
+
+    return [
+      "Authenticated HEGEVA workspace facts (source of truth; never replace these with estimates):",
+      `customers=${customers.length}`,
+      `documents=${documents.length}`,
+      `expense_records=${expenses.length}`,
+      `expenses_total_GBP=${expenseTotal.toFixed(2)}`,
+      `open_tasks=${openTasks}`,
+      `invoice_and_quote_records=${invoices.length}`,
+      `paid_invoices=${paidInvoices}`,
+      "When the user asks about their current saved business data, answer from these facts and clearly say when a requested fact is not present.",
+    ].join("; ").slice(0, 500)
+  } catch {
+    return ""
+  }
+}
+
 async function proxyToHegevaApi(request: Request) {
   const { env } = await getCloudflareContext({ async: true })
 
@@ -17,16 +86,32 @@ async function proxyToHegevaApi(request: Request) {
   // secure cookie configuration, so always forward the public HEGEVA URL.
   // This keeps sign-in and subsequent session checks on the same origin.
   const incomingUrl = new URL(request.url)
-  const publicUrl = new URL(incomingUrl.pathname + incomingUrl.search, "https://hegevaai.co.uk")
-  const headers = new Headers(request.headers)
+  const publicUrl = publicApiUrl(incomingUrl.pathname, incomingUrl.search)
+  const headers = forwardedHeaders(request)
+  let body: BodyInit | null = request.body
 
-  headers.set("x-forwarded-host", "hegevaai.co.uk")
-  headers.set("x-forwarded-proto", "https")
+  // Ground Assistant answers in the authenticated user's real HEGEVA data.
+  // This enrichment happens server-side so browser input cannot spoof the
+  // workspace facts that are sent to the AI Worker.
+  if (request.method === "POST" && incomingUrl.pathname === "/api/chat") {
+    const payload = await request.json().catch(() => null) as Record<string, unknown> | null
+
+    if (payload) {
+      const workspaceContext = await buildWorkspaceContext(env.HEGEVA_API, request)
+      body = JSON.stringify({
+        ...payload,
+        businessContext: workspaceContext || payload.businessContext || "",
+      })
+      headers.set("content-type", "application/json")
+    } else {
+      body = null
+    }
+  }
 
   const upstreamRequest = new Request(publicUrl, {
     method: request.method,
     headers,
-    body: request.body,
+    body,
     redirect: "manual",
   })
 
