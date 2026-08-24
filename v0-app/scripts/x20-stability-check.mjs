@@ -133,11 +133,26 @@ const sandboxReload = boot({ storage: blockedStorage, windowName: sandbox.window
 assert.equal(sandboxReload.count.textContent, '1', 'Sandbox reload must restore via window.name')
 assert.match(sandboxReload.list.innerHTML, /Sandbox Customer/, 'Sandbox reload must restore visible data')
 
+// Static guards for the full build -> verify -> fallback -> save -> preview/download chain.
+assert(/buildCompactX20\(/.test(aiSource), 'X20 must use the compact build pipeline')
+assert(/meaningfulFragment\(fragment\)/.test(aiSource), 'X20 must reject weak generated fragments')
+assert(/fallbackX20Fragment\(language\)/.test(aiSource), 'X20 must have a deterministic safe fallback')
+assert(/verifyBrowserPrototype\(html\)/.test(aiSource), 'X20 output must be verified before it is returned')
+assert(/verification\.ok/.test(aiSource), 'X20 verification result must gate success')
+assert(/verificationIssues\(verification\)/.test(aiSource), 'X20 final failure must expose verification issues')
+
+assert(/STORAGE_VERSION_KEY/.test(componentSource), 'Saved X20 builds must have a storage version key')
+assert(/STORAGE_VERSION/.test(componentSource), 'Saved X20 builds must be versioned')
+assert(/storedVersion === STORAGE_VERSION/.test(componentSource), 'Only current-version saved builds may be restored')
+assert(/looksLikeHtmlDocument\(storedHtml\)/.test(componentSource), 'Restored HTML must be verified again')
+assert(/localStorage\.removeItem\(HTML_KEY\)/.test(componentSource), 'Invalid or stale saved HTML must be removed')
+assert(/saveBuild\(next, ["']build["']\)/.test(componentSource), 'Fresh builds must go through the central save path')
+assert(/looksLikeHtmlDocument\(next\)/.test(componentSource), 'Final build must be re-verified before save')
 assert(/srcDoc=\{html\}/.test(componentSource), 'Preview must use current verified html state')
 assert(/downloadTextFile\("index\.html",\s*html/.test(componentSource), 'Download must use the same verified html state as preview')
-assert(/looksLikeHtmlDocument\(next\)/.test(componentSource), 'Final build must be re-verified before save')
-assert(/STORAGE_VERSION/.test(componentSource), 'Saved X20 builds must be versioned')
+
 assert(/x20-runtime/.test(verifySource), 'Verifier must include X20 runtime validation')
 assert(/x20-contract/.test(verifySource), 'Verifier must include X20 structural contract validation')
+assert(/x20-persistence/.test(verifySource), 'Verifier must include X20 persistence validation')
 
-console.log('X20 stability check passed: submit, button click, escaping, safe delete, corrupt-storage recovery, reload, sandbox fallback, verifier contract, preview/download consistency')
+console.log('X20 stability check passed: runtime safety, corrupt-storage recovery, sandbox fallback, fallback pipeline, restore/version guards, verifier contract, preview/download consistency')
