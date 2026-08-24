@@ -50,8 +50,6 @@ export function verifyBrowserPrototype(html: string): PrototypeVerification {
   for (const script of scripts) {
     try {
       // Syntax-only compile. The generated application is not executed here.
-      // The static HEGEVA WOW helper is excluded above because it is trusted app code,
-      // while every AI-generated inline script is still parsed here.
       // eslint-disable-next-line no-new-func
       new Function(script)
     } catch {
@@ -62,7 +60,7 @@ export function verifyBrowserPrototype(html: string): PrototypeVerification {
   add(
     "javascript",
     scriptSyntaxOk,
-    scripts.length ? "AI-generated inline JavaScript parses" : "No AI-generated inline JavaScript syntax errors",
+    scripts.length ? "Inline JavaScript parses" : "No inline JavaScript syntax errors",
   )
 
   const buttonCount = (source.match(/<button\b/gi) || []).length
@@ -76,6 +74,21 @@ export function verifyBrowserPrototype(html: string): PrototypeVerification {
     buttonCount === 0 || (scripts.length > 0 && hasInteractionLogic) || (formCount > 0 && hasInlineHandlers),
     "Visible buttons must be wired to real local interactions",
   )
+
+  const hasX20Runtime = /data-hegeva-x20=["']safe-interactions["']/i.test(source)
+  if (hasX20Runtime) {
+    const x20ContractOk =
+      /id=["']hx-form["']/i.test(source) &&
+      /id=["']hx-name["']/i.test(source) &&
+      /id=["']hx-list["']/i.test(source) &&
+      /id=["']hx-count["']/i.test(source) &&
+      /<button\b[^>]*type=["']submit["']/i.test(source)
+    add(
+      "x20-contract",
+      x20ContractOk,
+      "X20 customer form, list, count and submit control are present",
+    )
+  }
 
   const hasBrokenImageRisk = /<img\b[^>]*\bsrc\s*=\s*["'](?:\s*|https?:\/\/|\/\/|#)[^"']*["']/i.test(source)
   add(
