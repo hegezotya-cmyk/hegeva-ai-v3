@@ -1,3 +1,4 @@
+import { AppShell } from "@/components/app-shell"
 import { ResetPasswordPanel } from "@/components/auth/reset-password-panel"
 import { ResetPasswordHeader } from "@/components/auth/reset-password-header"
 
@@ -12,9 +13,11 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
   const params = await searchParams
 
   return (
-    <main className="mx-auto min-h-[75vh] max-w-xl px-6 py-16">
-      <ResetPasswordHeader />
-      <ResetPasswordPanel token={params.token} tokenError={params.error} />
-    </main>
+    <AppShell>
+      <main className="mx-auto min-h-[75vh] max-w-xl px-6 py-16">
+        <ResetPasswordHeader />
+        <ResetPasswordPanel token={params.token} tokenError={params.error} />
+      </main>
+    </AppShell>
   )
 }
