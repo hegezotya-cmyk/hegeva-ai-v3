@@ -66,9 +66,6 @@ a{color:#67edbd}hr{border:0;border-top:1px solid rgba(255,255,255,.08)}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 </style>`
 
-const X20_WOW_SCRIPT = `
-<script data-hegeva-x20="wow-core">(()=>{const d=document;d.documentElement.dataset.hegevaX20='ready';d.querySelectorAll('input,select,textarea').forEach((el,i)=>{if(!el.getAttribute('aria-label')&&!el.getAttribute('aria-labelledby'))el.setAttribute('aria-label',el.getAttribute('placeholder')||el.getAttribute('name')||('Field '+(i+1)))});d.querySelectorAll('button').forEach((b,i)=>{if(!b.textContent.trim()&&!b.getAttribute('aria-label'))b.setAttribute('aria-label','Action '+(i+1))});d.querySelectorAll('a[href="#"]').forEach(a=>a.addEventListener('click',e=>e.preventDefault()));})();</script>`
-
 function injectBefore(html: string, closing: "head" | "body", patch: string) {
   const marker = new RegExp(`</${closing}>`, "i")
   return marker.test(html) ? html.replace(marker, `${patch}\n</${closing}>`) : `${html}\n${patch}`
@@ -77,7 +74,6 @@ function injectBefore(html: string, closing: "head" | "body", patch: string) {
 function applyX20WowLayer(value: string) {
   let html = closeSafeHtmlStructure(value)
   if (!html.includes('data-hegeva-x20="wow-core"')) html = injectBefore(html, "head", X20_WOW_STYLE)
-  if (!html.includes('<script data-hegeva-x20="wow-core"')) html = injectBefore(html, "body", X20_WOW_SCRIPT)
   return closeSafeHtmlStructure(html)
 }
 
