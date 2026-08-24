@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: X20 runtime stability check
+        run: npm run x20:stability
+
       - name: TypeScript check
         run: npx tsc --noEmit
 
