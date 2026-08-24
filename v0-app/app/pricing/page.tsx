@@ -26,6 +26,16 @@ const BILLING_CANCELLED_COPY = {
   es: "El pago fue cancelado. Tu plan actual no cambió y no se activó ningún nuevo acceso de HEGEVA.",
 } as const
 
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 10000) {
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(input, { ...init, signal: controller.signal })
+  } finally {
+    window.clearTimeout(timeout)
+  }
+}
+
 export default function PricingPage() {
   const router = useRouter()
   const { locale } = useI18n()
@@ -34,6 +44,7 @@ export default function PricingPage() {
   const [opening, setOpening] = useState<PaidPlan | null>(null)
   const [error, setError] = useState("")
   const [currentPlan, setCurrentPlan] = useState<string | null>(null)
+  const [planLoading, setPlanLoading] = useState(false)
   const [billingCancelled, setBillingCancelled] = useState(false)
 
   useEffect(() => {
@@ -47,34 +58,71 @@ export default function PricingPage() {
   }, [])
 
   useEffect(() => {
-    if (!session?.user) { setCurrentPlan(null); return }
+    if (!session?.user) {
+      setCurrentPlan(null)
+      setPlanLoading(false)
+      return
+    }
+
     let active = true
-    fetch("/api/plan/status", {credentials:"include", cache:"no-store"})
+    setPlanLoading(true)
+
+    void fetchWithTimeout("/api/plan/status", {
+      credentials: "include",
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    })
       .then(async (response) => {
         const data = await response.json().catch(() => null)
         if (!response.ok || typeof data?.plan !== "string") throw new Error("plan")
         if (active) setCurrentPlan(data.plan)
       })
-      .catch(() => { if (active) setCurrentPlan(null) })
-    return () => { active = false }
-  }, [session?.user])
+      .catch(() => {
+        if (active) {
+          setCurrentPlan(null)
+          setError(c.unavailable)
+        }
+      })
+      .finally(() => {
+        if (active) setPlanLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [session?.user, c.unavailable])
 
   async function checkout(plan: PaidPlan) {
-    if (!session?.user) { router.push("/login?callbackURL=%2Fpricing"); return }
+    if (!session?.user) {
+      router.push("/login?callbackURL=%2Fpricing")
+      return
+    }
+    if (planLoading) return
+
     setBillingCancelled(false)
-    setOpening(plan); setError("")
+    setOpening(plan)
+    setError("")
+
     try {
-      const response = await fetch("/api/billing/checkout", { method:"POST", credentials:"include", headers:{"Content-Type":"application/json"}, body:JSON.stringify({plan, mode:"test"}) })
+      const response = await fetchWithTimeout("/api/billing/checkout", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ plan, mode: "test" }),
+      }, 15000)
       const data = await response.json().catch(() => null)
       if (!response.ok || typeof data?.url !== "string") throw new Error("checkout")
       window.location.assign(data.url)
-    } catch { setError(c.unavailable); setOpening(null) }
+    } catch {
+      setError(c.unavailable)
+      setOpening(null)
+    }
   }
 
   const plans = [
-    {key:"basic", name:c.basic, price:c.free, features:c.basicFeatures},
-    {key:"premium", name:c.premium, price:"£14.99", features:c.premiumFeatures, featured:true},
-    {key:"pro", name:c.pro, price:"£29.99", features:c.proFeatures},
+    { key: "basic", name: c.basic, price: c.free, features: c.basicFeatures },
+    { key: "premium", name: c.premium, price: "£14.99", features: c.premiumFeatures, featured: true },
+    { key: "pro", name: c.pro, price: "£29.99", features: c.proFeatures },
   ] as const
 
   const hasPaidPlan = currentPlan === "premium" || currentPlan === "pro"
@@ -93,7 +141,7 @@ export default function PricingPage() {
           <h2 className="text-xl font-semibold">{plan.name}</h2>
           <div className="mt-5 flex items-end gap-2"><strong className="text-4xl font-bold">{plan.price}</strong>{plan.key !== "basic" && <span className="pb-1 text-sm text-muted-foreground">/ {c.month}</span>}</div>
           <ul className="mt-7 space-y-3">{plan.features.map((feature) => <li key={feature} className="flex gap-3 text-sm text-muted-foreground"><Check className="mt-0.5 size-4 shrink-0 text-primary"/><span>{feature}</span></li>)}</ul>
-          {plan.key === "basic" ? <button type="button" disabled className="mt-8 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground">{currentPlan === "basic" ? c.current : c.free}</button> : <button type="button" disabled={opening !== null || isPending || currentPlan === plan.key || hasPaidPlan} onClick={() => void checkout(plan.key)} className="mt-8 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-60">{currentPlan === plan.key ? c.current : hasPaidPlan ? PLAN_CHANGE_COPY[locale] : opening === plan.key ? c.opening : !session?.user && !isPending ? c.signIn : c.choose}</button>}
+          {plan.key === "basic" ? <button type="button" disabled className="mt-8 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground">{currentPlan === "basic" ? c.current : c.free}</button> : <button type="button" disabled={opening !== null || isPending || planLoading || currentPlan === plan.key || hasPaidPlan} onClick={() => void checkout(plan.key)} className="mt-8 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-60">{currentPlan === plan.key ? c.current : hasPaidPlan ? PLAN_CHANGE_COPY[locale] : opening === plan.key ? c.opening : !session?.user && !isPending ? c.signIn : c.choose}</button>}
         </div>
       </section>)}
     </div>
