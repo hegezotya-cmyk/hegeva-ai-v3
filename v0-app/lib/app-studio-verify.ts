@@ -91,7 +91,8 @@ export function verifyBrowserPrototype(html: string): PrototypeVerification {
     const runtimeHasSubmit = /f\.addEventListener\(['"]submit['"]/i.test(scriptText)
     const runtimeHasFormClick = /f\.addEventListener\(['"]click['"]/i.test(scriptText)
     const runtimeHasDelete = /data-del/i.test(scriptText) && /splice\s*\(/i.test(scriptText)
-    const runtimeHasFallback = /let\s+memory\s*=\s*\[\]/i.test(scriptText)
+    const runtimeHasMemory = /let\s+memory\s*=\s*\[\]/i.test(scriptText)
+    const runtimeHasWindowName = /window\.name/i.test(scriptText) && /hegeva-x20:/i.test(scriptText)
 
     add(
       "x20-contract",
@@ -100,8 +101,13 @@ export function verifyBrowserPrototype(html: string): PrototypeVerification {
     )
     add(
       "x20-runtime",
-      runtimeHasSubmit && runtimeHasFormClick && runtimeHasDelete && runtimeHasFallback,
-      "X20 add, delete and sandbox-safe fallback handlers are present",
+      runtimeHasSubmit && runtimeHasFormClick && runtimeHasDelete,
+      "X20 add and delete handlers are present",
+    )
+    add(
+      "x20-persistence",
+      runtimeHasMemory && runtimeHasWindowName,
+      "X20 keeps a sandbox-safe persistence fallback when localStorage is unavailable",
     )
   }
 
