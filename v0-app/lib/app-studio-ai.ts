@@ -1,4 +1,5 @@
 import { verificationIssues, verifyBrowserPrototype } from "./app-studio-verify"
+import { buildPremiumFallbackHtml } from "./app-studio-premium-fallback"
 
 export type StudioLocale = "en" | "hu" | "de" | "fr" | "es"
 
@@ -163,6 +164,10 @@ export async function runStudioAI(message: string, language: StudioLocale) {
   }
   if (!verification.ok) {
     html = await repairHtml(html, message, language, true)
+    verification = verifyBrowserPrototype(html)
+  }
+  if (!verification.ok) {
+    html = closeSafeHtmlStructure(buildPremiumFallbackHtml(message, language))
     verification = verifyBrowserPrototype(html)
   }
   if (!verification.ok) throw new Error(`HEGEVA verification failed after recovery: ${verificationIssues(verification).join("; ")}`)
