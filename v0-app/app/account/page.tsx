@@ -26,6 +26,7 @@ export default function AccountPage() {
   const [billingReturn, setBillingReturn] = useState(false)
   const [billingSuccess, setBillingSuccess] = useState(false)
   const [billingConfirmError, setBillingConfirmError] = useState("")
+  const [loggingOut, setLoggingOut] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -42,18 +43,34 @@ export default function AccountPage() {
     let active = true
 
     const fetchPlan = async () => {
-      const response = await fetch("/api/plan/status", {
-        credentials:"include",
-        cache:"no-store",
-      })
-      const data = await response.json().catch(() => null)
-      if (!response.ok || !data) throw new Error("plan")
-      return {
-        plan: typeof data.plan === "string" ? data.plan : "basic",
-        aiMessages: Number(data.aiMessages) || 0,
-        aiLimit: Number(data.aiLimit) || 0,
-        period: typeof data.period === "string" ? data.period : "",
-      } satisfies PlanStatus
+      const controller = new AbortController()
+      const timeout = window.setTimeout(() => controller.abort(), 8000)
+      try {
+        const response = await fetch("/api/plan/status", {
+          credentials:"include",
+          cache:"no-store",
+          signal: controller.signal,
+          headers: { Accept: "application/json" },
+        })
+        const data = await response.json().catch(() => null)
+        if (!response.ok || !data) throw new Error("plan")
+        return {
+          plan: typeof data.plan === "string" ? data.plan : "basic",
+          aiMessages: Number(data.aiMessages) || 0,
+          aiLimit: Number(data.aiLimit) || 0,
+          period: typeof data.period === "string" ? data.period : "",
+        } satisfies PlanStatus
+      } finally {
+        window.clearTimeout(timeout)
+      }
+    }
+
+    const clearBillingQuery = () => {
+      const params = new URLSearchParams(window.location.search)
+      if (!params.has("billing")) return
+      params.delete("billing")
+      const query = params.toString()
+      window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`)
     }
 
     const loadPlan = async () => {
@@ -76,6 +93,7 @@ export default function AccountPage() {
         const paid = PAID_PLANS.has(latest.plan)
         setBillingSuccess(paid)
         setBillingConfirmError(paid ? "" : "entitlement_pending")
+        clearBillingQuery()
       }
     }
 
@@ -96,9 +114,15 @@ export default function AccountPage() {
   }, [billingReturn, session?.user])
 
   async function logout() {
-    await authClient.signOut()
-    router.push("/")
-    router.refresh()
+    if (loggingOut) return
+    setLoggingOut(true)
+    try {
+      await authClient.signOut()
+      router.replace("/")
+      router.refresh()
+    } finally {
+      setLoggingOut(false)
+    }
   }
 
   if (isPending) return <AppShell><main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8"><div className="glass-panel rounded-3xl p-8 text-sm text-muted-foreground">{c.checking}</div></main></AppShell>
@@ -135,7 +159,7 @@ export default function AccountPage() {
           <Link href="/pricing" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.pricing}</Link>
           {isOwner && <Link href="/admin/contact-leads" className="rounded-xl border border-primary/30 bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary transition-colors hover:bg-primary/15">{leadsCopy.inbox}</Link>}
           <Link href="/contact" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.support}</Link>
-          <button type="button" onClick={() => void logout()} className="mt-3 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">{c.logout}</button>
+          <button type="button" disabled={loggingOut} onClick={() => void logout()} className="mt-3 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60">{loggingOut ? c.checking : c.logout}</button>
         </aside>
       </div>
     </main>
