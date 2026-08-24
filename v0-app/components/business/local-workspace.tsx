@@ -1,15 +1,14 @@
 "use client"
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react"
+import { FormEvent, useMemo, useState } from "react"
 import { Cloud, CloudOff, Plus, Search, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/status-badge"
-import { useSession } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
+import { useWorkspaceData } from "@/lib/use-workspace-data"
 
 type Kind = "customers" | "documents" | "expenses"
 type RecordItem = { id: string; title: string; meta?: string; amount?: number; notes?: string; followUp?: string; customerStatus?: "lead" | "active" | "paused"; createdAt: string }
-type SyncState = "checking" | "cloud" | "local" | "saving" | "error"
 
 const config: Record<Kind, { title: string; singular: string; subtitle: string; placeholder: string }> = {
   customers: {
@@ -30,26 +29,6 @@ const config: Record<Kind, { title: string; singular: string; subtitle: string; 
     subtitle: "Track real expense entries. Totals are calculated only from records you add.",
     placeholder: "Supplier or expense name",
   },
-}
-
-function storageKey(kind: Kind, scope: string) {
-  return `hegeva:v0:${scope}:${kind}`
-}
-
-function safeLocalRead(kind: Kind, scope: string): RecordItem[] {
-  try {
-    const raw = localStorage.getItem(storageKey(kind, scope))
-    const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
-function safeLocalWrite(kind: Kind, scope: string, items: RecordItem[]) {
-  try {
-    localStorage.setItem(storageKey(kind, scope), JSON.stringify(items))
-  } catch {}
 }
 
 export function LocalWorkspace({ kind }: { kind: Kind }) {
@@ -77,10 +56,7 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
   }[locale]
   const translated = { customers:{title:t.business.customers,subtitle:t.business.customersDesc,placeholder:t.business.customers}, documents:{title:t.business.documents,subtitle:t.business.documentsDesc,placeholder:t.business.documents}, expenses:{title:t.business.expenses,subtitle:t.business.expensesDesc,placeholder:t.business.expenses} }[kind]
   const cfg = { ...config[kind], ...translated }
-  const { data: session, isPending } = useSession()
-  const userId = session?.user?.id
-  const storageScope = userId ? `user:${userId}` : "guest"
-  const [items, setItems] = useState<RecordItem[]>([])
+  const { items, setItems, syncState, syncError, cloudEnabled } = useWorkspaceData<RecordItem>(kind)
   const [title, setTitle] = useState("")
   const [meta, setMeta] = useState("")
   const [amount, setAmount] = useState("")
@@ -89,112 +65,6 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
   const [customerStatus, setCustomerStatus] = useState<RecordItem["customerStatus"]>("lead")
   const [query, setQuery] = useState("")
   const [customerFilter, setCustomerFilter] = useState<"all"|"due">("all")
-  const [syncState, setSyncState] = useState<SyncState>("checking")
-  const [syncError, setSyncError] = useState("")
-  const readyToSave = useRef(false)
-
-  useEffect(() => {
-    let cancelled = false
-    readyToSave.current = false
-    setSyncError("")
-
-    async function loadWorkspace() {
-      if (isPending) {
-        setSyncState("checking")
-        return
-      }
-
-      if (!userId) {
-        const local = safeLocalRead(kind, storageScope)
-        if (!cancelled) {
-          setItems(local)
-          setSyncState("local")
-          readyToSave.current = true
-        }
-        return
-      }
-
-      setSyncState("checking")
-
-      try {
-        const response = await fetch(`/api/workspace/${encodeURIComponent(kind)}`, {
-          method: "GET",
-          credentials: "include",
-          headers: { Accept: "application/json" },
-        })
-
-        if (!response.ok) {
-          throw new Error(response.status === 401 ? "Authentication required for cloud sync." : "Cloud workspace could not be loaded.")
-        }
-
-        const payload = await response.json()
-        const cloudItems = Array.isArray(payload?.data) ? payload.data : []
-
-        if (!cancelled) {
-          setItems(cloudItems)
-          safeLocalWrite(kind, storageScope, cloudItems)
-          setSyncState("cloud")
-          readyToSave.current = true
-        }
-      } catch (error) {
-        const local = safeLocalRead(kind, storageScope)
-        if (!cancelled) {
-          setItems(local)
-          setSyncState("error")
-          setSyncError(error instanceof Error ? error.message : "Cloud sync is temporarily unavailable.")
-          readyToSave.current = true
-        }
-      }
-    }
-
-    void loadWorkspace()
-    return () => {
-      cancelled = true
-    }
-  }, [kind, userId, storageScope, isPending])
-
-  useEffect(() => {
-    if (!readyToSave.current) return
-
-    safeLocalWrite(kind, storageScope, items)
-
-    if (!userId) {
-      setSyncState("local")
-      return
-    }
-
-    const controller = new AbortController()
-    const timer = window.setTimeout(async () => {
-      setSyncState("saving")
-      setSyncError("")
-
-      try {
-        const response = await fetch(`/api/workspace/${encodeURIComponent(kind)}`, {
-          method: "PUT",
-          credentials: "include",
-          signal: controller.signal,
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ data: items }),
-        })
-
-        if (!response.ok) {
-          const payload = await response.json().catch(() => null)
-          throw new Error(payload?.error || "Cloud workspace could not be saved.")
-        }
-
-        setSyncState("cloud")
-      } catch (error) {
-        if (controller.signal.aborted) return
-        setSyncState("error")
-        setSyncError(error instanceof Error ? error.message : "Cloud sync is temporarily unavailable.")
-      }
-    }, 500)
-
-    return () => {
-      window.clearTimeout(timer)
-      controller.abort()
-    }
-  }, [items, kind, userId, storageScope])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -214,12 +84,15 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
     e.preventDefault()
     const clean = title.trim()
     if (!clean) return
+    const parsedAmount = kind === "expenses" && amount ? Number(amount) : undefined
+    if (kind === "expenses" && parsedAmount !== undefined && (!Number.isFinite(parsedAmount) || parsedAmount < 0)) return
+
     setItems((current) => [
       {
         id: crypto.randomUUID(),
         title: clean,
         meta: meta.trim() || undefined,
-        amount: kind === "expenses" && amount ? Number(amount) : undefined,
+        amount: parsedAmount,
         notes: notes.trim() || undefined,
         followUp: kind === "customers" ? followUp || undefined : undefined,
         customerStatus: kind === "customers" ? customerStatus : undefined,
@@ -253,7 +126,7 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
         ? detail.saving
         : syncState === "error"
           ? detail.error
-          : userId
+          : cloudEnabled
             ? detail.checking
             : detail.guest
 
@@ -277,6 +150,7 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
         <div>
           <p className="text-sm font-medium text-foreground">{syncLabel}</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{syncDescription}</p>
+          {syncError && <p className="mt-1 text-xs text-destructive">{syncError}</p>}
         </div>
       </div>
 
