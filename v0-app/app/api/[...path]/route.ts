@@ -3,6 +3,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare"
 export const dynamic = "force-dynamic"
 
 type WorkspaceItem = Record<string, unknown>
+type ServiceBinding = { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> }
 
 function publicApiUrl(pathname: string, search = "") {
   return new URL(`${pathname}${search}`, "https://hegevaai.co.uk")
@@ -17,7 +18,7 @@ function forwardedHeaders(request: Request) {
 }
 
 async function readWorkspaceItems(
-  binding: Fetcher,
+  binding: ServiceBinding,
   request: Request,
   type: string,
 ): Promise<WorkspaceItem[]> {
@@ -35,7 +36,7 @@ async function readWorkspaceItems(
   return Array.isArray(payload?.data) ? payload.data as WorkspaceItem[] : []
 }
 
-async function buildWorkspaceContext(binding: Fetcher, request: Request) {
+async function buildWorkspaceContext(binding: ServiceBinding, request: Request) {
   try {
     const [customers, documents, expenses, tasks, invoices] = await Promise.all([
       readWorkspaceItems(binding, request, "customers"),
