@@ -16,6 +16,11 @@ function inlineScripts(html: string) {
     .filter(Boolean)
 }
 
+function countId(source: string, id: string) {
+  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  return (source.match(new RegExp(`id=["']${escaped}["']`, "gi")) || []).length
+}
+
 export function verifyBrowserPrototype(html: string): PrototypeVerification {
   const source = html.trim()
   const checks: PrototypeCheck[] = []
@@ -49,7 +54,7 @@ export function verifyBrowserPrototype(html: string): PrototypeVerification {
   let scriptSyntaxOk = true
   for (const script of scripts) {
     try {
-      // Syntax-only compile. The generated application is not executed here.
+      // Syntax-only compile. Generated code is never executed by the verifier.
       // eslint-disable-next-line no-new-func
       new Function(script)
     } catch {
@@ -77,16 +82,26 @@ export function verifyBrowserPrototype(html: string): PrototypeVerification {
 
   const hasX20Runtime = /data-hegeva-x20=["']safe-interactions["']/i.test(source)
   if (hasX20Runtime) {
-    const x20ContractOk =
-      /id=["']hx-form["']/i.test(source) &&
-      /id=["']hx-name["']/i.test(source) &&
-      /id=["']hx-list["']/i.test(source) &&
-      /id=["']hx-count["']/i.test(source) &&
-      /<button\b[^>]*type=["']submit["']/i.test(source)
+    const ids = ["hx-form", "hx-name", "hx-list", "hx-count"]
+    const singleIds = ids.every((id) => countId(source, id) === 1)
+    const formMatch = source.match(/<form\b[^>]*id=["']hx-form["'][^>]*>([\s\S]*?)<\/form>/i)
+    const formBody = formMatch?.[1] || ""
+    const formHasInput = /id=["']hx-name["']/i.test(formBody)
+    const formHasButton = /<button\b/i.test(formBody)
+    const runtimeHasSubmit = /f\.addEventListener\(['"]submit['"]/i.test(scriptText)
+    const runtimeHasFormClick = /f\.addEventListener\(['"]click['"]/i.test(scriptText)
+    const runtimeHasDelete = /data-del/i.test(scriptText) && /splice\s*\(/i.test(scriptText)
+    const runtimeHasFallback = /let\s+memory\s*=\s*\[\]/i.test(scriptText)
+
     add(
       "x20-contract",
-      x20ContractOk,
-      "X20 customer form, list, count and submit control are present",
+      singleIds && Boolean(formMatch) && formHasInput && formHasButton,
+      "Exactly one X20 form, input, list and count are wired together",
+    )
+    add(
+      "x20-runtime",
+      runtimeHasSubmit && runtimeHasFormClick && runtimeHasDelete && runtimeHasFallback,
+      "X20 add, delete and sandbox-safe fallback handlers are present",
     )
   }
 
