@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { authClient, signIn, signUp, useSession } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
@@ -20,27 +20,24 @@ export function AuthPanel() {
   const [success, setSuccess] = useState("")
   const [passwordRecoveryAvailable, setPasswordRecoveryAvailable] = useState<boolean | null>(null)
 
-  useEffect(() => {
-    let active = true
+  async function checkPasswordRecovery() {
+    if (passwordRecoveryAvailable !== null) return passwordRecoveryAvailable
 
-    fetch("/api/system/email-status", {
-      credentials: "include",
-      cache: "no-store",
-      headers: { Accept: "application/json" },
-    })
-      .then(async (response) => {
-        const payload = await response.json().catch(() => null)
-        if (!active) return
-        setPasswordRecoveryAvailable(Boolean(response.ok && payload?.passwordRecovery === true))
+    try {
+      const response = await fetch("/api/system/email-status", {
+        credentials: "include",
+        cache: "no-store",
+        headers: { Accept: "application/json" },
       })
-      .catch(() => {
-        if (active) setPasswordRecoveryAvailable(false)
-      })
-
-    return () => {
-      active = false
+      const payload = await response.json().catch(() => null)
+      const available = Boolean(response.ok && payload?.passwordRecovery === true)
+      setPasswordRecoveryAvailable(available)
+      return available
+    } catch {
+      setPasswordRecoveryAvailable(false)
+      return false
     }
-  }, [])
+  }
 
   function safeCallbackURL() {
     const value = new URLSearchParams(window.location.search).get("callbackURL")
@@ -55,7 +52,8 @@ export function AuthPanel() {
 
     try {
       if (mode === "forgot") {
-        if (passwordRecoveryAvailable === false) {
+        const recoveryAvailable = await checkPasswordRecovery()
+        if (!recoveryAvailable) {
           setError(c.authUnavailable)
           return
         }
@@ -210,11 +208,8 @@ export function AuthPanel() {
             onClick={() => {
               setError("")
               setSuccess("")
-              if (passwordRecoveryAvailable === false) {
-                setError(c.authUnavailable)
-                return
-              }
               setMode("forgot")
+              void checkPasswordRecovery()
             }}
             className="text-sm font-medium text-primary hover:underline"
           >
