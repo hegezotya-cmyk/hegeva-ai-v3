@@ -3,36 +3,49 @@ import { verificationIssues, verifyBrowserPrototype } from "./app-studio-verify"
 export type StudioLocale = "en" | "hu" | "de" | "fr" | "es"
 
 async function requestStudioAI(message: string, language: StudioLocale) {
-  const response = await fetch("/api/chat", {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      message,
-      history: [],
-      language,
-      mode: "general",
-    }),
-  })
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 30000)
 
-  const data = await response.json().catch(() => null)
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      credentials: "include",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message,
+        history: [],
+        language,
+        mode: "general",
+      }),
+    })
 
-  if (!response.ok) {
-    throw new Error(
-      typeof data?.error === "string" && data.error.trim()
-        ? data.error.trim()
-        : "HEGEVA AI is temporarily unavailable.",
-    )
+    const data = await response.json().catch(() => null)
+
+    if (!response.ok) {
+      throw new Error(
+        typeof data?.error === "string" && data.error.trim()
+          ? data.error.trim()
+          : "HEGEVA AI is temporarily unavailable.",
+      )
+    }
+
+    const answer = typeof data?.response === "string" ? data.response.trim() : ""
+    if (!answer) {
+      throw new Error("HEGEVA AI returned an empty response.")
+    }
+
+    return answer
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("HEGEVA AI took too long to respond. Please try again.")
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timeout)
   }
-
-  const answer = typeof data?.response === "string" ? data.response.trim() : ""
-  if (!answer) {
-    throw new Error("HEGEVA AI returned an empty response.")
-  }
-
-  return answer
 }
 
 function isHtmlBuildRequest(message: string) {
@@ -43,8 +56,6 @@ function isHtmlBuildRequest(message: string) {
 export async function runStudioAI(message: string, language: StudioLocale) {
   const firstAnswer = await requestStudioAI(message, language)
 
-  // Prompt/specification calls remain normal text generation. Build/Fix HTML
-  // calls get a mandatory verification gate plus one automatic repair pass.
   if (!isHtmlBuildRequest(message)) return firstAnswer
 
   let html = stripCodeFence(firstAnswer)
