@@ -40,7 +40,7 @@ export function verifyBrowserPrototype(html: string): PrototypeVerification {
   )
   add(
     "content",
-    source.length >= 500 && /<(main|section|form|button|input|textarea|nav|article)(?:\s|>)/i.test(source),
+    source.length >= 800 && /<(main|section|form|button|input|textarea|nav|article)(?:\s|>)/i.test(source),
     "Meaningful application markup",
   )
 
@@ -60,6 +60,25 @@ export function verifyBrowserPrototype(html: string): PrototypeVerification {
     "javascript",
     scriptSyntaxOk,
     scripts.length ? "Inline JavaScript parses" : "No inline JavaScript syntax errors",
+  )
+
+  const buttonCount = (source.match(/<button\b/gi) || []).length
+  const formCount = (source.match(/<form\b/gi) || []).length
+  const hasInlineHandlers = /\bon(click|submit|change|input)\s*=/i.test(source)
+  const scriptText = scripts.join("\n")
+  const hasScriptHandlers = /(addEventListener\s*\(|querySelector\s*\(|querySelectorAll\s*\(|getElementById\s*\(|\.onclick\s*=|\.onsubmit\s*=)/i.test(scriptText)
+  const hasInteractionLogic = hasInlineHandlers || hasScriptHandlers
+  add(
+    "interactions",
+    buttonCount === 0 || (scripts.length > 0 && hasInteractionLogic) || (formCount > 0 && hasInlineHandlers),
+    "Visible buttons must be wired to real local interactions",
+  )
+
+  const hasBrokenImageRisk = /<img\b[^>]*\bsrc\s*=\s*["'](?:\s*|https?:\/\/|\/\/|#)[^"']*["']/i.test(source)
+  add(
+    "assets",
+    !hasBrokenImageRisk,
+    "No missing or external placeholder images in the self-contained build",
   )
 
   const fakeSuccessPatterns = [
