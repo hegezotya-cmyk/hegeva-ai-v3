@@ -46,14 +46,30 @@ for (const check of checks) {
       redirect: "manual",
       signal: controller.signal,
       headers: {
-        "user-agent": "HEGEVA-release-smoke/1.2",
+        "user-agent": "HEGEVA-release-smoke/1.3",
         ...(check.method === "POST" ? { "content-type": "application/json" } : {}),
       },
       ...(check.method === "POST" ? { body: "{}" } : {}),
     })
 
-    const ok = check.expected.includes(response.status)
-    console.log(`${ok ? "PASS" : "FAIL"} ${check.name}: ${response.status}`)
+    const statusOk = check.expected.includes(response.status)
+    let bodyOk = true
+    let detail = ""
+
+    if (statusOk && response.status === 200 && check.method === "GET") {
+      if (check.path.startsWith("/api/")) {
+        const contentType = response.headers.get("content-type") || ""
+        bodyOk = contentType.toLowerCase().includes("application/json")
+        detail = bodyOk ? "json" : `unexpected content-type ${contentType || "missing"}`
+      } else {
+        const body = await response.text()
+        bodyOk = /hegeva/i.test(body) && !/application error|internal server error/i.test(body)
+        detail = bodyOk ? "HEGEVA marker present" : "missing HEGEVA marker or error page detected"
+      }
+    }
+
+    const ok = statusOk && bodyOk
+    console.log(`${ok ? "PASS" : "FAIL"} ${check.name}: ${response.status}${detail ? ` (${detail})` : ""}`)
 
     if (!ok) failed = true
   } catch (error) {
