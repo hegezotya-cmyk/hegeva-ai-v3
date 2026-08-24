@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - v0-rebuild
+      - x20-studio-wow
     paths:
       - "v0-app/**"
       - "src/**"
@@ -54,6 +55,10 @@ jobs:
       - name: Install V0 dependencies
         working-directory: v0-app
         run: npm ci
+
+      - name: X20 runtime stability check
+        working-directory: v0-app
+        run: npm run x20:stability
 
       - name: TypeScript check
         working-directory: v0-app
