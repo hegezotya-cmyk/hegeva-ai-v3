@@ -45,7 +45,7 @@ function makeStorage(seed = {}) {
   }
 }
 
-function boot({ storage, windowName = '' } = {}) {
+function boot({ storage, windowName = '', lang = 'en' } = {}) {
   const form = new ElementMock('hx-form')
   const input = new ElementMock('hx-name')
   const list = new ElementMock('hx-list')
@@ -59,7 +59,7 @@ function boot({ storage, windowName = '' } = {}) {
   const localStorage = storage || makeStorage()
   const windowObj = { name: windowName }
   const document = {
-    documentElement: { lang: 'en' },
+    documentElement: { lang },
     getElementById: (id) => elements[id] || null,
     querySelectorAll: (selector) => selector === 'button' ? [addButton] : [],
   }
@@ -152,6 +152,14 @@ const sandboxReload = boot({ storage: blockedStorage, windowName: sandbox.window
 assert.equal(sandboxReload.count.textContent, '1', 'Sandbox reload must restore via window.name')
 assert.match(sandboxReload.list.innerHTML, /Sandbox Customer/, 'Sandbox reload must restore visible data')
 
+for (const lang of ['en', 'hu', 'de', 'fr', 'es']) {
+  const localized = boot({ lang })
+  localized.input.value = `${lang}-customer`
+  localized.form.dispatch('submit')
+  assert.equal(localized.count.textContent, '1', `${lang} runtime must add successfully`)
+  assert.match(localized.list.innerHTML, new RegExp(`${lang}-customer`), `${lang} runtime must render added data`)
+}
+
 // Static guards for the full build -> verify -> fallback -> save -> preview/download chain.
 assert(/buildCompactX20\(/.test(aiSource), 'X20 must use the compact build pipeline')
 assert(/meaningfulFragment\(fragment\)/.test(aiSource), 'X20 must reject weak generated fragments')
@@ -159,6 +167,11 @@ assert(/fallbackX20Fragment\(language\)/.test(aiSource), 'X20 must have a determ
 assert(/verifyBrowserPrototype\(html\)/.test(aiSource), 'X20 output must be verified before it is returned')
 assert(/verification\.ok/.test(aiSource), 'X20 verification result must gate success')
 assert(/verificationIssues\(verification\)/.test(aiSource), 'X20 final failure must expose verification issues')
+assert(/\["en",\s*"hu",\s*"de",\s*"fr",\s*"es"\]/.test(aiSource), 'X20 wrapper must explicitly support all five locales')
+assert(/<meta name="viewport"/.test(aiSource), 'Generated X20 HTML must include a mobile viewport')
+assert(/@media\(max-width:760px\)/.test(aiSource), 'X20 core UI must include a mobile breakpoint')
+assert(/min-height:44px/.test(aiSource), 'X20 controls must keep touch-friendly minimum height')
+assert(/:focus-visible/.test(aiSource), 'X20 must expose keyboard focus styles')
 
 assert(/STORAGE_VERSION_KEY/.test(componentSource), 'Saved X20 builds must have a storage version key')
 assert(/STORAGE_VERSION/.test(componentSource), 'Saved X20 builds must be versioned')
@@ -168,10 +181,14 @@ assert(/localStorage\.removeItem\(HTML_KEY\)/.test(componentSource), 'Invalid or
 assert(/saveBuild\(next, ["']build["']\)/.test(componentSource), 'Fresh builds must go through the central save path')
 assert(/looksLikeHtmlDocument\(next\)/.test(componentSource), 'Final build must be re-verified before save')
 assert(/srcDoc=\{html\}/.test(componentSource), 'Preview must use current verified html state')
+assert(/sandbox="allow-scripts"/.test(componentSource), 'Preview must remain sandboxed while allowing local interactions')
 assert(/downloadTextFile\("index\.html",\s*html/.test(componentSource), 'Download must use the same verified html state as preview')
+assert(/prefers-reduced-motion:reduce/.test(componentSource), 'Accessibility improvement must respect reduced-motion preference')
+assert(/aria-label/.test(componentSource), 'Accessibility improvement must provide labels for unlabeled controls')
+assert(/@media\(max-width:720px\)/.test(componentSource), 'Mobile improvement must include a narrow-screen breakpoint')
 
 assert(/x20-runtime/.test(verifySource), 'Verifier must include X20 runtime validation')
 assert(/x20-contract/.test(verifySource), 'Verifier must include X20 structural contract validation')
 assert(/x20-persistence/.test(verifySource), 'Verifier must include X20 persistence validation')
 
-console.log('X20 stability check passed: empty-input guard, submit, button click, escaping, safe delete bounds, local-storage precedence, corrupt-state recovery, sandbox fallback, fallback pipeline, restore/version guards, verifier contract, preview/download consistency')
+console.log('X20 stability check passed: runtime safety, 5-locale execution, mobile guards, accessibility guards, sandbox safety, fallback pipeline, restore/version guards, verifier contract, preview/download consistency')
