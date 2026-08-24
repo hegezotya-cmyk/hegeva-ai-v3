@@ -110,10 +110,14 @@ export function AssistantChat() {
       { role: "user", content: cleanMessage } as ChatMessage,
     ].slice(-100))
 
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 30000)
+
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
         credentials: "include",
+        signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
         },
@@ -149,11 +153,14 @@ export function AssistantChat() {
       await loadUsage()
     } catch (requestError) {
       setError(
-        requestError instanceof Error
-          ? requestError.message
-          : t.assistant.unavailable
+        controller.signal.aborted
+          ? t.assistant.unavailable
+          : requestError instanceof Error
+            ? requestError.message
+            : t.assistant.unavailable
       )
     } finally {
+      window.clearTimeout(timeout)
       setSending(false)
     }
   }
