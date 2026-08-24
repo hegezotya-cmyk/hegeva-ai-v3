@@ -78,6 +78,11 @@ function boot({ storage, windowName = '' } = {}) {
 const first = boot()
 assert.equal(first.count.textContent, '0', 'Initial count must be 0')
 
+first.input.value = '   '
+first.form.dispatch('submit')
+assert.equal(first.count.textContent, '0', 'Whitespace-only input must not create an item')
+assert.equal(first.storage.getItem('hegeva-x20-items'), null, 'Invalid empty input must not write storage')
+
 first.input.value = 'Test Customer'
 first.form.dispatch('submit')
 assert.equal(first.count.textContent, '1', 'Submit must increment count')
@@ -100,6 +105,11 @@ const beforeInvalidDelete = first.count.textContent
 first.list.dispatch('click', { target: invalidDelete })
 assert.equal(first.count.textContent, beforeInvalidDelete, 'Invalid delete index must not change data')
 
+const negativeDelete = new ElementMock()
+negativeDelete.dataDel = -1
+first.list.dispatch('click', { target: negativeDelete })
+assert.equal(first.count.textContent, beforeInvalidDelete, 'Negative delete index must not change data')
+
 const del = new ElementMock()
 del.dataDel = 0
 first.list.dispatch('click', { target: del })
@@ -111,6 +121,12 @@ first.form.dispatch('submit')
 const reloaded = boot({ storage: first.storage })
 assert.equal(reloaded.count.textContent, '3', 'Reload must restore persisted count')
 assert.match(reloaded.list.innerHTML, /Reload Customer/, 'Reload must restore persisted list')
+
+const staleWindowName = 'hegeva-x20:' + JSON.stringify(['Stale Customer'])
+const localWins = boot({ storage: makeStorage({ 'hegeva-x20-items': JSON.stringify(['Fresh Customer']) }), windowName: staleWindowName })
+assert.equal(localWins.count.textContent, '1', 'Valid local storage must remain authoritative over stale window.name data')
+assert.match(localWins.list.innerHTML, /Fresh Customer/, 'Valid local storage data must render')
+assert.doesNotMatch(localWins.list.innerHTML, /Stale Customer/, 'Stale fallback data must not override valid local storage')
 
 const corruptStorage = makeStorage({ 'hegeva-x20-items': '{broken-json' })
 const recovered = boot({ storage: corruptStorage })
@@ -124,6 +140,9 @@ const blockedStorage = {
   setItem() { throw new Error('blocked') },
   removeItem() {},
 }
+const corruptFallback = boot({ storage: blockedStorage, windowName: 'hegeva-x20:{broken-json' })
+assert.equal(corruptFallback.count.textContent, '0', 'Corrupt sandbox fallback must fail safe to empty data')
+
 const sandbox = boot({ storage: blockedStorage })
 sandbox.input.value = 'Sandbox Customer'
 sandbox.form.dispatch('submit')
@@ -155,4 +174,4 @@ assert(/x20-runtime/.test(verifySource), 'Verifier must include X20 runtime vali
 assert(/x20-contract/.test(verifySource), 'Verifier must include X20 structural contract validation')
 assert(/x20-persistence/.test(verifySource), 'Verifier must include X20 persistence validation')
 
-console.log('X20 stability check passed: runtime safety, corrupt-storage recovery, sandbox fallback, fallback pipeline, restore/version guards, verifier contract, preview/download consistency')
+console.log('X20 stability check passed: empty-input guard, submit, button click, escaping, safe delete bounds, local-storage precedence, corrupt-state recovery, sandbox fallback, fallback pipeline, restore/version guards, verifier contract, preview/download consistency')
