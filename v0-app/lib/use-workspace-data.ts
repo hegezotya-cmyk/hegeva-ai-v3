@@ -63,10 +63,14 @@ export function useWorkspaceData<T>(type: string): {
       }
 
       setSyncState("checking")
+      const controller = new AbortController()
+      const timeout = window.setTimeout(() => controller.abort(), 8000)
 
       try {
         const response = await fetch(`/api/workspace/${encodeURIComponent(type)}`, {
           credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
           headers: { Accept: "application/json" },
         })
         const payload = await response.json().catch(() => null)
@@ -88,9 +92,11 @@ export function useWorkspaceData<T>(type: string): {
           skipNextSave.current = true
           setItems(readLocal<T>(type, ownerKey))
           setSyncState("error")
-          setSyncError(error instanceof Error ? error.message : "Cloud sync is temporarily unavailable.")
+          setSyncError(controller.signal.aborted ? "Cloud workspace request timed out." : error instanceof Error ? error.message : "Cloud sync is temporarily unavailable.")
           readyToSave.current = true
         }
+      } finally {
+        window.clearTimeout(timeout)
       }
     }
 
@@ -118,11 +124,13 @@ export function useWorkspaceData<T>(type: string): {
     const timer = window.setTimeout(async () => {
       setSyncState("saving")
       setSyncError("")
+      const requestTimeout = window.setTimeout(() => controller.abort(), 8000)
 
       try {
         const response = await fetch(`/api/workspace/${encodeURIComponent(type)}`, {
           method: "PUT",
           credentials: "include",
+          cache: "no-store",
           signal: controller.signal,
           headers: { "Content-Type": "application/json", Accept: "application/json" },
           body: JSON.stringify({ data: items }),
@@ -135,9 +143,15 @@ export function useWorkspaceData<T>(type: string): {
 
         setSyncState("cloud")
       } catch (error) {
-        if (controller.signal.aborted) return
+        if (controller.signal.aborted) {
+          setSyncState("error")
+          setSyncError("Cloud workspace save timed out.")
+          return
+        }
         setSyncState("error")
         setSyncError(error instanceof Error ? error.message : "Cloud sync is temporarily unavailable.")
+      } finally {
+        window.clearTimeout(requestTimeout)
       }
     }, 500)
 
