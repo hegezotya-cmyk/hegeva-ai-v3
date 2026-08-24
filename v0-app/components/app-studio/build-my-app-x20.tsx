@@ -1,0 +1,210 @@
+"use client"
+
+import { useEffect, useMemo, useState } from "react"
+import { Download, Gauge, MonitorSmartphone, Palette, Sparkles, WandSparkles } from "lucide-react"
+import { useI18n } from "@/lib/i18n/provider"
+import { downloadTextFile, looksLikeHtmlDocument, runStudioAI, stripCodeFence, type StudioLocale } from "@/lib/app-studio-ai"
+
+const IDEA_KEY = "hegeva:x20:idea"
+const HTML_KEY = "hegeva:x20:last-html"
+const MODE_KEY = "hegeva:x20:last-mode"
+
+const copy = {
+  en: {
+    eyebrow: "HEGEVA APP STUDIO · PRO BETA",
+    title: "Build My App X20",
+    sub: "Turn an idea into a verified browser app, then improve it with one-click AI passes. During beta this workspace is open for testing; Pro access can gate release later.",
+    idea: "What should the app do?",
+    placeholder: "Describe the app, who it is for, and the most important job it must do.",
+    build: "Build X20 app",
+    building: "Building…",
+    improve: "Improve this app",
+    premium: "Make it premium",
+    mobile: "Improve mobile",
+    dashboard: "Add dashboard",
+    accessible: "Improve accessibility",
+    preview: "Live app preview",
+    code: "Verified index.html",
+    download: "Download index.html",
+    empty: "Build an app to unlock the live preview and improvement passes.",
+    saved: "Your latest X20 idea and verified build stay in this browser so you can continue later.",
+    error: "X20 could not create a verified app. Please try again.",
+    progress: ["Idea", "Working app", "AI improvement", "Ready to continue"],
+  },
+  hu: {
+    eyebrow: "HEGEVA APP STUDIO · PRO BÉTA",
+    title: "Build My App X20",
+    sub: "Az ötletből ellenőrzött böngészős appot készít, majd egykattintásos AI-fejlesztésekkel tovább javíthatod. A béta alatt tesztelhető; éles induláskor Pro jogosultsághoz köthető.",
+    idea: "Mit tudjon az alkalmazás?",
+    placeholder: "Írd le az appot, kinek készül, és mi a legfontosabb feladata.",
+    build: "X20 app építése",
+    building: "Építés…",
+    improve: "App továbbfejlesztése",
+    premium: "Legyen prémiumabb",
+    mobile: "Mobil javítása",
+    dashboard: "Dashboard hozzáadása",
+    accessible: "Akadálymentesség javítása",
+    preview: "Élő app előnézet",
+    code: "Ellenőrzött index.html",
+    download: "index.html letöltése",
+    empty: "Építs egy appot az élő előnézet és az AI-fejlesztések feloldásához.",
+    saved: "A legutóbbi X20 ötlet és ellenőrzött build ebben a böngészőben megmarad, így később folytathatod.",
+    error: "Az X20 nem tudott ellenőrzött appot készíteni. Próbáld újra.",
+    progress: ["Ötlet", "Működő app", "AI-fejlesztés", "Folytatható projekt"],
+  },
+  de: {
+    eyebrow: "HEGEVA APP STUDIO · PRO BETA", title: "Build My App X20", sub: "Erstellt aus einer Idee eine geprüfte Browser-App und verbessert sie anschließend mit KI-Pässen. Während der Beta zum Testen geöffnet; später für Pro vorgesehen.", idea: "Was soll die App können?", placeholder: "Beschreibe App, Zielgruppe und wichtigste Aufgabe.", build: "X20-App bauen", building: "Wird gebaut…", improve: "App verbessern", premium: "Premium-Design", mobile: "Mobile verbessern", dashboard: "Dashboard hinzufügen", accessible: "Barrierefreiheit", preview: "Live-Vorschau", code: "Geprüfte index.html", download: "index.html herunterladen", empty: "Baue zuerst eine App.", saved: "Die letzte X20-Idee und der geprüfte Build bleiben in diesem Browser gespeichert.", error: "X20 konnte keine geprüfte App erstellen.", progress: ["Idee", "App", "KI-Verbesserung", "Weiterbauen"],
+  },
+  fr: {
+    eyebrow: "HEGEVA APP STUDIO · PRO BÊTA", title: "Build My App X20", sub: "Transforme une idée en application navigateur vérifiée puis améliore-la avec des passes IA. Ouvert aux tests pendant la bêta; prévu pour Pro ensuite.", idea: "Que doit faire l’application ?", placeholder: "Décrivez l’application, son public et sa tâche principale.", build: "Construire l’app X20", building: "Construction…", improve: "Améliorer l’app", premium: "Rendre premium", mobile: "Améliorer mobile", dashboard: "Ajouter dashboard", accessible: "Améliorer accessibilité", preview: "Aperçu en direct", code: "index.html vérifié", download: "Télécharger index.html", empty: "Construisez d’abord une app.", saved: "La dernière idée X20 et son build vérifié restent dans ce navigateur.", error: "X20 n’a pas pu créer une app vérifiée.", progress: ["Idée", "App", "Amélioration IA", "Continuer"],
+  },
+  es: {
+    eyebrow: "HEGEVA APP STUDIO · PRO BETA", title: "Build My App X20", sub: "Convierte una idea en una app de navegador verificada y mejórala con pases de IA. Abierto para pruebas durante beta; previsto para Pro después.", idea: "¿Qué debe hacer la app?", placeholder: "Describe la app, su público y su tarea principal.", build: "Crear app X20", building: "Creando…", improve: "Mejorar app", premium: "Hacerla premium", mobile: "Mejorar móvil", dashboard: "Añadir dashboard", accessible: "Mejorar accesibilidad", preview: "Vista previa", code: "index.html verificado", download: "Descargar index.html", empty: "Primero crea una app.", saved: "La última idea X20 y su build verificado permanecen en este navegador.", error: "X20 no pudo crear una app verificada.", progress: ["Idea", "App", "Mejora IA", "Continuar"],
+  },
+} as const
+
+type ImproveMode = "premium" | "mobile" | "dashboard" | "accessible"
+
+const modeInstruction: Record<ImproveMode, string> = {
+  premium: "Use a polished premium visual system, stronger hierarchy, cleaner spacing, better empty states and professional microcopy.",
+  mobile: "Prioritize excellent mobile responsiveness, touch targets, compact navigation and readable layouts on small screens.",
+  dashboard: "Add a useful dashboard with meaningful summary cards, filters or progress indicators derived only from local app data.",
+  accessible: "Improve semantic HTML, labels, keyboard usability, focus states, contrast and accessible status messaging.",
+}
+
+export function BuildMyAppX20() {
+  const { locale } = useI18n()
+  const c = copy[locale]
+  const [idea, setIdea] = useState("")
+  const [html, setHtml] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState("")
+  const [lastMode, setLastMode] = useState<string>("")
+
+  useEffect(() => {
+    try {
+      setIdea(localStorage.getItem(IDEA_KEY) || "")
+      setHtml(localStorage.getItem(HTML_KEY) || "")
+      setLastMode(localStorage.getItem(MODE_KEY) || "")
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    try { localStorage.setItem(IDEA_KEY, idea) } catch {}
+  }, [idea])
+
+  const progress = useMemo(() => {
+    const values = [Boolean(idea.trim()), Boolean(html), Boolean(lastMode), Boolean(html && idea.trim())]
+    return values.map((done, index) => ({ label: c.progress[index], done }))
+  }, [idea, html, lastMode, c.progress])
+
+  async function generate(mode?: ImproveMode) {
+    const value = idea.trim()
+    if (!value || busy) return
+    setBusy(true)
+    setError("")
+
+    const instruction = [
+      "You are HEGEVA Build My App X20.",
+      `Visible UI language: ${locale}.`,
+      "Create ONE complete, genuinely usable, self-contained index.html browser application.",
+      "Return ONLY HTML. Use inline CSS and vanilla JavaScript. No dependencies.",
+      "Include meaningful working interactions and localStorage when local persistence helps.",
+      "Do not fake authentication, payments, email, cloud database or external API success. Mark unavailable integrations honestly.",
+      "Make the result responsive, visually polished, compact and complete with closing body/html tags.",
+      mode ? `IMPROVEMENT PASS: ${modeInstruction[mode]}` : "FIRST BUILD: choose a sensible product structure from the idea.",
+      `APP IDEA: ${value}`,
+    ].join("\n\n")
+
+    try {
+      const answer = await runStudioAI(instruction, locale as StudioLocale)
+      const next = stripCodeFence(answer)
+      if (!looksLikeHtmlDocument(next)) throw new Error(c.error)
+      setHtml(next)
+      setLastMode(mode || "build")
+      try {
+        localStorage.setItem(HTML_KEY, next)
+        localStorage.setItem(MODE_KEY, mode || "build")
+      } catch {}
+    } catch (e) {
+      setError(e instanceof Error ? e.message : c.error)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const actions: { key: ImproveMode; label: string; icon: typeof Palette }[] = [
+    { key: "premium", label: c.premium, icon: Palette },
+    { key: "mobile", label: c.mobile, icon: MonitorSmartphone },
+    { key: "dashboard", label: c.dashboard, icon: Gauge },
+    { key: "accessible", label: c.accessible, icon: Sparkles },
+  ]
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="rounded-3xl border border-primary/30 bg-primary/5 p-6 sm:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-3xl">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">{c.eyebrow}</p>
+            <h1 className="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">{c.title}</h1>
+            <p className="mt-4 text-sm leading-7 text-muted-foreground sm:text-base">{c.sub}</p>
+          </div>
+          <span className="rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">PRO · BETA</span>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {progress.map((item, index) => (
+          <div key={item.label} className="glass-panel rounded-2xl p-4">
+            <div className="flex items-center gap-3">
+              <span className={`flex size-8 items-center justify-center rounded-full text-xs font-bold ${item.done ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground"}`}>{index + 1}</span>
+              <span className={item.done ? "text-sm font-semibold text-foreground" : "text-sm text-muted-foreground"}>{item.label}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <section className="mt-6 grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+        <div className="glass-panel rounded-2xl p-5">
+          <label htmlFor="x20-idea" className="text-sm font-semibold text-foreground">{c.idea}</label>
+          <textarea id="x20-idea" value={idea} onChange={(e) => setIdea(e.target.value)} rows={8} placeholder={c.placeholder} className="mt-3 w-full rounded-xl border border-input bg-input/30 p-3 text-sm outline-none focus:border-primary/50" />
+          <button type="button" onClick={() => void generate()} disabled={!idea.trim() || busy} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50">
+            <WandSparkles className="size-4" aria-hidden />{busy ? c.building : c.build}
+          </button>
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{c.saved}</p>
+          {error && <p role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
+        </div>
+
+        <div className="glass-panel rounded-2xl p-5">
+          <h2 className="text-sm font-semibold text-foreground">{c.improve}</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {actions.map(({ key, label, icon: Icon }) => (
+              <button key={key} type="button" onClick={() => void generate(key)} disabled={!html || busy} className="flex items-center gap-3 rounded-xl border border-border bg-background/40 px-4 py-3 text-left text-sm font-medium transition-colors hover:border-primary/40 disabled:cursor-not-allowed disabled:opacity-40">
+                <Icon className="size-4 text-primary" aria-hidden />{label}
+              </button>
+            ))}
+          </div>
+          {!html && <p className="mt-4 text-sm text-muted-foreground">{c.empty}</p>}
+        </div>
+      </section>
+
+      {html && (
+        <section className="mt-6 grid gap-5 xl:grid-cols-2">
+          <div className="glass-panel rounded-2xl p-5">
+            <h2 className="text-sm font-semibold text-foreground">{c.preview}</h2>
+            <iframe title={c.preview} srcDoc={html} sandbox="allow-scripts" className="mt-3 h-[620px] w-full rounded-xl border border-border bg-white" />
+          </div>
+          <div className="glass-panel rounded-2xl p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold text-foreground">{c.code}</h2>
+              <button type="button" onClick={() => downloadTextFile("index.html", html, "text/html;charset=utf-8")} className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium">
+                <Download className="size-4" aria-hidden />{c.download}
+              </button>
+            </div>
+            <pre className="mt-3 h-[620px] overflow-auto whitespace-pre-wrap rounded-xl border border-border bg-background/60 p-4 text-xs leading-relaxed">{html}</pre>
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
