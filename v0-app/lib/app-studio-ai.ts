@@ -36,32 +36,61 @@ const X20_WOW_STYLE = `
 function isHtmlBuildRequest(message: string) { return /return\s+only[\s\S]{0,80}html/i.test(message) && /(index\.html|html document|html code|self-contained html)/i.test(message) }
 
 function x20FragmentInstruction(message: string, language: StudioLocale) {
-  return ["HEGEVA Build My App X20 compact application fragment generator.",`Visible UI language: ${language}.`,"Return ONLY compact semantic HTML markup for inside BODY.","IMPORTANT: start immediately with <main class=\"app\">.","For the working customer/data entry area you MUST use exactly: <form id=\"hx-form\">, an input id=\"hx-name\", a result container id=\"hx-list\", and a count element id=\"hx-count\".","Include at least one <section>, the required form, input and submit button.","Any extra Add Customer/Add Client action button may only navigate or focus the required hx-name form; do not invent unwired action buttons.","Do not output doctype, html, head, body, style, script, Markdown or explanation.","Do not return plain text. Every visible sentence must be inside HTML elements.","Build an application interface, not a landing page. Keep it under about 1400 characters so it finishes completely.","HEGEVA attaches verified local add/delete behaviour to the required hx-* elements.",`APP REQUEST:\n${message.slice(0, 1000)}`].join("\n\n")
+  return [
+    "HEGEVA Build My App X20 compact application fragment generator.",
+    `Visible UI language: ${language}.`,
+    "Return ONLY compact semantic HTML markup for inside BODY.",
+    "IMPORTANT: start immediately with <main class=\"app\">.",
+    "For the working customer/data entry area use EXACTLY ONE of each: <form id=\"hx-form\">, an input id=\"hx-name\", a result container id=\"hx-list\", and a count element id=\"hx-count\">.",
+    "The hx-name input must be inside hx-form. The form must contain at least one button for adding the item.",
+    "Any extra Add Customer/Add Client action button may only navigate or focus the required hx-name form; do not invent unwired action buttons.",
+    "Do not output doctype, html, head, body, style, script, Markdown or explanation.",
+    "Do not return plain text. Every visible sentence must be inside HTML elements.",
+    "Build an application interface, not a landing page. Keep it under about 1400 characters so it finishes completely.",
+    "HEGEVA attaches verified local add/delete behaviour to the required hx-* elements.",
+    `APP REQUEST:\n${message.slice(0, 1000)}`,
+  ].join("\n\n")
 }
 
 function cleanX20Fragment(value: string) {
   let fragment = stripCodeFence(value).trim()
   const bodyMatch = fragment.match(/<body(?:\s[^>]*)?>([\s\S]*?)(?:<\/body>|$)/i)
   if (bodyMatch) fragment = bodyMatch[1].trim()
-  fragment = fragment.replace(/<!doctype[^>]*>/gi, "").replace(/<\/?html(?:\s[^>]*)?>/gi, "").replace(/<head(?:\s[^>]*)?>[\s\S]*?<\/head>/gi, "").replace(/<\/?body(?:\s[^>]*)?>/gi, "").replace(/<script(?:\s[^>]*)?>[\s\S]*?<\/script>/gi, "").trim()
+  fragment = fragment
+    .replace(/<!doctype[^>]*>/gi, "")
+    .replace(/<\/?html(?:\s[^>]*)?>/gi, "")
+    .replace(/<head(?:\s[^>]*)?>[\s\S]*?<\/head>/gi, "")
+    .replace(/<\/?body(?:\s[^>]*)?>/gi, "")
+    .replace(/<script(?:\s[^>]*)?>[\s\S]*?<\/script>/gi, "")
+    .trim()
   return fragment
+}
+
+function countId(fragment: string, id: string) {
+  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  return (fragment.match(new RegExp(`id=["']${escaped}["']`, "gi")) || []).length
 }
 
 function meaningfulFragment(fragment: string) {
   const semantic = fragment.length >= 180 && /<(main|section|article|form)(?:\s|>)/i.test(fragment) && /<(button|input|textarea|select)(?:\s|>)/i.test(fragment)
-  const wiredContract = /id=["']hx-form["']/i.test(fragment) && /id=["']hx-name["']/i.test(fragment) && /id=["']hx-list["']/i.test(fragment) && /id=["']hx-count["']/i.test(fragment)
-  return semantic && wiredContract
+  const singleContract = ["hx-form", "hx-name", "hx-list", "hx-count"].every((id) => countId(fragment, id) === 1)
+  const formMatch = fragment.match(/<form\b[^>]*id=["']hx-form["'][^>]*>([\s\S]*?)<\/form>/i)
+  const formBody = formMatch?.[1] || ""
+  const wiredForm = /id=["']hx-name["']/i.test(formBody) && /<button\b/i.test(formBody)
+  return semantic && singleContract && wiredForm
 }
 
 function fallbackX20Fragment(language: StudioLocale) {
-  const t = language === "hu" ? {title:"Üzleti irányítópult",sub:"Kezeld a legfontosabb üzleti adatokat egy helyen.",dash:"Áttekintés",customers:"Ügyfelek",docs:"Dokumentumok",tasks:"Feladatok",name:"Név",add:"Hozzáadás",empty:"Még nincs mentett adat."} : {title:"Business dashboard",sub:"Manage your essential business data in one place.",dash:"Overview",customers:"Customers",docs:"Documents",tasks:"Tasks",name:"Name",add:"Add",empty:"No saved data yet."}
-  return `<main class="app"><header><h1>${t.title}</h1><p class="muted">${t.sub}</p></header><nav><a href="#overview">${t.dash}</a><a href="#customers">${t.customers}</a><a href="#documents">${t.docs}</a><a href="#tasks">${t.tasks}</a></nav><section id="overview"><h2>${t.dash}</h2><div class="grid"><article class="card"><h3>${t.customers}</h3><strong id="hx-count">0</strong></article><article class="card"><h3>${t.docs}</h3><strong>0</strong></article><article class="card"><h3>${t.tasks}</h3><strong>0</strong></article></div></section><section id="customers"><h2>${t.customers}</h2><form id="hx-form"><label>${t.name}<br><input id="hx-name" required></label> <button type="submit">${t.add}</button></form><div id="hx-list" class="card">${t.empty}</div></section></main>`
+  const t = language === "hu"
+    ? { title: "Üzleti irányítópult", sub: "Kezeld a legfontosabb üzleti adatokat egy helyen.", dash: "Áttekintés", customers: "Ügyfelek", docs: "Dokumentumok", tasks: "Feladatok", name: "Név", add: "Hozzáadás", empty: "Még nincs mentett adat." }
+    : { title: "Business dashboard", sub: "Manage your essential business data in one place.", dash: "Overview", customers: "Customers", docs: "Documents", tasks: "Tasks", name: "Name", add: "Add", empty: "No saved data yet." }
+  return `<main class="app"><header><h1>${t.title}</h1><p class="muted">${t.sub}</p></header><nav><a href="#overview">${t.dash}</a><a href="#customers">${t.customers}</a><a href="#documents">${t.docs}</a><a href="#tasks">${t.tasks}</a></nav><section id="overview"><h2>${t.dash}</h2><div class="grid"><article class="card"><h3>${t.customers}</h3><strong id="hx-count">0</strong></article><article class="card"><h3>${t.docs}</h3><strong>0</strong></article><article class="card"><h3>${t.tasks}</h3><strong>0</strong></article></div></section><section id="customers"><h2>${t.customers}</h2><form id="hx-form"><label>${t.name}<br><input id="hx-name" required autocomplete="off"></label> <button type="submit">${t.add}</button></form><div id="hx-list" class="card">${t.empty}</div></section></main>`
 }
 
-const X20_SAFE_SCRIPT = `<script data-hegeva-x20="safe-interactions">(()=>{const k='hegeva-x20-items',f=document.getElementById('hx-form'),i=document.getElementById('hx-name'),l=document.getElementById('hx-list'),c=document.getElementById('hx-count'),lang=document.documentElement.lang,empty=lang==='hu'?'Még nincs mentett adat.':'No saved data yet.';if(!f||!i||!l)return;let memory=[];const esc=x=>String(x).replace(/[&<>]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[s])),read=()=>{try{const v=JSON.parse(localStorage.getItem(k)||'[]');if(Array.isArray(v)){memory=v.slice();return v}}catch{}return memory.slice()},write=a=>{memory=a.slice();try{localStorage.setItem(k,JSON.stringify(a))}catch{}},draw=()=>{const a=read();if(c)c.textContent=String(a.length);l.innerHTML=a.length?a.map((x,n)=>'<p>'+esc(x)+' <button type="button" data-del="'+n+'">×</button></p>').join(''):empty};f.addEventListener('submit',e=>{e.preventDefault();const v=i.value.trim();if(!v){i.focus();return}const a=read();a.push(v);write(a);i.value='';draw()});l.addEventListener('click',e=>{const b=e.target instanceof Element?e.target.closest('[data-del]'):null;if(!b)return;const a=read();a.splice(Number(b.dataset.del),1);write(a);draw()});document.querySelectorAll('button').forEach(b=>{if(b.closest('#hx-form')||b.hasAttribute('data-del'))return;const txt=(b.textContent||'').trim().toLowerCase();if(/add customer|add client|new customer|new client|ügyfél hozzáadás|új ügyfél/.test(txt))b.addEventListener('click',()=>{f.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>i.focus(),180)})});draw()})()</script>`
+const X20_SAFE_SCRIPT = `<script data-hegeva-x20="safe-interactions">(()=>{const k='hegeva-x20-items',f=document.getElementById('hx-form'),i=document.getElementById('hx-name'),l=document.getElementById('hx-list'),c=document.getElementById('hx-count'),lang=document.documentElement.lang,empty=lang==='hu'?'Még nincs mentett adat.':'No saved data yet.';if(!f||!i||!l||!c)return;let memory=[];const esc=x=>String(x).replace(/[&<>]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[s])),read=()=>{try{const v=JSON.parse(localStorage.getItem(k)||'[]');if(Array.isArray(v)){memory=v.slice();return v.slice()}}catch{}return memory.slice()},write=a=>{memory=a.slice();try{localStorage.setItem(k,JSON.stringify(a))}catch{}},draw=()=>{const a=read();c.textContent=String(a.length);l.innerHTML=a.length?a.map((x,n)=>'<p>'+esc(x)+' <button type="button" data-del="'+n+'" aria-label="Delete">×</button></p>').join(''):empty},add=()=>{const v=i.value.trim();if(!v){i.focus();return}const a=read();a.push(v);write(a);i.value='';draw();i.focus()};f.addEventListener('submit',e=>{e.preventDefault();add()});f.addEventListener('click',e=>{const b=e.target instanceof Element?e.target.closest('button'):null;if(!b||!f.contains(b))return;e.preventDefault();add()});l.addEventListener('click',e=>{const b=e.target instanceof Element?e.target.closest('[data-del]'):null;if(!b)return;e.preventDefault();const a=read();const n=Number(b.getAttribute('data-del'));if(!Number.isInteger(n)||n<0||n>=a.length)return;a.splice(n,1);write(a);draw()});document.querySelectorAll('button').forEach(b=>{if(b.closest('#hx-form')||b.hasAttribute('data-del'))return;const txt=(b.textContent||'').trim().toLowerCase();if(/add customer|add client|new customer|new client|ügyfél hozzáadás|új ügyfél/.test(txt))b.addEventListener('click',e=>{e.preventDefault();f.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>i.focus(),180)})});draw()})()</script>`
 
 function wrapX20Fragment(fragment: string, language: StudioLocale) {
-  const safeLang = ["en","hu","de","fr","es"].includes(language) ? language : "en"
+  const safeLang = ["en", "hu", "de", "fr", "es"].includes(language) ? language : "en"
   return `<!doctype html>\n<html lang="${safeLang}">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>HEGEVA X20 App</title>\n${X20_WOW_STYLE}\n</head>\n<body>\n${fragment}\n${X20_SAFE_SCRIPT}\n</body>\n</html>`
 }
 
@@ -72,16 +101,95 @@ async function buildCompactX20(message: string, language: StudioLocale) {
 }
 
 async function requestStudioAI(message: string, language: StudioLocale) {
-  const controller = new AbortController(); const timeout = window.setTimeout(() => controller.abort(), 30000); const safeMessage = fitStudioMessage(message)
-  try { const response = await fetch("/api/chat",{method:"POST",credentials:"include",signal:controller.signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({message:safeMessage,history:[],language,mode:"general"})}); const data=await response.json().catch(()=>null); if(!response.ok) throw new Error(typeof data?.error==="string"&&data.error.trim()?data.error.trim():"HEGEVA AI is temporarily unavailable."); const answer=typeof data?.response==="string"?data.response.trim():""; if(!answer) throw new Error("HEGEVA AI returned an empty response."); return answer } catch(error){if(controller.signal.aborted) throw new Error("HEGEVA AI took too long to respond. Please try again."); throw error} finally {window.clearTimeout(timeout)}
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 30000)
+  const safeMessage = fitStudioMessage(message)
+  try {
+    const response = await fetch("/api/chat", { method: "POST", credentials: "include", signal: controller.signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: safeMessage, history: [], language, mode: "general" }) })
+    const data = await response.json().catch(() => null)
+    if (!response.ok) throw new Error(typeof data?.error === "string" && data.error.trim() ? data.error.trim() : "HEGEVA AI is temporarily unavailable.")
+    const answer = typeof data?.response === "string" ? data.response.trim() : ""
+    if (!answer) throw new Error("HEGEVA AI returned an empty response.")
+    return answer
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error("HEGEVA AI took too long to respond. Please try again.")
+    throw error
+  } finally {
+    window.clearTimeout(timeout)
+  }
 }
 
-async function repairHtml(html:string, originalMessage:string, language:StudioLocale, compact=false){const verification=verifyBrowserPrototype(html),issues=verificationIssues(verification);const instruction=[compact?"HEGEVA emergency compact repair.":"HEGEVA App Studio verification repair.",`Visible UI language: ${language}.`,"Return ONLY one complete compact self-contained HTML document.","Include meaningful application markup and real local button/form interaction. Inline JavaScript must parse. No external assets or fake external-service success.",`FAILED CHECKS: ${issues.join("; ")}`,`ORIGINAL TASK: ${originalMessage.slice(0,700)}`].join("\n\n");return closeSafeHtmlStructure(stripCodeFence(await requestStudioAI(instruction,language)))}
+async function repairHtml(html: string, originalMessage: string, language: StudioLocale, compact = false) {
+  const verification = verifyBrowserPrototype(html)
+  const issues = verificationIssues(verification)
+  const instruction = [
+    compact ? "HEGEVA emergency compact repair." : "HEGEVA App Studio verification repair.",
+    `Visible UI language: ${language}.`,
+    "Return ONLY one complete compact self-contained HTML document.",
+    "Include meaningful application markup and real local button/form interaction. Inline JavaScript must parse. No external assets or fake external-service success.",
+    `FAILED CHECKS: ${issues.join("; ")}`,
+    `ORIGINAL TASK: ${originalMessage.slice(0, 700)}`,
+  ].join("\n\n")
+  return closeSafeHtmlStructure(stripCodeFence(await requestStudioAI(instruction, language)))
+}
 
-export async function runStudioAI(message:string, language:StudioLocale){const x20=isX20Request(message),htmlRequest=isHtmlBuildRequest(message);if(x20&&htmlRequest){let html=await buildCompactX20(message,language);let verification=verifyBrowserPrototype(html);if(!verification.ok){html=closeSafeHtmlStructure(wrapX20Fragment(fallbackX20Fragment(language),language));verification=verifyBrowserPrototype(html)}if(!verification.ok)throw new Error(`HEGEVA X20 compact build failed: ${verificationIssues(verification).join("; ")}`);return html}const firstAnswer=await requestStudioAI(message,language);if(!htmlRequest)return firstAnswer;let html=closeSafeHtmlStructure(stripCodeFence(firstAnswer));let verification=verifyBrowserPrototype(html);if(!verification.ok){html=await repairHtml(html,message,language,false);verification=verifyBrowserPrototype(html)}if(!verification.ok){html=await repairHtml(html,message,language,true);verification=verifyBrowserPrototype(html)}if(!verification.ok)throw new Error(`HEGEVA verification failed after recovery: ${verificationIssues(verification).join("; ")}`);return html}
+export async function runStudioAI(message: string, language: StudioLocale) {
+  const x20 = isX20Request(message)
+  const htmlRequest = isHtmlBuildRequest(message)
+  if (x20 && htmlRequest) {
+    let html = await buildCompactX20(message, language)
+    let verification = verifyBrowserPrototype(html)
+    if (!verification.ok) {
+      html = closeSafeHtmlStructure(wrapX20Fragment(fallbackX20Fragment(language), language))
+      verification = verifyBrowserPrototype(html)
+    }
+    if (!verification.ok) throw new Error(`HEGEVA X20 compact build failed: ${verificationIssues(verification).join("; ")}`)
+    return html
+  }
 
-export function stripCodeFence(value:string){const trimmed=value.trim();const fenced=trimmed.match(/^```(?:html)?\s*([\s\S]*?)\s*```$/i);return(fenced?.[1]||trimmed).trim()}
-export function looksLikeHtmlDocument(value:string){return verifyBrowserPrototype(closeSafeHtmlStructure(value)).ok}
-export type VerifiedHtmlResult={html:string;attempts:number;autoRepaired:boolean}
-export async function runVerifiedStudioHtml(instruction:string,language:StudioLocale):Promise<VerifiedHtmlResult>{const html=closeSafeHtmlStructure(stripCodeFence(await runStudioAI(instruction,language)));const verification=verifyBrowserPrototype(html);if(!verification.ok)throw new Error(`HEGEVA verification failed: ${verificationIssues(verification).join("; ")}`);return{html,attempts:1,autoRepaired:false}}
-export function downloadTextFile(filename:string,content:string,type="text/plain;charset=utf-8"){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),anchor=document.createElement("a");anchor.href=url;anchor.download=filename;document.body.appendChild(anchor);anchor.click();anchor.remove();URL.revokeObjectURL(url)}
+  const firstAnswer = await requestStudioAI(message, language)
+  if (!htmlRequest) return firstAnswer
+  let html = closeSafeHtmlStructure(stripCodeFence(firstAnswer))
+  let verification = verifyBrowserPrototype(html)
+  if (!verification.ok) {
+    html = await repairHtml(html, message, language, false)
+    verification = verifyBrowserPrototype(html)
+  }
+  if (!verification.ok) {
+    html = await repairHtml(html, message, language, true)
+    verification = verifyBrowserPrototype(html)
+  }
+  if (!verification.ok) throw new Error(`HEGEVA verification failed after recovery: ${verificationIssues(verification).join("; ")}`)
+  return html
+}
+
+export function stripCodeFence(value: string) {
+  const trimmed = value.trim()
+  const fenced = trimmed.match(/^```(?:html)?\s*([\s\S]*?)\s*```$/i)
+  return (fenced?.[1] || trimmed).trim()
+}
+
+export function looksLikeHtmlDocument(value: string) {
+  return verifyBrowserPrototype(closeSafeHtmlStructure(value)).ok
+}
+
+export type VerifiedHtmlResult = { html: string; attempts: number; autoRepaired: boolean }
+
+export async function runVerifiedStudioHtml(instruction: string, language: StudioLocale): Promise<VerifiedHtmlResult> {
+  const html = closeSafeHtmlStructure(stripCodeFence(await runStudioAI(instruction, language)))
+  const verification = verifyBrowserPrototype(html)
+  if (!verification.ok) throw new Error(`HEGEVA verification failed: ${verificationIssues(verification).join("; ")}`)
+  return { html, attempts: 1, autoRepaired: false }
+}
+
+export function downloadTextFile(filename: string, content: string, type = "text/plain;charset=utf-8") {
+  const blob = new Blob([content], { type })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
+}
