@@ -38,10 +38,12 @@ export function useWorkspaceData<T>(type: string): {
   const [syncState, setSyncState] = useState<WorkspaceSyncState>("checking")
   const [syncError, setSyncError] = useState("")
   const readyToSave = useRef(false)
+  const skipNextSave = useRef(false)
 
   useEffect(() => {
     let cancelled = false
     readyToSave.current = false
+    skipNextSave.current = false
     setSyncError("")
 
     async function load() {
@@ -52,6 +54,7 @@ export function useWorkspaceData<T>(type: string): {
 
       if (!userId) {
         if (!cancelled) {
+          skipNextSave.current = true
           setItems(readLocal<T>(type, ownerKey))
           setSyncState("local")
           readyToSave.current = true
@@ -74,6 +77,7 @@ export function useWorkspaceData<T>(type: string): {
 
         const cloudItems = Array.isArray(payload?.data) ? payload.data as T[] : []
         if (!cancelled) {
+          skipNextSave.current = true
           setItems(cloudItems)
           writeLocal(type, ownerKey, cloudItems)
           setSyncState("cloud")
@@ -81,6 +85,7 @@ export function useWorkspaceData<T>(type: string): {
         }
       } catch (error) {
         if (!cancelled) {
+          skipNextSave.current = true
           setItems(readLocal<T>(type, ownerKey))
           setSyncState("error")
           setSyncError(error instanceof Error ? error.message : "Cloud sync is temporarily unavailable.")
@@ -97,6 +102,11 @@ export function useWorkspaceData<T>(type: string): {
 
   useEffect(() => {
     if (!readyToSave.current) return
+    if (skipNextSave.current) {
+      skipNextSave.current = false
+      return
+    }
+
     writeLocal(type, ownerKey, items)
 
     if (!userId) {
