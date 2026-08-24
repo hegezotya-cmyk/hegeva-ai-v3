@@ -7,7 +7,7 @@
     "db:migrations:local": "wrangler d1 migrations apply hegeva-ai-db --local",
     "db:migrations:list:remote": "wrangler d1 migrations list hegeva-ai-db --remote",
     "db:migrate:remote": "wrangler d1 migrations apply hegeva-ai-db --remote",
-    "worker:check": "node --check src/index-ledger.js && node --check src/index.js && node --check src/auth.js",
+    "worker:check": "node --check src/index-ledger.js && node --check src/index.js && node --check src/auth.js && node --check scripts/release-smoke.mjs",
     "deploy:dry-run": "wrangler deploy --dry-run",
     "deploy:api": "wrangler deploy",
     "deploy:ui": "npm --prefix v0-app run cf:deploy",
