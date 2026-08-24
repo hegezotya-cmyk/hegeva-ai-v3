@@ -2,9 +2,23 @@ import { verificationIssues, verifyBrowserPrototype } from "./app-studio-verify"
 
 export type StudioLocale = "en" | "hu" | "de" | "fr" | "es"
 
+const STUDIO_MESSAGE_LIMIT = 2400
+
+function fitStudioMessage(message: string) {
+  const value = message.trim()
+  if (value.length <= STUDIO_MESSAGE_LIMIT) return value
+
+  const marker = "\n\n[HEGEVA trimmed oversized context]\n\n"
+  const headLength = 1700
+  const tailLength = STUDIO_MESSAGE_LIMIT - headLength - marker.length
+
+  return `${value.slice(0, headLength)}${marker}${value.slice(-tailLength)}`
+}
+
 async function requestStudioAI(message: string, language: StudioLocale) {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), 30000)
+  const safeMessage = fitStudioMessage(message)
 
   try {
     const response = await fetch("/api/chat", {
@@ -15,7 +29,7 @@ async function requestStudioAI(message: string, language: StudioLocale) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        message,
+        message: safeMessage,
         history: [],
         language,
         mode: "general",
