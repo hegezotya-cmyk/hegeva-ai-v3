@@ -72,7 +72,9 @@ export function AuthPanel() {
 
         setSuccess(c.resetSent)
         return
-      } else if (mode === "register") {
+      }
+
+      if (mode === "register") {
         const result = await signUp.email({
           name: name.trim(),
           email: email.trim(),
@@ -95,7 +97,12 @@ export function AuthPanel() {
         }
       }
 
-      await authClient.getSession()
+      const verifiedSession = await authClient.getSession()
+      if (!verifiedSession.data?.user) {
+        setError(c.authFailed)
+        return
+      }
+
       router.push(safeCallbackURL())
       router.refresh()
     } catch {
