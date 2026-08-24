@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - x20-lab
+      - x20-wow-1
   workflow_dispatch:
 
 permissions:
