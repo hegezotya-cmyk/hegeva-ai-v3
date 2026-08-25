@@ -46,6 +46,7 @@ for (const capability of [
 
 assert(/auditX20Capabilities/.test(engine), 'Capability inspector must expose an audit function')
 assert(/buildX20CapabilityPrompt/.test(engine), 'Build-level capability prompt builder missing')
+assert(/auditX20Capabilities/.test(gate), 'Capability gate must use the real audit engine')
 assert(/evaluateX20BuildCandidate/.test(gate), 'Candidate gate missing')
 assert(/buildX20RetryInstruction/.test(gate), 'Capability retry instruction missing')
 assert(/chooseX20Candidate/.test(gate), 'Candidate chooser missing')
@@ -53,8 +54,8 @@ assert(/qualityOk\s*&&\s*audit\.passed/.test(gate), 'Gate must require quality A
 assert(/capabilityScore\s*\*\s*1000\s*\+\s*first\.quality/.test(gate), 'Candidate ranking must prioritize capability coverage')
 
 assert(/X20CapabilityStatus/.test(page), 'X20 page must render live capability status')
-assert(/auditX20Capabilities/.test(status), 'Live capability panel must use the real audit engine')
+assert(/evaluateX20BuildCandidate/.test(status), 'Live capability panel must use the real capability gate')
 assert(/hegeva:x20:studio:build-mode/.test(status), 'Capability panel must follow selected build level')
 assert(/hegeva:x20:studio:html/.test(status), 'Capability panel must inspect the current generated app')
 
-console.log('X20 capability audit passed: tier contracts, quality floors, gate, retry builder, ranking and live status are present')
+console.log('X20 capability audit passed: tier contracts, quality floors, real audit gate, retry builder, ranking and live status are present')
