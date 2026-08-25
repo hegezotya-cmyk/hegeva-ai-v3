@@ -1,5 +1,6 @@
 import { verificationIssues, verifyBrowserPrototype } from "./app-studio-verify"
 import { buildPremiumFallbackHtml } from "./app-studio-premium-fallback"
+import { applyHardcoreVisualPolish } from "./app-studio-hardcore-polish"
 
 export type StudioLocale = "en" | "hu" | "de" | "fr" | "es"
 
@@ -26,6 +27,7 @@ function closeSafeHtmlStructure(value: string) {
 }
 
 function isX20Request(message: string) { return /HEGEVA Build My App X20/i.test(message) }
+function isPremiumStudioRequest(message: string) { return /HEGEVA premium app generation engine/i.test(message) }
 
 const X20_WOW_STYLE = `
 <style data-hegeva-x20="wow-core">
@@ -140,6 +142,12 @@ async function repairHtml(html: string, originalMessage: string, language: Studi
   return closeSafeHtmlStructure(stripCodeFence(await requestStudioAI(instruction, language)))
 }
 
+function tryHardcorePolish(html: string, message: string) {
+  if (!isPremiumStudioRequest(message)) return html
+  const polished = closeSafeHtmlStructure(applyHardcoreVisualPolish(html))
+  return verifyBrowserPrototype(polished).ok ? polished : html
+}
+
 export async function runStudioAI(message: string, language: StudioLocale) {
   const x20 = isX20Request(message)
   const htmlRequest = isHtmlBuildRequest(message)
@@ -171,7 +179,7 @@ export async function runStudioAI(message: string, language: StudioLocale) {
     verification = verifyBrowserPrototype(html)
   }
   if (!verification.ok) throw new Error(`HEGEVA verification failed after recovery: ${verificationIssues(verification).join("; ")}`)
-  return html
+  return tryHardcorePolish(html, message)
 }
 
 export function stripCodeFence(value: string) {
