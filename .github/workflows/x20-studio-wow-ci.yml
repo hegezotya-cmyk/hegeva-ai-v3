@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - x20-studio-wow
+      - x20-growth-wow-2
   workflow_dispatch:
 
 permissions:
