@@ -109,10 +109,26 @@ async function buildCompactX20(message: string, language: StudioLocale) {
   return closeSafeHtmlStructure(wrapX20Fragment(fragment, language))
 }
 
+function withPremiumEditContract(message: string) {
+  if (!isPremiumStudioRequest(message)) return message
+  if (!/edit\s*\/\s*delete flows|add\s*\/\s*edit\s*\/\s*delete flows|create\s*\/\s*edit\s*\/\s*delete flows/i.test(message)) return message
+  const contract = [
+    "HEGEVA STRUCTURAL CRUD CONTRACT — IMPLEMENT THIS IN THE FIRST GENERATION, NOT AS A LATER REPAIR.",
+    "At least one core saved-record module MUST support complete Add → Edit → Save changes → Delete behaviour.",
+    "Render a visible Edit control on each saved record using a record-bound attribute such as data-edit=\"record-id\".",
+    "Wire a real JavaScript edit handler (for example dataset.edit / closest('[data-edit]')) that loads the selected record's current values into editable fields.",
+    "When Save changes is submitted, locate the SAME existing record by id/index using findIndex or equivalent, mutate/replace that record instead of appending a duplicate, call localStorage.setItem with the updated collection, then re-render immediately.",
+    "The edited value MUST still be present after reload. Delete must keep working after an edit.",
+    "Do not satisfy Edit with a label, comment, dead button, unused function, or a second Create action.",
+    "Mentally test this exact flow before returning HTML: create record → edit record → save → reload → edited value remains → delete record.",
+  ].join("\n")
+  return `${contract}\n\n${message}`
+}
+
 async function requestStudioAI(message: string, language: StudioLocale) {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), 30000)
-  const safeMessage = fitStudioMessage(message)
+  const safeMessage = fitStudioMessage(withPremiumEditContract(message))
   try {
     const response = await fetch("/api/chat", { method: "POST", credentials: "include", signal: controller.signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: safeMessage, history: [], language, mode: "general" }) })
     const data = await response.json().catch(() => null)
