@@ -6,6 +6,7 @@ on:
       - x20-studio-wow
       - x20-growth-wow-2
       - x20-growth-ux-wow-3
+      - x20-hardcore-wow-4
   workflow_dispatch:
 
 permissions:
