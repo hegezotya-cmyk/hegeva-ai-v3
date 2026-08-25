@@ -24,7 +24,7 @@ export default function BuildMyAppPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <strong className="text-base text-foreground">Build My App X20</strong>
-                <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] font-bold text-gold">PRO · BETA</span>
+                <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] font-bold text-gold">PRO</span>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">Need a deeper build? Move to X20 for larger connected workflows and stronger capability checks.</p>
             </div>
