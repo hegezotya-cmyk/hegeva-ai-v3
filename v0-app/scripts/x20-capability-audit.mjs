@@ -22,7 +22,7 @@ for (const capability of [
   'create',
   'delete',
 ]) {
-  assert(engine.includes(`\"${capability}\"`), `baseline capability missing: ${capability}`)
+  assert(engine.includes(`"${capability}"`), `baseline capability missing: ${capability}`)
 }
 
 for (const capability of [
@@ -32,7 +32,7 @@ for (const capability of [
   'status-workflow',
   'advanced-empty-states',
 ]) {
-  assert(engine.includes(`\"${capability}\"`), `premium capability missing: ${capability}`)
+  assert(engine.includes(`"${capability}"`), `premium capability missing: ${capability}`)
 }
 
 for (const capability of [
@@ -42,7 +42,7 @@ for (const capability of [
   'activity-history',
   'cross-module-actions',
 ]) {
-  assert(engine.includes(`\"${capability}\"`), `growth capability missing: ${capability}`)
+  assert(engine.includes(`"${capability}"`), `growth capability missing: ${capability}`)
 }
 
 assert(/auditX20Capabilities/.test(engine), 'Capability inspector must expose an audit function')
@@ -51,7 +51,7 @@ assert(/hasRealEditWorkflow/.test(engine), 'Edit capability must use a dedicated
 assert(/visibleEditControl/.test(engine), 'Edit detector must require a visible edit control')
 assert(/editHandler/.test(engine), 'Edit detector must require a wired edit handler')
 assert(/updatesExistingRecord/.test(engine), 'Edit detector must require mutation of an existing record')
-assert(/localStorage\.setItem/.test(engine), 'Edit detector must require persisted updated state')
+assert(engine.includes('const persists = has(html, /localStorage\\.setItem/i)'), 'Edit detector must require persisted updated state')
 assert(/MANDATORY EDIT CONTRACT/.test(engine), 'Growth prompt must explicitly require a real persisted edit workflow')
 assert(/Every capability listed in the REQUIRED capability contract must be implemented/.test(engine), 'Required capabilities must never be silently omitted')
 
