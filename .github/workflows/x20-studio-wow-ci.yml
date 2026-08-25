@@ -9,6 +9,7 @@ on:
       - x20-hardcore-wow-4
       - x20-hardcore-wow-5
       - x20-hardcore-wow-6
+      - x20-functional-audit-1
   workflow_dispatch:
 
 permissions:
@@ -34,8 +35,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: X20 runtime stability check
-        run: npm run x20:stability
+      - name: X20 full functional audit
+        run: npm run x20:audit
 
       - name: TypeScript check
         run: npx tsc --noEmit
