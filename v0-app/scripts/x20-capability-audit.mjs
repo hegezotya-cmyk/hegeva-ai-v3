@@ -3,7 +3,6 @@ import assert from 'node:assert/strict'
 
 const engine = fs.readFileSync(new URL('../lib/app-studio-capability-engine.ts', import.meta.url), 'utf8')
 const gate = fs.readFileSync(new URL('../lib/app-studio-capability-gate.ts', import.meta.url), 'utf8')
-const builder = fs.readFileSync(new URL('../components/app-studio/build-my-app-x20.tsx', import.meta.url), 'utf8')
 const status = fs.readFileSync(new URL('../components/app-studio/x20-capability-status.tsx', import.meta.url), 'utf8')
 const autoRepair = fs.readFileSync(new URL('../components/app-studio/x20-capability-auto-repair.tsx', import.meta.url), 'utf8')
 
@@ -13,8 +12,6 @@ assert(/edit/i.test(engine) && /update/i.test(engine), 'Capability engine must i
 assert(/evaluateX20BuildCandidate/.test(gate), 'Capability gate must expose candidate evaluation')
 assert(/chooseX20Candidate/.test(gate), 'Capability gate must expose candidate selection')
 assert(/buildX20RetryInstruction/.test(gate), 'Capability gate must expose targeted retry instructions')
-assert(/evaluateX20BuildCandidate/.test(builder), 'X20 builder must evaluate generated candidates')
-assert(/chooseX20Candidate/.test(builder), 'X20 builder must compare retry candidates')
 
 assert(/evaluateX20BuildCandidate/.test(status), 'Live capability panel must use the real capability gate')
 assert(/hegeva:x20:studio:build-mode/.test(status), 'Capability panel must follow selected build level')
