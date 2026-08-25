@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react"
 import { looksLikeHtmlDocument, runStudioAI, stripCodeFence, type StudioLocale } from "@/lib/app-studio-ai"
 import { buildX20RetryInstruction, chooseX20Candidate, evaluateX20BuildCandidate } from "@/lib/app-studio-capability-gate"
 import type { X20BuildMode } from "@/lib/app-studio-capability-engine"
+import { auditStudioSpecMatch, buildStudioSpecRepairInstruction } from "@/lib/app-studio-spec-match"
 
 const HTML_KEY = "hegeva:x20:studio:html"
 const IDEA_KEY = "hegeva:x20:studio:idea"
@@ -33,10 +34,11 @@ function localeFromDocument(): StudioLocale {
   return value === "hu" || value === "de" || value === "fr" || value === "es" ? value : "en"
 }
 
-function fingerprint(mode: X20BuildMode, html: string) {
+function fingerprint(mode: X20BuildMode, html: string, idea: string) {
   let hash = 2166136261
-  for (let i = 0; i < html.length; i += 1) {
-    hash ^= html.charCodeAt(i)
+  const source = `${idea}\n${html}`
+  for (let i = 0; i < source.length; i += 1) {
+    hash ^= source.charCodeAt(i)
     hash = Math.imul(hash, 16777619)
   }
   return `${mode}:${html.length}:${hash >>> 0}`
@@ -82,12 +84,15 @@ export function X20CapabilityAutoRepair() {
 
         const firstQuality = quality(html)
         const firstGate = evaluateX20BuildCandidate({ html, quality: firstQuality }, mode)
-        if (firstGate.accepted) {
+        const firstMatch = auditStudioSpecMatch(html, idea)
+        const specNeedsRepair = firstMatch.severeMismatch || firstMatch.score < 65
+
+        if (firstGate.accepted && !specNeedsRepair) {
           resetAttempts()
           return
         }
 
-        const key = fingerprint(mode, html)
+        const key = fingerprint(mode, html, idea)
         const attempts = readAttempts(key)
         if (attempts >= MAX_REPAIR_ATTEMPTS) return
         if (localStorage.getItem(REPAIR_KEY) === key && attempts > 0) return
@@ -97,13 +102,15 @@ export function X20CapabilityAutoRepair() {
         running.current = true
 
         const instruction = [
-          buildX20RetryInstruction(mode, idea, html, firstQuality),
+          !firstGate.accepted ? buildX20RetryInstruction(mode, idea, html, firstQuality) : "HEGEVA X20 build-level contract is currently acceptable; preserve its working capabilities while repairing request fidelity.",
+          specNeedsRepair ? buildStudioSpecRepairInstruction(idea, firstMatch) : "",
           firstGate.missingRequired.length
             ? `CRITICAL: implement these missing capabilities as REAL WORKING FLOWS, not labels or decorative controls: ${firstGate.missingRequired.join(", ")}.`
-            : "CRITICAL: raise the build to the required capability contract with real working interactions.",
+            : "",
           "If edit is missing, add a real edit/update action that lets the user modify an existing saved record and persists the updated value.",
-          "Do not remove working modules to satisfy the repair. Preserve existing CRUD, persistence, calculations and navigation.",
-        ].join("\n\n")
+          "Do not remove working modules merely to satisfy the repair. Preserve useful CRUD, persistence, calculations and navigation that belong to the customer's actual request.",
+          `REQUEST MATCH BEFORE REPAIR: ${firstMatch.score}%. Missing concepts: ${firstMatch.missing.slice(0, 8).join(", ") || "none"}.`,
+        ].filter(Boolean).join("\n\n")
 
         const retryHtml = stripCodeFence(await runStudioAI(instruction, localeFromDocument()))
         if (!looksLikeHtmlDocument(retryHtml)) {
@@ -111,31 +118,35 @@ export function X20CapabilityAutoRepair() {
           return
         }
 
-        const chosen = chooseX20Candidate(
+        const retryQuality = quality(retryHtml)
+        const retryGate = evaluateX20BuildCandidate({ html: retryHtml, quality: retryQuality }, mode)
+        const retryMatch = auditStudioSpecMatch(retryHtml, idea)
+        const capabilityChoice = chooseX20Candidate(
           { html, quality: firstQuality },
-          { html: retryHtml, quality: quality(retryHtml) },
+          { html: retryHtml, quality: retryQuality },
           mode,
         )
 
-        const improved = chosen.candidate.html !== html && (
-          chosen.gate.accepted ||
-          chosen.gate.capabilityScore > firstGate.capabilityScore ||
-          chosen.gate.missingRequired.length < firstGate.missingRequired.length
+        const specImproved = retryMatch.score >= firstMatch.score + 10 && retryGate.missingRequired.length <= firstGate.missingRequired.length
+        const capabilityImproved = capabilityChoice.candidate.html === retryHtml && (
+          retryGate.accepted ||
+          retryGate.capabilityScore > firstGate.capabilityScore ||
+          retryGate.missingRequired.length < firstGate.missingRequired.length
         )
+        const retryIsSafe = retryGate.capabilityScore >= Math.max(55, firstGate.capabilityScore - 5)
+        const improved = retryIsSafe && (capabilityImproved || specImproved)
 
         if (improved) {
-          localStorage.setItem(HTML_KEY, chosen.candidate.html)
-          localStorage.setItem(MODE_KEY, `${mode} capability repair`)
+          localStorage.setItem(HTML_KEY, retryHtml)
+          localStorage.setItem(MODE_KEY, `${mode} capability/spec repair`)
           resetAttempts()
           if (!cancelled) window.location.reload()
           return
         }
 
-        // Allow one more targeted retry for the same build instead of permanently locking the repair loop.
         localStorage.removeItem(REPAIR_KEY)
       } catch {
         try { localStorage.removeItem(REPAIR_KEY) } catch {}
-        // The normal Studio build remains usable even if the optional repair pass fails.
       } finally {
         running.current = false
       }
