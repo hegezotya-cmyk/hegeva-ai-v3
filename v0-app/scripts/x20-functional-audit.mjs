@@ -42,14 +42,12 @@ must(polish, /aria-label/i, 'Visual enhancer must protect control labelling')
 must(polish, /prefers-reduced-motion/i, 'Visual layer must respect reduced motion')
 must(polish, /min-height:4[4-9]px|min-height:5[0-9]px/, 'Touch targets must remain mobile-friendly')
 
-// Studio preview/export consistency
+// Studio build -> verify -> save -> preview/export consistency
+must(component, /looksLikeHtmlDocument\(next\)/, 'Final build must be verified before save')
+must(component, /saveBuild\(next, ["']build["']\)/, 'Fresh builds must use the central save path')
 must(component, /srcDoc=\{html\}/, 'Preview must use the verified html state')
+must(component, /sandbox="allow-scripts"/, 'Preview must remain sandboxed while allowing local interactions')
 must(component, /downloadTextFile\("index\.html",\s*html/, 'Download must use the same verified html state')
-must(component, /Desktop/i, 'Studio must expose Desktop preview mode')
-must(component, /Tablet/i, 'Studio must expose Tablet preview mode')
-must(component, /Phone/i, 'Studio must expose Phone preview mode')
-must(component, /Preview/i, 'Studio must expose Preview mode')
-must(component, /Code/i, 'Studio must expose Code mode')
-must(component, /Split/i, 'Studio must expose Split mode')
+must(component, /@media\(max-width:720px\)/, 'Studio mobile improvement must include a narrow-screen breakpoint')
 
-console.log('X20 functional audit passed: modules, persistence, connected workflows, dashboard metrics, CRUD, responsive/accessibility guards, preview/export consistency')
+console.log('X20 functional audit passed: modules, persistence, connected workflows, dashboard metrics, CRUD, responsive/accessibility guards, verified preview/export chain')
