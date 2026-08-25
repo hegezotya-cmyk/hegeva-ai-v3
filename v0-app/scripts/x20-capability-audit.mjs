@@ -47,12 +47,23 @@ for (const capability of [
 
 assert(/auditX20Capabilities/.test(engine), 'Capability inspector must expose an audit function')
 assert(/buildX20CapabilityPrompt/.test(engine), 'Build-level capability prompt builder missing')
+assert(/hasRealEditWorkflow/.test(engine), 'Edit capability must use a dedicated real-workflow detector')
+assert(/visibleEditControl/.test(engine), 'Edit detector must require a visible edit control')
+assert(/editHandler/.test(engine), 'Edit detector must require a wired edit handler')
+assert(/updatesExistingRecord/.test(engine), 'Edit detector must require mutation of an existing record')
+assert(/localStorage\.setItem/.test(engine), 'Edit detector must require persisted updated state')
+assert(/MANDATORY EDIT CONTRACT/.test(engine), 'Growth prompt must explicitly require a real persisted edit workflow')
+assert(/Every capability listed in the REQUIRED capability contract must be implemented/.test(engine), 'Required capabilities must never be silently omitted')
+
 assert(/auditX20Capabilities/.test(gate), 'Capability gate must use the real audit engine')
 assert(/evaluateX20BuildCandidate/.test(gate), 'Candidate gate missing')
 assert(/buildX20RetryInstruction/.test(gate), 'Capability retry instruction missing')
 assert(/chooseX20Candidate/.test(gate), 'Candidate chooser missing')
 assert(/qualityOk\s*&&\s*audit\.passed/.test(gate), 'Gate must require quality AND capability pass')
 assert(/capabilityScore\s*\*\s*1000\s*\+\s*first\.quality/.test(gate), 'Candidate ranking must prioritize capability coverage')
+assert(/EDIT REPAIR IS MANDATORY/.test(gate), 'Repair prompt must explicitly target missing edit capability')
+assert(/UPDATE THE SAME EXISTING RECORD/.test(gate), 'Edit repair must require update rather than duplicate create')
+assert(/data-edit/.test(gate), 'Edit repair must require a concrete record-bound edit control')
 
 assert(/X20CapabilityStatus/.test(page), 'X20 page must render live capability status')
 assert(/X20CapabilityAutoRepair/.test(page), 'X20 page must mount automatic capability repair')
@@ -77,4 +88,4 @@ assert(/localStorage\.removeItem\(REPAIR_KEY\)/.test(autoRepair), 'Auto repair m
 assert(/looksLikeHtmlDocument\(retryHtml\)/.test(autoRepair), 'Auto repair retry HTML must be verified before selection')
 assert(/localStorage\.setItem\(HTML_KEY, chosen\.candidate\.html\)/.test(autoRepair), 'Accepted repaired candidate must replace the saved build')
 
-console.log('X20 capability audit passed: tier contracts, quality floors, real audit gate, bounded targeted retries, measurable repair improvement, live status and automatic repair are wired')
+console.log('X20 capability audit passed: required tiers, strict persisted edit workflow, targeted repair, bounded retries, measurable improvement and live status are wired')
