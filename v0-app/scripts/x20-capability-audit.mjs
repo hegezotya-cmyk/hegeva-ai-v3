@@ -5,6 +5,7 @@ const engine = fs.readFileSync(new URL('../lib/app-studio-capability-engine.ts',
 const gate = fs.readFileSync(new URL('../lib/app-studio-capability-gate.ts', import.meta.url), 'utf8')
 const page = fs.readFileSync(new URL('../app/app-studio/build-my-app-x20/page.tsx', import.meta.url), 'utf8')
 const status = fs.readFileSync(new URL('../components/app-studio/x20-capability-status.tsx', import.meta.url), 'utf8')
+const autoRepair = fs.readFileSync(new URL('../components/app-studio/x20-capability-auto-repair.tsx', import.meta.url), 'utf8')
 
 for (const mode of ['starter', 'premium', 'growth']) {
   assert(new RegExp(`\\b${mode}:\\s*\\{`).test(engine), `${mode} capability profile missing`)
@@ -54,8 +55,16 @@ assert(/qualityOk\s*&&\s*audit\.passed/.test(gate), 'Gate must require quality A
 assert(/capabilityScore\s*\*\s*1000\s*\+\s*first\.quality/.test(gate), 'Candidate ranking must prioritize capability coverage')
 
 assert(/X20CapabilityStatus/.test(page), 'X20 page must render live capability status')
+assert(/X20CapabilityAutoRepair/.test(page), 'X20 page must mount automatic capability repair')
 assert(/evaluateX20BuildCandidate/.test(status), 'Live capability panel must use the real capability gate')
 assert(/hegeva:x20:studio:build-mode/.test(status), 'Capability panel must follow selected build level')
 assert(/hegeva:x20:studio:html/.test(status), 'Capability panel must inspect the current generated app')
 
-console.log('X20 capability audit passed: tier contracts, quality floors, real audit gate, retry builder, ranking and live status are present')
+assert(/buildX20RetryInstruction/.test(autoRepair), 'Auto repair must build a targeted capability retry instruction')
+assert(/chooseX20Candidate/.test(autoRepair), 'Auto repair must compare original and retry candidates')
+assert(/evaluateX20BuildCandidate/.test(autoRepair), 'Auto repair must gate the original candidate before retrying')
+assert(/REPAIR_KEY/.test(autoRepair), 'Auto repair must guard against repeated retry loops')
+assert(/looksLikeHtmlDocument\(retryHtml\)/.test(autoRepair), 'Auto repair retry HTML must be verified before selection')
+assert(/localStorage\.setItem\(HTML_KEY, chosen\.candidate\.html\)/.test(autoRepair), 'Accepted repaired candidate must replace the saved build')
+
+console.log('X20 capability audit passed: tier contracts, quality floors, real audit gate, targeted retry, candidate ranking, live status and automatic repair are wired')
