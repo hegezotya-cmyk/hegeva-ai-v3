@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { looksLikeHtmlDocument, runStudioAI, stripCodeFence, type StudioLocale } from "@/lib/app-studio-ai"
-import { buildX20RetryInstruction, chooseX20Candidate, evaluateX20BuildCandidate } from "@/lib/app-studio-capability-gate"
+import { buildX20RetryInstruction, evaluateX20BuildCandidate } from "@/lib/app-studio-capability-gate"
 import type { X20BuildMode } from "@/lib/app-studio-capability-engine"
 import { auditStudioSpecMatch, buildStudioSpecRepairInstruction } from "@/lib/app-studio-spec-match"
 
@@ -51,15 +51,11 @@ function readAttempts(key: string) {
     if (!raw) return 0
     const parsed = JSON.parse(raw) as { key?: string; attempts?: number }
     return parsed.key === key && Number.isFinite(parsed.attempts) ? Math.max(0, parsed.attempts || 0) : 0
-  } catch {
-    return 0
-  }
+  } catch { return 0 }
 }
 
 function writeAttempts(key: string, attempts: number) {
-  try {
-    localStorage.setItem(REPAIR_ATTEMPTS_KEY, JSON.stringify({ key, attempts }))
-  } catch {}
+  try { localStorage.setItem(REPAIR_ATTEMPTS_KEY, JSON.stringify({ key, attempts })) } catch {}
 }
 
 function resetAttempts() {
@@ -67,6 +63,19 @@ function resetAttempts() {
     localStorage.removeItem(REPAIR_KEY)
     localStorage.removeItem(REPAIR_ATTEMPTS_KEY)
   } catch {}
+}
+
+function candidateRank(html: string, idea: string, mode: X20BuildMode) {
+  const q = quality(html)
+  const gate = evaluateX20BuildCandidate({ html, quality: q }, mode)
+  const spec = auditStudioSpecMatch(html, idea)
+  const acceptedBonus = gate.accepted && spec.score >= MIN_REQUEST_MATCH ? 100000 : 0
+  return {
+    q,
+    gate,
+    spec,
+    rank: acceptedBonus + spec.score * 1000 + gate.capabilityScore * 10 + q - gate.missingRequired.length * 250,
+  }
 }
 
 export function X20CapabilityAutoRepair() {
@@ -83,12 +92,8 @@ export function X20CapabilityAutoRepair() {
         const mode = selectedMode(localStorage.getItem(BUILD_KEY))
         if (!idea || !looksLikeHtmlDocument(html)) return
 
-        const firstQuality = quality(html)
-        const firstGate = evaluateX20BuildCandidate({ html, quality: firstQuality }, mode)
-        const firstMatch = auditStudioSpecMatch(html, idea)
-        const specNeedsRepair = firstMatch.severeMismatch || firstMatch.score < MIN_REQUEST_MATCH
-
-        if (firstGate.accepted && !specNeedsRepair) {
+        const base = candidateRank(html, idea, mode)
+        if (base.gate.accepted && base.spec.score >= MIN_REQUEST_MATCH) {
           resetAttempts()
           return
         }
@@ -96,53 +101,44 @@ export function X20CapabilityAutoRepair() {
         const key = fingerprint(mode, html, idea)
         const attempts = readAttempts(key)
         if (attempts >= MAX_REPAIR_ATTEMPTS) return
-        if (localStorage.getItem(REPAIR_KEY) === key && attempts > 0) return
+        if (localStorage.getItem(REPAIR_KEY) === key) return
 
         localStorage.setItem(REPAIR_KEY, key)
-        writeAttempts(key, attempts + 1)
         running.current = true
 
-        const instruction = [
-          !firstGate.accepted ? buildX20RetryInstruction(mode, idea, html, firstQuality) : "HEGEVA X20 build-level contract is currently acceptable; preserve its working capabilities while repairing request fidelity.",
-          specNeedsRepair ? buildStudioSpecRepairInstruction(idea, firstMatch) : "",
-          "X20 PRO FIDELITY RULE: the repaired app must visibly use the customer's requested domain, records, fields, navigation and workflows. Generic CRM/Business OS modules are forbidden unless explicitly requested.",
-          `TARGET REQUEST MATCH: at least ${MIN_REQUEST_MATCH}%. Current request match: ${firstMatch.score}%.`,
-          firstGate.missingRequired.length
-            ? `CRITICAL: implement these missing capabilities as REAL WORKING FLOWS, not labels or decorative controls: ${firstGate.missingRequired.join(", ")}.`
-            : "",
-          "If edit is missing, add a real edit/update action that lets the user modify an existing saved record and persists the updated value.",
-          "Do not remove working modules that actually belong to the customer request. Replace unrelated generic modules with requested domain-specific ones.",
-          `REQUEST MATCH BEFORE REPAIR: ${firstMatch.score}%. Missing concepts: ${firstMatch.missing.slice(0, 10).join(", ") || "none"}.`,
-        ].filter(Boolean).join("\n\n")
+        let bestHtml = html
+        let best = base
+        let usedAttempts = attempts
 
-        const retryHtml = stripCodeFence(await runStudioAI(instruction, localeFromDocument()))
-        if (!looksLikeHtmlDocument(retryHtml)) {
-          localStorage.removeItem(REPAIR_KEY)
-          return
+        while (usedAttempts < MAX_REPAIR_ATTEMPTS && !cancelled) {
+          usedAttempts += 1
+          writeAttempts(key, usedAttempts)
+          const instruction = [
+            !best.gate.accepted
+              ? buildX20RetryInstruction(mode, idea, bestHtml, best.q)
+              : "HEGEVA X20 capability contract passes. Preserve all working capabilities while repairing request fidelity.",
+            best.spec.score < MIN_REQUEST_MATCH || best.spec.severeMismatch ? buildStudioSpecRepairInstruction(idea, best.spec) : "",
+            "X20 PRO FIDELITY RULE: the app must visibly implement the customer's requested domain, records, fields, navigation and workflows. Generic CRM, Business OS, invoicing or unrelated modules are forbidden unless explicitly requested.",
+            `TARGET REQUEST MATCH: at least ${MIN_REQUEST_MATCH}%. Current best: ${best.spec.score}%.`,
+            best.gate.missingRequired.length ? `MANDATORY WORKING CAPABILITIES STILL MISSING: ${best.gate.missingRequired.join(", ")}.` : "",
+            `MISSING REQUEST CONCEPTS: ${best.spec.missing.slice(0, 14).join(", ") || "none"}.`,
+            "Do not merely mention missing concepts. Represent them in the actual data model, form fields, navigation and working interactions where the request requires them.",
+            "Return ONLY one complete self-contained index.html with inline CSS and vanilla JavaScript.",
+          ].filter(Boolean).join("\n\n")
+
+          const retryHtml = stripCodeFence(await runStudioAI(instruction, localeFromDocument()))
+          if (!looksLikeHtmlDocument(retryHtml)) continue
+          const retry = candidateRank(retryHtml, idea, mode)
+          if (retry.rank > best.rank) {
+            bestHtml = retryHtml
+            best = retry
+          }
+          if (best.gate.accepted && best.spec.score >= MIN_REQUEST_MATCH) break
         }
 
-        const retryQuality = quality(retryHtml)
-        const retryGate = evaluateX20BuildCandidate({ html: retryHtml, quality: retryQuality }, mode)
-        const retryMatch = auditStudioSpecMatch(retryHtml, idea)
-        const capabilityChoice = chooseX20Candidate(
-          { html, quality: firstQuality },
-          { html: retryHtml, quality: retryQuality },
-          mode,
-        )
-
-        const specImproved = retryMatch.score >= firstMatch.score + 8 && retryGate.missingRequired.length <= firstGate.missingRequired.length
-        const capabilityImproved = capabilityChoice.candidate.html === retryHtml && (
-          retryGate.accepted ||
-          retryGate.capabilityScore > firstGate.capabilityScore ||
-          retryGate.missingRequired.length < firstGate.missingRequired.length
-        )
-        const retryIsSafe = retryGate.capabilityScore >= Math.max(55, firstGate.capabilityScore - 8)
-        const strongEnough = retryMatch.score >= MIN_REQUEST_MATCH && retryGate.missingRequired.length <= firstGate.missingRequired.length
-        const improved = retryIsSafe && (strongEnough || capabilityImproved || specImproved)
-
-        if (improved) {
-          localStorage.setItem(HTML_KEY, retryHtml)
-          localStorage.setItem(MODE_KEY, `${mode} capability/spec repair`)
+        if (bestHtml !== html && best.rank > base.rank) {
+          localStorage.setItem(HTML_KEY, bestHtml)
+          localStorage.setItem(MODE_KEY, `${mode} best-of-${usedAttempts} capability/spec repair`)
           resetAttempts()
           if (!cancelled) window.location.reload()
           return
