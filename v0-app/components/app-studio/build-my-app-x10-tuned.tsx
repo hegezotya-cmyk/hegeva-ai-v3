@@ -9,6 +9,9 @@ import { auditStudioSpecMatch } from "@/lib/app-studio-spec-match"
 type ViewMode = "preview" | "code"
 type DeviceMode = "desktop" | "tablet" | "mobile"
 
+const X10_MIN_REQUEST_MATCH = 75
+const X10_MAX_ATTEMPTS = 3
+
 function audit(html: string, idea: string) {
   const spec = auditStudioSpecMatch(html, idea)
   const checks = [
@@ -20,24 +23,27 @@ function audit(html: string, idea: string) {
     ["Accessible", /aria-label|<label\b/i.test(html)],
   ] as const
   const capabilityScore = html ? Math.round((checks.filter(([, ok]) => ok).length / checks.length) * 100) : 0
-  return { checks, ...spec, specScore: spec.score, capabilityScore }
+  const buildScore = html ? Math.min(capabilityScore, spec.score) : 0
+  return { checks, ...spec, specScore: spec.score, capabilityScore, buildScore }
 }
 
-function instruction(idea: string, locale: string, missing: string[] = []) {
+function instruction(idea: string, locale: string, missing: string[] = [], previousScore?: number) {
   return [
     "You are the HEGEVA Build My App X10 premium browser-app engine.",
     `Visible UI language: ${locale}.`,
     "Create one polished, genuinely working self-contained index.html with inline CSS and vanilla JavaScript.",
     "Build the CUSTOMER'S ACTUAL REQUEST. Do not replace a specific domain request with a generic CRM, dashboard, Business OS, invoice app or template unless the customer explicitly asked for that.",
-    "Preserve the customer's important domain nouns, entities and workflows in the visible UI and data model.",
+    "Preserve the customer's important domain nouns, entities, fields and workflows in the visible UI, navigation, forms, state model and working interactions.",
     "X10 should be focused rather than huge: 2-4 meaningful product areas with one excellent end-to-end workflow.",
     "Every visible primary button and form must work locally. Use real add/update/delete/search/filter/calculation behavior when relevant to the request.",
     "Persist useful user-created data with localStorage when appropriate.",
     "Use strong premium SaaS UX, responsive mobile layout, clear hierarchy, helpful empty states and accessible labels.",
     "Do not fake server authentication, payments, cloud database, email or external API success. Mark external integrations honestly when they cannot run locally.",
-    missing.length ? `PREVIOUS BUILD MISSED THESE REQUEST TERMS. The new build must visibly and functionally include them where relevant: ${missing.join(", ")}.` : "",
+    previousScore !== undefined ? `PREVIOUS REQUEST MATCH: ${previousScore}%. This is below the X10 target of ${X10_MIN_REQUEST_MATCH}%. Rebuild around the customer's actual domain instead of preserving unrelated generic modules.` : "",
+    missing.length ? `PREVIOUS BUILD MISSED THESE REQUEST CONCEPTS. The new build must visibly and functionally implement them where relevant: ${missing.join(", ")}. Do not merely mention these words in headings or comments.` : "",
+    "Before returning, mentally verify that the main records, form fields, navigation labels and actions are specific to the customer's request rather than a generic business template.",
     "Return ONLY the complete HTML document. No Markdown fences or explanation.",
-    `CUSTOMER REQUEST:\n${idea.slice(0, 1400)}`,
+    `CUSTOMER REQUEST:\n${idea.slice(0, 1600)}`,
   ].filter(Boolean).join("\n\n")
 }
 
@@ -67,20 +73,32 @@ export function BuildMyAppX10Tuned() {
     setBusy(true)
     setError("")
     try {
-      let next = stripCodeFence(await runStudioAI(instruction(request, locale), locale as StudioLocale))
-      if (!looksLikeHtmlDocument(next)) throw new Error("HEGEVA could not verify this X10 build.")
-      let check = audit(next, request)
-      if (check.specScore < 65) {
-        const retry = stripCodeFence(await runStudioAI(instruction(request, locale, check.missing.slice(0, 8)), locale as StudioLocale))
-        if (looksLikeHtmlDocument(retry)) {
-          const retryCheck = audit(retry, request)
-          if (retryCheck.specScore > check.specScore || (retryCheck.specScore >= check.specScore && retryCheck.capabilityScore > check.capabilityScore)) {
-            next = retry
-            check = retryCheck
-          }
+      let bestHtml = ""
+      let bestCheck: ReturnType<typeof audit> | null = null
+      let missing: string[] = []
+      let previousScore: number | undefined
+
+      for (let attempt = 0; attempt < X10_MAX_ATTEMPTS; attempt += 1) {
+        const candidate = stripCodeFence(await runStudioAI(instruction(request, locale, missing, previousScore), locale as StudioLocale))
+        if (!looksLikeHtmlDocument(candidate)) continue
+        const candidateCheck = audit(candidate, request)
+        if (!bestCheck || candidateCheck.specScore > bestCheck.specScore || (candidateCheck.specScore === bestCheck.specScore && candidateCheck.capabilityScore > bestCheck.capabilityScore)) {
+          bestHtml = candidate
+          bestCheck = candidateCheck
         }
+        if (candidateCheck.specScore >= X10_MIN_REQUEST_MATCH && candidateCheck.capabilityScore >= 67) break
+        missing = candidateCheck.missing.slice(0, 14)
+        previousScore = candidateCheck.specScore
       }
-      setHtml(next)
+
+      if (!bestCheck || !bestHtml) throw new Error("HEGEVA could not verify this X10 build.")
+      if (bestCheck.specScore < X10_MIN_REQUEST_MATCH) {
+        setHtml(bestHtml)
+        setView("preview")
+        throw new Error(`X10 did not pass request verification (${bestCheck.specScore}%/${X10_MIN_REQUEST_MATCH}%). The best attempt is shown for inspection, but it is not accepted as a finished build.`)
+      }
+
+      setHtml(bestHtml)
       setView("preview")
     } catch (e) {
       setError(e instanceof Error ? e.message : "HEGEVA X10 build failed.")
@@ -95,7 +113,7 @@ export function BuildMyAppX10Tuned() {
         <p className="text-xs font-black uppercase tracking-[.24em] text-primary">{c.eyebrow}</p>
         <div className="mt-3 grid gap-7 xl:grid-cols-[1.2fr_.8fr] xl:items-end">
           <div><h1 className="max-w-4xl text-4xl font-black tracking-[-.05em] text-foreground sm:text-6xl">{c.title}</h1><p className="mt-4 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">{c.sub}</p></div>
-          <div className="grid grid-cols-2 gap-3"><div className="rounded-2xl border border-primary/20 bg-primary/8 p-4"><span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">{c.request}</span><strong className="mt-1 block text-3xl text-primary">{html ? result.specScore : 0}%</strong></div><div className="rounded-2xl border border-gold/20 bg-gold/8 p-4"><span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">{c.health}</span><strong className="mt-1 block text-3xl text-gold">{html ? result.capabilityScore : 0}%</strong></div></div>
+          <div className="grid grid-cols-2 gap-3"><div className="rounded-2xl border border-primary/20 bg-primary/8 p-4"><span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">{c.request}</span><strong className="mt-1 block text-3xl text-primary">{html ? result.specScore : 0}%</strong></div><div className="rounded-2xl border border-gold/20 bg-gold/8 p-4"><span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">{c.health}</span><strong className="mt-1 block text-3xl text-gold">{html ? result.buildScore : 0}%</strong></div></div>
         </div>
       </section>
 
