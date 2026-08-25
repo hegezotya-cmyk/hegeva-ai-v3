@@ -12,7 +12,8 @@ const BUILD_KEY = "hegeva:x20:studio:build-mode"
 const MODE_KEY = "hegeva:x20:studio:mode"
 const REPAIR_KEY = "hegeva:x20:capability-repair-key"
 const REPAIR_ATTEMPTS_KEY = "hegeva:x20:capability-repair-attempts"
-const MAX_REPAIR_ATTEMPTS = 2
+const MAX_REPAIR_ATTEMPTS = 3
+const MIN_REQUEST_MATCH = 80
 
 function quality(html: string) {
   const controls = (html.match(/<(button|input|select|textarea)\b/gi) || []).length
@@ -85,7 +86,7 @@ export function X20CapabilityAutoRepair() {
         const firstQuality = quality(html)
         const firstGate = evaluateX20BuildCandidate({ html, quality: firstQuality }, mode)
         const firstMatch = auditStudioSpecMatch(html, idea)
-        const specNeedsRepair = firstMatch.severeMismatch || firstMatch.score < 65
+        const specNeedsRepair = firstMatch.severeMismatch || firstMatch.score < MIN_REQUEST_MATCH
 
         if (firstGate.accepted && !specNeedsRepair) {
           resetAttempts()
@@ -104,12 +105,14 @@ export function X20CapabilityAutoRepair() {
         const instruction = [
           !firstGate.accepted ? buildX20RetryInstruction(mode, idea, html, firstQuality) : "HEGEVA X20 build-level contract is currently acceptable; preserve its working capabilities while repairing request fidelity.",
           specNeedsRepair ? buildStudioSpecRepairInstruction(idea, firstMatch) : "",
+          "X20 PRO FIDELITY RULE: the repaired app must visibly use the customer's requested domain, records, fields, navigation and workflows. Generic CRM/Business OS modules are forbidden unless explicitly requested.",
+          `TARGET REQUEST MATCH: at least ${MIN_REQUEST_MATCH}%. Current request match: ${firstMatch.score}%.`,
           firstGate.missingRequired.length
             ? `CRITICAL: implement these missing capabilities as REAL WORKING FLOWS, not labels or decorative controls: ${firstGate.missingRequired.join(", ")}.`
             : "",
           "If edit is missing, add a real edit/update action that lets the user modify an existing saved record and persists the updated value.",
-          "Do not remove working modules merely to satisfy the repair. Preserve useful CRUD, persistence, calculations and navigation that belong to the customer's actual request.",
-          `REQUEST MATCH BEFORE REPAIR: ${firstMatch.score}%. Missing concepts: ${firstMatch.missing.slice(0, 8).join(", ") || "none"}.`,
+          "Do not remove working modules that actually belong to the customer request. Replace unrelated generic modules with requested domain-specific ones.",
+          `REQUEST MATCH BEFORE REPAIR: ${firstMatch.score}%. Missing concepts: ${firstMatch.missing.slice(0, 10).join(", ") || "none"}.`,
         ].filter(Boolean).join("\n\n")
 
         const retryHtml = stripCodeFence(await runStudioAI(instruction, localeFromDocument()))
@@ -127,14 +130,15 @@ export function X20CapabilityAutoRepair() {
           mode,
         )
 
-        const specImproved = retryMatch.score >= firstMatch.score + 10 && retryGate.missingRequired.length <= firstGate.missingRequired.length
+        const specImproved = retryMatch.score >= firstMatch.score + 8 && retryGate.missingRequired.length <= firstGate.missingRequired.length
         const capabilityImproved = capabilityChoice.candidate.html === retryHtml && (
           retryGate.accepted ||
           retryGate.capabilityScore > firstGate.capabilityScore ||
           retryGate.missingRequired.length < firstGate.missingRequired.length
         )
-        const retryIsSafe = retryGate.capabilityScore >= Math.max(55, firstGate.capabilityScore - 5)
-        const improved = retryIsSafe && (capabilityImproved || specImproved)
+        const retryIsSafe = retryGate.capabilityScore >= Math.max(55, firstGate.capabilityScore - 8)
+        const strongEnough = retryMatch.score >= MIN_REQUEST_MATCH && retryGate.missingRequired.length <= firstGate.missingRequired.length
+        const improved = retryIsSafe && (strongEnough || capabilityImproved || specImproved)
 
         if (improved) {
           localStorage.setItem(HTML_KEY, retryHtml)
