@@ -1,0 +1,85 @@
+import {
+  auditX20Capabilities,
+  buildX20CapabilityPrompt,
+  getX20CapabilityProfile,
+  type X20BuildMode,
+} from "./app-studio-capability-engine"
+
+export type X20BuildCandidate = {
+  html: string
+  quality: number
+}
+
+export type X20BuildGateResult = {
+  accepted: boolean
+  mode: X20BuildMode
+  quality: number
+  minimumQuality: number
+  capabilityScore: number
+  missingRequired: string[]
+  reason: string
+}
+
+export function evaluateX20BuildCandidate(
+  candidate: X20BuildCandidate,
+  mode: X20BuildMode,
+): X20BuildGateResult {
+  const profile = getX20CapabilityProfile(mode)
+  const audit = auditX20Capabilities(candidate.html, mode)
+  const qualityOk = candidate.quality >= profile.minimumQuality
+  const accepted = qualityOk && audit.passed
+
+  const reasons: string[] = []
+  if (!qualityOk) reasons.push(`quality ${candidate.quality}% < ${profile.minimumQuality}%`)
+  if (audit.missingRequired.length) reasons.push(`missing: ${audit.missingRequired.join(", ")}`)
+
+  return {
+    accepted,
+    mode,
+    quality: candidate.quality,
+    minimumQuality: profile.minimumQuality,
+    capabilityScore: audit.capabilityScore,
+    missingRequired: audit.missingRequired,
+    reason: accepted ? "capability contract passed" : reasons.join("; "),
+  }
+}
+
+export function buildX20RetryInstruction(
+  mode: X20BuildMode,
+  originalRequest: string,
+  previousHtml: string,
+  previousQuality: number,
+) {
+  const gate = evaluateX20BuildCandidate({ html: previousHtml, quality: previousQuality }, mode)
+  return [
+    "HEGEVA CAPABILITY REPAIR PASS.",
+    buildX20CapabilityPrompt(mode),
+    `Previous build quality: ${previousQuality}%.`,
+    gate.missingRequired.length
+      ? `The previous build is missing these REQUIRED capabilities: ${gate.missingRequired.join(", ")}.`
+      : "The previous build did not meet the build-level quality threshold.",
+    "Return ONLY one complete self-contained index.html document with inline CSS and vanilla JavaScript.",
+    "Repair the missing capability contract while preserving working behaviour. Do not add decorative or dead controls.",
+    "Every visible primary button/form must have a real local action. Persist user-created data with localStorage where appropriate.",
+    `ORIGINAL CUSTOMER REQUEST:\n${originalRequest.slice(0, 900)}`,
+  ].join("\n\n")
+}
+
+export function chooseX20Candidate(
+  first: X20BuildCandidate,
+  retry: X20BuildCandidate | null,
+  mode: X20BuildMode,
+) {
+  const firstGate = evaluateX20BuildCandidate(first, mode)
+  if (!retry) return { candidate: first, gate: firstGate }
+
+  const retryGate = evaluateX20BuildCandidate(retry, mode)
+  if (retryGate.accepted && !firstGate.accepted) return { candidate: retry, gate: retryGate }
+  if (firstGate.accepted && !retryGate.accepted) return { candidate: first, gate: firstGate }
+
+  const firstRank = firstGate.capabilityScore * 1000 + first.quality
+  const retryRank = retryGate.capabilityScore * 1000 + retry.quality
+  return retryRank > firstRank
+    ? { candidate: retry, gate: retryGate }
+    : { candidate: first, gate: firstGate }
+}
