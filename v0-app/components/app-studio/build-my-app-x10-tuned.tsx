@@ -4,22 +4,13 @@ import { useMemo, useState } from "react"
 import { Braces, CheckCircle2, Code2, Download, Eye, Laptop, Smartphone, Sparkles, Tablet, WandSparkles } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { downloadTextFile, looksLikeHtmlDocument, runStudioAI, stripCodeFence, type StudioLocale } from "@/lib/app-studio-ai"
+import { auditStudioSpecMatch } from "@/lib/app-studio-spec-match"
 
 type ViewMode = "preview" | "code"
 type DeviceMode = "desktop" | "tablet" | "mobile"
 
-const STOP = new Set(["about","after","again","also","and","app","application","build","business","create","for","from","have","into","make","must","that","the","their","this","with","where","when","will","your","should","real","user","users","please","professional","small"])
-
-function importantTerms(value: string) {
-  const words = value.toLowerCase().match(/[a-z0-9][a-z0-9-]{3,}/g) || []
-  return Array.from(new Set(words.filter((word) => !STOP.has(word)))).slice(0, 10)
-}
-
 function audit(html: string, idea: string) {
-  const lower = html.toLowerCase()
-  const terms = importantTerms(idea)
-  const matched = terms.filter((term) => lower.includes(term))
-  const specScore = terms.length ? Math.round((matched.length / terms.length) * 100) : 100
+  const spec = auditStudioSpecMatch(html, idea)
   const checks = [
     ["Working JS", /<script\b/i.test(html)],
     ["Persistence", /localStorage/i.test(html)],
@@ -29,7 +20,7 @@ function audit(html: string, idea: string) {
     ["Accessible", /aria-label|<label\b/i.test(html)],
   ] as const
   const capabilityScore = html ? Math.round((checks.filter(([, ok]) => ok).length / checks.length) * 100) : 0
-  return { checks, terms, matched, specScore, capabilityScore }
+  return { checks, ...spec, specScore: spec.score, capabilityScore }
 }
 
 function instruction(idea: string, locale: string, missing: string[] = []) {
@@ -79,12 +70,11 @@ export function BuildMyAppX10Tuned() {
       let next = stripCodeFence(await runStudioAI(instruction(request, locale), locale as StudioLocale))
       if (!looksLikeHtmlDocument(next)) throw new Error("HEGEVA could not verify this X10 build.")
       let check = audit(next, request)
-      if (check.specScore < 60) {
-        const missing = check.terms.filter((term) => !check.matched.includes(term)).slice(0, 6)
-        const retry = stripCodeFence(await runStudioAI(instruction(request, locale, missing), locale as StudioLocale))
+      if (check.specScore < 65) {
+        const retry = stripCodeFence(await runStudioAI(instruction(request, locale, check.missing.slice(0, 8)), locale as StudioLocale))
         if (looksLikeHtmlDocument(retry)) {
           const retryCheck = audit(retry, request)
-          if (retryCheck.specScore > check.specScore || retryCheck.capabilityScore > check.capabilityScore) {
+          if (retryCheck.specScore > check.specScore || (retryCheck.specScore >= check.specScore && retryCheck.capabilityScore > check.capabilityScore)) {
             next = retry
             check = retryCheck
           }
