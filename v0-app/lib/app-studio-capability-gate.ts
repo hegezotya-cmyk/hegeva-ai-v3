@@ -44,6 +44,30 @@ export function evaluateX20BuildCandidate(
   }
 }
 
+function targetedRepairRules(missing: string[]) {
+  const rules: string[] = []
+
+  if (missing.includes("edit")) {
+    rules.push(
+      "EDIT REPAIR IS MANDATORY. Add a visible Edit button/control to at least one core saved-record table/list.",
+      "The Edit control must identify the exact saved record (for example data-edit=\"record-id\").",
+      "Clicking Edit must load the existing record into editable fields or an edit form/modal.",
+      "Saving must UPDATE THE SAME EXISTING RECORD by id/index (not append a second record), call localStorage.setItem with the updated state, re-render the list/table, and preserve the edited value after page reload.",
+      "Include a real JavaScript edit handler wired to the rendered Edit control. A word such as 'Edit', a comment, or an unused function does not satisfy this requirement.",
+    )
+  }
+
+  if (missing.includes("filters")) {
+    rules.push("FILTER REPAIR: add a working filter control whose change/input event changes the rendered record set, not just a decorative select.")
+  }
+
+  if (missing.includes("search")) {
+    rules.push("SEARCH REPAIR: add a working search input wired to input/change events that filters rendered records.")
+  }
+
+  return rules
+}
+
 export function buildX20RetryInstruction(
   mode: X20BuildMode,
   originalRequest: string,
@@ -58,9 +82,11 @@ export function buildX20RetryInstruction(
     gate.missingRequired.length
       ? `The previous build is missing these REQUIRED capabilities: ${gate.missingRequired.join(", ")}.`
       : "The previous build did not meet the build-level quality threshold.",
+    ...targetedRepairRules(gate.missingRequired),
     "Return ONLY one complete self-contained index.html document with inline CSS and vanilla JavaScript.",
-    "Repair the missing capability contract while preserving working behaviour. Do not add decorative or dead controls.",
+    "Repair every missing REQUIRED capability while preserving working behaviour. Do not add decorative or dead controls.",
     "Every visible primary button/form must have a real local action. Persist user-created data with localStorage where appropriate.",
+    "Before returning the HTML, mentally test create, edit/update, delete, persistence, navigation and any required status/calculation workflow for the selected build level.",
     `ORIGINAL CUSTOMER REQUEST:\n${originalRequest.slice(0, 900)}`,
   ].join("\n\n")
 }
