@@ -8,6 +8,7 @@ on:
       - x20-growth-ux-wow-3
       - x20-hardcore-wow-4
       - x20-hardcore-wow-5
+      - x20-hardcore-wow-6
   workflow_dispatch:
 
 permissions:
