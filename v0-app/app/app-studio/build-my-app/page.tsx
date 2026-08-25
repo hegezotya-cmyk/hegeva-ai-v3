@@ -2,20 +2,17 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowRight, Rocket } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
-import { BuildMyApp } from "@/components/app-studio/build-my-app"
-import { ProjectExport } from "@/components/app-studio/project-export"
-import { ProjectHistory } from "@/components/app-studio/project-history"
+import { BuildMyAppX10Tuned } from "@/components/app-studio/build-my-app-x10-tuned"
 
 export const metadata: Metadata = {
   title: "Build My App X10 — HEGEVA App Studio",
-  description:
-    "A guided AI app-building environment that takes you from idea to build: requirements, architecture, UI, database, authentication, AI, payments and security.",
+  description: "Focused paid-quality browser app generation with request matching, live preview and honest local verification.",
 }
 
 export default function BuildMyAppPage() {
   return (
     <AppShell>
-      <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1500px] px-4 pt-8 sm:px-6 lg:px-8">
         <Link
           href="/app-studio/build-my-app-x20"
           className="group flex flex-col gap-4 rounded-2xl border border-gold/30 bg-gold/5 p-5 transition-colors hover:border-gold/50 sm:flex-row sm:items-center sm:justify-between"
@@ -29,7 +26,7 @@ export default function BuildMyAppPage() {
                 <strong className="text-base text-foreground">Build My App X20</strong>
                 <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] font-bold text-gold">PRO · BETA</span>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">Use the stronger X20 builder for verified live apps, resumable progress and AI improvement passes.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Need a deeper build? Move to X20 for larger connected workflows and stronger capability checks.</p>
             </div>
           </div>
           <span className="inline-flex items-center gap-2 text-sm font-semibold text-gold">
@@ -37,11 +34,7 @@ export default function BuildMyAppPage() {
           </span>
         </Link>
       </div>
-      <BuildMyApp />
-      <div className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
-        <ProjectHistory />
-        <ProjectExport />
-      </div>
+      <BuildMyAppX10Tuned />
     </AppShell>
   )
 }
