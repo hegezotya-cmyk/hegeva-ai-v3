@@ -1,0 +1,41 @@
+name: X20 Capability Engine Check
+
+on:
+  pull_request:
+    branches:
+      - v0-rebuild
+    paths:
+      - 'v0-app/**'
+      - '.github/workflows/x20-capability-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-capability-engine:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v0-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: X20 full audit
+        run: npm run x20:audit
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Production build
+        run: npm run build
