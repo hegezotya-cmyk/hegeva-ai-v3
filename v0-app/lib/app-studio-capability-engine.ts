@@ -73,6 +73,7 @@ export const X20_CAPABILITY_PROFILES: Record<X20BuildMode, X20CapabilityProfile>
     prompt: [
       "Build a premium SaaS-quality application with 4-5 meaningful product areas.",
       "Include a useful dashboard, polished navigation, create/edit/delete flows and search where it adds value.",
+      "At least one primary saved-record module MUST implement a real persisted Edit/Update workflow: an Edit control on an existing record, loading current values into editable controls, saving changes back to that same record, writing the updated state to localStorage, and re-rendering the UI.",
       "Use explicit status transitions and strong empty states; do not ship decorative controls that do nothing.",
     ],
   },
@@ -105,6 +106,7 @@ export const X20_CAPABILITY_PROFILES: Record<X20BuildMode, X20CapabilityProfile>
       "Build the strongest practical single-file browser product with 5-7 connected product areas.",
       "Modules must share meaningful data or actions instead of behaving like isolated demo screens.",
       "Include dashboard calculations, search/filter tools, create/edit/delete flows, status workflows, activity history and at least one cross-module action.",
+      "MANDATORY EDIT CONTRACT: at least one core module such as Customers, Invoices, Quotes, Expenses or Tasks must render a real Edit control for saved records. Clicking Edit must load the selected record's existing values, let the user change them, update the SAME record rather than creating a duplicate, persist the updated state with localStorage, re-render immediately, and still show the changed values after reload.",
       "Growth must be materially more capable than Premium, not merely more visually decorated.",
     ],
   },
@@ -121,12 +123,21 @@ export function buildX20CapabilityPrompt(mode: X20BuildMode) {
     `Target product areas: ${p.minProductAreas}-${p.maxProductAreas}.`,
     ...p.prompt,
     `Required capability contract: ${p.required.join(", ")}.`,
-    "If a requested capability cannot be made genuinely functional in a single-file app, omit it rather than faking it.",
+    "Every capability listed in the REQUIRED capability contract must be implemented as real working behaviour before returning the HTML. Do not omit a required capability and do not satisfy it with labels, comments, dead buttons, placeholder text or decorative controls.",
+    "If a non-required requested feature cannot be made genuinely functional in a single-file app, prefer a smaller honest implementation rather than faking it.",
   ].join("\n")
 }
 
 function has(html: string, pattern: RegExp) {
   return pattern.test(html)
+}
+
+function hasRealEditWorkflow(html: string) {
+  const visibleEditControl = has(html, /data-edit\s*=|data-action\s*=\s*["']edit["']|>\s*edit\s*</i)
+  const editHandler = has(html, /dataset\.edit|data-edit|closest\([^)]*data-edit|editing(Id|Index|Record)|edit(Id|Index|Record)\s*=/i)
+  const updatesExistingRecord = has(html, /findIndex\s*\(|\.find\s*\([^)]*=>[^)]*\.id|\[[^\]]+\]\s*=|Object\.assign\s*\(/i)
+  const persists = has(html, /localStorage\.setItem/i)
+  return visibleEditControl && editHandler && updatesExistingRecord && persists
 }
 
 export function inspectX20Capabilities(html: string): Record<X20Capability, boolean> {
@@ -145,7 +156,7 @@ export function inspectX20Capabilities(html: string): Record<X20Capability, bool
     search: has(html, /search/i) && has(html, /addEventListener\(['"]input|oninput/i),
     filters: has(html, /filter/i) && (has(html, /<select\b/i) || has(html, /data-filter/i)),
     create: form && has(html, /addEventListener\(['"]submit|onsubmit/i),
-    edit: has(html, /\bedit\b|data-edit|update/i),
+    edit: hasRealEditWorkflow(html),
     delete: has(html, /\bdelete\b|data-del|remove/i),
     "status-workflow": has(html, /status/i) && has(html, /paid|unpaid|draft|sent|accepted|complete|reopen|active|done/i),
     calculations: has(html, /reduce\s*\(|total|revenue|profit|margin|sum/i),
