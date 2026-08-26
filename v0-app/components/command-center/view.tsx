@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
 import { WorkspaceOverview } from "@/components/command-center/workspace-overview"
 import { COMMAND_OVERVIEW_COPY } from "@/lib/i18n/command-overview-copy"
-import { AICore, IntelligenceCard, SectionHeading } from "@/components/visual-engine"
+import { AICore, IntelligenceCard, SectionHeading, SignalIcon } from "@/components/visual-engine"
 
 type ModuleDef = {
   icon: LucideIcon
@@ -36,6 +36,9 @@ type ModuleDef = {
   status: FeatureStatus
   href: string
 }
+
+const aiTones = ["violet", "cyan", "gold", "emerald"] as const
+const businessTones = ["emerald", "cyan", "gold", "violet", "cyan", "emerald", "violet", "gold", "cyan"] as const
 
 export function CommandCenterView() {
   const { t, locale } = useI18n()
@@ -62,51 +65,66 @@ export function CommandCenterView() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <PageHeader
-        eyebrow="HEGEVA"
-        title={t.commandCenter.title}
-        subtitle={t.commandCenter.subtitle}
-        action={
-          <Link href={session?.user ? "/assistant" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "bg-gold text-gold-foreground hover:bg-gold/90")}>
-            {session?.user ? t.commandCenter.openAssistant : t.dashboard.connect}
-          </Link>
-        }
-      />
+      <div className="relative overflow-hidden rounded-[2rem] border border-border/70 bg-[radial-gradient(circle_at_78%_25%,rgba(34,211,238,.08),transparent_28%),radial-gradient(circle_at_60%_10%,rgba(74,222,128,.09),transparent_30%),linear-gradient(160deg,rgba(255,255,255,.025),transparent_42%)] px-1 py-1">
+        <div className="pointer-events-none absolute -right-16 -top-20 size-72 rounded-full border border-cyan/10" aria-hidden />
+        <div className="pointer-events-none absolute -right-3 -top-8 size-52 rounded-full border border-primary/10" aria-hidden />
+        <div className="relative p-5 sm:p-7">
+          <PageHeader
+            eyebrow="HEGEVA"
+            title={t.commandCenter.title}
+            subtitle={t.commandCenter.subtitle}
+            action={
+              <Link href={session?.user ? "/assistant" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "border border-gold/20 bg-gold text-gold-foreground shadow-[0_16px_38px_-24px_rgba(250,204,21,.72)] hover:bg-gold/90")}>
+                {session?.user ? t.commandCenter.openAssistant : t.dashboard.connect}
+              </Link>
+            }
+          />
 
-      <IntelligenceCard tone="cyan" className="mt-8 flex items-center gap-4 p-4 sm:p-5">
-        <AICore state={session?.user ? "active" : "ready"} className="hidden sm:grid" />
-        {session?.user ? <Cloud className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden /> : <Info className="mt-0.5 size-4 shrink-0 text-cyan" aria-hidden />}
-        <p className="text-sm leading-relaxed text-foreground/80 text-pretty">
-          {isPending ? t.commandCenter.checking : session?.user ? t.commandCenter.connected : t.commandCenter.previewNote}
-        </p>
-      </IntelligenceCard>
+          <IntelligenceCard tone="cyan" className="mt-8 flex items-center gap-4 p-4 sm:p-5">
+            <AICore state={session?.user ? "active" : "ready"} className="hidden sm:grid" />
+            {session?.user ? <Cloud className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden /> : <Info className="mt-0.5 size-4 shrink-0 text-cyan" aria-hidden />}
+            <p className="text-sm leading-relaxed text-foreground/80 text-pretty">
+              {isPending ? t.commandCenter.checking : session?.user ? t.commandCenter.connected : t.commandCenter.previewNote}
+            </p>
+          </IntelligenceCard>
+        </div>
+      </div>
 
       <WorkspaceOverview />
 
-      <SectionHeading className="mt-12" eyebrow="Intelligence layer" title={copy.aiModules} />
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {aiModules.map(({ icon: Icon, title, desc, status, href }) => (
-          <Link key={title} href={href} className="glass-panel glass-panel-hover group flex flex-col gap-3 rounded-2xl p-5">
-            <div className="flex items-center justify-between"><span className="flex size-11 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary"><Icon className="size-5" aria-hidden /></span><StatusBadge status={status} /></div>
-            <div><h3 className="text-base font-semibold text-foreground">{title}</h3><p className="mt-1 text-sm leading-relaxed text-muted-foreground text-pretty">{desc}</p></div>
+      <SectionHeading className="mt-14" eyebrow="Intelligence layer" title={copy.aiModules} />
+      <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {aiModules.map(({ icon: Icon, title, desc, href }, index) => (
+          <Link key={title} href={href} className="group rounded-3xl focus-visible:outline-none">
+            <IntelligenceCard tone={aiTones[index]} interactive className="h-full min-h-48 p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-4">
+                <SignalIcon icon={Icon} tone={aiTones[index]} />
+                <span className="mt-1 size-2 rounded-full bg-current opacity-35 shadow-[0_0_18px_currentColor]" aria-hidden />
+              </div>
+              <div className="mt-6">
+                <h3 className="font-display text-lg font-semibold tracking-[-0.025em] text-foreground">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground text-pretty">{desc}</p>
+              </div>
+              <div className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-gradient-to-r from-transparent via-current/20 to-transparent opacity-60" aria-hidden />
+            </IntelligenceCard>
           </Link>
         ))}
       </div>
 
-      <SectionHeading className="mt-12" eyebrow="Operations layer" title={copy.businessModules} />
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {modules.map(({ icon: Icon, title, desc, status, href }) => (
-          <Link key={title} href={href} className="glass-panel glass-panel-hover group flex flex-col gap-3 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <span className="flex size-11 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
-                <Icon className="size-5" aria-hidden />
-              </span>
-              <StatusBadge status={status} />
-            </div>
-            <div>
-              <h3 className="text-base font-semibold text-foreground">{title}</h3>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground text-pretty">{desc}</p>
-            </div>
+      <SectionHeading className="mt-14" eyebrow="Operations layer" title={copy.businessModules} />
+      <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {modules.map(({ icon: Icon, title, desc, status, href }, index) => (
+          <Link key={title} href={href} className="group rounded-3xl focus-visible:outline-none">
+            <IntelligenceCard tone={businessTones[index]} interactive className="h-full p-5 sm:p-6">
+              <div className="flex items-center justify-between gap-4">
+                <SignalIcon icon={Icon} tone={businessTones[index]} />
+                <StatusBadge status={status} />
+              </div>
+              <div className="mt-5">
+                <h3 className="font-display text-base font-semibold tracking-[-0.02em] text-foreground">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground text-pretty">{desc}</p>
+              </div>
+            </IntelligenceCard>
           </Link>
         ))}
       </div>
