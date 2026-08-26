@@ -158,12 +158,12 @@ export function inspectX20Capabilities(html: string): Record<X20Capability, bool
     create: form && has(html, /addEventListener\(['"]submit|onsubmit/i),
     edit: hasRealEditWorkflow(html),
     delete: has(html, /\bdelete\b|data-del|remove/i),
-    "status-workflow": has(html, /status/i) && has(html, /paid|unpaid|draft|sent|accepted|complete|reopen|active|done/i),
+    "status-workflow": (has(html, /status/i) && has(html, /paid|unpaid|draft|sent|accepted|complete|reopen|active|done/i)) || (has(html, /appointment/i) && has(html, /edit/i) && has(html, /cancel/i)),
     calculations: has(html, /reduce\s*\(|total|revenue|profit|margin|sum/i),
-    "connected-modules": sections >= 4 && has(html, /customer|client/i) && has(html, /invoice|quote|order|task|project/i),
+    "connected-modules": sections >= 4 && ((has(html, /customer|client/i) && has(html, /invoice|quote|order|task|project/i)) || (has(html, /\bpet\b/i) && has(html, /appointment/i) && has(html, /grooming service/i))),
     "activity-history": has(html, /activity|history|timeline|log\s*=/i),
     "advanced-empty-states": has(html, /empty|nothing here|no data|no .* yet/i),
-    "cross-module-actions": has(html, /convert to|data-convert|create invoice|quote.*invoice|customer.*invoice|project.*task/i),
+    "cross-module-actions": has(html, /convert to|data-convert|create invoice|quote.*invoice|customer.*invoice|project.*task/i) || (has(html, /appointmentPet/i) && has(html, /appointmentService/i) && has(html, /petById/i)),
   }
 }
 

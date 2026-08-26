@@ -45,7 +45,7 @@ export function X20CapabilityStatus() {
           gate,
           requestScore: spec.score,
           missing: spec.missing,
-          accepted: gate.accepted && spec.score >= 80,
+          accepted: gate.accepted && spec.score >= 80 && !spec.severeMismatch,
         })
       } catch {
         setState(null)

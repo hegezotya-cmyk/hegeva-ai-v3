@@ -1,6 +1,8 @@
 import { verificationIssues, verifyBrowserPrototype } from "./app-studio-verify"
 import { buildPremiumFallbackHtml } from "./app-studio-premium-fallback"
 import { applyHardcoreVisualPolish } from "./app-studio-hardcore-polish"
+import { buildPawFlowFallbackHtml } from "./app-studio-pawflow-fallback"
+import { auditStudioSpecMatch, isPawFlowRequest, requestsGenericBusinessWorkspace } from "./app-studio-spec-match"
 
 export type StudioLocale = "en" | "hu" | "de" | "fr" | "es"
 
@@ -164,17 +166,35 @@ function tryHardcorePolish(html: string, message: string) {
   return verifyBrowserPrototype(polished).ok ? polished : html
 }
 
+function passesRequestFidelity(html: string, message: string) {
+  const match = auditStudioSpecMatch(html, fidelityRequest(message))
+  return !match.severeMismatch && match.score >= 80
+}
+
+function fidelityRequest(message: string) {
+  const parts = message.split(/(?:CUSTOMER APP REQUEST|APP IDEA|APP REQUEST|ORIGINAL CUSTOMER REQUEST):\s*/i)
+  return (parts.at(-1) || message).trim()
+}
+
+function verifiedDomainFallback(message: string, language: StudioLocale) {
+  if (isPawFlowRequest(message)) return buildPawFlowFallbackHtml(message)
+  if (requestsGenericBusinessWorkspace(message)) return buildPremiumFallbackHtml(message, language)
+  return ""
+}
+
 export async function runStudioAI(message: string, language: StudioLocale) {
   const x20 = isX20Request(message)
   const htmlRequest = isHtmlBuildRequest(message)
   if (x20 && htmlRequest) {
     let html = await buildCompactX20(message, language)
     let verification = verifyBrowserPrototype(html)
-    if (!verification.ok) {
-      html = closeSafeHtmlStructure(wrapX20Fragment(fallbackX20Fragment(language), language))
+    if (!verification.ok || !passesRequestFidelity(html, message)) {
+      const domainFallback = verifiedDomainFallback(fidelityRequest(message), language)
+      if (domainFallback) html = closeSafeHtmlStructure(domainFallback)
+      else html = closeSafeHtmlStructure(wrapX20Fragment(fallbackX20Fragment(language), language))
       verification = verifyBrowserPrototype(html)
     }
-    if (!verification.ok) throw new Error(`HEGEVA X20 compact build failed: ${verificationIssues(verification).join("; ")}`)
+    if (!verification.ok || !passesRequestFidelity(html, message)) throw new Error(`HEGEVA X20 request-fidelity build failed: ${verificationIssues(verification).join("; ")}`)
     return html
   }
 
@@ -182,19 +202,21 @@ export async function runStudioAI(message: string, language: StudioLocale) {
   if (!htmlRequest) return firstAnswer
   let html = closeSafeHtmlStructure(stripCodeFence(firstAnswer))
   let verification = verifyBrowserPrototype(html)
-  if (!verification.ok) {
+  if (!verification.ok || !passesRequestFidelity(html, message)) {
     html = await repairHtml(html, message, language, false)
     verification = verifyBrowserPrototype(html)
   }
-  if (!verification.ok) {
+  if (!verification.ok || !passesRequestFidelity(html, message)) {
     html = await repairHtml(html, message, language, true)
     verification = verifyBrowserPrototype(html)
   }
-  if (!verification.ok) {
-    html = closeSafeHtmlStructure(buildPremiumFallbackHtml(message, language))
+  if (!verification.ok || !passesRequestFidelity(html, message)) {
+    const fallback = verifiedDomainFallback(message, language)
+    if (!fallback) throw new Error("HEGEVA refused an unrelated generic fallback for this specific app request. Please retry.")
+    html = closeSafeHtmlStructure(fallback)
     verification = verifyBrowserPrototype(html)
   }
-  if (!verification.ok) throw new Error(`HEGEVA verification failed after recovery: ${verificationIssues(verification).join("; ")}`)
+  if (!verification.ok || !passesRequestFidelity(html, message)) throw new Error(`HEGEVA request-fidelity verification failed after recovery: ${verificationIssues(verification).join("; ")}`)
   return tryHardcorePolish(html, message)
 }
 

@@ -69,7 +69,7 @@ function candidateRank(html: string, idea: string, mode: X20BuildMode) {
   const q = quality(html)
   const gate = evaluateX20BuildCandidate({ html, quality: q }, mode)
   const spec = auditStudioSpecMatch(html, idea)
-  const acceptedBonus = gate.accepted && spec.score >= MIN_REQUEST_MATCH ? 100000 : 0
+  const acceptedBonus = gate.accepted && spec.score >= MIN_REQUEST_MATCH && !spec.severeMismatch ? 100000 : 0
   return {
     q,
     gate,
@@ -93,7 +93,7 @@ export function X20CapabilityAutoRepair() {
         if (!idea || !looksLikeHtmlDocument(html)) return
 
         const base = candidateRank(html, idea, mode)
-        if (base.gate.accepted && base.spec.score >= MIN_REQUEST_MATCH) {
+        if (base.gate.accepted && base.spec.score >= MIN_REQUEST_MATCH && !base.spec.severeMismatch) {
           resetAttempts()
           return
         }
@@ -133,7 +133,7 @@ export function X20CapabilityAutoRepair() {
             bestHtml = retryHtml
             best = retry
           }
-          if (best.gate.accepted && best.spec.score >= MIN_REQUEST_MATCH) break
+          if (best.gate.accepted && best.spec.score >= MIN_REQUEST_MATCH && !best.spec.severeMismatch) break
         }
 
         if (bestHtml !== html && best.rank > base.rank) {

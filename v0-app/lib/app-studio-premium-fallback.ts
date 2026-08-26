@@ -1,4 +1,5 @@
 export type PremiumFallbackLocale = "en" | "hu" | "de" | "fr" | "es"
+import { extractRequestedAppName } from "./app-studio-spec-match"
 
 const text = {
   en: { overview:"Overview", customers:"Customers", invoices:"Invoices", quotes:"Quotes", expenses:"Expenses", tasks:"Tasks", settings:"Settings", revenue:"Revenue", outstanding:"Outstanding", profit:"Net profit", activeCustomers:"Customers", openTasks:"Open tasks", recent:"Recent activity", add:"Add", save:"Save", delete:"Delete", search:"Search", name:"Name", email:"Email", phone:"Phone", company:"Company", status:"Status", amount:"Amount", date:"Date", category:"Category", title:"Title", priority:"Priority", due:"Due date", empty:"Nothing here yet.", paid:"Paid", unpaid:"Unpaid", overdue:"Overdue", draft:"Draft", sent:"Sent", accepted:"Accepted", rejected:"Rejected", convert:"Convert to invoice", complete:"Complete", reopen:"Reopen", business:"Business name", currency:"Currency", tax:"Tax / VAT %", saved:"Saved", welcome:"Your live business workspace", sub:"Real data, real calculations, local-first persistence.", quick:"Quick actions", health:"Business pulse", income:"Income", spend:"Spend", margin:"Margin", pipeline:"Pipeline", dueSoon:"Due soon", noDue:"No upcoming tasks", newCustomer:"New customer", newInvoice:"New invoice", newQuote:"New quote", newExpense:"New expense", newTask:"New task", chart:"Financial pulse" },
@@ -8,14 +9,9 @@ const text = {
   es: { overview:"Resumen", customers:"Clientes", invoices:"Facturas", quotes:"Presupuestos", expenses:"Gastos", tasks:"Tareas", settings:"Ajustes", revenue:"Ingresos", outstanding:"Pendiente", profit:"Beneficio neto", activeCustomers:"Clientes", openTasks:"Tareas abiertas", recent:"Actividad reciente", add:"Añadir", save:"Guardar", delete:"Eliminar", search:"Buscar", name:"Nombre", email:"Email", phone:"Teléfono", company:"Empresa", status:"Estado", amount:"Importe", date:"Fecha", category:"Categoría", title:"Título", priority:"Prioridad", due:"Vencimiento", empty:"Todavía no hay datos.", paid:"Pagada", unpaid:"Pendiente", overdue:"Vencida", draft:"Borrador", sent:"Enviado", accepted:"Aceptado", rejected:"Rechazado", convert:"Convertir en factura", complete:"Completar", reopen:"Reabrir", business:"Nombre del negocio", currency:"Moneda", tax:"Impuesto / IVA %", saved:"Guardado", welcome:"Workspace empresarial live", sub:"Datos reales, cálculos reales y almacenamiento local.", quick:"Acciones rápidas", health:"Pulso del negocio", income:"Ingresos", spend:"Gastos", margin:"Margen", pipeline:"Pipeline", dueSoon:"Próximas tareas", noDue:"No hay tareas próximas", newCustomer:"Nuevo cliente", newInvoice:"Nueva factura", newQuote:"Nuevo presupuesto", newExpense:"Nuevo gasto", newTask:"Nueva tarea", chart:"Pulso financiero" },
 } as const
 
-function safeTitle(message: string, fallback: string) {
-  const named = message.match(/(?:called|named|app called)\s+["“']?([A-Za-z0-9][A-Za-z0-9 _-]{2,42})/i)?.[1]
-  return (named || fallback).trim().replace(/[<>]/g, "")
-}
-
 export function buildPremiumFallbackHtml(message: string, language: PremiumFallbackLocale) {
   const t = text[language] || text.en
-  const appTitle = safeTitle(message, "Business OS")
+  const appTitle = extractRequestedAppName(message, "Business OS").replace(/[<>]/g, "")
   const defaultCurrency = /\bEUR\b|€/.test(message) ? "EUR" : /\bUSD\b|\$/.test(message) ? "USD" : "GBP"
   const labels = JSON.stringify(t).replace(/</g, "\\u003c")
   return `<!doctype html>
