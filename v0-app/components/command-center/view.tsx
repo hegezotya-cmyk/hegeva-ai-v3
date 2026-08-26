@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
 import { WorkspaceOverview } from "@/components/command-center/workspace-overview"
 import { COMMAND_OVERVIEW_COPY } from "@/lib/i18n/command-overview-copy"
+import { AICore, IntelligenceCard, SectionHeading } from "@/components/visual-engine"
 
 type ModuleDef = {
   icon: LucideIcon
@@ -72,16 +73,17 @@ export function CommandCenterView() {
         }
       />
 
-      <div className="mt-8 flex items-start gap-3 rounded-2xl border border-cyan/25 bg-cyan/8 p-4">
+      <IntelligenceCard tone="cyan" className="mt-8 flex items-center gap-4 p-4 sm:p-5">
+        <AICore state={session?.user ? "active" : "ready"} className="hidden sm:grid" />
         {session?.user ? <Cloud className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden /> : <Info className="mt-0.5 size-4 shrink-0 text-cyan" aria-hidden />}
         <p className="text-sm leading-relaxed text-foreground/80 text-pretty">
           {isPending ? t.commandCenter.checking : session?.user ? t.commandCenter.connected : t.commandCenter.previewNote}
         </p>
-      </div>
+      </IntelligenceCard>
 
       <WorkspaceOverview />
 
-      <h2 className="mt-10 text-xl font-semibold text-foreground">{copy.aiModules}</h2>
+      <SectionHeading className="mt-12" eyebrow="Intelligence layer" title={copy.aiModules} />
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {aiModules.map(({ icon: Icon, title, desc, status, href }) => (
           <Link key={title} href={href} className="glass-panel glass-panel-hover group flex flex-col gap-3 rounded-2xl p-5">
@@ -91,7 +93,7 @@ export function CommandCenterView() {
         ))}
       </div>
 
-      <h2 className="mt-10 text-xl font-semibold text-foreground">{copy.businessModules}</h2>
+      <SectionHeading className="mt-12" eyebrow="Operations layer" title={copy.businessModules} />
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {modules.map(({ icon: Icon, title, desc, status, href }) => (
           <Link key={title} href={href} className="glass-panel glass-panel-hover group flex flex-col gap-3 rounded-2xl p-5">

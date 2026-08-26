@@ -4,6 +4,7 @@ import Link from "next/link"
 import { BarChart3, Bot, FileText, FolderLock, LayoutGrid, Users, type LucideIcon } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { StatusBadge, type FeatureStatus } from "@/components/status-badge"
+import { IntelligenceCard, SectionHeading, SignalIcon } from "@/components/visual-engine"
 
 const honestCopy = {
   en: {
@@ -53,30 +54,25 @@ export function Capabilities() {
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <div className="max-w-2xl">
-        <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground text-balance sm:text-3xl">
-          {t.capabilities.heading}
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t.capabilities.subheading}</p>
-      </div>
+      <SectionHeading eyebrow="Connected capabilities" title={t.capabilities.heading} description={t.capabilities.subheading} />
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map(({ icon: Icon, title, desc, status, href }) => (
+        {items.map(({ icon: Icon, title, desc, status, href }, index) => (
           <Link
             key={title}
             href={href}
-            className="glass-panel glass-panel-hover group flex flex-col gap-3 rounded-2xl p-5"
+            className="group rounded-3xl focus-visible:outline-none"
           >
+            <IntelligenceCard interactive tone={index===0||index===5?"violet":index===1?"cyan":index===2?"gold":"neutral"} className="flex h-full flex-col gap-3 p-5">
             <div className="flex items-center justify-between">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
-                <Icon className="size-5" aria-hidden />
-              </span>
+              <SignalIcon icon={Icon} tone={index===0||index===5?"violet":index===1?"cyan":index===2?"gold":"emerald"} />
               <StatusBadge status={status} />
             </div>
             <div>
               <h3 className="text-base font-semibold text-foreground">{title}</h3>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground text-pretty">{desc}</p>
             </div>
+            </IntelligenceCard>
           </Link>
         ))}
       </div>

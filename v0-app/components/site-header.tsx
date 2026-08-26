@@ -66,13 +66,11 @@ export function SiteHeader() {
 
   const navLink = (href: string, label: string) => {
     const active = pathname === href
-    return (
-      <Link href={href} className={cn("rounded-lg px-3 py-2 text-sm font-medium transition-colors", active ? "text-foreground" : "text-muted-foreground hover:text-foreground")}>{label}</Link>
-    )
+    return <Link href={href} aria-current={active ? "page" : undefined} className={cn("relative rounded-lg px-3 py-2 text-sm font-medium transition-colors", active ? "bg-secondary/70 text-foreground after:absolute after:inset-x-3 after:-bottom-[13px] after:h-px after:bg-primary" : "text-muted-foreground hover:bg-secondary/40 hover:text-foreground")}>{label}</Link>
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-border/80 bg-background/80 shadow-[0_12px_40px_-32px_rgba(0,0,0,.9)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/65">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
           <HegevaLogo priority />
@@ -112,7 +110,7 @@ export function SiteHeader() {
             </div>
           ) : <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "hidden sm:inline-flex")}>{t.nav.login}</Link>)}
           <Link href={session?.user ? "/command-center" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "hidden bg-gold text-gold-foreground hover:bg-gold/90 sm:inline-flex")}>{session?.user ? t.nav.openWorkspace : t.nav.getStarted}</Link>
-          <button type="button" onClick={() => setMobileOpen((v) => !v)} aria-label={aria.menu} aria-expanded={mobileOpen} className="inline-flex size-11 items-center justify-center rounded-lg border border-border bg-input/30 text-foreground lg:hidden">{mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}</button>
+          <button type="button" onClick={() => setMobileOpen((v) => !v)} aria-label={aria.menu} aria-expanded={mobileOpen} className="inline-flex size-11 items-center justify-center rounded-xl border border-border bg-secondary/60 text-foreground shadow-sm transition-colors hover:border-primary/30 hover:bg-secondary lg:hidden">{mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}</button>
         </div>
       </div>
       {mobileOpen && (

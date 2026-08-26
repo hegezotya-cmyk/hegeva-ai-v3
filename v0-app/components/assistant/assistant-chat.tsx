@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm"
 import { authClient } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
+import { AICore, IntelligenceCard, SkeletonSurface } from "@/components/visual-engine"
 
 type ChatMessage = {
   role: "user" | "assistant"
@@ -166,16 +167,12 @@ export function AssistantChat() {
   }
 
   if (isPending) {
-    return (
-      <div className="rounded-3xl border border-border bg-card p-8 text-sm text-muted-foreground">
-        {t.assistant.checkingAccount}
-      </div>
-    )
+    return <SkeletonSurface lines={4} className="min-h-52" />
   }
 
   if (!session?.user) {
     return (
-      <div className="rounded-3xl border border-border bg-card p-8">
+      <IntelligenceCard tone="violet" className="p-8">
         <h2 className="text-2xl font-semibold">{t.assistant.signInTitle}</h2>
         <p className="mt-3 text-muted-foreground">
           {t.assistant.signInBody}
@@ -186,12 +183,12 @@ export function AssistantChat() {
         >
           {t.assistant.goLogin}
         </Link>
-      </div>
+      </IntelligenceCard>
     )
   }
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+    <div className="ve-panel overflow-hidden rounded-3xl shadow-sm">
       <div className="border-b border-border px-5 py-4 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -274,8 +271,9 @@ export function AssistantChat() {
         )}
 
         {sending && (
-          <div className="mr-auto max-w-[90%] rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground">
-            {t.assistant.thinking}
+          <div className="mr-auto flex max-w-[90%] items-center gap-3 rounded-2xl border border-violet/20 bg-violet/8 px-4 py-3 text-sm text-muted-foreground" role="status" aria-live="polite">
+            <AICore state="thinking" className="scale-75" />
+            <span>{t.assistant.thinking}</span>
           </div>
         )}
 

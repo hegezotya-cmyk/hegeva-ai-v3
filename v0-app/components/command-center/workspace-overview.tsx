@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { COMMAND_OVERVIEW_COPY } from "@/lib/i18n/command-overview-copy"
+import { IntelligenceCard, MetricCard, SectionHeading } from "@/components/visual-engine"
 
 type RecordItem={id:string;amount?:number}
 type Task={id:string;due?:string;done:boolean}
@@ -29,8 +30,8 @@ export function WorkspaceOverview(){
   {label:c.invoices,value:invoices.length,href:"/business/invoices"},{label:c.paid,value:paid,href:"/business/invoices"},
  ]
  const attention=overdueTasks+overdueInvoices
- return <section className="mt-8"><div><h2 className="text-xl font-semibold text-foreground">{c.overview}</h2><p className="mt-1 text-sm text-muted-foreground">{c.overviewDesc}</p></div>
-  <div className="mt-4 grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">{metrics.map((metric)=><Link key={metric.label} href={metric.href} className="glass-panel glass-panel-hover rounded-2xl p-4"><p className="text-xs text-muted-foreground">{metric.label}</p><p className="mt-2 text-2xl font-semibold text-foreground">{metric.value}</p></Link>)}</div>
-  <div className={`mt-4 flex items-center gap-3 rounded-2xl border p-4 ${attention?"border-gold/35 bg-gold/8":"border-primary/25 bg-primary/8"}`}>{attention?<AlertTriangle className="size-5 shrink-0 text-gold"/>:<CheckCircle2 className="size-5 shrink-0 text-primary"/>}<div><p className="text-sm font-semibold">{c.attention}</p><p className="mt-0.5 text-xs text-muted-foreground">{attention?`${overdueInvoices} ${c.overdueInvoices} · ${overdueTasks} ${c.overdueTasks}`:c.noAttention}</p></div></div>
+ return <section className="mt-9"><SectionHeading eyebrow="Live workspace" title={c.overview} description={c.overviewDesc}/>
+  <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">{metrics.map((metric,index)=><Link key={metric.label} href={metric.href} className="rounded-3xl focus-visible:outline-none"><MetricCard label={metric.label} value={metric.value} tone={index===2?"cyan":index===4?"violet":"neutral"} className="h-full transition-transform hover:-translate-y-0.5"/></Link>)}</div>
+  <IntelligenceCard tone={attention?"gold":"emerald"} className="mt-4 flex items-center gap-3 p-4">{attention?<AlertTriangle className="size-5 shrink-0 text-gold"/>:<CheckCircle2 className="size-5 shrink-0 text-primary"/>}<div><p className="text-sm font-semibold">{c.attention}</p><p className="mt-0.5 text-xs text-muted-foreground">{attention?`${overdueInvoices} ${c.overdueInvoices} · ${overdueTasks} ${c.overdueTasks}`:c.noAttention}</p></div></IntelligenceCard>
  </section>
 }

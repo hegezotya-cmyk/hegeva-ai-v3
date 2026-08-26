@@ -16,6 +16,7 @@
     "x20:audit": "npm run x20:stability && npm run x20:functional && npm run x20:capability",
     "audit:product": "node scripts/product-readiness-audit.mjs",
     "audit:ui-mobile": "node scripts/ui-mobile-audit.mjs",
+    "audit:visual": "node scripts/visual-engine-audit.mjs",
     "audit:billing": "node scripts/billing-readiness-audit.mjs",
     "audit:roadmap": "npm run x20:audit && npm run audit:product && npm run audit:ui-mobile && npm run audit:billing",
     "cf:build": "opennextjs-cloudflare build",

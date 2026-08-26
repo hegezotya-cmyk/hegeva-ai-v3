@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { authClient, signIn, signUp, useSession } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
 import { AUTH_COPY } from "@/lib/i18n/auth-copy"
+import { SkeletonSurface } from "@/components/visual-engine"
 
 export function AuthPanel() {
   const router = useRouter()
@@ -111,12 +112,12 @@ export function AuthPanel() {
   }
 
   if (isPending) {
-    return <p className="text-sm text-muted-foreground">{c.checking}</p>
+    return <SkeletonSurface lines={4} className="min-h-64" />
   }
 
   if (session?.user) {
     return (
-      <div className="glass-panel rounded-2xl p-6">
+      <div className="ve-panel rounded-3xl p-6">
         <p className="text-sm text-muted-foreground">{c.signedIn}</p>
         <p className="mt-1 font-semibold">{session.user.email}</p>
         <button
@@ -131,7 +132,7 @@ export function AuthPanel() {
   }
 
   return (
-    <div className="glass-panel rounded-2xl p-6 sm:p-8">
+    <div className="ve-panel rounded-3xl p-6 sm:p-8">
       <div className="mb-6 flex gap-2 rounded-xl border border-border bg-muted/30 p-1">
         <button
           type="button"

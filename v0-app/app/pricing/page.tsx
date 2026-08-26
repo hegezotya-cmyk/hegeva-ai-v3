@@ -1,12 +1,13 @@
 "use client"
 
-import { Check, LockKeyhole } from "lucide-react"
+import { Check, Crown, LockKeyhole, Sparkles, Zap } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { AppShell } from "@/components/app-shell"
 import { authClient } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
 import { PRICING_COPY } from "@/lib/i18n/pricing-copy"
+import { AICore, IntelligenceCard, SignalIcon } from "@/components/visual-engine"
 
 type PaidPlan = "premium" | "pro"
 type BillingStatus = { checkoutEnabled?: boolean; webhookConfigured?: boolean; mode?: string }
@@ -156,6 +157,7 @@ export default function PricingPage() {
 
   return <AppShell><main className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
     <div className="mx-auto max-w-3xl text-center">
+      <AICore state="active" className="mx-auto mb-4" />
       <p className="text-sm font-semibold tracking-[0.18em] text-primary">{c.eyebrow}</p>
       <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">{c.title}</h1>
       <p className="mt-4 text-base leading-7 text-muted-foreground">{c.subtitle}</p>
@@ -164,14 +166,14 @@ export default function PricingPage() {
       {billingCancelled && <p role="status" className="mt-4 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">{BILLING_CANCELLED_COPY[locale]}</p>}
     </div>
     <div className="mt-10 grid gap-5 lg:grid-cols-3">
-      {plans.map((plan) => <section key={plan.key} className={`glass-panel flex rounded-3xl p-6 sm:p-8 ${"featured" in plan && plan.featured ? "border-primary/50 ring-1 ring-primary/25" : ""}`}>
+      {plans.map((plan,index) => <IntelligenceCard key={plan.key} tone={index===1?"gold":index===2?"violet":"neutral"} interactive className={`flex p-6 sm:p-8 ${"featured" in plan && plan.featured ? "border-gold/40 ring-1 ring-gold/20" : ""}`}>
         <div className="flex w-full flex-col">
-          <h2 className="text-xl font-semibold">{plan.name}</h2>
+          <div className="flex items-center justify-between gap-3"><h2 className="font-display text-xl font-semibold">{plan.name}</h2><SignalIcon icon={index===1?Crown:index===2?Zap:Sparkles} tone={index===1?"gold":index===2?"violet":"emerald"} className="size-10 rounded-xl" /></div>
           <div className="mt-5 flex items-end gap-2"><strong className="text-4xl font-bold">{plan.price}</strong>{plan.key !== "basic" && <span className="pb-1 text-sm text-muted-foreground">/ {c.month}</span>}</div>
           <ul className="mt-7 space-y-3">{plan.features.map((feature) => <li key={feature} className="flex gap-3 text-sm text-muted-foreground"><Check className="mt-0.5 size-4 shrink-0 text-primary"/><span>{feature}</span></li>)}</ul>
           {plan.key === "basic" ? <button type="button" disabled className="mt-8 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground">{currentPlan === "basic" ? c.current : c.free}</button> : <button type="button" disabled={opening !== null || isPending || planLoading || billingStatusLoading || (Boolean(session?.user) && !billingReady) || currentPlan === plan.key || hasPaidPlan} onClick={() => void checkout(plan.key)} className="mt-8 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-60">{currentPlan === plan.key ? c.current : hasPaidPlan ? PLAN_CHANGE_COPY[locale] : opening === plan.key ? c.opening : !session?.user && !isPending ? c.signIn : c.choose}</button>}
         </div>
-      </section>)}
+      </IntelligenceCard>)}
     </div>
     {opening && <p className="mt-5 text-center text-sm text-muted-foreground">{c.starting}</p>}
     {error && <p role="alert" className="mt-5 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-center text-sm text-destructive">{error}</p>}

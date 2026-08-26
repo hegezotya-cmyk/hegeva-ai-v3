@@ -16,6 +16,7 @@ import { useI18n } from "@/lib/i18n/provider"
 import { EmptyState } from "@/components/empty-state"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { IntelligenceCard, MetricCard, SectionHeading } from "@/components/visual-engine"
 
 /**
  * Honest command dashboard preview.
@@ -35,38 +36,19 @@ export function CommandDashboard() {
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="max-w-2xl">
-          <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground text-balance sm:text-3xl">
-            {t.dashboard.heading}
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground text-pretty">{t.dashboard.subheading}</p>
-        </div>
-        <Link href="/get-started" className={cn(buttonVariants({ size: "lg" }), "h-10 gap-2 self-start bg-gold text-gold-foreground hover:bg-gold/90 sm:self-auto")}>
+      <SectionHeading eyebrow="Command intelligence" title={t.dashboard.heading} description={t.dashboard.subheading} action={<Link href="/get-started" className={cn(buttonVariants({ size: "lg" }), "h-11 gap-2 bg-gold text-gold-foreground hover:bg-gold/90")}>
           <Link2 className="size-4" aria-hidden />
           {t.dashboard.connect}
-        </Link>
-      </div>
+        </Link>} />
 
       {/* Metric tiles — honest placeholders */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {metrics.map(({ icon: Icon, label }) => (
-          <div key={label} className="glass-panel rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
-              <Icon className="size-4 text-primary/70" aria-hidden />
-            </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="font-display text-3xl font-semibold tabular-nums text-foreground/40">—</span>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">{t.dashboard.emptyBody}</p>
-          </div>
-        ))}
+        {metrics.map(({ icon: Icon, label }, index) => <MetricCard key={label} label={label} value={<span className="text-foreground/40">—</span>} detail={t.dashboard.emptyBody} icon={Icon} tone={index===1?"cyan":index===2?"violet":"neutral"} />)}
       </div>
 
       {/* Module panels */}
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <div className="glass-panel rounded-2xl p-5 lg:col-span-2">
+        <IntelligenceCard className="p-5 lg:col-span-2">
           <div className="mb-4 flex items-center gap-2">
             <CheckSquare className="size-4 text-primary" aria-hidden />
             <h3 className="text-sm font-semibold text-foreground">{t.dashboard.priorities}</h3>
@@ -81,7 +63,7 @@ export function CommandDashboard() {
               </Link>
             }
           />
-        </div>
+        </IntelligenceCard>
 
         <div className="glass-panel rounded-2xl p-5">
           <div className="mb-4 flex items-center gap-2">

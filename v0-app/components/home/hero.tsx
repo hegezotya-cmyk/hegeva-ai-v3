@@ -5,6 +5,7 @@ import { ArrowRight, MessageSquareText, Sparkles } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { AICore, LiveStatus } from "@/components/visual-engine"
 
 const honestHero = {
   en: { subtitle: "One connected workspace for AI assistance, customers, documents, expenses, planning, reports and app planning — built around the features HEGEVA has working today.", pills: ["AI Assistant", "CRM", "Business Tools", "App Studio Beta"] },
@@ -27,12 +28,9 @@ export function Hero() {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-background to-transparent" aria-hidden />
       <div className="mx-auto flex min-h-[650px] max-w-7xl items-center px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
         <div className="relative z-10 max-w-xl rounded-3xl bg-background/10 py-4 backdrop-blur-[1px]">
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            <Sparkles className="size-3.5" aria-hidden />
-            {t.hero.badge}
-          </span>
+          <div className="flex items-center gap-3"><AICore state="active" /><div><span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary"><Sparkles className="size-3.5" aria-hidden />{t.hero.badge}</span><LiveStatus className="mt-2" label="HEGEVA Core" /></div></div>
 
-          <h1 className="mt-5 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance sm:text-5xl lg:text-6xl">
+          <h1 className="mt-6 font-display text-4xl font-semibold leading-[1.02] tracking-[-0.055em] text-balance sm:text-5xl lg:text-7xl">
             <span className="block text-foreground">{t.hero.titleLine1}</span>
             <span className="block text-gradient-emerald">{t.hero.titleLine2}</span>
             <span className="block text-foreground">{t.hero.titleLine3}</span>

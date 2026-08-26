@@ -9,6 +9,7 @@ import { useI18n } from "@/lib/i18n/provider"
 import { TOOLS_COPY } from "@/lib/i18n/tools-copy"
 import { VAULT_COPY } from "@/lib/i18n/vault-copy"
 import { INVOICE_COPY } from "@/lib/i18n/invoice-copy"
+import { IntelligenceCard, SignalIcon } from "@/components/visual-engine"
 
 export default function BusinessPage() {
   const { t, locale } = useI18n()
@@ -28,15 +29,17 @@ export default function BusinessPage() {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <PageHeader eyebrow={t.business.eyebrow} title={t.business.title} subtitle={t.business.subtitle} />
         <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {modules.map(({ href, title, text, icon: Icon }) => (
-            <Link key={href} href={href} className="glass-panel glass-panel-hover group rounded-3xl p-6">
+          {modules.map(({ href, title, text, icon: Icon }, index) => (
+            <Link key={href} href={href} className="group rounded-3xl focus-visible:outline-none">
+              <IntelligenceCard interactive tone={index===4||index===5?"cyan":index===7?"gold":index===8?"violet":"neutral"} className="h-full p-6">
               <div className="flex items-center justify-between gap-4">
-                <span className="flex size-11 items-center justify-center rounded-xl border border-primary/25 bg-primary/10"><Icon className="size-5 text-primary" /></span>
+                <SignalIcon icon={Icon} tone={index===4||index===5?"cyan":index===7?"gold":index===8?"violet":"emerald"} />
                 <StatusBadge status="working" />
               </div>
               <h2 className="mt-5 text-xl font-semibold text-foreground">{title}</h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{text}</p>
               <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-foreground/80 group-hover:text-foreground">{t.business.open} <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></span>
+              </IntelligenceCard>
             </Link>
           ))}
         </div>
