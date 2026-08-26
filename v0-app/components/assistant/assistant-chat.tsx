@@ -179,7 +179,7 @@ export function AssistantChat() {
         </p>
         <Link
           href="/login"
-          className="mt-6 inline-flex rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground"
+          className="mt-6 inline-flex rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground shadow-[0_14px_36px_-18px_rgba(60,220,160,.75)] transition hover:-translate-y-0.5 hover:bg-primary/90"
         >
           {t.assistant.goLogin}
         </Link>
@@ -188,21 +188,29 @@ export function AssistantChat() {
   }
 
   return (
-    <div className="ve-panel overflow-hidden rounded-3xl shadow-sm">
-      <div className="border-b border-border px-5 py-4 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm text-muted-foreground">
-              {t.assistant.signedIn} {session.user.email}
-            </p>
-            {usage && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {usage.plan.charAt(0).toUpperCase() + usage.plan.slice(1)} {t.assistant.plan} · {usage.aiMessages} / {usage.aiLimit} {t.assistant.messagesMonth}
+    <div className="ve-panel relative overflow-hidden rounded-[2rem] shadow-[0_30px_90px_-46px_rgba(0,0,0,.95)]">
+      <span className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-cyan/10 blur-3xl" aria-hidden />
+      <span className="pointer-events-none absolute -left-16 top-40 h-52 w-52 rounded-full bg-violet/8 blur-3xl" aria-hidden />
+      <span className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" aria-hidden />
+
+      <div className="relative border-b border-border/70 bg-white/[0.015] px-5 py-4 backdrop-blur-sm sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AICore state="active" className="scale-90" />
+            <div>
+              <p className="text-sm font-medium text-foreground/90">
+                {t.assistant.signedIn} <span className="text-muted-foreground">{session.user.email}</span>
               </p>
-            )}
-            <p className="mt-1 text-xs text-muted-foreground">
-              {syncState === "saving" ? t.assistant.saving : syncState === "cloud" ? t.assistant.synced : syncState === "error" ? t.assistant.syncError : t.assistant.loading}
-            </p>
+              {usage && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {usage.plan.charAt(0).toUpperCase() + usage.plan.slice(1)} {t.assistant.plan} · {usage.aiMessages} / {usage.aiLimit} {t.assistant.messagesMonth}
+                </p>
+              )}
+              <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="inline-flex size-1.5 rounded-full bg-primary shadow-[0_0_12px_rgba(80,220,160,.8)]" aria-hidden />
+                {syncState === "saving" ? t.assistant.saving : syncState === "cloud" ? t.assistant.synced : syncState === "error" ? t.assistant.syncError : t.assistant.loading}
+              </p>
+            </div>
           </div>
           {messages.length > 0 && (
             <button
@@ -211,7 +219,7 @@ export function AssistantChat() {
                 setMessages([])
                 setError("")
               }}
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="inline-flex items-center gap-2 rounded-xl border border-border/80 bg-background/35 px-3 py-2 text-xs font-medium text-muted-foreground transition hover:border-destructive/30 hover:bg-destructive/8 hover:text-foreground"
             >
               <Trash2 className="size-3.5" aria-hidden />
               {t.assistant.clear}
@@ -220,10 +228,12 @@ export function AssistantChat() {
         </div>
       </div>
 
-      <div className="min-h-[420px] space-y-4 p-5 sm:p-6">
+      <div className="relative min-h-[420px] space-y-5 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,.025),transparent_34%)] p-5 sm:p-6">
         {messages.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border p-6 text-muted-foreground">
-            {t.assistant.empty}
+          <div className="relative overflow-hidden rounded-3xl border border-dashed border-cyan/20 bg-gradient-to-br from-cyan/[0.055] via-white/[0.018] to-violet/[0.04] p-7 text-muted-foreground">
+            <span className="pointer-events-none absolute right-5 top-1/2 size-24 -translate-y-1/2 rounded-full border border-cyan/10" aria-hidden />
+            <span className="pointer-events-none absolute right-9 top-1/2 size-16 -translate-y-1/2 rounded-full border border-violet/10" aria-hidden />
+            <div className="relative max-w-xl text-sm leading-6">{t.assistant.empty}</div>
           </div>
         ) : (
           messages.map((item, index) => (
@@ -231,8 +241,8 @@ export function AssistantChat() {
               key={`${item.role}-${index}`}
               className={
                 item.role === "user"
-                  ? "ml-auto max-w-[85%] rounded-2xl bg-primary px-4 py-3 text-primary-foreground"
-                  : "group relative mr-auto max-w-[90%] rounded-2xl bg-muted px-4 py-3 pr-11 text-foreground"
+                  ? "ml-auto max-w-[85%] rounded-3xl rounded-br-lg border border-primary/25 bg-gradient-to-br from-primary/95 to-emerald/80 px-4 py-3 text-primary-foreground shadow-[0_16px_34px_-22px_rgba(60,220,160,.75)]"
+                  : "group relative mr-auto max-w-[90%] rounded-3xl rounded-bl-lg border border-white/8 bg-gradient-to-br from-white/[0.055] via-muted/70 to-violet/[0.045] px-4 py-3 pr-11 text-foreground shadow-[0_16px_36px_-26px_rgba(0,0,0,.9)] backdrop-blur-sm"
               }
             >
               {item.role === "user" ? (
@@ -260,7 +270,7 @@ export function AssistantChat() {
                     onClick={() => void copyAnswer(item.content, index)}
                     aria-label={t.assistant.copy}
                     title={t.assistant.copy}
-                    className="absolute right-2 top-2 rounded-lg p-2 text-muted-foreground opacity-70 transition hover:bg-background hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
+                    className="absolute right-2 top-2 rounded-xl border border-transparent p-2 text-muted-foreground opacity-70 transition hover:border-white/8 hover:bg-background/70 hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
                   >
                     {copiedIndex === index ? <Check className="size-4 text-primary" aria-hidden /> : <Copy className="size-4" aria-hidden />}
                   </button>
@@ -271,7 +281,7 @@ export function AssistantChat() {
         )}
 
         {sending && (
-          <div className="mr-auto flex max-w-[90%] items-center gap-3 rounded-2xl border border-violet/20 bg-violet/8 px-4 py-3 text-sm text-muted-foreground" role="status" aria-live="polite">
+          <div className="mr-auto flex max-w-[90%] items-center gap-3 rounded-3xl rounded-bl-lg border border-violet/25 bg-gradient-to-r from-violet/10 via-cyan/[0.05] to-transparent px-4 py-3 text-sm text-muted-foreground shadow-[0_16px_34px_-26px_rgba(120,80,255,.65)]" role="status" aria-live="polite">
             <AICore state="thinking" className="scale-75" />
             <span>{t.assistant.thinking}</span>
           </div>
@@ -287,7 +297,7 @@ export function AssistantChat() {
 
       <form
         onSubmit={submit}
-        className="border-t border-border p-4 sm:p-5"
+        className="relative border-t border-border/70 bg-background/45 p-4 backdrop-blur-md sm:p-5"
       >
         <div className="flex flex-col gap-3 sm:flex-row">
           <textarea
@@ -297,12 +307,12 @@ export function AssistantChat() {
             maxLength={2500}
             rows={3}
             placeholder={t.assistant.placeholder}
-            className="min-h-24 flex-1 resize-none rounded-2xl border border-input bg-background px-4 py-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+            className="min-h-24 flex-1 resize-none rounded-3xl border border-input/80 bg-black/10 px-4 py-3 text-sm shadow-inner outline-none ring-offset-background transition placeholder:text-muted-foreground/70 focus:border-cyan/35 focus:bg-background/70 focus:ring-2 focus:ring-cyan/20"
           />
           <button
             type="submit"
             disabled={sending || !message.trim()}
-            className="min-h-11 w-full self-end rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            className="min-h-11 w-full self-end rounded-2xl bg-gradient-to-r from-primary to-cyan px-5 py-3 font-semibold text-primary-foreground shadow-[0_16px_36px_-18px_rgba(60,220,180,.78)] transition hover:-translate-y-0.5 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:w-auto"
           >
             {sending ? t.assistant.sending : t.assistant.send}
           </button>
