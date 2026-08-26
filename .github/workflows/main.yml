@@ -56,9 +56,9 @@ jobs:
         working-directory: v0-app
         run: npm ci
 
-      - name: X20 runtime stability check
+      - name: Full product readiness audit
         working-directory: v0-app
-        run: npm run x20:stability
+        run: npm run audit:roadmap
 
       - name: TypeScript check
         working-directory: v0-app
