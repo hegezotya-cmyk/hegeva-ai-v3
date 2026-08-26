@@ -291,7 +291,7 @@ export function AssistantChat() {
         onSubmit={submit}
         className="border-t border-border p-4 sm:p-5"
       >
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <textarea
             value={message}
             onChange={(event) => setMessage(event.target.value)}
@@ -304,7 +304,7 @@ export function AssistantChat() {
           <button
             type="submit"
             disabled={sending || !message.trim()}
-            className="self-end rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-11 w-full self-end rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             {sending ? t.assistant.sending : t.assistant.send}
           </button>

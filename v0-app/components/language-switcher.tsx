@@ -26,7 +26,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-input/30 px-2.5 text-sm font-medium text-foreground/90 transition-colors hover:border-primary/40 hover:text-foreground"
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border bg-input/30 px-3 text-sm font-medium text-foreground/90 transition-colors hover:border-primary/40 hover:text-foreground"
       >
         <Globe className="size-3.5 text-primary" aria-hidden />
         <span>{LOCALE_LABELS[locale].native}</span>
@@ -51,7 +51,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
                     setOpen(false)
                   }}
                   className={cn(
-                    "flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
+                    "flex min-h-11 w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
                     active ? "bg-primary/15 text-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground",
                   )}
                 >

@@ -27,6 +27,8 @@ export default function AccountPage() {
   const [billingSuccess, setBillingSuccess] = useState(false)
   const [billingConfirmError, setBillingConfirmError] = useState("")
   const [loggingOut, setLoggingOut] = useState(false)
+  const [openingBilling, setOpeningBilling] = useState(false)
+  const [billingPortalError, setBillingPortalError] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -125,6 +127,27 @@ export default function AccountPage() {
     }
   }
 
+  async function openBillingPortal() {
+    if (openingBilling) return
+    setOpeningBilling(true)
+    setBillingPortalError(false)
+    try {
+      const response = await fetch("/api/billing/portal", {
+        method: "POST",
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok || typeof data?.url !== "string" || !data.url.startsWith("https://billing.stripe.com/")) {
+        throw new Error("portal")
+      }
+      window.location.assign(data.url)
+    } catch {
+      setBillingPortalError(true)
+      setOpeningBilling(false)
+    }
+  }
+
   if (isPending) return <AppShell><main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8"><div className="glass-panel rounded-3xl p-8 text-sm text-muted-foreground">{c.checking}</div></main></AppShell>
 
   if (!session?.user) return <AppShell><main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8"><PageHeader eyebrow={c.eyebrow} title={c.signInTitle} subtitle={c.signInBody}/>{billingReturn && <p role="status" className="mt-6 rounded-xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground">{c.billingSignIn}</p>}<Link href={loginCallbackHref} className="mt-8 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">{c.signIn}</Link></main></AppShell>
@@ -157,6 +180,8 @@ export default function AccountPage() {
           <Link href="/command-center" className="rounded-xl bg-primary px-5 py-3 text-center text-sm font-semibold text-primary-foreground">{c.workspace}</Link>
           <Link href="/assistant" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.assistant}</Link>
           <Link href="/pricing" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.pricing}</Link>
+          {plan && PAID_PLANS.has(plan.plan) && <button type="button" disabled={openingBilling} onClick={() => void openBillingPortal()} className="min-h-11 rounded-xl border border-primary/30 bg-primary/10 px-5 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-60">{openingBilling ? c.checking : `${c.plan} · Stripe Sandbox`}</button>}
+          {billingPortalError && <p role="alert" className="rounded-xl border border-gold/30 bg-gold/10 p-3 text-sm text-muted-foreground">{c.unavailable}</p>}
           {isOwner && <Link href="/admin/contact-leads" className="rounded-xl border border-primary/30 bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary transition-colors hover:bg-primary/15">{leadsCopy.inbox}</Link>}
           <Link href="/contact" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.support}</Link>
           <button type="button" disabled={loggingOut} onClick={() => void logout()} className="mt-3 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60">{loggingOut ? c.checking : c.logout}</button>

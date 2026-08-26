@@ -112,11 +112,11 @@ export function SiteHeader() {
             </div>
           ) : <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "hidden sm:inline-flex")}>{t.nav.login}</Link>)}
           <Link href={session?.user ? "/command-center" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "hidden bg-gold text-gold-foreground hover:bg-gold/90 sm:inline-flex")}>{session?.user ? t.nav.openWorkspace : t.nav.getStarted}</Link>
-          <button type="button" onClick={() => setMobileOpen((v) => !v)} aria-label={aria.menu} aria-expanded={mobileOpen} className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-input/30 text-foreground lg:hidden">{mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}</button>
+          <button type="button" onClick={() => setMobileOpen((v) => !v)} aria-label={aria.menu} aria-expanded={mobileOpen} className="inline-flex size-11 items-center justify-center rounded-lg border border-border bg-input/30 text-foreground lg:hidden">{mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}</button>
         </div>
       </div>
       {mobileOpen && (
-        <div className="border-t border-border bg-background/95 backdrop-blur-xl lg:hidden">
+        <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
           <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4 sm:px-6" aria-label={aria.mobile}>
             <Link href="/" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.home}</Link>
             <Link href="/command-center" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.commandCenter}</Link>
@@ -125,8 +125,8 @@ export function SiteHeader() {
             <Link href="/business" className="mt-1 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.business}</Link>
             <Link href="/pricing" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.pricing}</Link>
             <Link href="/contact" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.contact}</Link>
-            <div className="mt-3 flex items-center gap-2 border-t border-border pt-4">
-              <LanguageSwitcher />
+            <div className="mt-3 grid grid-cols-2 items-center gap-2 border-t border-border pt-4">
+              <LanguageSwitcher className="col-span-2" />
               {session?.user ? <button type="button" disabled={loggingOut} onClick={() => void logout()} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1 gap-2 disabled:opacity-60")}><LogOut className="size-4" aria-hidden /> {t.nav.logout}</button> : <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1")}>{t.nav.login}</Link>}
               <Link href={session?.user ? "/command-center" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "flex-1 bg-gold text-gold-foreground hover:bg-gold/90")}>{session?.user ? t.nav.openWorkspace : t.nav.getStarted}</Link>
             </div>

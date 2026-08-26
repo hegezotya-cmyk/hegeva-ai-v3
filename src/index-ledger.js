@@ -136,6 +136,65 @@ function extractMetadata(eventType, object) {
   return {};
 }
 
+function stripeObjectId(value, prefix) {
+  return typeof value === "string" && value.startsWith(prefix)
+    ? value.trim()
+    : null;
+}
+
+function stripeSubscriptionId(eventType, object) {
+  if (eventType.startsWith("customer.subscription.")) {
+    return stripeObjectId(object?.id, "sub_");
+  }
+
+  return (
+    stripeObjectId(object?.subscription, "sub_") ||
+    stripeObjectId(object?.parent?.subscription_details?.subscription, "sub_")
+  );
+}
+
+async function syncStripeBillingIdentity(env, event, claim) {
+  if (!claim?.userId) return;
+
+  const object = event?.data?.object;
+  const customerId = stripeObjectId(object?.customer, "cus_");
+  if (!customerId) return;
+
+  const subscriptionId = stripeSubscriptionId(claim.eventType, object);
+  const status = claim.eventType.startsWith("customer.subscription.")
+    ? String(object?.status || "").trim().toLowerCase() || null
+    : null;
+  const cancelAtPeriodEnd = object?.cancel_at_period_end === true ? 1 : 0;
+  const periodEndSeconds = Number(object?.current_period_end);
+  const currentPeriodEnd = Number.isFinite(periodEndSeconds) && periodEndSeconds > 0
+    ? new Date(periodEndSeconds * 1000).toISOString()
+    : null;
+  const now = new Date().toISOString();
+
+  await env.DB.prepare(`
+    INSERT INTO stripe_customers (
+      userId, stripeCustomerId, stripeSubscriptionId, subscriptionStatus,
+      cancelAtPeriodEnd, currentPeriodEnd, createdAt, updatedAt
+    )
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7)
+    ON CONFLICT(userId) DO UPDATE SET
+      stripeCustomerId = excluded.stripeCustomerId,
+      stripeSubscriptionId = COALESCE(excluded.stripeSubscriptionId, stripe_customers.stripeSubscriptionId),
+      subscriptionStatus = COALESCE(excluded.subscriptionStatus, stripe_customers.subscriptionStatus),
+      cancelAtPeriodEnd = CASE WHEN excluded.subscriptionStatus IS NULL THEN stripe_customers.cancelAtPeriodEnd ELSE excluded.cancelAtPeriodEnd END,
+      currentPeriodEnd = COALESCE(excluded.currentPeriodEnd, stripe_customers.currentPeriodEnd),
+      updatedAt = excluded.updatedAt
+  `).bind(
+    claim.userId,
+    customerId,
+    subscriptionId,
+    status,
+    cancelAtPeriodEnd,
+    currentPeriodEnd,
+    now,
+  ).run();
+}
+
 async function claimStripeEvent(env, event) {
   const eventId = typeof event?.id === "string" ? event.id.trim() : "";
   const eventType = typeof event?.type === "string" ? event.type.trim() : "";
@@ -323,6 +382,13 @@ async function handleStripeWebhook(request, env, ctx) {
     );
   }
 
+  if (event?.livemode === true) {
+    return Response.json(
+      { error: "Live Stripe events are not accepted by this test build." },
+      { status: 400 },
+    );
+  }
+
   let claim;
   try {
     claim = await claimStripeEvent(env, event);
@@ -369,6 +435,8 @@ async function handleStripeWebhook(request, env, ctx) {
       await finalizeStripeEvent(env, claim.eventId, responseData);
       return Response.json(responseData);
     }
+
+    await syncStripeBillingIdentity(env, event, claim);
 
     const terminalSubscriptionResult =
       await downgradeTerminalSubscription(env, event, claim);

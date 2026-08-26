@@ -938,7 +938,23 @@ async function createStripeCheckoutSession(
     )
   );
 
-  if (user.email) {
+  const existingCustomer =
+    await env.DB
+      .prepare(`
+        SELECT stripeCustomerId
+        FROM stripe_customers
+        WHERE userId = ?1
+        LIMIT 1
+      `)
+      .bind(String(user.id))
+      .first();
+
+  if (existingCustomer?.stripeCustomerId) {
+    form.set(
+      "customer",
+      existingCustomer.stripeCustomerId
+    );
+  } else if (user.email) {
     form.set(
       "customer_email",
       user.email
@@ -1045,6 +1061,52 @@ async function createStripeCheckoutSession(
     id: data.id,
     url: data.url
   };
+}
+
+async function createStripePortalSession(request, env, user) {
+  const secretKey =
+    typeof env.STRIPE_SECRET_KEY === "string"
+      ? env.STRIPE_SECRET_KEY.trim()
+      : "";
+
+  if (!isStripeTestSecret(secretKey)) {
+    return { ok: false, status: 503, error: "Stripe test billing is not configured." };
+  }
+
+  const customer = await env.DB
+    .prepare(`
+      SELECT stripeCustomerId
+      FROM stripe_customers
+      WHERE userId = ?1
+      LIMIT 1
+    `)
+    .bind(String(user.id))
+    .first();
+
+  if (!customer?.stripeCustomerId) {
+    return { ok: false, status: 409, error: "No Stripe customer is linked to this account yet." };
+  }
+
+  const form = new URLSearchParams();
+  form.set("customer", customer.stripeCustomerId);
+  form.set("return_url", `${getPublicAppUrl(request, env)}/account?billing=portal-return`);
+
+  const response = await fetch("https://api.stripe.com/v1/billing_portal/sessions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: form.toString()
+  });
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok || typeof data?.url !== "string" || !data.url.startsWith("https://billing.stripe.com/")) {
+    console.error("HEGEVA Stripe portal error:", data);
+    return { ok: false, status: response.status || 502, error: data?.error?.message || "Stripe billing portal could not be opened." };
+  }
+
+  return { ok: true, status: 200, url: data.url };
 }
 
 export default {
@@ -2103,6 +2165,17 @@ export default {
             user.id
           );
 
+        const billingIdentity =
+          await env.DB
+            .prepare(`
+              SELECT subscriptionStatus, cancelAtPeriodEnd, currentPeriodEnd
+              FROM stripe_customers
+              WHERE userId = ?1
+              LIMIT 1
+            `)
+            .bind(String(user.id))
+            .first();
+
         return Response.json({
           available:
             true,
@@ -2118,6 +2191,18 @@ export default {
             "test",
 
           checkoutEnabled,
+
+          customerPortalReady:
+            connected && Boolean(billingIdentity),
+
+          subscriptionStatus:
+            billingIdentity?.subscriptionStatus || null,
+
+          cancelAtPeriodEnd:
+            billingIdentity?.cancelAtPeriodEnd === 1,
+
+          currentPeriodEnd:
+            billingIdentity?.currentPeriodEnd || null,
 
           webhookConfigured:
             webhookStatus.configured,
@@ -2170,6 +2255,46 @@ export default {
           {
             status: 500
           }
+        );
+      }
+    }
+
+    // =========================================
+    // STRIPE CUSTOMER PORTAL
+    // =========================================
+
+    if (url.pathname === "/api/billing/portal") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+        if (!user) {
+          return Response.json({ error: "Authentication required." }, { status: 401 });
+        }
+
+        const provider = String(env.PAYMENT_PROVIDER || "").trim().toLowerCase();
+        const mode = String(env.PAYMENT_MODE || "").trim().toLowerCase();
+        if (provider !== "stripe" || mode !== "test") {
+          return Response.json(
+            { error: "Only Stripe test billing is available in this build." },
+            { status: 503 }
+          );
+        }
+
+        const portal = await createStripePortalSession(request, env, user);
+        return Response.json(
+          portal.ok
+            ? { ok: true, mode: "test", url: portal.url }
+            : { ok: false, mode: "test", error: portal.error },
+          { status: portal.status }
+        );
+      } catch (error) {
+        console.error("HEGEVA billing portal error:", error);
+        return Response.json(
+          { error: "Billing portal is temporarily unavailable." },
+          { status: 500 }
         );
       }
     }

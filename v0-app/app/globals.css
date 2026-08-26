@@ -118,6 +118,17 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: 'ss01', 'cv01';
+    overflow-x: hidden;
+    min-width: 320px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  button, a, input, select, textarea {
+    touch-action: manipulation;
+  }
+
+  :focus-visible {
+    scroll-margin-block: 5rem;
   }
 }
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { FormEvent, useMemo, useState } from "react"
-import { Cloud, CloudOff, Plus, Search, Trash2 } from "lucide-react"
+import { Cloud, CloudOff, Pencil, Plus, Search, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/status-badge"
 import { useI18n } from "@/lib/i18n/provider"
@@ -34,11 +34,11 @@ const config: Record<Kind, { title: string; singular: string; subtitle: string; 
 export function LocalWorkspace({ kind }: { kind: Kind }) {
   const { locale, t } = useI18n()
   const ui = {
-    en:{cloud:"Cloud synced",saving:"Saving to cloud…",checking:"Checking cloud…",fallback:"Local fallback",local:"Saved in this browser",add:"Add",save:"Save",search:"Search",notes:"Notes",amount:"Amount (£)",total:"Saved expense total",calculated:"Calculated only from entries saved below.",none:"No saved records yet",empty:"Add your first real record. HEGEVA never creates fake business data.",saved:"Saved",del:"Delete"},
-    hu:{cloud:"Felhőbe szinkronizálva",saving:"Mentés a felhőbe…",checking:"Felhő ellenőrzése…",fallback:"Helyi biztonsági másolat",local:"Ebben a böngészőben mentve",add:"Hozzáadás",save:"Mentés",search:"Keresés",notes:"Jegyzetek",amount:"Összeg (£)",total:"Mentett kiadások összege",calculated:"Csak az alább mentett tételekből számítva.",none:"Még nincs mentett adat",empty:"Add hozzá az első valódi adatot. A HEGEVA nem készít hamis üzleti adatokat.",saved:"Mentve",del:"Törlés"},
-    de:{cloud:"Cloud-synchronisiert",saving:"Wird gespeichert…",checking:"Cloud wird geprüft…",fallback:"Lokale Sicherung",local:"Im Browser gespeichert",add:"Hinzufügen",save:"Speichern",search:"Suchen",notes:"Notizen",amount:"Betrag (£)",total:"Gespeicherte Ausgaben",calculated:"Nur aus den unten gespeicherten Einträgen berechnet.",none:"Noch keine Einträge",empty:"Fügen Sie den ersten echten Eintrag hinzu. HEGEVA erstellt keine erfundenen Daten.",saved:"Gespeichert",del:"Löschen"},
-    fr:{cloud:"Synchronisé dans le cloud",saving:"Enregistrement…",checking:"Vérification du cloud…",fallback:"Copie locale",local:"Enregistré dans ce navigateur",add:"Ajouter",save:"Enregistrer",search:"Rechercher",notes:"Notes",amount:"Montant (£)",total:"Total des dépenses enregistrées",calculated:"Calculé uniquement à partir des entrées ci-dessous.",none:"Aucune donnée enregistrée",empty:"Ajoutez votre première donnée réelle. HEGEVA ne crée aucune fausse donnée.",saved:"Enregistré",del:"Supprimer"},
-    es:{cloud:"Sincronizado en la nube",saving:"Guardando…",checking:"Comprobando la nube…",fallback:"Copia local",local:"Guardado en este navegador",add:"Añadir",save:"Guardar",search:"Buscar",notes:"Notas",amount:"Importe (£)",total:"Total de gastos guardados",calculated:"Calculado solo con las entradas guardadas abajo.",none:"Aún no hay datos guardados",empty:"Añade tu primer dato real. HEGEVA no crea datos empresariales falsos.",saved:"Guardado",del:"Eliminar"}
+    en:{cloud:"Cloud synced",saving:"Saving to cloud…",checking:"Checking cloud…",fallback:"Local fallback",local:"Saved in this browser",add:"Add",save:"Save",update:"Update",edit:"Edit",cancel:"Cancel",search:"Search",notes:"Notes",amount:"Amount (£)",total:"Saved expense total",calculated:"Calculated only from entries saved below.",none:"No saved records yet",empty:"Add your first real record. HEGEVA never creates fake business data.",saved:"Saved",del:"Delete"},
+    hu:{cloud:"Felhőbe szinkronizálva",saving:"Mentés a felhőbe…",checking:"Felhő ellenőrzése…",fallback:"Helyi biztonsági másolat",local:"Ebben a böngészőben mentve",add:"Hozzáadás",save:"Mentés",update:"Frissítés",edit:"Szerkesztés",cancel:"Mégse",search:"Keresés",notes:"Jegyzetek",amount:"Összeg (£)",total:"Mentett kiadások összege",calculated:"Csak az alább mentett tételekből számítva.",none:"Még nincs mentett adat",empty:"Add hozzá az első valódi adatot. A HEGEVA nem készít hamis üzleti adatokat.",saved:"Mentve",del:"Törlés"},
+    de:{cloud:"Cloud-synchronisiert",saving:"Wird gespeichert…",checking:"Cloud wird geprüft…",fallback:"Lokale Sicherung",local:"Im Browser gespeichert",add:"Hinzufügen",save:"Speichern",update:"Aktualisieren",edit:"Bearbeiten",cancel:"Abbrechen",search:"Suchen",notes:"Notizen",amount:"Betrag (£)",total:"Gespeicherte Ausgaben",calculated:"Nur aus den unten gespeicherten Einträgen berechnet.",none:"Noch keine Einträge",empty:"Fügen Sie den ersten echten Eintrag hinzu. HEGEVA erstellt keine erfundenen Daten.",saved:"Gespeichert",del:"Löschen"},
+    fr:{cloud:"Synchronisé dans le cloud",saving:"Enregistrement…",checking:"Vérification du cloud…",fallback:"Copie locale",local:"Enregistré dans ce navigateur",add:"Ajouter",save:"Enregistrer",update:"Mettre à jour",edit:"Modifier",cancel:"Annuler",search:"Rechercher",notes:"Notes",amount:"Montant (£)",total:"Total des dépenses enregistrées",calculated:"Calculé uniquement à partir des entrées ci-dessous.",none:"Aucune donnée enregistrée",empty:"Ajoutez votre première donnée réelle. HEGEVA ne crée aucune fausse donnée.",saved:"Enregistré",del:"Supprimer"},
+    es:{cloud:"Sincronizado en la nube",saving:"Guardando…",checking:"Comprobando la nube…",fallback:"Copia local",local:"Guardado en este navegador",add:"Añadir",save:"Guardar",update:"Actualizar",edit:"Editar",cancel:"Cancelar",search:"Buscar",notes:"Notas",amount:"Importe (£)",total:"Total de gastos guardados",calculated:"Calculado solo con las entradas guardadas abajo.",none:"Aún no hay datos guardados",empty:"Añade tu primer dato real. HEGEVA no crea datos empresariales falsos.",saved:"Guardado",del:"Eliminar"}
   }[locale]
   const detail = {
     en:{eyebrow:"HEGEVA Business Workspace",customerMeta:"Email / phone / status",documentMeta:"Type / customer / reference",expenseMeta:"Category / date / reference",cloud:"Authenticated cloud sync is active. A local browser copy is kept as a fallback.",saving:"Your latest changes are being saved to your HEGEVA workspace.",error:"Cloud sync is unavailable. Your browser copy remains available.",checking:"HEGEVA is checking your authenticated cloud workspace.",guest:"Sign in to enable cloud sync. Until then, records stay in this browser only."},
@@ -65,6 +65,7 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
   const [customerStatus, setCustomerStatus] = useState<RecordItem["customerStatus"]>("lead")
   const [query, setQuery] = useState("")
   const [customerFilter, setCustomerFilter] = useState<"all"|"due">("all")
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -80,32 +81,50 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
 
   const total = useMemo(() => items.reduce((sum, item) => sum + (item.amount || 0), 0), [items])
 
-  function addItem(e: FormEvent) {
-    e.preventDefault()
-    const clean = title.trim()
-    if (!clean) return
-    const parsedAmount = kind === "expenses" && amount ? Number(amount) : undefined
-    if (kind === "expenses" && parsedAmount !== undefined && (!Number.isFinite(parsedAmount) || parsedAmount < 0)) return
-
-    setItems((current) => [
-      {
-        id: crypto.randomUUID(),
-        title: clean,
-        meta: meta.trim() || undefined,
-        amount: parsedAmount,
-        notes: notes.trim() || undefined,
-        followUp: kind === "customers" ? followUp || undefined : undefined,
-        customerStatus: kind === "customers" ? customerStatus : undefined,
-        createdAt: new Date().toISOString(),
-      },
-      ...current,
-    ])
+  function resetForm() {
     setTitle("")
     setMeta("")
     setAmount("")
     setNotes("")
     setFollowUp("")
     setCustomerStatus("lead")
+    setEditingId(null)
+  }
+
+  function editItem(item: RecordItem) {
+    setEditingId(item.id)
+    setTitle(item.title)
+    setMeta(item.meta || "")
+    setAmount(typeof item.amount === "number" ? String(item.amount) : "")
+    setNotes(item.notes || "")
+    setFollowUp(item.followUp || "")
+    setCustomerStatus(item.customerStatus || "lead")
+  }
+
+  function saveItem(e: FormEvent) {
+    e.preventDefault()
+    const clean = title.trim()
+    if (!clean) return
+    const parsedAmount = kind === "expenses" && amount ? Number(amount) : undefined
+    if (kind === "expenses" && parsedAmount !== undefined && (!Number.isFinite(parsedAmount) || parsedAmount < 0)) return
+
+    setItems((current) => {
+      const existing = editingId ? current.find((item) => item.id === editingId) : undefined
+      const next: RecordItem = {
+        id: existing?.id || crypto.randomUUID(),
+        title: clean,
+        meta: meta.trim() || undefined,
+        amount: parsedAmount,
+        notes: notes.trim() || undefined,
+        followUp: kind === "customers" ? followUp || undefined : undefined,
+        customerStatus: kind === "customers" ? customerStatus : undefined,
+        createdAt: existing?.createdAt || new Date().toISOString(),
+      }
+      return existing
+        ? current.map((item) => item.id === existing.id ? next : item)
+        : [next, ...current]
+    })
+    resetForm()
   }
 
   const syncLabel =
@@ -163,8 +182,8 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
       )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[360px_1fr]">
-        <form onSubmit={addItem} className="glass-panel h-fit rounded-2xl p-5">
-          <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><Plus className="size-4 text-primary" /> {ui.add}</div>
+        <form onSubmit={saveItem} className="glass-panel h-fit rounded-2xl p-5">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">{editingId ? <Pencil className="size-4 text-primary" /> : <Plus className="size-4 text-primary" />} {editingId ? ui.edit : ui.add}</div>
           <div className="mt-5 space-y-3">
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={cfg.placeholder} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
             <input value={meta} onChange={(e) => setMeta(e.target.value)} placeholder={kind === "customers" ? detail.customerMeta : kind === "documents" ? detail.documentMeta : detail.expenseMeta} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
@@ -172,7 +191,7 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
             {kind === "customers" && <><select value={customerStatus} onChange={(e) => setCustomerStatus(e.target.value as RecordItem["customerStatus"])} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50"><option value="lead">{crm.lead}</option><option value="active">{crm.active}</option><option value="paused">{crm.paused}</option></select><label className="block text-xs text-muted-foreground">{crm.followUp}<input type="date" value={followUp} onChange={(e)=>setFollowUp(e.target.value)} className="mt-1 w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50"/></label></>}
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={ui.notes} rows={4} className="w-full resize-none rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
           </div>
-          <Button type="submit" className="mt-4 w-full">{ui.save}</Button>
+          <div className="mt-4 flex gap-2"><Button type="submit" className="flex-1">{editingId ? ui.update : ui.save}</Button>{editingId && <Button type="button" variant="outline" onClick={resetForm} aria-label={ui.cancel}><X className="size-4" /> {ui.cancel}</Button>}</div>
         </form>
 
         <section>
@@ -189,7 +208,7 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
                 <p className="mt-2 text-sm text-muted-foreground">{ui.empty}</p>
               </div>
             ) : filtered.map((item) => (
-              <article key={item.id} className="glass-panel flex items-start justify-between gap-4 rounded-2xl p-5">
+              <article key={item.id} className="glass-panel flex flex-col items-stretch justify-between gap-4 rounded-2xl p-5 sm:flex-row sm:items-start">
                 <div className="min-w-0">
                   <h2 className="font-semibold text-foreground">{item.title}</h2>
                   {item.meta && <p className="mt-1 text-sm text-muted-foreground">{item.meta}</p>}
@@ -198,7 +217,7 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
                   {kind === "customers" && <div className="mt-3 flex flex-wrap items-center gap-2"><span className="rounded-full border border-border px-2 py-1 text-[11px] text-muted-foreground">{item.customerStatus === "active" ? crm.active : item.customerStatus === "paused" ? crm.paused : crm.lead}</span>{item.followUp && <span className={`rounded-full border px-2 py-1 text-[11px] ${item.followUp <= new Date().toISOString().slice(0,10)?"border-gold/40 bg-gold/10 text-gold":"border-border text-muted-foreground"}`}>{item.followUp === new Date().toISOString().slice(0,10)?crm.today:item.followUp < new Date().toISOString().slice(0,10)?crm.overdue:`${crm.followUp}: ${item.followUp}`}</span>}{item.followUp && item.followUp <= new Date().toISOString().slice(0,10) && <button type="button" onClick={()=>setItems((current)=>current.map((entry)=>entry.id===item.id?{...entry,followUp:undefined}:entry))} className="rounded-lg border border-primary/30 px-2 py-1 text-[11px] text-primary">{crm.markDone}</button>}</div>}
                   <p className="mt-3 text-[11px] text-muted-foreground">{ui.saved} {new Date(item.createdAt).toLocaleString(locale)}</p>
                 </div>
-                <button type="button" onClick={() => setItems((current) => current.filter((x) => x.id !== item.id))} className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive" aria-label={`${ui.del} ${item.title}`}><Trash2 className="size-4" /></button>
+                <div className="flex shrink-0 justify-end gap-2"><button type="button" onClick={() => editItem(item)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary" aria-label={`${ui.edit} ${item.title}`}><Pencil className="size-4" /></button><button type="button" onClick={() => { setItems((current) => current.filter((x) => x.id !== item.id)); if (editingId === item.id) resetForm() }} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive" aria-label={`${ui.del} ${item.title}`}><Trash2 className="size-4" /></button></div>
               </article>
             ))}
           </div>

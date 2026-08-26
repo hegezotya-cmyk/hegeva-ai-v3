@@ -6,6 +6,18 @@
   "workers_dev": true,
   "keep_vars": true,
 
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.05
+    }
+  },
+
   "vars": {
     "PAYMENT_PROVIDER": "stripe",
     "PAYMENT_MODE": "test",
