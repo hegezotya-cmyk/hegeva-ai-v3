@@ -66,26 +66,26 @@ export function SiteHeader() {
 
   const navLink = (href: string, label: string) => {
     const active = pathname === href
-    return <Link href={href} aria-current={active ? "page" : undefined} className={cn("relative rounded-lg px-3 py-2 text-sm font-medium transition-colors", active ? "bg-secondary/70 text-foreground after:absolute after:inset-x-3 after:-bottom-[13px] after:h-px after:bg-primary" : "text-muted-foreground hover:bg-secondary/40 hover:text-foreground")}>{label}</Link>
+    return <Link href={href} aria-current={active ? "page" : undefined} className={cn("relative rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200", active ? "hegeva-nav-active text-foreground after:absolute after:inset-x-3 after:-bottom-[13px] after:h-px after:bg-gradient-to-r after:from-transparent after:via-primary after:to-cyan" : "text-muted-foreground hover:bg-secondary/45 hover:text-foreground")}>{label}</Link>
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/80 bg-background/80 shadow-[0_12px_40px_-32px_rgba(0,0,0,.9)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/65">
+    <header className="hegeva-topbar sticky top-0 z-50 border-b border-border/80 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/55">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
-          <HegevaLogo priority />
+          <div className="drop-shadow-[0_0_18px_rgba(52,211,153,.12)]"><HegevaLogo priority /></div>
           <nav className="hidden items-center gap-0.5 lg:flex" aria-label={aria.primary}>
             {navLink("/", t.nav.home)}
             {navLink("/command-center", t.nav.commandCenter)}
             <div ref={studioRef} className="relative">
-              <button type="button" onClick={() => setStudioOpen((v) => !v)} aria-haspopup="menu" aria-expanded={studioOpen} className={cn("inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors", pathname.startsWith("/app-studio") ? "text-foreground" : "text-muted-foreground hover:text-foreground")}>{t.nav.appStudio}<ChevronDown className={cn("size-3.5 opacity-70 transition-transform", studioOpen && "rotate-180")} aria-hidden /></button>
+              <button type="button" onClick={() => setStudioOpen((v) => !v)} aria-haspopup="menu" aria-expanded={studioOpen} className={cn("inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200", pathname.startsWith("/app-studio") ? "hegeva-nav-active text-foreground" : "text-muted-foreground hover:bg-secondary/45 hover:text-foreground")}>{t.nav.appStudio}<ChevronDown className={cn("size-3.5 opacity-70 transition-transform", studioOpen && "rotate-180")} aria-hidden /></button>
               {studioOpen && (
-                <div className="glass-panel absolute left-0 z-50 mt-2 w-96 rounded-2xl p-2" role="menu">
+                <div className="glass-panel absolute left-0 z-50 mt-3 w-96 rounded-2xl p-2" role="menu">
                   {studioItems.map((item) => {
                     const Icon = studioIcons[item.key]
                     return (
-                      <Link key={item.key} href={item.href} role="menuitem" className={cn("flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-secondary", item.pro && "border border-gold/20 bg-gold/5")}>
-                        <span className={cn("mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border", item.pro ? "border-gold/30 bg-gold/10" : "border-primary/25 bg-primary/10")}><Icon className={cn("size-4", item.pro ? "text-gold" : "text-primary")} aria-hidden /></span>
+                      <Link key={item.key} href={item.href} role="menuitem" className={cn("flex items-start gap-3 rounded-xl p-3 transition-all duration-200 hover:bg-secondary/70", item.pro && "border border-gold/20 bg-gold/5")}>
+                        <span className={cn("mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border shadow-[0_12px_28px_-18px_currentColor]", item.pro ? "border-gold/30 bg-gold/10 text-gold" : "border-primary/25 bg-primary/10 text-primary")}><Icon className="size-4" aria-hidden /></span>
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-2"><span className="text-sm font-semibold text-foreground">{item.title}</span>{item.pro ? <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] font-bold text-gold">PRO</span> : null}</span>
                           <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">{item.desc}</span>
@@ -109,20 +109,20 @@ export function SiteHeader() {
               <button type="button" disabled={loggingOut} onClick={() => void logout()} className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "gap-2 text-muted-foreground disabled:opacity-60")}><LogOut className="size-4" aria-hidden />{t.nav.logout}</button>
             </div>
           ) : <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "hidden sm:inline-flex")}>{t.nav.login}</Link>)}
-          <Link href={session?.user ? "/command-center" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "hidden bg-gold text-gold-foreground hover:bg-gold/90 sm:inline-flex")}>{session?.user ? t.nav.openWorkspace : t.nav.getStarted}</Link>
-          <button type="button" onClick={() => setMobileOpen((v) => !v)} aria-label={aria.menu} aria-expanded={mobileOpen} className="inline-flex size-11 items-center justify-center rounded-xl border border-border bg-secondary/60 text-foreground shadow-sm transition-colors hover:border-primary/30 hover:bg-secondary lg:hidden">{mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}</button>
+          <Link href={session?.user ? "/command-center" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "hidden border border-gold/20 bg-gold text-gold-foreground shadow-[0_14px_34px_-22px_rgba(250,204,21,.75)] hover:bg-gold/90 sm:inline-flex")}>{session?.user ? t.nav.openWorkspace : t.nav.getStarted}</Link>
+          <button type="button" onClick={() => setMobileOpen((v) => !v)} aria-label={aria.menu} aria-expanded={mobileOpen} className="inline-flex size-11 items-center justify-center rounded-xl border border-border bg-secondary/60 text-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-secondary lg:hidden">{mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}</button>
         </div>
       </div>
       {mobileOpen && (
-        <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
+        <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-2xl lg:hidden">
           <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4 sm:px-6" aria-label={aria.mobile}>
-            <Link href="/" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.home}</Link>
-            <Link href="/command-center" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.commandCenter}</Link>
+            <Link href="/" className="rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.home}</Link>
+            <Link href="/command-center" className="rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.commandCenter}</Link>
             <div className="mt-1 px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.nav.appStudio}</div>
-            {studioItems.map((item) => { const Icon = studioIcons[item.key]; return <Link key={item.key} href={item.href} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-secondary", item.pro && "border border-gold/20 bg-gold/5")}><Icon className={cn("size-4", item.pro ? "text-gold" : "text-primary")} aria-hidden /><span className="flex-1 text-sm font-medium text-foreground">{item.title}</span>{item.pro ? <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] font-bold text-gold">PRO</span> : null}</Link> })}
-            <Link href="/business" className="mt-1 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.business}</Link>
-            <Link href="/pricing" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.pricing}</Link>
-            <Link href="/contact" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.contact}</Link>
+            {studioItems.map((item) => { const Icon = studioIcons[item.key]; return <Link key={item.key} href={item.href} className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-secondary", item.pro && "border border-gold/20 bg-gold/5")}><Icon className={cn("size-4", item.pro ? "text-gold" : "text-primary")} aria-hidden /><span className="flex-1 text-sm font-medium text-foreground">{item.title}</span>{item.pro ? <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] font-bold text-gold">PRO</span> : null}</Link> })}
+            <Link href="/business" className="mt-1 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.business}</Link>
+            <Link href="/pricing" className="rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.pricing}</Link>
+            <Link href="/contact" className="rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.contact}</Link>
             <div className="mt-3 grid grid-cols-2 items-center gap-2 border-t border-border pt-4">
               <LanguageSwitcher className="col-span-2" />
               {session?.user ? <button type="button" disabled={loggingOut} onClick={() => void logout()} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1 gap-2 disabled:opacity-60")}><LogOut className="size-4" aria-hidden /> {t.nav.logout}</button> : <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1")}>{t.nav.login}</Link>}
