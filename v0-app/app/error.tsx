@@ -61,23 +61,25 @@ export default function ErrorBoundary({ error, reset }: { error: Error & { diges
   return (
     <AppShell>
       <main className="mx-auto flex min-h-[65vh] max-w-3xl items-center px-4 py-12 sm:px-6">
-        <IntelligenceCard tone="gold" className="w-full p-6 sm:p-9" role="alert" aria-live="assertive">
-          <SignalIcon icon={AlertTriangle} tone="gold" />
-          <p className="ve-eyebrow mt-6">{text.eyebrow}</p>
-          <h1 className="font-display text-3xl font-semibold tracking-[-0.04em]">{text.title}</h1>
-          <p className="mt-3 text-sm leading-7 text-muted-foreground">{text.body}</p>
-          {error.digest && <p className="mt-3 text-xs text-muted-foreground">{text.reference}: {error.digest}</p>}
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <button type="button" onClick={reset} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">
-              <RotateCcw className="size-4" aria-hidden />
-              {text.retry}
-            </button>
-            <Link href="/command-center" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-background/35 px-5 py-3 text-sm font-semibold text-foreground transition hover:border-primary/25 hover:bg-background/55">
-              <Home className="size-4" aria-hidden />
-              {text.home}
-            </Link>
-          </div>
-        </IntelligenceCard>
+        <div className="w-full" role="alert" aria-live="assertive">
+          <IntelligenceCard tone="gold" className="w-full p-6 sm:p-9">
+            <SignalIcon icon={AlertTriangle} tone="gold" />
+            <p className="ve-eyebrow mt-6">{text.eyebrow}</p>
+            <h1 className="font-display text-3xl font-semibold tracking-[-0.04em]">{text.title}</h1>
+            <p className="mt-3 text-sm leading-7 text-muted-foreground">{text.body}</p>
+            {error.digest && <p className="mt-3 text-xs text-muted-foreground">{text.reference}: {error.digest}</p>}
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button type="button" onClick={reset} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">
+                <RotateCcw className="size-4" aria-hidden />
+                {text.retry}
+              </button>
+              <Link href="/command-center" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-background/35 px-5 py-3 text-sm font-semibold text-foreground transition hover:border-primary/25 hover:bg-background/55">
+                <Home className="size-4" aria-hidden />
+                {text.home}
+              </Link>
+            </div>
+          </IntelligenceCard>
+        </div>
       </main>
     </AppShell>
   )
