@@ -11,10 +11,10 @@ const lifecycle = fs.readFileSync(new URL("../../scripts/stripe-test-lifecycle.m
 const priceReconcile = fs.readFileSync(new URL("../../scripts/stripe-test-price-reconcile.mjs", import.meta.url), "utf8")
 
 assert(/\/api\/billing\/status/.test(pricing), "Pricing must load backend billing readiness before enabling checkout")
-assert(/billingStatus\?\.mode === "test"/.test(pricing), "Pricing must require the declared Sandbox mode")
-assert(/checkoutEnabled === true/.test(pricing) && /webhookConfigured === true/.test(pricing), "Checkout must require prices, secret, and webhook configuration")
-assert(/Boolean\(session\?\.user\) && !billingReady/.test(pricing), "Signed-in checkout must fail closed when billing readiness is incomplete")
-assert(/body: JSON\.stringify\(\{ plan, mode: "test" \}\)/.test(pricing), "The client must request test checkout explicitly")
+assert(/billingStatus\?\.mode\s*===\s*"test"/.test(pricing), "Pricing must require the declared Sandbox mode")
+assert(/checkoutEnabled\s*===\s*true/.test(pricing) && /webhookConfigured\s*===\s*true/.test(pricing), "Checkout must require prices, secret, and webhook configuration")
+assert(/Boolean\(session\?\.user\)\s*&&\s*!billingReady/.test(pricing), "Signed-in checkout must fail closed when billing readiness is incomplete")
+assert(/body\s*:\s*JSON\.stringify\(\{\s*plan\s*,\s*mode\s*:\s*"test"\s*\}\)/.test(pricing), "The client must request test checkout explicitly")
 assert(/billingIncomplete/.test(pricingCopy) && /billingReady/.test(pricingCopy), "Billing readiness must be explained in every locale")
 
 assert(/Only test checkout is allowed in this build/.test(worker), "The backend must reject non-test checkout")
