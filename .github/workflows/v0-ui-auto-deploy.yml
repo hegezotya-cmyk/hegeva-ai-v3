@@ -59,3 +59,48 @@ jobs:
 
       - name: Deploy V0 UI Worker
         run: npm run cf:deploy
+
+      - name: Smoke test production domains
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          check_page() {
+            local url="$1"
+            local body
+            echo "Checking $url"
+            body="$(curl --fail --silent --show-error --location \
+              --retry 8 --retry-delay 3 --retry-all-errors \
+              --connect-timeout 10 --max-time 30 "$url")"
+            echo "$body" | grep -qi "HEGEVA" || {
+              echo "Expected HEGEVA marker was not found at $url"
+              exit 1
+            }
+          }
+
+          check_page "https://hegevaai.co.uk/"
+          check_page "https://hegevaai.co.uk/command-center"
+          check_page "https://hegevaai.co.uk/assistant"
+          check_page "https://hegevaai.co.uk/app-studio"
+          check_page "https://hegevaai.co.uk/business"
+          check_page "https://hegevaai.co.uk/pricing"
+          check_page "https://hegevaai.co.uk/login"
+          check_page "https://www.hegevaai.co.uk/"
+
+          not_found_file="$(mktemp)"
+          status="$(curl --silent --show-error --location \
+            --retry 8 --retry-delay 3 --retry-all-errors \
+            --connect-timeout 10 --max-time 30 \
+            --output "$not_found_file" --write-out '%{http_code}' \
+            "https://hegevaai.co.uk/hegeva-live-smoke-test-missing-page")"
+          test "$status" = "404" || {
+            echo "Expected production 404, got HTTP $status"
+            exit 1
+          }
+          grep -qi "HEGEVA" "$not_found_file" || {
+            echo "Custom HEGEVA 404 marker was not found"
+            exit 1
+          }
+
+          echo "Production smoke test passed for HEGEVA custom domains and core routes."
