@@ -4,6 +4,13 @@ import { SiteHeader } from "@/components/site-header"
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="hegeva-atmosphere relative flex min-h-dvh flex-col overflow-hidden">
+      <a
+        href="#main-content"
+        className="sr-only fixed left-4 top-4 z-[100] rounded-xl border border-primary/30 bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-xl focus:not-sr-only"
+      >
+        Skip to main content
+      </a>
+
       <div className="pointer-events-none absolute inset-0 hegeva-grid opacity-70" aria-hidden />
 
       <div className="pointer-events-none absolute inset-0" aria-hidden>
@@ -39,7 +46,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="relative z-[1] flex min-h-dvh flex-col">
         <SiteHeader />
-        <div className="flex-1">{children}</div>
+        <div id="main-content" tabIndex={-1} className="flex-1 outline-none">{children}</div>
         <SiteFooter />
       </div>
     </div>
