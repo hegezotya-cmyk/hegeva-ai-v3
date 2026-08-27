@@ -42,7 +42,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="group flex min-h-12 w-full items-center gap-3 rounded-2xl border border-white/10 bg-background/35 px-3.5 text-left text-sm font-medium text-foreground/90 shadow-[inset_0_1px_0_rgba(255,255,255,.035)] backdrop-blur-xl transition-all hover:border-cyan/25 hover:bg-background/55"
+        className="group flex min-h-11 sm:min-h-12 w-full items-center gap-3 rounded-2xl border border-white/10 bg-background/35 px-3.5 text-left text-sm font-medium text-foreground/90 shadow-[inset_0_1px_0_rgba(255,255,255,.035)] backdrop-blur-xl transition-all hover:border-cyan/25 hover:bg-background/55"
       >
         <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-cyan/20 bg-cyan/8 text-lg shadow-[0_0_24px_-14px_rgba(34,211,238,.9)]" aria-hidden>
           {FLAG[locale]}
@@ -77,7 +77,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
                     setOpen(false)
                   }}
                   className={cn(
-                    "group flex min-h-12 w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all",
+                    "group flex min-h-11 sm:min-h-12 w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all",
                     active
                       ? "border-primary/30 bg-primary/10 text-foreground shadow-[0_0_28px_-18px_var(--primary)]"
                       : "border-transparent text-muted-foreground hover:border-white/8 hover:bg-white/[0.04] hover:text-foreground",
