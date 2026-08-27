@@ -1,9 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, type LucideIcon } from "lucide-react"
+import { ArrowRight, Sparkles, type LucideIcon } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
-import { StatusBadge, type FeatureStatus } from "@/components/status-badge"
 import { cn } from "@/lib/utils"
 import { getStudioCopy } from "@/lib/i18n/studio-copy"
 
@@ -25,13 +24,11 @@ export function StudioModuleCard({
   icon: Icon,
   moduleKey,
   href,
-  status,
   accent,
 }: {
   icon: LucideIcon
   moduleKey: "prompt" | "build" | "fix"
   href: string
-  status: FeatureStatus
   accent: Accent
 }) {
   const { t, locale } = useI18n()
@@ -58,7 +55,9 @@ export function StudioModuleCard({
         <span className={cn("flex size-14 items-center justify-center rounded-2xl border backdrop-blur-md transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-[1.03]", accentRing[accent])}>
           <Icon className="size-6" aria-hidden />
         </span>
-        <StatusBadge status={status} />
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <Sparkles className="size-3 text-primary" aria-hidden /> HEGEVA
+        </span>
       </div>
 
       <div className="relative flex-1">
