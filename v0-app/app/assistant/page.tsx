@@ -1,13 +1,20 @@
 "use client"
 
+import Link from "next/link"
 import { AppShell } from "@/components/app-shell"
 import { AssistantChat } from "@/components/assistant/assistant-chat"
 import { useI18n } from "@/lib/i18n/provider"
 import { AICore, IntelligenceCard, LiveStatus, SignalIcon } from "@/components/visual-engine"
-import { BrainCircuit, ShieldCheck, Sparkles } from "lucide-react"
+import { ArrowUpRight, BrainCircuit, BriefcaseBusiness, LayoutDashboard, ShieldCheck, Sparkles, WandSparkles } from "lucide-react"
 
 export default function AssistantPage() {
   const { t } = useI18n()
+  const quickActions = [
+    { href: "/command-center", label: "Command Center", icon: LayoutDashboard, tone: "emerald" as const },
+    { href: "/business", label: "Business Workspace", icon: BriefcaseBusiness, tone: "cyan" as const },
+    { href: "/app-studio", label: "App Studio", icon: WandSparkles, tone: "violet" as const },
+  ]
+
   return (
     <AppShell>
       <main className="relative mx-auto min-h-[80vh] max-w-6xl overflow-hidden px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
@@ -38,6 +45,24 @@ export default function AssistantPage() {
             <IntelligenceCard tone="cyan" className="p-4"><div className="flex items-center gap-3"><SignalIcon icon={Sparkles} tone="cyan" className="size-10 rounded-xl" /><div><p className="text-sm font-semibold">Fast responses</p><p className="text-xs text-muted-foreground">Built for daily work</p></div></div></IntelligenceCard>
             <IntelligenceCard tone="violet" className="p-4"><div className="flex items-center gap-3"><SignalIcon icon={ShieldCheck} tone="violet" className="size-10 rounded-xl" /><div><p className="text-sm font-semibold">Private session</p><p className="text-xs text-muted-foreground">Protected account context</p></div></div></IntelligenceCard>
           </div>
+
+          <IntelligenceCard tone="emerald" className="mt-5 p-4 sm:p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="ve-eyebrow">Quick workflow</p>
+                <p className="mt-1 text-sm text-muted-foreground">Move from AI assistance straight into the HEGEVA workspace you need.</p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {quickActions.map(({ href, label, icon: Icon, tone }) => (
+                  <Link key={href} href={href} className="group flex min-h-12 items-center gap-2 rounded-2xl border border-white/10 bg-background/30 px-3 py-2 text-sm font-medium text-foreground/85 transition hover:-translate-y-0.5 hover:border-primary/25 hover:bg-background/50">
+                    <SignalIcon icon={Icon} tone={tone} className="size-8 rounded-lg" />
+                    <span className="min-w-0 flex-1 truncate">{label}</span>
+                    <ArrowUpRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </IntelligenceCard>
 
           <div className="mt-6">
             <AssistantChat />
