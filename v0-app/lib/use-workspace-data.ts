@@ -39,9 +39,11 @@ export function useWorkspaceData<T>(type: string): {
   const [syncError, setSyncError] = useState("")
   const readyToSave = useRef(false)
   const skipNextSave = useRef(false)
+  const saveGeneration = useRef(0)
 
   useEffect(() => {
     let cancelled = false
+    const loadGeneration = ++saveGeneration.current
     readyToSave.current = false
     skipNextSave.current = false
     setSyncError("")
@@ -53,7 +55,7 @@ export function useWorkspaceData<T>(type: string): {
       }
 
       if (!userId) {
-        if (!cancelled) {
+        if (!cancelled && loadGeneration === saveGeneration.current) {
           skipNextSave.current = true
           setItems(readLocal<T>(type, ownerKey))
           setSyncState("local")
@@ -80,7 +82,7 @@ export function useWorkspaceData<T>(type: string): {
         }
 
         const cloudItems = Array.isArray(payload?.data) ? payload.data as T[] : []
-        if (!cancelled) {
+        if (!cancelled && loadGeneration === saveGeneration.current) {
           skipNextSave.current = true
           setItems(cloudItems)
           writeLocal(type, ownerKey, cloudItems)
@@ -88,7 +90,7 @@ export function useWorkspaceData<T>(type: string): {
           readyToSave.current = true
         }
       } catch (error) {
-        if (!cancelled) {
+        if (!cancelled && loadGeneration === saveGeneration.current) {
           skipNextSave.current = true
           setItems(readLocal<T>(type, ownerKey))
           setSyncState("error")
@@ -120,8 +122,11 @@ export function useWorkspaceData<T>(type: string): {
       return
     }
 
+    let cancelled = false
+    const generation = ++saveGeneration.current
     const controller = new AbortController()
     const timer = window.setTimeout(async () => {
+      if (cancelled || generation !== saveGeneration.current) return
       setSyncState("saving")
       setSyncError("")
       const requestTimeout = window.setTimeout(() => controller.abort(), 8000)
@@ -141,8 +146,9 @@ export function useWorkspaceData<T>(type: string): {
           throw new Error(payload?.error || "Cloud workspace could not be saved.")
         }
 
-        setSyncState("cloud")
+        if (!cancelled && generation === saveGeneration.current) setSyncState("cloud")
       } catch (error) {
+        if (cancelled || generation !== saveGeneration.current) return
         if (controller.signal.aborted) {
           setSyncState("error")
           setSyncError("Cloud workspace save timed out.")
@@ -156,6 +162,7 @@ export function useWorkspaceData<T>(type: string): {
     }, 500)
 
     return () => {
+      cancelled = true
       window.clearTimeout(timer)
       controller.abort()
     }
