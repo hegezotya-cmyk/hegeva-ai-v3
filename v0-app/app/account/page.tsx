@@ -3,8 +3,10 @@
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
+import { Activity, Bot, CreditCard, Gauge, LogOut, ShieldCheck, Sparkles, UserRound } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { PageHeader } from "@/components/page-header"
+import { AICore, SignalIcon } from "@/components/visual-engine"
 import { authClient } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
 import { ACCOUNT_COPY } from "@/lib/i18n/account-copy"
@@ -148,43 +150,61 @@ export default function AccountPage() {
     }
   }
 
-  if (isPending) return <AppShell><main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8"><div className="glass-panel rounded-3xl p-8 text-sm text-muted-foreground">{c.checking}</div></main></AppShell>
+  if (isPending) return <AppShell><main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8"><div className="ve-panel relative overflow-hidden rounded-3xl p-8 text-sm text-muted-foreground"><div className="flex items-center gap-4"><AICore state="thinking"/><span>{c.checking}</span></div></div></main></AppShell>
 
-  if (!session?.user) return <AppShell><main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8"><PageHeader eyebrow={c.eyebrow} title={c.signInTitle} subtitle={c.signInBody}/>{billingReturn && <p role="status" className="mt-6 rounded-xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground">{c.billingSignIn}</p>}<Link href={loginCallbackHref} className="mt-8 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">{c.signIn}</Link></main></AppShell>
+  if (!session?.user) return <AppShell><main className="relative mx-auto max-w-3xl overflow-hidden px-4 py-12 sm:px-6 lg:px-8"><div className="pointer-events-none absolute right-0 top-0 h-72 w-72 rounded-full bg-violet/10 blur-3xl"/><PageHeader eyebrow={c.eyebrow} title={c.signInTitle} subtitle={c.signInBody}/>{billingReturn && <p role="status" className="mt-6 rounded-2xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground shadow-[0_18px_60px_-45px_rgba(16,185,129,.8)]">{c.billingSignIn}</p>}<Link href={loginCallbackHref} className="mt-8 inline-flex rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[0_16px_40px_-20px_rgba(16,185,129,.8)] transition hover:-translate-y-0.5">{c.signIn}</Link></main></AppShell>
 
   const used = plan?.aiMessages || 0
   const limit = plan?.aiLimit || 0
   const percentage = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0
 
   return <AppShell>
-    <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
-      <PageHeader eyebrow={c.eyebrow} title={c.title} subtitle={c.subtitle}/>
-      {billingSuccess && <p role="status" className="mt-6 rounded-xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground">{c.billingSuccess}</p>}
-      {billingConfirmError && <p role="alert" className="mt-4 rounded-xl border border-gold/30 bg-gold/10 p-4 text-sm text-muted-foreground">{c.unavailable} <span className="font-mono">({billingConfirmError})</span></p>}
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-        <section className="glass-panel rounded-3xl p-6 sm:p-8">
-          <h2 className="text-lg font-semibold">{c.details}</h2>
-          <dl className="mt-6 divide-y divide-border">
+    <main className="relative mx-auto max-w-6xl overflow-hidden px-4 py-12 sm:px-6 lg:px-8">
+      <div className="pointer-events-none absolute -left-32 top-28 h-72 w-72 rounded-full bg-primary/9 blur-3xl" />
+      <div className="pointer-events-none absolute right-0 top-16 h-80 w-80 rounded-full bg-violet/9 blur-3xl" />
+
+      <div className="relative z-10 flex items-start gap-4">
+        <AICore state="active" className="mt-1" />
+        <div className="min-w-0 flex-1"><PageHeader eyebrow={c.eyebrow} title={c.title} subtitle={c.subtitle}/></div>
+      </div>
+
+      {billingSuccess && <p role="status" className="relative z-10 mt-6 rounded-2xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground shadow-[0_18px_60px_-45px_rgba(16,185,129,.8)]">{c.billingSuccess}</p>}
+      {billingConfirmError && <p role="alert" className="relative z-10 mt-4 rounded-2xl border border-gold/30 bg-gold/10 p-4 text-sm text-muted-foreground">{c.unavailable} <span className="font-mono">({billingConfirmError})</span></p>}
+
+      <div className="relative z-10 mt-8 grid gap-6 lg:grid-cols-[1.18fr_0.82fr]">
+        <section className="ve-panel ve-tone-cyan relative overflow-hidden rounded-3xl p-6 sm:p-8">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3"><SignalIcon icon={UserRound} tone="cyan" className="size-11 rounded-2xl"/><div><p className="ve-eyebrow mb-1">HEGEVA IDENTITY</p><h2 className="text-lg font-semibold">{c.details}</h2></div></div>
+            <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold capitalize text-primary">{plan?.plan || "—"}</span>
+          </div>
+
+          <dl className="divide-y divide-border/80 rounded-2xl border border-white/8 bg-background/20 px-4">
             <div className="grid gap-1 py-4 sm:grid-cols-[10rem_1fr]"><dt className="text-sm text-muted-foreground">{c.name}</dt><dd className="break-words text-sm font-medium">{session.user.name || "—"}</dd></div>
             <div className="grid gap-1 py-4 sm:grid-cols-[10rem_1fr]"><dt className="text-sm text-muted-foreground">{c.email}</dt><dd className="break-all text-sm font-medium">{session.user.email}</dd></div>
             <div className="grid gap-1 py-4 sm:grid-cols-[10rem_1fr]"><dt className="text-sm text-muted-foreground">{c.plan}</dt><dd className="text-sm font-semibold capitalize text-primary">{plan?.plan || (planError ? "—" : c.checking)}</dd></div>
             <div className="grid gap-1 py-4 sm:grid-cols-[10rem_1fr]"><dt className="text-sm text-muted-foreground">{c.period}</dt><dd className="text-sm font-medium">{plan?.period || "—"}</dd></div>
           </dl>
-          {plan && <div className="mt-5">
-            <div className="flex items-center justify-between gap-3 text-sm"><span className="text-muted-foreground">{c.usage}</span><strong>{used} / {limit}</strong></div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-[width]" style={{width:`${percentage}%`}}/></div>
+
+          {plan && <div className="mt-6 rounded-2xl border border-white/8 bg-background/25 p-4">
+            <div className="flex items-center justify-between gap-3 text-sm"><span className="flex items-center gap-2 text-muted-foreground"><Gauge className="size-4 text-cyan"/>{c.usage}</span><strong>{used} / {limit}</strong></div>
+            <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-gradient-to-r from-primary via-cyan to-violet transition-[width]" style={{width:`${percentage}%`}}/></div>
+            <p className="mt-2 text-right text-xs text-muted-foreground">{percentage}%</p>
           </div>}
           {planError && <p className="mt-5 rounded-xl border border-gold/30 bg-gold/10 p-3 text-sm text-muted-foreground">{c.unavailable}</p>}
         </section>
-        <aside className="glass-panel flex flex-col gap-3 rounded-3xl p-6">
-          <Link href="/command-center" className="rounded-xl bg-primary px-5 py-3 text-center text-sm font-semibold text-primary-foreground">{c.workspace}</Link>
-          <Link href="/assistant" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.assistant}</Link>
-          <Link href="/pricing" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.pricing}</Link>
-          {plan && PAID_PLANS.has(plan.plan) && <button type="button" disabled={openingBilling} onClick={() => void openBillingPortal()} className="min-h-11 rounded-xl border border-primary/30 bg-primary/10 px-5 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-60">{openingBilling ? c.checking : `${c.plan} · Stripe Sandbox`}</button>}
-          {billingPortalError && <p role="alert" className="rounded-xl border border-gold/30 bg-gold/10 p-3 text-sm text-muted-foreground">{c.unavailable}</p>}
-          {isOwner && <Link href="/admin/contact-leads" className="rounded-xl border border-primary/30 bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary transition-colors hover:bg-primary/15">{leadsCopy.inbox}</Link>}
-          <Link href="/contact" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.support}</Link>
-          <button type="button" disabled={loggingOut} onClick={() => void logout()} className="mt-3 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60">{loggingOut ? c.checking : c.logout}</button>
+
+        <aside className="ve-panel ve-tone-violet relative overflow-hidden rounded-3xl p-6">
+          <div className="mb-5 flex items-center gap-3"><SignalIcon icon={Sparkles} tone="violet" className="size-11 rounded-2xl"/><div><p className="ve-eyebrow mb-1">HEGEVA CONTROL</p><h2 className="text-base font-semibold">Quick access</h2></div></div>
+          <div className="grid gap-3">
+            <Link href="/command-center" className="group flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary transition hover:-translate-y-0.5 hover:bg-primary/15"><span className="flex items-center gap-2"><Activity className="size-4"/>{c.workspace}</span><span>→</span></Link>
+            <Link href="/assistant" className="group flex items-center justify-between rounded-2xl border border-cyan/20 bg-cyan/8 px-4 py-3 text-sm font-semibold transition hover:-translate-y-0.5 hover:border-cyan/35"><span className="flex items-center gap-2"><Bot className="size-4 text-cyan"/>{c.assistant}</span><span>→</span></Link>
+            <Link href="/pricing" className="group flex items-center justify-between rounded-2xl border border-gold/20 bg-gold/8 px-4 py-3 text-sm font-semibold transition hover:-translate-y-0.5 hover:border-gold/35"><span className="flex items-center gap-2"><CreditCard className="size-4 text-gold"/>{c.pricing}</span><span>→</span></Link>
+            {plan && PAID_PLANS.has(plan.plan) && <button type="button" disabled={openingBilling} onClick={() => void openBillingPortal()} className="min-h-11 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-3 text-sm font-semibold text-primary transition hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-60">{openingBilling ? c.checking : `${c.plan} · Stripe Sandbox`}</button>}
+            {billingPortalError && <p role="alert" className="rounded-xl border border-gold/30 bg-gold/10 p-3 text-sm text-muted-foreground">{c.unavailable}</p>}
+            {isOwner && <Link href="/admin/contact-leads" className="rounded-2xl border border-primary/30 bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary transition hover:bg-primary/15">{leadsCopy.inbox}</Link>}
+            <Link href="/contact" className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-background/25 px-5 py-3 text-sm font-semibold transition hover:bg-secondary"><ShieldCheck className="size-4 text-primary"/>{c.support}</Link>
+            <button type="button" disabled={loggingOut} onClick={() => void logout()} className="mt-2 flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-background/25 px-5 py-3 text-sm font-semibold text-muted-foreground transition hover:border-destructive/30 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60"><LogOut className="size-4"/>{loggingOut ? c.checking : c.logout}</button>
+          </div>
         </aside>
       </div>
     </main>
