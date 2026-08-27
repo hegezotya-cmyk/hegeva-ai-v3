@@ -1,18 +1,18 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, MessageSquareText, Sparkles, Cpu, Orbit, Activity, Users, FileText, Receipt, FolderGit2, Bot, Zap } from "lucide-react"
+import { ArrowRight, MessageSquareText, Sparkles, Users, FileText, Receipt, FolderGit2, Bot, Zap, Layers3 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { AICore, LiveStatus } from "@/components/visual-engine"
+import { AICore } from "@/components/visual-engine"
 
 const honestHero = {
-  en: { subtitle: "One connected workspace for AI assistance, customers, documents, expenses, planning, reports and app planning — built around the features HEGEVA has working today.", pills: ["AI Assistant", "CRM", "Business Tools", "App Studio"] },
-  hu: { subtitle: "Egy összekapcsolt munkaterület AI-segítséghez, ügyfelekhez, dokumentumokhoz, kiadásokhoz, tervezéshez, jelentésekhez és alkalmazástervezéshez — a HEGEVA ma működő funkcióira építve.", pills: ["AI Asszisztens", "CRM", "Üzleti eszközök", "App Stúdió"] },
-  de: { subtitle: "Ein verbundener Arbeitsbereich für KI-Unterstützung, Kunden, Dokumente, Ausgaben, Planung, Berichte und App-Planung — auf den heute funktionierenden HEGEVA-Funktionen aufgebaut.", pills: ["KI-Assistent", "CRM", "Business-Tools", "App Studio"] },
-  fr: { subtitle: "Un espace connecté pour l’assistance IA, les clients, documents, dépenses, la planification, les rapports et la conception d’applications — basé sur les fonctions HEGEVA déjà opérationnelles.", pills: ["Assistant IA", "CRM", "Outils pro", "App Studio"] },
-  es: { subtitle: "Un espacio conectado para asistencia con IA, clientes, documentos, gastos, planificación, informes y diseño de apps — basado en las funciones de HEGEVA que ya están operativas.", pills: ["Asistente IA", "CRM", "Herramientas", "App Studio"] },
+  en: { subtitle: "One connected workspace for AI assistance, customers, documents, expenses, planning, reports and app planning — built around the features HEGEVA has working today.", pills: ["AI Assistant", "CRM", "Business Tools", "App Studio"], routes: ["AI Assistant", "Customers", "Documents", "Expenses", "App Studio", "Command Center", "X30 preview"], open: "Open workspace", directory: "Workspace routes", choose: "Choose a destination", navigation: "Navigation", available: "Available routes", visual: "HEGEVA visual motif" },
+  hu: { subtitle: "Egy összekapcsolt munkaterület AI-segítséghez, ügyfelekhez, dokumentumokhoz, kiadásokhoz, tervezéshez, jelentésekhez és alkalmazástervezéshez — a HEGEVA ma működő funkcióira építve.", pills: ["AI Asszisztens", "CRM", "Üzleti eszközök", "App Stúdió"], routes: ["AI Asszisztens", "Ügyfelek", "Dokumentumok", "Kiadások", "App Stúdió", "Parancsközpont", "X30 előnézet"], open: "Munkaterület megnyitása", directory: "Munkaterületi útvonalak", choose: "Válassz céloldalt", navigation: "Navigáció", available: "Elérhető útvonalak", visual: "HEGEVA vizuális motívum" },
+  de: { subtitle: "Ein verbundener Arbeitsbereich für KI-Unterstützung, Kunden, Dokumente, Ausgaben, Planung, Berichte und App-Planung — auf den heute funktionierenden HEGEVA-Funktionen aufgebaut.", pills: ["KI-Assistent", "CRM", "Business-Tools", "App Studio"], routes: ["KI-Assistent", "Kunden", "Dokumente", "Ausgaben", "App Studio", "Command Center", "X30-Vorschau"], open: "Arbeitsbereich öffnen", directory: "Arbeitsbereich-Routen", choose: "Ziel auswählen", navigation: "Navigation", available: "Verfügbare Routen", visual: "HEGEVA Bildmotiv" },
+  fr: { subtitle: "Un espace connecté pour l’assistance IA, les clients, documents, dépenses, la planification, les rapports et la conception d’applications — basé sur les fonctions HEGEVA déjà opérationnelles.", pills: ["Assistant IA", "CRM", "Outils pro", "App Studio"], routes: ["Assistant IA", "Clients", "Documents", "Dépenses", "App Studio", "Centre de commande", "Aperçu X30"], open: "Ouvrir l’espace", directory: "Accès à l’espace", choose: "Choisissez une destination", navigation: "Navigation", available: "Accès disponibles", visual: "Motif visuel HEGEVA" },
+  es: { subtitle: "Un espacio conectado para asistencia con IA, clientes, documentos, gastos, planificación, informes y diseño de apps — basado en las funciones de HEGEVA que ya están operativas.", pills: ["Asistente IA", "CRM", "Herramientas", "App Studio"], routes: ["Asistente IA", "Clientes", "Documentos", "Gastos", "App Studio", "Centro de mando", "Vista previa X30"], open: "Abrir espacio", directory: "Rutas del espacio", choose: "Elige un destino", navigation: "Navegación", available: "Rutas disponibles", visual: "Motivo visual HEGEVA" },
 } as const
 
 export function Hero() {
@@ -20,12 +20,13 @@ export function Hero() {
   const copy = honestHero[locale]
 
   const launchers = [
-    { href: "/assistant", icon: Bot, label: "AI Assistant", tone: "text-primary border-primary/20 bg-primary/[0.06]" },
-    { href: "/business/customers", icon: Users, label: "Customers", tone: "text-cyan border-cyan/20 bg-cyan/[0.06]" },
-    { href: "/business/documents", icon: FileText, label: "Documents", tone: "text-violet border-violet/20 bg-violet/[0.06]" },
-    { href: "/business/expenses", icon: Receipt, label: "Expenses", tone: "text-gold border-gold/20 bg-gold/[0.06]" },
-    { href: "/app-studio", icon: FolderGit2, label: "App Studio", tone: "text-primary border-primary/20 bg-primary/[0.06]" },
-    { href: "/command-center", icon: Zap, label: "Command Center", tone: "text-cyan border-cyan/20 bg-cyan/[0.06]" },
+    { href: "/assistant", icon: Bot, label: copy.routes[0], tone: "text-primary border-primary/20 bg-primary/[0.06]" },
+    { href: "/business/customers", icon: Users, label: copy.routes[1], tone: "text-cyan border-cyan/20 bg-cyan/[0.06]" },
+    { href: "/business/documents", icon: FileText, label: copy.routes[2], tone: "text-violet border-violet/20 bg-violet/[0.06]" },
+    { href: "/business/expenses", icon: Receipt, label: copy.routes[3], tone: "text-gold border-gold/20 bg-gold/[0.06]" },
+    { href: "/app-studio", icon: FolderGit2, label: copy.routes[4], tone: "text-primary border-primary/20 bg-primary/[0.06]" },
+    { href: "/command-center", icon: Zap, label: copy.routes[5], tone: "text-cyan border-cyan/20 bg-cyan/[0.06]" },
+    { href: "/app-studio/x30-alpha", icon: Layers3, label: copy.routes[6], tone: "text-violet border-violet/20 bg-violet/[0.06]" },
   ]
 
   return (
@@ -50,7 +51,7 @@ export function Hero() {
           <div className="pointer-events-none absolute inset-0 rounded-[1.8rem] bg-[linear-gradient(135deg,rgba(16,185,129,.09),transparent_34%,rgba(34,211,238,.035)_68%,rgba(250,204,21,.04))]" aria-hidden />
           <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" aria-hidden />
 
-          <div className="relative flex items-center gap-3"><AICore state="active" /><div><span className="inline-flex items-center gap-2 rounded-full border border-primary/35 bg-primary/12 px-3 py-1 text-xs font-medium text-primary shadow-[0_0_22px_rgba(16,185,129,.12)]"><Sparkles className="size-3.5" aria-hidden />{t.hero.badge}</span><LiveStatus className="mt-2" label="HEGEVA Core" /></div></div>
+          <div className="relative flex items-center gap-3"><AICore state="ready" label={copy.visual} /><span className="inline-flex items-center gap-2 rounded-full border border-primary/35 bg-primary/12 px-3 py-1 text-xs font-medium text-primary shadow-[0_0_22px_rgba(16,185,129,.12)]"><Sparkles className="size-3.5" aria-hidden />{t.hero.badge}</span></div>
 
           <h1 className="relative mt-5 font-display text-4xl font-semibold leading-[1.01] tracking-[-0.055em] text-balance sm:text-5xl lg:text-6xl xl:text-[4.2rem]">
             <span className="block text-foreground">{t.hero.titleLine1}</span><span className="block text-gradient-emerald drop-shadow-[0_0_22px_rgba(16,185,129,.14)]">{t.hero.titleLine2}</span><span className="block text-foreground">{t.hero.titleLine3}</span>
@@ -65,26 +66,18 @@ export function Hero() {
 
           <ul className="relative mt-6 flex flex-wrap gap-2">{copy.pills.map((p) => <li key={p} className="rounded-xl border border-white/[0.08] bg-card/45 px-3 py-1.5 text-xs font-medium tracking-wide text-foreground/80 backdrop-blur-md">{p}</li>)}</ul>
 
-          <div className="relative mt-5 grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-4">
-            <div className="rounded-xl border border-primary/15 bg-primary/[0.045] px-3 py-2.5"><Cpu className="mb-1.5 size-4 text-primary" aria-hidden /><p className="text-[10px] uppercase tracking-[.14em] text-muted-foreground">AI Core</p><p className="mt-0.5 text-xs font-medium text-foreground">Active</p></div>
-            <div className="rounded-xl border border-cyan/15 bg-cyan/[0.04] px-3 py-2.5"><Orbit className="mb-1.5 size-4 text-cyan" aria-hidden /><p className="text-[10px] uppercase tracking-[.14em] text-muted-foreground">Workspace</p><p className="mt-0.5 text-xs font-medium text-foreground">Connected</p></div>
-            <div className="rounded-xl border border-gold/15 bg-gold/[0.04] px-3 py-2.5"><Activity className="mb-1.5 size-4 text-gold" aria-hidden /><p className="text-[10px] uppercase tracking-[.14em] text-muted-foreground">System</p><p className="mt-0.5 text-xs font-medium text-foreground">Ready</p></div>
-          </div>
         </div>
 
         <aside className="relative z-10 hidden lg:block">
           <div className="relative overflow-hidden rounded-[2rem] border border-white/[0.09] bg-background/34 p-5 shadow-[0_35px_120px_-55px_rgba(34,211,238,.55)] backdrop-blur-[16px]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(16,185,129,.12),transparent_28%),radial-gradient(circle_at_82%_14%,rgba(34,211,238,.11),transparent_25%),radial-gradient(circle_at_72%_82%,rgba(139,92,246,.09),transparent_28%)]" />
-            <div className="relative flex items-center justify-between border-b border-white/[0.07] pb-4"><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-cyan">HEGEVA Workspace</p><h2 className="mt-1 text-lg font-semibold text-foreground">Live command surface</h2></div><span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/[0.07] px-3 py-1 text-[11px] font-medium text-primary"><span className="size-1.5 rounded-full bg-primary shadow-[0_0_12px_rgba(16,185,129,.9)]" />Online</span></div>
+            <div className="relative flex items-center justify-between border-b border-white/[0.07] pb-4"><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-cyan">{copy.directory}</p><h2 className="mt-1 text-lg font-semibold text-foreground">{copy.choose}</h2></div><span className="rounded-full border border-primary/20 bg-primary/[0.07] px-3 py-1 text-[11px] font-medium text-primary">{copy.navigation}</span></div>
 
             <div className="relative mt-4 grid grid-cols-2 gap-3">
-              {launchers.map(({ href, icon: Icon, label, tone }) => <Link key={href} href={href} className={cn("group rounded-2xl border p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:bg-background/55", tone)}><div className="flex items-center justify-between"><span className="flex size-9 items-center justify-center rounded-xl border border-current/15 bg-background/30"><Icon className="size-4" aria-hidden /></span><ArrowRight className="size-3.5 opacity-45 transition-transform group-hover:translate-x-0.5 group-hover:opacity-80" aria-hidden /></div><p className="mt-3 text-xs font-semibold text-foreground">{label}</p><p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">Open workspace</p></Link>)}
+              {launchers.map(({ href, icon: Icon, label, tone }) => <Link key={href} href={href} className={cn("group rounded-2xl border p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:bg-background/55", tone)}><div className="flex items-center justify-between"><span className="flex size-9 items-center justify-center rounded-xl border border-current/15 bg-background/30"><Icon className="size-4" aria-hidden /></span><ArrowRight className="size-3.5 opacity-45 transition-transform group-hover:translate-x-0.5 group-hover:opacity-80" aria-hidden /></div><p className="mt-3 text-xs font-semibold text-foreground">{label}</p><p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">{copy.open}</p></Link>)}
             </div>
 
-            <div className="relative mt-4 rounded-2xl border border-white/[0.08] bg-black/15 p-4">
-              <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Activity className="size-4 text-cyan" aria-hidden /><p className="text-xs font-semibold text-foreground">System activity</p></div><span className="text-[10px] uppercase tracking-[.14em] text-muted-foreground">Live</span></div>
-              <div className="mt-3 space-y-2"><div className="h-1.5 overflow-hidden rounded-full bg-white/[0.05]"><div className="h-full w-[82%] rounded-full bg-gradient-to-r from-primary via-cyan to-violet" /></div><div className="grid grid-cols-3 gap-2 text-center"><div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-2 py-2"><p className="text-[10px] text-muted-foreground">AI</p><p className="mt-0.5 text-xs font-semibold text-primary">Ready</p></div><div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-2 py-2"><p className="text-[10px] text-muted-foreground">Cloud</p><p className="mt-0.5 text-xs font-semibold text-cyan">Synced</p></div><div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-2 py-2"><p className="text-[10px] text-muted-foreground">Studio</p><p className="mt-0.5 text-xs font-semibold text-violet">Available</p></div></div></div>
-            </div>
+            <div className="relative mt-4 flex items-center justify-between rounded-2xl border border-white/[0.08] bg-black/15 p-4"><p className="text-xs font-semibold text-foreground">{copy.available}</p><span className="font-mono text-sm font-semibold text-cyan">{launchers.length}</span></div>
           </div>
         </aside>
       </div>

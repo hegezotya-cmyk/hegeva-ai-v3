@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Activity, ArrowRight, Braces, Cpu, Hammer, Rocket, ShieldCheck, Sparkles, WandSparkles, Wrench } from "lucide-react"
+import { Activity, ArrowRight, Braces, Cpu, Hammer, Layers3, Rocket, ShieldCheck, Sparkles, WandSparkles, Wrench } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { AICore, IntelligenceCard, LiveStatus, SignalIcon } from "@/components/visual-engine"
 import { StudioModuleCard } from "@/components/app-studio/module-card"
@@ -14,6 +14,14 @@ const x20Copy = {
   de: ["Build My App X20", "Pro-App-Builder mit geprüften Builds, fortsetzbarem Projektstatus und KI-Verbesserungen mit einem Klick."],
   fr: ["Build My App X20", "Builder Pro avec builds vérifiés, projet reprenable et améliorations IA en un clic."],
   es: ["Build My App X20", "Builder Pro con builds verificados, proyecto reanudable y mejoras de IA con un clic."],
+} as const
+
+const x30Copy = {
+  en: ["X30 structured preview", "Inspect the internal schema-driven renderer. It uses allowlisted components and does not execute generated code.", "Preview"],
+  hu: ["X30 strukturált előnézet", "Tekintsd meg a belső, séma-alapú renderelőt. Engedélyezett komponenseket használ, és nem futtat generált kódot.", "Előnézet"],
+  de: ["Strukturierte X30-Vorschau", "Prüfen Sie den internen schema-gesteuerten Renderer. Er nutzt zugelassene Komponenten und führt keinen generierten Code aus.", "Vorschau"],
+  fr: ["Aperçu structuré X30", "Découvrez le rendu interne piloté par schéma. Il utilise des composants autorisés et n’exécute aucun code généré.", "Aperçu"],
+  es: ["Vista estructurada X30", "Explora el renderizador interno basado en esquemas. Usa componentes permitidos y no ejecuta código generado.", "Vista previa"],
 } as const
 
 export default function AppStudioPage() {
@@ -72,15 +80,23 @@ export default function AppStudioPage() {
           </aside>
         </div>
 
-        <div className="relative z-10 mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <div className="relative z-10 mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
           <StudioModuleCard icon={Sparkles} moduleKey="prompt" href="/app-studio/prompt-my-app" accent="emerald" />
           <StudioModuleCard icon={Hammer} moduleKey="build" href="/app-studio/build-my-app" accent="cyan" />
           <X20Card />
           <StudioModuleCard icon={Wrench} moduleKey="fix" href="/app-studio/fix-my-app" accent="gold" />
+          <X30Card />
         </div>
       </div>
     </AppShell>
   )
+}
+
+function X30Card() {
+  const { locale } = useI18n()
+  const c = getStudioCopy(locale)
+  const [title, desc, badge] = x30Copy[locale]
+  return <Link href="/app-studio/x30-alpha" className="group rounded-[1.75rem] focus-visible:outline-none"><IntelligenceCard tone="cyan" interactive className="flex min-h-64 h-full flex-col gap-5 p-6 sm:p-7 ring-1 ring-cyan/15"><div className="flex items-center justify-between gap-3"><SignalIcon icon={Layers3} tone="cyan" className="size-14 rounded-2xl" /><span className="rounded-full border border-cyan/25 bg-cyan/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.14em] text-cyan">{badge}</span></div><div className="flex-1"><h2 className="font-display text-xl font-semibold tracking-[-.025em] text-foreground sm:text-2xl">{title}</h2><p className="mt-2.5 text-sm leading-6 text-muted-foreground text-pretty">{desc}</p></div><span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/80 transition-colors group-hover:text-foreground">{c.open}<span className="flex size-7 items-center justify-center rounded-full border border-cyan/20 bg-cyan/5"><ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden /></span></span></IntelligenceCard></Link>
 }
 
 function X20Card() {

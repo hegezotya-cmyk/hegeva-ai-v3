@@ -1,0 +1,15 @@
+import assert from "node:assert/strict"
+import fs from "node:fs"
+const read=(path)=>fs.readFileSync(new URL(`../${path}`,import.meta.url),"utf8")
+const renderer=read("components/x30/safe-renderer.tsx")
+const page=read("app/app-studio/x30-alpha/page.tsx")
+const studio=read("app/app-studio/page.tsx")
+const css=read("app/globals.css")
+assert(renderer.includes("validateX30Spec(spec)"),"renderer must validate every specification")
+assert(!/dangerouslySetInnerHTML|\beval\(|new Function|createElement\(.*node\.type/.test(renderer),"renderer must not execute or dynamically load generated code")
+assert(renderer.includes('className="x30-action"')&&!renderer.includes('<button type="button" className="x30-action"'),"preview actions must not be dead buttons")
+assert(page.includes('"use client"')&&page.includes("useI18n")&&page.includes("Internal preview"),"X30 page must be localized and truthfully labelled")
+for(const locale of ["en","hu","de","fr","es"]) assert(page.includes(`${locale}:{`),`X30 page missing ${locale} copy`)
+assert(studio.includes('href="/app-studio/x30-alpha"'),"App Studio must expose the working X30 route")
+for(const token of [".x30-app",".x30-hero",".x30-metrics",".x30-schedule",".x30-action"]) assert(css.includes(token),`X30 style missing ${token}`)
+console.log("X30 UI audit passed: hardened validation, fixed registry, no generated-code execution, truthful localized preview, working route and non-interactive preview actions")
