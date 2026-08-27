@@ -78,8 +78,45 @@ export function CommandCenterView() {
       <div className="pointer-events-none absolute left-[18%] top-16 hidden h-[34rem] w-[34rem] rounded-full border border-cyan/[0.055] shadow-[0_0_90px_rgba(34,211,238,.04)] xl:block" aria-hidden />
       <div className="pointer-events-none absolute right-[3%] top-40 hidden h-[30rem] w-[30rem] rotate-12 rounded-[34%] border border-violet/[0.055] xl:block" aria-hidden />
 
+      <div className="mb-5 lg:hidden">
+        <IntelligenceCard tone="emerald" className="relative overflow-hidden p-3 sm:p-4">
+          <div className="pointer-events-none absolute -left-10 top-2 size-28 rounded-full bg-primary/10 blur-3xl" aria-hidden />
+          <div className="pointer-events-none absolute -right-10 bottom-0 size-28 rounded-full bg-violet/10 blur-3xl" aria-hidden />
+          <div className="relative mb-3 flex items-center justify-between gap-3 px-1">
+            <div className="flex items-center gap-3">
+              <AICore state={session?.user ? "active" : "ready"} className="scale-90" />
+              <div>
+                <p className="ve-eyebrow">HEGEVA COMMAND</p>
+                <p className="mt-0.5 text-xs font-semibold text-foreground/90">Quick Command Dock</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[.12em] text-primary">
+              <span className="size-1.5 rounded-full bg-primary shadow-[0_0_10px_var(--primary)]" />
+              {session?.user ? "Live" : "Ready"}
+            </span>
+          </div>
+          <nav className="relative grid grid-cols-4 gap-2" aria-label="Mobile command center quick navigation">
+            {railItems.map(({ icon: Icon, label, href, tone }, index) => (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "group flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border px-2 py-3 text-center transition-all duration-200 active:scale-[.98]",
+                  index === 0
+                    ? "border-primary/30 bg-primary/10 shadow-[0_0_24px_-16px_rgba(16,185,129,.8)]"
+                    : "border-white/8 bg-background/25 hover:border-white/15 hover:bg-background/45",
+                )}
+              >
+                <SignalIcon icon={Icon} tone={tone} className="size-8 rounded-xl" />
+                <span className="line-clamp-2 text-[10px] font-semibold leading-3 text-foreground/80 sm:text-[11px]">{label}</span>
+              </Link>
+            ))}
+          </nav>
+        </IntelligenceCard>
+      </div>
+
       <div className="relative grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="lg:sticky lg:top-6 lg:self-start">
+        <aside className="hidden lg:sticky lg:top-6 lg:block lg:self-start">
           <IntelligenceCard tone="emerald" className="relative overflow-hidden p-4 sm:p-5 lg:min-h-[calc(100vh-3rem)]">
             <div className="pointer-events-none absolute -left-16 top-28 h-44 w-44 rounded-full bg-primary/10 blur-3xl" aria-hidden />
             <div className="pointer-events-none absolute -right-16 bottom-24 h-44 w-44 rounded-full bg-violet/10 blur-3xl" aria-hidden />
