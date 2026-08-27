@@ -23,6 +23,7 @@ import { StatusBadge } from "@/components/status-badge"
 import { useI18n } from "@/lib/i18n/provider"
 import { getStudioCopy } from "@/lib/i18n/studio-copy"
 import { getWorkflowsCopy } from "@/lib/i18n/workflows-copy"
+import { sandboxPreviewDocument } from "@/lib/preview-sandbox"
 import {
   downloadTextFile,
   looksLikeHtmlDocument,
@@ -319,7 +320,7 @@ export function BuildMyApp() {
               <h3 className="text-sm font-semibold text-foreground">{labels.preview}</h3>
               <iframe
                 title={labels.preview}
-                srcDoc={prototype}
+                srcDoc={sandboxPreviewDocument(prototype)}
                 sandbox="allow-scripts"
                 className="mt-3 h-[520px] w-full rounded-xl border border-border bg-white"
               />

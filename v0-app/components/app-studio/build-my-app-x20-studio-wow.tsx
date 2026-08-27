@@ -30,6 +30,7 @@ import {
   stripCodeFence,
   type StudioLocale,
 } from "@/lib/app-studio-ai"
+import { sandboxPreviewDocument } from "@/lib/preview-sandbox"
 
 type BuildMode = "starter" | "premium" | "growth"
 type ViewMode = "preview" | "code" | "split"
@@ -218,11 +219,11 @@ export function BuildMyAppX20StudioWow() {
     setBusy(true)
     setError("")
     try {
-      let next = stripCodeFence(await runStudioAI(buildInstruction(request, locale, mode), locale as StudioLocale))
+      let next = sandboxPreviewDocument(stripCodeFence(await runStudioAI(buildInstruction(request, locale, mode), locale as StudioLocale)))
       if (!looksLikeHtmlDocument(next)) throw new Error("HEGEVA could not verify this build.")
       const minimum = mode === "starter" ? 45 : mode === "premium" ? 60 : 72
       if (quality(next) < minimum) {
-        const retry = stripCodeFence(await runStudioAI(buildInstruction(request, locale, mode, true), locale as StudioLocale))
+        const retry = sandboxPreviewDocument(stripCodeFence(await runStudioAI(buildInstruction(request, locale, mode, true), locale as StudioLocale)))
         if (looksLikeHtmlDocument(retry) && quality(retry) > quality(next)) next = retry
       }
       save(next, `${c.modes[mode][0]} build`)

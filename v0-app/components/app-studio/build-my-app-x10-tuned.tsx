@@ -5,6 +5,7 @@ import { Braces, CheckCircle2, Code2, Download, Eye, Laptop, Smartphone, Sparkle
 import { useI18n } from "@/lib/i18n/provider"
 import { downloadTextFile, looksLikeHtmlDocument, runStudioAI, stripCodeFence, type StudioLocale } from "@/lib/app-studio-ai"
 import { auditStudioSpecMatch } from "@/lib/app-studio-spec-match"
+import { sandboxPreviewDocument } from "@/lib/preview-sandbox"
 
 type ViewMode = "preview" | "code"
 type DeviceMode = "desktop" | "tablet" | "mobile"
@@ -79,7 +80,7 @@ export function BuildMyAppX10Tuned() {
       let previousScore: number | undefined
 
       for (let attempt = 0; attempt < X10_MAX_ATTEMPTS; attempt += 1) {
-        const candidate = stripCodeFence(await runStudioAI(instruction(request, locale, missing, previousScore), locale as StudioLocale))
+        const candidate = sandboxPreviewDocument(stripCodeFence(await runStudioAI(instruction(request, locale, missing, previousScore), locale as StudioLocale)))
         if (!looksLikeHtmlDocument(candidate)) continue
         const candidateCheck = audit(candidate, request)
         if (!bestCheck || candidateCheck.specScore > bestCheck.specScore || (candidateCheck.specScore === bestCheck.specScore && candidateCheck.capabilityScore > bestCheck.capabilityScore)) {

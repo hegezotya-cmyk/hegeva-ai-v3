@@ -23,6 +23,7 @@ import { StatusBadge } from "@/components/status-badge"
 import { useI18n } from "@/lib/i18n/provider"
 import { getStudioCopy } from "@/lib/i18n/studio-copy"
 import { getWorkflowsCopy } from "@/lib/i18n/workflows-copy"
+import { sandboxPreviewDocument } from "@/lib/preview-sandbox"
 import {
   downloadTextFile,
   looksLikeHtmlDocument,
@@ -32,6 +33,14 @@ import {
 } from "@/lib/app-studio-ai"
 
 const LAST_BUILD_KEY = "hegeva:app-studio:last-built-html"
+
+function summarizeLargeSource(source: string, limit = 7000) {
+  if (source.length <= limit) return source
+  const chunkSize = 2800
+  const chunks = Math.ceil(source.length / chunkSize)
+  const tail = Math.max(0, limit - chunkSize - 120)
+  return `${source.slice(0, chunkSize)}\n\n<!-- HEGEVA source chunk boundary: ${chunks} chunks total; middle chunks omitted for this bounded repair request. -->\n\n${source.slice(-tail)}`
+}
 
 const fixSteps: FlowStep[] = [
   { key: "problem", title: "Describe the problem", description: "Capture the symptom, affected page or feature, expected behaviour, actual behaviour and when the issue started." },
@@ -176,7 +185,7 @@ export function FixMyApp() {
       "Do not invent successful server authentication, cloud database, payments, email or external API calls. If such a service is unavailable, keep an honest unavailable/integration-required state.",
       "Keep the result compact enough for the response limit and runnable locally as one index.html file.",
       `PROBLEM:\n${issue}`,
-      `CURRENT HTML:\n${code.slice(0, 7000)}`,
+      `CURRENT HTML (bounded chunk-aware context):\n${summarizeLargeSource(code)}`,
     ].join("\n\n")
 
     try {
@@ -279,7 +288,7 @@ export function FixMyApp() {
           <div className="mt-6 grid gap-5 xl:grid-cols-2">
             <div>
               <h3 className="text-sm font-semibold text-foreground">{labels.preview}</h3>
-              <iframe title={labels.preview} srcDoc={fixedCode} sandbox="allow-scripts" className="mt-3 h-[520px] w-full rounded-xl border border-border bg-white" />
+              <iframe title={labels.preview} srcDoc={sandboxPreviewDocument(fixedCode)} sandbox="allow-scripts" referrerPolicy="no-referrer" allow="" className="mt-3 h-[520px] w-full rounded-xl border border-border bg-white" />
             </div>
             <div>
               <div className="flex flex-wrap items-center justify-between gap-3">

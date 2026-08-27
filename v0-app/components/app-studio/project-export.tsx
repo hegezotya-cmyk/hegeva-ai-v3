@@ -10,6 +10,7 @@ import {
   stripCodeFence,
   type StudioLocale,
 } from "@/lib/app-studio-ai"
+import { scanGeneratedProject } from "@/lib/app-studio-security-scan"
 
 const LAST_BUILD_KEY = "hegeva:app-studio:last-built-html"
 
@@ -75,8 +76,6 @@ function splitPrototype(html: string): Pick<ProjectFiles, "index.html" | "styles
     "",
     "on:",
     "  workflow_dispatch:",
-    "  push:",
-    "    branches: [main]",
     "",
     "jobs:",
     "  deploy:",
@@ -201,6 +200,7 @@ function downloadTar(files: Record<string, string>) {
 export function ProjectExport() {
   const { locale } = useI18n()
   const c = copy[locale]
+  const securityLabel = ({ en: "Static security scan", hu: "Statikus biztonsági ellenőrzés", de: "Statischer Sicherheitscheck", fr: "Analyse de sécurité statique", es: "Análisis de seguridad estático" } as const)[locale]
   const [html, setHtml] = useState("")
   const [repairing, setRepairing] = useState(false)
   const [repairMessage, setRepairMessage] = useState("")
@@ -226,6 +226,7 @@ export function ProjectExport() {
     const packageJson = baseFiles["package.json"]
     const wrangler = baseFiles["wrangler.jsonc"]
     const workflow = baseFiles[".github/workflows/deploy.yml"]
+    const security = scanGeneratedProject(`${index}\n${css}\n${js}`)
     return [
       [c.html, /<!doctype html/i.test(index) && /<html(?:\s|>)/i.test(index) && /<head(?:\s|>)/i.test(index) && /<body(?:\s|>)/i.test(index) && /<\/html>/i.test(index)],
       [c.css, css.trim().length > 0],
@@ -236,6 +237,7 @@ export function ProjectExport() {
       [c.readme, readme.includes("# HEGEVA generated browser project") && readme.includes("VERIFY.md")],
       [c.deploy, packageJson.includes('"wrangler"') && wrangler.includes('"assets"') && wrangler.includes('"directory": "."')],
       [c.workflow, workflow.includes("CLOUDFLARE_API_TOKEN") && workflow.includes("CLOUDFLARE_ACCOUNT_ID") && workflow.includes("npx wrangler deploy")],
+      [securityLabel, security.ok],
     ] as const
   }, [baseFiles, c])
 
