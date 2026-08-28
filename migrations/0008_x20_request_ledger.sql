@@ -50,7 +50,7 @@ BEGIN
   DO UPDATE SET aiMessages = aiMessages + 1, updatedAt = NEW.updatedAt
   WHERE aiMessages < NEW.planLimit;
 
-  SELECT CASE WHEN changes() = 0 THEN RAISE(ABORT, 'monthly quota unavailable') END;
+  SELECT RAISE(ABORT, 'monthly quota unavailable') WHERE changes() = 0;
 
   UPDATE x20_request_ledger
   SET userReserved = 1, updatedAt = NEW.updatedAt
@@ -60,7 +60,7 @@ END;
 CREATE TRIGGER IF NOT EXISTS x20_validate_attempt
 BEFORE INSERT ON x20_provider_attempts
 BEGIN
-  SELECT CASE WHEN NOT EXISTS (
+  SELECT RAISE(ABORT, 'x20 action unavailable') WHERE NOT EXISTS (
     SELECT 1 FROM x20_request_ledger
     WHERE actionId = NEW.actionId
       AND userId = NEW.userId
@@ -69,7 +69,7 @@ BEGIN
       AND kind = 'x20'
       AND actionExpiresAt > NEW.createdAt
       AND providerCalls < 3
-  ) THEN RAISE(ABORT, 'x20 action unavailable') END;
+  );
 END;
 
 CREATE TRIGGER IF NOT EXISTS x20_count_attempt
