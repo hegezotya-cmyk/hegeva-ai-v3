@@ -15,7 +15,7 @@ await assert.rejects(()=>service.query({workspaceId:"workspace-b"},context),/mem
 await assert.rejects(()=>service.read("memory-a",{...context,projectIds:[]}),/memory-permission-denied/,"project isolation")
 await assert.rejects(()=>service.create({...record,memoryId:"secret",payload:{apiKey:"sk_test_hidden"}},context),/memory-persistence-denied/,"prohibited secrets")
 const persistent={...record,memoryId:"persistent",projectId:undefined,type:"approved-persistent",retention:"until-deleted",payload:{preference:"Concise summaries"},sensitivity:"personal"}
-await assert.rejects(()=>brain.persistApproved(persistent,context,"pending"),/memory-persistence-denied/,"durable approval")
+assert.throws(()=>brain.persistApproved(persistent,context,"pending"),/memory-persistence-denied/,"durable approval")
 await brain.persistApproved(persistent,context,"approved")
 assert.equal((await brain.readAllowed({workspaceId:"workspace-a",types:["approved-persistent"]},context)).length,1,"Brain scoped read")
 assert.deepEqual(classifyMemoryCandidate({payload:{note:"temporary"},sensitivity:"internal",provenance:record.provenance},false).classification,"SESSION_ONLY")
