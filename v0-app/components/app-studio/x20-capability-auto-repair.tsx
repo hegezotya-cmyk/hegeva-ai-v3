@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { looksLikeHtmlDocument, runStudioAI, stripCodeFence, type StudioLocale } from "@/lib/app-studio-ai"
+import { looksLikeHtmlDocument, runStudioAI, stripCodeFence, type StudioLocale, type X20ActionContext } from "@/lib/app-studio-ai"
 import { buildX20RetryInstruction, evaluateX20BuildCandidate } from "@/lib/app-studio-capability-gate"
 import type { X20BuildMode } from "@/lib/app-studio-capability-engine"
 import { auditStudioSpecMatch, buildStudioSpecRepairInstruction } from "@/lib/app-studio-spec-match"
@@ -109,6 +109,7 @@ export function X20CapabilityAutoRepair() {
         let bestHtml = html
         let best = base
         let usedAttempts = attempts
+        const action: X20ActionContext = { startRequestId: crypto.randomUUID() }
 
         while (usedAttempts < MAX_REPAIR_ATTEMPTS && !cancelled) {
           usedAttempts += 1
@@ -126,7 +127,7 @@ export function X20CapabilityAutoRepair() {
             "Return ONLY one complete self-contained index.html with inline CSS and vanilla JavaScript.",
           ].filter(Boolean).join("\n\n")
 
-          const retryHtml = stripCodeFence(await runStudioAI(instruction, localeFromDocument()))
+          const retryHtml = stripCodeFence(await runStudioAI(instruction, localeFromDocument(), action))
           if (!looksLikeHtmlDocument(retryHtml)) continue
           const retry = candidateRank(retryHtml, idea, mode)
           if (retry.rank > best.rank) {

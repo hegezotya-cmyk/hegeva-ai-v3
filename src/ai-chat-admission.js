@@ -74,6 +74,9 @@ export async function handleAiChatAdmission({
     distributedAcquired = true
     const reservation = await reserve(user.id, period, planInfo.limit)
     if (!reservation.reserved) {
+      if (reservation.reason === "duplicate_attempt") {
+        return Response.json({ error: "This X20 attempt was already received." }, { status: 409 })
+      }
       const used = await readUsage(user.id, period)
       return Response.json(
         { error: "Monthly AI message limit reached.", plan: planInfo.plan, limit: planInfo.limit, used },

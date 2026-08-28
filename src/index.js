@@ -6,6 +6,7 @@ import {
 } from "./auth.js";
 import { reserveAIUsage } from "./ai-quota-reservation.js";
 import { handleAiChatAdmission } from "./ai-chat-admission.js";
+import { registerX20Attempt, startX20Action, finishX20Attempt } from "./x20-ledger.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -3312,6 +3313,10 @@ QUALITY RULES:
               lastRequest: new Map()
             });
 
+          const isX20Action = body.actionKind === "x20";
+          let x20Action = null;
+          let x20Attempt = null;
+
           const result =
             await handleAiChatAdmission({
               request,
@@ -3321,8 +3326,24 @@ QUALITY RULES:
               body,
               runtime: aiRuntime,
               distributed: env.RATE_LIMITER?.getByName(`chat-rate-limit:${user.id}`),
-              reserve: (userId, usagePeriod, limit) =>
-                reserveAIUsage(env, userId, usagePeriod, limit),
+              reserve: async (userId, usagePeriod, limit) => {
+                if (!isX20Action) return reserveAIUsage(env, userId, usagePeriod, limit);
+                if (!x20Action) {
+                  try {
+                    x20Action = body.actionId
+                      ? await env.DB.prepare(`SELECT actionId, userId, period, kind, userReserved, providerCalls, status, actionExpiresAt FROM x20_request_ledger WHERE actionId = ?1 LIMIT 1`).bind(body.actionId).first()
+                      : await startX20Action(env, { startRequestId: body.startRequestId, userId, period: usagePeriod, planLimit: limit });
+                  } catch (error) {
+                    if (/monthly quota unavailable/i.test(String(error?.message || error))) return { reserved: false };
+                    throw error;
+                  }
+                  if (!x20Action || x20Action.userId && (x20Action.userId !== userId || x20Action.period !== usagePeriod || x20Action.kind !== "x20" || new Date(x20Action.actionExpiresAt).getTime() <= Date.now())) return { reserved: false };
+                }
+                if (!body.attemptRequestId) return { reserved: false };
+                x20Attempt = await registerX20Attempt(env, { actionId: x20Action.actionId, attemptRequestId: body.attemptRequestId, userId, period: usagePeriod });
+                if (x20Attempt.duplicate) return { reserved: false, reason: "duplicate_attempt" };
+                return { reserved: Boolean(x20Attempt.admitted) };
+              },
               readUsage: (userId, usagePeriod) =>
                 readAIUsage(env, userId, usagePeriod),
               execute: async ({ message: admittedMessage, safeHistory: admittedHistory }) => {
@@ -3356,11 +3377,16 @@ QUALITY RULES:
                   });
 
                 try {
-                  return await Promise.race([aiPromise, timeoutPromise]);
+                  const providerResult = await Promise.race([aiPromise, timeoutPromise]);
+                  if (isX20Action && x20Attempt) await finishX20Attempt(env, { attemptId: x20Attempt.attemptId, actionId: x20Action.actionId, status: "succeeded" });
+                  return providerResult;
+                } catch (error) {
+                  if (isX20Action && x20Attempt) await finishX20Attempt(env, { attemptId: x20Attempt.attemptId, actionId: x20Action.actionId, status: error?.message === "HEGEVA_AI_TIMEOUT" ? "timed_out" : "failed" });
+                  throw error;
                 } finally {
                   clearTimeout(timeoutId);
                 }
-              }
+              },
             });
 
           if (result instanceof Response) {
@@ -3421,13 +3447,10 @@ QUALITY RULES:
         }
 
         return Response.json({
-          response:
-            aiResponse,
-
+          response: aiResponse,
           language,
-
-          version:
-            "V35.3.6"
+          version: "V35.3.6",
+          ...(isX20Action && x20Action?.actionId ? { actionId: x20Action.actionId, attemptId: x20Attempt?.attemptId || null, actionKind: "x20" } : {})
         });
       } catch (error) {
         console.error(
@@ -3437,8 +3460,8 @@ QUALITY RULES:
 
         return Response.json(
           {
-            error:
-              "HEGEVA AI is temporarily unavailable."
+            error: "HEGEVA AI is temporarily unavailable.",
+            ...(isX20Action && x20Action?.actionId ? { actionId: x20Action.actionId, attemptId: x20Attempt?.attemptId || null, actionKind: "x20" } : {})
           },
           {
             status: 500

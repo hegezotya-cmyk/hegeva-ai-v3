@@ -5,6 +5,18 @@ import { buildPawFlowFallbackHtml } from "./app-studio-pawflow-fallback"
 import { auditStudioSpecMatch, isPawFlowRequest, requestsGenericBusinessWorkspace } from "./app-studio-spec-match"
 
 export type StudioLocale = "en" | "hu" | "de" | "fr" | "es"
+export type X20ActionContext = { startRequestId: string; actionId?: string }
+
+function newRequestId() {
+  const secureCrypto = globalThis.crypto
+  if (secureCrypto?.randomUUID) return secureCrypto.randomUUID()
+  if (!secureCrypto?.getRandomValues) throw new Error("Secure browser randomness is unavailable.")
+  const bytes = new Uint8Array(16)
+  secureCrypto.getRandomValues(bytes)
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  return [...bytes].map((value, index) => `${value.toString(16).padStart(2, "0")}${[3, 5, 7, 9].includes(index) ? "-" : ""}`).join("")
+}
 
 const STUDIO_MESSAGE_LIMIT = 2400
 
@@ -105,8 +117,8 @@ function wrapX20Fragment(fragment: string, language: StudioLocale) {
   return `<!doctype html>\n<html lang="${safeLang}">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>HEGEVA X20 App</title>\n${X20_WOW_STYLE}\n</head>\n<body>\n${fragment}\n${X20_SAFE_SCRIPT}\n</body>\n</html>`
 }
 
-async function buildCompactX20(message: string, language: StudioLocale) {
-  let fragment = cleanX20Fragment(await requestStudioAI(x20FragmentInstruction(message, language), language))
+async function buildCompactX20(message: string, language: StudioLocale, action?: X20ActionContext) {
+  let fragment = cleanX20Fragment(await requestStudioAI(x20FragmentInstruction(message, language), language, action))
   if (!meaningfulFragment(fragment)) fragment = fallbackX20Fragment(language)
   return closeSafeHtmlStructure(wrapX20Fragment(fragment, language))
 }
@@ -127,13 +139,15 @@ function withPremiumEditContract(message: string) {
   return `${contract}\n\n${message}`
 }
 
-async function requestStudioAI(message: string, language: StudioLocale) {
+async function requestStudioAI(message: string, language: StudioLocale, action?: X20ActionContext) {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), 30000)
   const safeMessage = fitStudioMessage(withPremiumEditContract(message))
   try {
-    const response = await fetch("/api/chat", { method: "POST", credentials: "include", signal: controller.signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: safeMessage, history: [], language, mode: "general" }) })
+    const metadata = action ? { actionKind: "x20", startRequestId: action.startRequestId, ...(action.actionId ? { actionId: action.actionId } : {}), attemptRequestId: newRequestId() } : {}
+    const response = await fetch("/api/chat", { method: "POST", credentials: "include", signal: controller.signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: safeMessage, history: [], language, mode: "general", ...metadata }) })
     const data = await response.json().catch(() => null)
+    if (action && typeof data?.actionId === "string") action.actionId = data.actionId
     if (!response.ok) throw new Error(typeof data?.error === "string" && data.error.trim() ? data.error.trim() : "HEGEVA AI is temporarily unavailable.")
     const answer = typeof data?.response === "string" ? data.response.trim() : ""
     if (!answer) throw new Error("HEGEVA AI returned an empty response.")
@@ -146,7 +160,7 @@ async function requestStudioAI(message: string, language: StudioLocale) {
   }
 }
 
-async function repairHtml(html: string, originalMessage: string, language: StudioLocale, compact = false) {
+async function repairHtml(html: string, originalMessage: string, language: StudioLocale, compact = false, action?: X20ActionContext) {
   const verification = verifyBrowserPrototype(html)
   const issues = verificationIssues(verification)
   const instruction = [
@@ -157,7 +171,7 @@ async function repairHtml(html: string, originalMessage: string, language: Studi
     `FAILED CHECKS: ${issues.join("; ")}`,
     `ORIGINAL TASK: ${originalMessage.slice(0, 700)}`,
   ].join("\n\n")
-  return closeSafeHtmlStructure(stripCodeFence(await requestStudioAI(instruction, language)))
+  return closeSafeHtmlStructure(stripCodeFence(await requestStudioAI(instruction, language, action)))
 }
 
 function tryHardcorePolish(html: string, message: string) {
@@ -182,11 +196,12 @@ function verifiedDomainFallback(message: string, language: StudioLocale) {
   return ""
 }
 
-export async function runStudioAI(message: string, language: StudioLocale) {
-  const x20 = isX20Request(message)
+export async function runStudioAI(message: string, language: StudioLocale, action?: X20ActionContext) {
+  const x20 = Boolean(action) || isX20Request(message)
   const htmlRequest = isHtmlBuildRequest(message)
+  const x20Action = x20 ? (action || { startRequestId: newRequestId() }) : undefined
   if (x20 && htmlRequest) {
-    let html = await buildCompactX20(message, language)
+    let html = await buildCompactX20(message, language, x20Action)
     let verification = verifyBrowserPrototype(html)
     if (!verification.ok || !passesRequestFidelity(html, message)) {
       const domainFallback = verifiedDomainFallback(fidelityRequest(message), language)
@@ -198,16 +213,16 @@ export async function runStudioAI(message: string, language: StudioLocale) {
     return html
   }
 
-  const firstAnswer = await requestStudioAI(message, language)
+  const firstAnswer = await requestStudioAI(message, language, x20Action)
   if (!htmlRequest) return firstAnswer
   let html = closeSafeHtmlStructure(stripCodeFence(firstAnswer))
   let verification = verifyBrowserPrototype(html)
   if (!verification.ok || !passesRequestFidelity(html, message)) {
-    html = await repairHtml(html, message, language, false)
+    html = await repairHtml(html, message, language, false, x20Action)
     verification = verifyBrowserPrototype(html)
   }
   if (!verification.ok || !passesRequestFidelity(html, message)) {
-    html = await repairHtml(html, message, language, true)
+    html = await repairHtml(html, message, language, true, x20Action)
     verification = verifyBrowserPrototype(html)
   }
   if (!verification.ok || !passesRequestFidelity(html, message)) {
