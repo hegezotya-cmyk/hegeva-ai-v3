@@ -3474,6 +3474,19 @@ QUALITY RULES:
     // STATIC HEGEVA WEBSITE
     // =========================================
 
+    // Retire the legacy browser UI while preserving API and asset behavior.
+    const acceptsHtml = (request.headers.get("Accept") || "").toLowerCase().includes("text/html");
+    const isApiPath = url.pathname === "/api" || url.pathname.startsWith("/api/");
+    const canonicalOrigin = getPublicAppUrl(request, env);
+    if (
+      !isApiPath &&
+      ["GET", "HEAD"].includes(request.method) &&
+      acceptsHtml &&
+      url.origin !== canonicalOrigin
+    ) {
+      return Response.redirect(`${canonicalOrigin}/`, 302);
+    }
+
     return env.ASSETS.fetch(
       request
     );
