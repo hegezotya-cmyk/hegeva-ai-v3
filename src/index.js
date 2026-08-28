@@ -4,6 +4,8 @@ import {
   sendResendEmail,
   HEGEVA_EMAIL_FROM
 } from "./auth.js";
+import { reserveAIUsage } from "./ai-quota-reservation.js";
+import { handleAiChatAdmission } from "./ai-chat-admission.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -109,7 +111,7 @@ async function getUserPlan(
   };
 }
 
-async function getAIUsage(
+async function readAIUsage(
   env,
   userId,
   period
@@ -117,83 +119,18 @@ async function getAIUsage(
   const row =
     await env.DB
       .prepare(`
-        SELECT
-          aiMessages,
-          createdAt,
-          updatedAt
+        SELECT aiMessages
         FROM ai_usage
         WHERE userId = ?1
           AND period = ?2
         LIMIT 1
       `)
-      .bind(
-        userId,
-        period
-      )
+      .bind(userId, period)
       .first();
 
-  return {
-    aiMessages:
-      Number.isFinite(
-        Number(
-          row?.aiMessages
-        )
-      )
-        ? Number(
-            row.aiMessages
-          )
-        : 0,
-
-    createdAt:
-      row?.createdAt || null,
-
-    updatedAt:
-      row?.updatedAt || null
-  };
-}
-
-async function incrementAIUsage(
-  env,
-  userId,
-  period
-) {
-  const now =
-    new Date().toISOString();
-
-  await env.DB
-    .prepare(`
-      INSERT INTO ai_usage (
-        userId,
-        period,
-        aiMessages,
-        createdAt,
-        updatedAt
-      )
-      VALUES (
-        ?1,
-        ?2,
-        1,
-        ?3,
-        ?3
-      )
-
-      ON CONFLICT(
-        userId,
-        period
-      )
-
-      DO UPDATE SET
-        aiMessages =
-          aiMessages + 1,
-        updatedAt =
-          excluded.updatedAt
-    `)
-    .bind(
-      userId,
-      period,
-      now
-    )
-    .run();
+  return Number.isFinite(Number(row?.aiMessages))
+    ? Number(row.aiMessages)
+    : 0;
 }
 
 function getPublicAppUrl(
@@ -3158,37 +3095,6 @@ export default {
         const period =
           getCurrentPeriod();
 
-        const usage =
-          await getAIUsage(
-            env,
-            user.id,
-            period
-          );
-
-        if (
-          usage.aiMessages >=
-          planInfo.limit
-        ) {
-          return Response.json(
-            {
-              error:
-                "Monthly AI message limit reached.",
-
-              plan:
-                planInfo.plan,
-
-              limit:
-                planInfo.limit,
-
-              used:
-                usage.aiMessages
-            },
-            {
-              status: 429
-            }
-          );
-        }
-
         const body =
           await request.json();
 
@@ -3409,18 +3315,6 @@ QUALITY RULES:
 
           const aiUserKey = String(user.id);
 
-          if (aiRuntime.inFlight.has(aiUserKey)) {
-            return Response.json(
-              {
-                error:
-                  "An AI request is already running. Please wait for it to finish."
-              },
-              {
-                status: 429
-              }
-            );
-          }
-
           const now = Date.now();
           const lastRequest =
             Number(aiRuntime.lastRequest.get(aiUserKey) || 0);
@@ -3450,55 +3344,58 @@ QUALITY RULES:
             );
           }
 
-          aiRuntime.inFlight.add(aiUserKey);
-          aiRuntime.lastRequest.set(aiUserKey, now);
-
-          let result;
-
-          try {
-            const aiPromise =
-              env.AI.run(
-                "@cf/meta/llama-3.1-8b-instruct-fast",
-                {
-                  messages: [
+          const result =
+            await handleAiChatAdmission({
+              request,
+              user,
+              planInfo,
+              period,
+              body,
+              runtime: aiRuntime,
+              reserve: (userId, usagePeriod, limit) =>
+                reserveAIUsage(env, userId, usagePeriod, limit),
+              readUsage: (userId, usagePeriod) =>
+                readAIUsage(env, userId, usagePeriod),
+              execute: async ({ message: admittedMessage, safeHistory: admittedHistory }) => {
+                const aiPromise =
+                  env.AI.run(
+                    "@cf/meta/llama-3.1-8b-instruct-fast",
                     {
-                      role: "system",
-                      content: systemPrompt
-                    },
-                    ...safeHistory,
-                      {
-                      role: "user",
-                      content: message
+                      messages: [
+                        {
+                          role: "system",
+                          content: systemPrompt
+                        },
+                        ...admittedHistory,
+                        {
+                          role: "user",
+                          content: admittedMessage
+                        }
+                      ],
+                      temperature: 0.15,
+                      max_tokens: 700
                     }
-                  ],
-                  temperature: 0.15,
-                  max_tokens: 700
+                  );
+
+                let timeoutId;
+                const timeoutPromise =
+                  new Promise((_, reject) => {
+                    timeoutId = setTimeout(
+                      () => reject(new Error("HEGEVA_AI_TIMEOUT")),
+                      AI_TIMEOUT_MS
+                    );
+                  });
+
+                try {
+                  return await Promise.race([aiPromise, timeoutPromise]);
+                } finally {
+                  clearTimeout(timeoutId);
                 }
-              );
+              }
+            });
 
-            let timeoutId;
-
-            const timeoutPromise =
-              new Promise((_, reject) => {
-                timeoutId = setTimeout(
-                  () => reject(
-                    new Error("HEGEVA_AI_TIMEOUT")
-                  ),
-                  AI_TIMEOUT_MS
-                );
-              });
-
-            try {
-              result =
-                await Promise.race([
-                  aiPromise,
-                  timeoutPromise
-                ]);
-            } finally {
-              clearTimeout(timeoutId);
-            }
-          } finally {
-            aiRuntime.inFlight.delete(aiUserKey);
+          if (result instanceof Response) {
+            return result;
           }
 
         let aiResponse =
@@ -3553,12 +3450,6 @@ QUALITY RULES:
             fallbackResponses[language] ||
             fallbackResponses.en;
         }
-
-        await incrementAIUsage(
-          env,
-          user.id,
-          period
-        );
 
         return Response.json({
           response:
