@@ -23,6 +23,70 @@ type PlanStatus = {
 }
 
 type SupportedLanguage = "en" | "hu" | "de" | "fr" | "es"
+type FailureCopy = {
+  session: string
+  conflict: string
+  expired: string
+  rate: (seconds?: number) => string
+  tooLarge: string
+  unavailable: string
+  network: string
+}
+
+const failureCopy: Record<SupportedLanguage, FailureCopy> = {
+  en: {
+    session: "Your session has expired. Please sign in again to continue.",
+    conflict: "This request was already received or is still pending. Do not submit it again; wait or refresh the conversation.",
+    expired: "This request expired before it completed. Edit the message and send it again when ready.",
+    rate: (seconds) => seconds ? `Please wait about ${seconds} second${seconds === 1 ? "" : "s"} before trying again.` : "Please wait a moment before trying again.",
+    tooLarge: "This request is too large. Shorten the message or conversation context and try again.",
+    unavailable: "HEGEVA AI is temporarily unavailable. Your request was not automatically retried.",
+    network: "The connection was interrupted. Check your internet connection and submit the same message again when ready.",
+  },
+  hu: {
+    session: "A munkameneted lejárt. A folytatáshoz jelentkezz be újra.",
+    conflict: "Ezt a kérést már fogadtuk, vagy még folyamatban van. Ne küldd el újra; várj vagy frissítsd a beszélgetést.",
+    expired: "A kérés a befejezés előtt lejárt. Módosítsd az üzenetet, majd küldd el újra.",
+    rate: (seconds) => seconds ? `Várj körülbelül ${seconds} másodpercet az újrapróbálás előtt.` : "Várj egy pillanatot az újrapróbálás előtt.",
+    tooLarge: "A kérés túl nagy. Rövidítsd az üzenetet vagy az előzményeket, majd próbáld újra.",
+    unavailable: "A HEGEVA AI átmenetileg nem érhető el. A kérést nem próbáltuk meg automatikusan újra.",
+    network: "A kapcsolat megszakadt. Ellenőrizd az internetkapcsolatot, majd küldd el újra ugyanazt az üzenetet.",
+  },
+  de: {
+    session: "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
+    conflict: "Diese Anfrage wurde bereits empfangen oder ist noch offen. Senden Sie sie nicht erneut; warten oder aktualisieren Sie das Gespräch.",
+    expired: "Diese Anfrage ist vor dem Abschluss abgelaufen. Bearbeiten Sie die Nachricht und senden Sie sie erneut.",
+    rate: (seconds) => seconds ? `Bitte warten Sie etwa ${seconds} Sekunde${seconds === 1 ? "" : "n"}, bevor Sie es erneut versuchen.` : "Bitte warten Sie einen Moment, bevor Sie es erneut versuchen.",
+    tooLarge: "Diese Anfrage ist zu groß. Kürzen Sie Nachricht oder Verlauf und versuchen Sie es erneut.",
+    unavailable: "HEGEVA AI ist vorübergehend nicht verfügbar. Die Anfrage wurde nicht automatisch erneut gesendet.",
+    network: "Die Verbindung wurde unterbrochen. Prüfen Sie Ihre Internetverbindung und senden Sie dieselbe Nachricht erneut.",
+  },
+  fr: {
+    session: "Votre session a expiré. Reconnectez-vous pour continuer.",
+    conflict: "Cette demande a déjà été reçue ou est encore en attente. Ne la renvoyez pas ; attendez ou actualisez la conversation.",
+    expired: "Cette demande a expiré avant de se terminer. Modifiez le message et renvoyez-le.",
+    rate: (seconds) => seconds ? `Veuillez patienter environ ${seconds} seconde${seconds === 1 ? "" : "s"} avant de réessayer.` : "Veuillez patienter un instant avant de réessayer.",
+    tooLarge: "Cette demande est trop volumineuse. Raccourcissez le message ou le contexte, puis réessayez.",
+    unavailable: "HEGEVA AI est temporairement indisponible. La demande n’a pas été réessayée automatiquement.",
+    network: "La connexion a été interrompue. Vérifiez votre connexion puis renvoyez le même message.",
+  },
+  es: {
+    session: "Tu sesión ha caducado. Inicia sesión de nuevo para continuar.",
+    conflict: "Esta solicitud ya se recibió o sigue pendiente. No la envíes otra vez; espera o actualiza la conversación.",
+    expired: "Esta solicitud caducó antes de completarse. Edita el mensaje y vuelve a enviarlo.",
+    rate: (seconds) => seconds ? `Espera unos ${seconds} segundo${seconds === 1 ? "" : "s"} antes de intentarlo de nuevo.` : "Espera un momento antes de intentarlo de nuevo.",
+    tooLarge: "La solicitud es demasiado grande. Acorta el mensaje o el contexto y vuelve a intentarlo.",
+    unavailable: "HEGEVA AI no está disponible temporalmente. La solicitud no se reintentó automáticamente.",
+    network: "La conexión se interrumpió. Comprueba tu conexión y vuelve a enviar el mismo mensaje.",
+  },
+}
+
+function safeRetryAfterSeconds(response: Response) {
+  const value = response.headers.get("Retry-After")?.trim() || ""
+  if (!/^\d+$/.test(value)) return undefined
+  const seconds = Number(value)
+  return Number.isSafeInteger(seconds) ? Math.min(300, Math.max(1, seconds)) : undefined
+}
 const partnerCopy={
  en:{context:"Working context",continuity:"Continuity",continuityText:"HEGEVA keeps this conversation with your workspace.",customers:"Customers",tasks:"Open tasks",documents:"Documents",start:"Start with an outcome",empty:"Describe what you want to decide, create or improve. HEGEVA will use the workspace context shown here when it is relevant.",suggestions:["Summarise my current priorities","Draft a customer follow-up","Help me plan the next three actions"],you:"You",hegeva:"HEGEVA"},
  hu:{context:"Munkakörnyezet",continuity:"Folytonosság",continuityText:"A HEGEVA ezt a beszélgetést a munkaterületeddel együtt őrzi.",customers:"Ügyfelek",tasks:"Nyitott feladatok",documents:"Dokumentumok",start:"Kezdd az eredménnyel",empty:"Írd le, mit szeretnél eldönteni, létrehozni vagy javítani. A HEGEVA szükség esetén használja az itt látható munkakörnyezetet.",suggestions:["Foglald össze a prioritásaimat","Írj ügyfélkövető üzenetet","Tervezd meg a következő három lépést"],you:"Te",hegeva:"HEGEVA"},
@@ -137,6 +201,7 @@ export function AssistantChat() {
     const timeout = window.setTimeout(() => controller.abort(), 30000)
 
     let responseStatus = 0
+    let clearPendingOnError = false
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -158,9 +223,27 @@ export function AssistantChat() {
       const data = await response.json().catch(() => null)
 
       if (!response.ok) {
-        throw new Error(
-          data?.error || t.assistant.unavailable
-        )
+        const copy = failureCopy[locale]
+        if (response.status === 401) {
+          clearPendingOnError = true
+          throw new Error(copy.session)
+        }
+        if (response.status === 409) {
+          const expired = typeof data?.error === "string" && /expired/i.test(data.error)
+          clearPendingOnError = expired
+          throw new Error(expired ? copy.expired : copy.conflict)
+        }
+        if (response.status === 413) {
+          clearPendingOnError = true
+          throw new Error(copy.tooLarge)
+        }
+        if (response.status === 429) {
+          throw new Error(copy.rate(safeRetryAfterSeconds(response)))
+        }
+        if (response.status === 503) {
+          throw new Error(copy.unavailable)
+        }
+        throw new Error(copy.unavailable)
       }
 
       const answer =
@@ -179,14 +262,21 @@ export function AssistantChat() {
       pendingOperationRef.current = null
       await loadUsage()
     } catch (requestError) {
-      if (responseStatus >= 400 && responseStatus < 500) pendingOperationRef.current = null
-      else pendingOperationRef.current = { message: cleanMessage, operationId }
+      const copy = failureCopy[locale]
+      if (!responseStatus) {
+        pendingOperationRef.current = { message: cleanMessage, operationId }
+      } else if (clearPendingOnError) {
+        pendingOperationRef.current = null
+      } else {
+        // Keep the same operation ID for ambiguous server/rate-limit outcomes.
+        pendingOperationRef.current = { message: cleanMessage, operationId }
+      }
       setError(
         controller.signal.aborted
-          ? t.assistant.unavailable
+          ? copy.network
           : requestError instanceof Error
             ? requestError.message
-            : t.assistant.unavailable
+            : copy.network
       )
     } finally {
       window.clearTimeout(timeout)
@@ -291,7 +381,7 @@ export function AssistantChat() {
         )}
 
         {error && (
-          <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <div role="alert" aria-live="assertive" className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error}
           </div>
         )}

@@ -4,6 +4,7 @@ import ts from "typescript"
 const source = fs.readFileSync(new URL("../lib/security-guard.ts", import.meta.url), "utf8")
 const worker = fs.readFileSync(new URL("../../src/index.js", import.meta.url), "utf8")
 const proxy = fs.readFileSync(new URL("../app/api/[...path]/route.ts", import.meta.url), "utf8")
+const assistant = fs.readFileSync(new URL("../components/assistant/assistant-chat.tsx", import.meta.url), "utf8")
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText
 const { evaluateSecurityGuard } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`)
 const { default: workerHandler, readBodyWithinLimit, REQUEST_BODY_LIMITS } = await import("../../src/index.js")
@@ -27,6 +28,17 @@ assert(/readBodyWithinLimit/.test(proxy) && /total > limit/.test(proxy) && /read
 assert(/bodyBytes\.byteLength/.test(proxy), "proxy must forward bounded body bytes")
 assert(!/console\.error\([^\n]*data/.test(worker), "backend must not log provider response bodies")
 assert(/HEGEVA_PROVIDER_FAILURE/.test(worker), "provider failures must use stable safe logging")
+const emailStatusStart = worker.indexOf('"/api/system/email-status"')
+const emailStatusEnd = worker.indexOf("// SECURITY EMAIL TEST", emailStatusStart)
+const emailStatusBlock = worker.slice(emailStatusStart, emailStatusEnd)
+assert(/passwordRecovery:\s*Boolean\(env\.RESEND_API_KEY\)/.test(emailStatusBlock), "email status must expose only recovery readiness")
+assert(!/(configured|provider|sender|resetLinkExpiresInSeconds|revokeSessionsOnPasswordReset)/.test(emailStatusBlock), "email status must not expose operational configuration")
+for (const status of [401, 409, 413, 429, 503]) {
+  assert(new RegExp(`response\.status === ${status}`).test(assistant), `Assistant must provide status-specific ${status} guidance`)
+}
+assert(/Retry-After/.test(assistant) && /Math\.min\(300/.test(assistant), "Assistant Retry-After handling must be bounded")
+assert(/pendingOperationRef\.current = \{ message: cleanMessage, operationId \}/.test(assistant), "Assistant must preserve the same operation ID after ambiguous failures")
+assert(/controller\.signal\.aborted/.test(assistant), "Assistant must provide interruption/network recovery guidance")
 
 function streamedRequest(chunks, contentLength) {
   const stream = new ReadableStream({

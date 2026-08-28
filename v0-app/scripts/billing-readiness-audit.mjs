@@ -27,6 +27,8 @@ assert(/invoice\.payment_failed/.test(worker), "Failed subscription payments mus
 assert(/hasNewerAppliedStripeEvent/.test(ledger), "Webhook processing must guard against out-of-order events")
 assert(/ON CONFLICT\(eventId\) DO NOTHING/.test(ledger), "Webhook processing must be idempotent")
 assert(/Checkout confirmation no longer grants paid entitlement/.test(ledger), "Browser checkout confirmation must not grant entitlement")
+assert(!/applyVerifiedStripeCheckoutPlan/.test(worker), "Unreachable browser entitlement mutator must be removed")
+assert(/\/api\/billing\/confirm/.test(ledger) && /status:\s*410/.test(ledger), "Ledger must retain the retired confirmation guard")
 assert(/if \(event\?\.livemode === true\)/.test(ledger), "The ledger must reject live Stripe events before any D1 billing writes")
 assert(/syncStripeBillingIdentity/.test(ledger) && /stripeCustomerId/.test(ledger), "Verified webhooks must persist the Stripe customer mapping")
 assert(/stripeSubscriptionId/.test(migration) && /stripeCustomerId TEXT NOT NULL UNIQUE/.test(migration), "Billing identity migration must enforce durable unique Stripe mappings")
