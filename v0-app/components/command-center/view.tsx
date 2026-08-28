@@ -39,6 +39,13 @@ type ModuleDef = {
 export function CommandCenterView() {
   const { t, locale } = useI18n()
   const copy = COMMAND_OVERVIEW_COPY[locale]
+  const layers = {
+    en: { intelligence: "Intelligence layer", description: "Move from a question to a verified result with the right HEGEVA workspace.", operations: "Operations layer", pricing: "Pricing" },
+    hu: { intelligence: "Intelligenciaréteg", description: "A kérdéstől a hitelesített eredményig a megfelelő HEGEVA-munkaterülettel.", operations: "Működési réteg", pricing: "Csomagok" },
+    de: { intelligence: "Intelligenzebene", description: "Von der Frage zum geprüften Ergebnis mit dem passenden HEGEVA-Arbeitsbereich.", operations: "Betriebsebene", pricing: "Preise" },
+    fr: { intelligence: "Couche d’intelligence", description: "Passez d’une question à un résultat vérifié avec l’espace HEGEVA adapté.", operations: "Couche opérationnelle", pricing: "Tarifs" },
+    es: { intelligence: "Capa de inteligencia", description: "Pasa de una pregunta a un resultado verificado con el espacio HEGEVA adecuado.", operations: "Capa operativa", pricing: "Precios" },
+  }[locale]
   const { data: session, isPending } = authClient.useSession()
 
   const modules: ModuleDef[] = [
@@ -53,10 +60,10 @@ export function CommandCenterView() {
     { icon: Wrench, title: t.commandCenter.tools, desc: t.commandCenter.toolsDesc, status: "working", href: "/business/tools" },
   ]
   const aiModules: ModuleDef[] = [
-    {icon:Bot,title:copy.assistantTitle,desc:copy.assistantDesc,status:"beta",href:"/assistant"},
-    {icon:Sparkles,title:copy.promptTitle,desc:copy.promptDesc,status:"beta",href:"/app-studio/prompt-my-app"},
-    {icon:Hammer,title:copy.buildTitle,desc:copy.buildDesc,status:"beta",href:"/app-studio/build-my-app"},
-    {icon:Blocks,title:copy.fixTitle,desc:copy.fixDesc,status:"beta",href:"/app-studio/fix-my-app"},
+    {icon:Bot,title:copy.assistantTitle,desc:copy.assistantDesc,status:"working",href:"/assistant"},
+    {icon:Sparkles,title:copy.promptTitle,desc:copy.promptDesc,status:"working",href:"/app-studio/prompt-my-app"},
+    {icon:Hammer,title:copy.buildTitle,desc:copy.buildDesc,status:"working",href:"/app-studio/build-my-app"},
+    {icon:Blocks,title:copy.fixTitle,desc:copy.fixDesc,status:"working",href:"/app-studio/fix-my-app"},
   ]
 
   return (
@@ -65,7 +72,7 @@ export function CommandCenterView() {
 
       <OperatingCenter />
 
-      <SectionHeading className="mt-12" eyebrow="Intelligence layer" title={copy.aiModules} description="Move from a question to a verified result with the right HEGEVA workspace." />
+      <SectionHeading className="mt-12" eyebrow={layers.intelligence} title={copy.aiModules} description={layers.description} />
       <div className="module-ledger mt-4">
         {aiModules.map(({ icon: Icon, title, desc, status, href }) => (
           <Link key={title} href={href} className="group"><span><Icon aria-hidden /></span><div><h3>{title}</h3><p>{desc}</p></div><StatusBadge status={status} />
@@ -73,7 +80,7 @@ export function CommandCenterView() {
         ))}
       </div>
 
-      <SectionHeading className="mt-12" eyebrow="Operations layer" title={copy.businessModules} />
+      <SectionHeading className="mt-16" eyebrow={layers.operations} title={copy.businessModules} action={<Link href="/pricing" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-2")}>{layers.pricing}</Link>} />
       <div className="operation-index mt-4">
         {modules.map(({ icon: Icon, title, desc, status, href }) => (
           <Link key={title} href={href}><span><Icon aria-hidden /></span><div><h3>{title}</h3><p>{desc}</p></div><StatusBadge status={status} />
