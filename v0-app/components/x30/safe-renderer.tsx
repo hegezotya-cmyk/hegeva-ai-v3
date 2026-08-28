@@ -11,7 +11,7 @@ function Node({node}:{node:X30Node}){
  if(node.type==="schedule") return <section className="x30-schedule"><header><div><p>Schedule</p><h3>{text(p.title)}</h3></div><CalendarDays aria-hidden/></header><div>{items(p.items).map((item,index)=><article key={index}><time>{text(item.time)}</time><div><strong>{text(item.pet)}</strong><span>{text(item.breed)} · {text(item.service)}</span></div><b>{text(item.price)}</b></article>)}</div></section>
  if(node.type==="pet-list") return <section className="x30-list"><header><PawPrint aria-hidden/><h3>{text(p.title)}</h3></header>{items(p.items).map((item,index)=><article key={index}><span className="x30-avatar">{text(item.name,"P").slice(0,1)}</span><div><strong>{text(item.name)}</strong><small>{text(item.detail)}</small><small>{text(item.owner)}</small></div></article>)}</section>
  if(node.type==="service-list") return <section className="x30-list"><header><Scissors aria-hidden/><h3>{text(p.title)}</h3></header>{items(p.items).map((item,index)=><article key={index}><div><strong>{text(item.name)}</strong></div><b>{text(item.price)}</b></article>)}</section>
- return <button type="button" className="x30-action"><span><strong>{text(p.label)}</strong><small>{text(p.hint)}</small></span><ChevronRight aria-hidden/></button>
+ return <button type="button" className="x30-action" aria-disabled="true" title="Read-only preview"><span><strong>{text(p.label)}</strong><small>{text(p.hint)} · Read-only preview</small></span><ChevronRight aria-hidden/></button>
 }
 
 export function SafeX30Renderer({spec}:{spec:unknown}){

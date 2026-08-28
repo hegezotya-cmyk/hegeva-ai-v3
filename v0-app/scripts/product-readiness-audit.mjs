@@ -6,6 +6,8 @@ const reports = fs.readFileSync(new URL("../components/business/reports.tsx", im
 const invoices = fs.readFileSync(new URL("../app/business/invoices/page.tsx", import.meta.url), "utf8")
 const planner = fs.readFileSync(new URL("../components/business/planner.tsx", import.meta.url), "utf8")
 const messages = fs.readFileSync(new URL("../components/business/message-studio.tsx", import.meta.url), "utf8")
+const operatingCenter = fs.readFileSync(new URL("../components/command-center/operating-center.tsx", import.meta.url), "utf8")
+const x30Page = fs.readFileSync(new URL("../app/app-studio/x30-alpha/page.tsx", import.meta.url), "utf8")
 
 assert(/editingId/.test(workspace), "Workspace records must track the record being edited")
 assert(/function editItem/.test(workspace), "Workspace records must expose an edit workflow")
@@ -24,5 +26,10 @@ assert(/done: !t\.done/.test(planner), "Planner tasks must support completion up
 assert(/function editTask/.test(planner) && /current\.map\(\(task\) => task\.id === existing\.id \? next : task\)/.test(planner), "Planner tasks must support persisted edits")
 assert(/setDrafts/.test(messages) && /navigator\.clipboard/.test(messages), "Message drafts must persist and support copying")
 assert(/function editDraft/.test(messages) && /current\.map\(\(draft\) => draft\.id === existing\.id \? next : draft\)/.test(messages), "Message drafts must support persisted edits")
+for (const type of ["customers", "documents", "expenses", "invoice_documents", "planner", "messages"]) assert(operatingCenter.includes(`useWorkspaceData`) && operatingCenter.includes(`\"${type}\"`), `${type} must use existing workspace state`)
+assert(/href=\"\/assistant\"/.test(operatingCenter) && /href=\"\/app-studio\/build-my-app-x20\"/.test(operatingCenter), "Operating Center must retain read-only Assistant and App Studio navigation")
+assert(/cloudEnabled/.test(operatingCenter) && /not cloud-synced/.test(operatingCenter), "Operating Center must distinguish cloud and local state")
+assert(/useWorkspaceData/.test(x30Page) && /No workspace data available/.test(x30Page) && /PawFlow/.test(x30Page), "X30 must be workspace-aware with explicit empty and demo states")
+assert(!/fetch\(|reserveAIUsage|startX20Action|setItems\(/.test(x30Page), "X30 page must remain read-only without AI, quota, or mutation calls")
 
 console.log("Product readiness audit passed: editable business records, real invoice reporting, invoice updates, planner completion, and message persistence")
