@@ -2,7 +2,7 @@
 
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { Check, Copy, Trash2 } from "lucide-react"
+import { ArrowUp, Check, Copy, FileText, ListChecks, Sparkles, Trash2, Users } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { authClient } from "@/lib/auth-client"
@@ -23,6 +23,13 @@ type PlanStatus = {
 }
 
 type SupportedLanguage = "en" | "hu" | "de" | "fr" | "es"
+const partnerCopy={
+ en:{context:"Working context",continuity:"Continuity",continuityText:"HEGEVA keeps this conversation with your workspace.",customers:"Customers",tasks:"Open tasks",documents:"Documents",start:"Start with an outcome",empty:"Describe what you want to decide, create or improve. HEGEVA will use the workspace context shown here when it is relevant.",suggestions:["Summarise my current priorities","Draft a customer follow-up","Help me plan the next three actions"],you:"You",hegeva:"HEGEVA"},
+ hu:{context:"Munkakörnyezet",continuity:"Folytonosság",continuityText:"A HEGEVA ezt a beszélgetést a munkaterületeddel együtt őrzi.",customers:"Ügyfelek",tasks:"Nyitott feladatok",documents:"Dokumentumok",start:"Kezdd az eredménnyel",empty:"Írd le, mit szeretnél eldönteni, létrehozni vagy javítani. A HEGEVA szükség esetén használja az itt látható munkakörnyezetet.",suggestions:["Foglald össze a prioritásaimat","Írj ügyfélkövető üzenetet","Tervezd meg a következő három lépést"],you:"Te",hegeva:"HEGEVA"},
+ de:{context:"Arbeitskontext",continuity:"Kontinuität",continuityText:"HEGEVA bewahrt dieses Gespräch zusammen mit Ihrem Workspace auf.",customers:"Kunden",tasks:"Offene Aufgaben",documents:"Dokumente",start:"Mit dem Ergebnis beginnen",empty:"Beschreiben Sie, was Sie entscheiden, erstellen oder verbessern möchten. HEGEVA nutzt bei Bedarf den sichtbaren Workspace-Kontext.",suggestions:["Meine Prioritäten zusammenfassen","Kunden-Follow-up entwerfen","Die nächsten drei Schritte planen"],you:"Sie",hegeva:"HEGEVA"},
+ fr:{context:"Contexte de travail",continuity:"Continuité",continuityText:"HEGEVA conserve cette conversation avec votre espace de travail.",customers:"Clients",tasks:"Tâches ouvertes",documents:"Documents",start:"Commencer par le résultat",empty:"Décrivez ce que vous souhaitez décider, créer ou améliorer. HEGEVA utilisera le contexte visible lorsqu’il est pertinent.",suggestions:["Résumer mes priorités","Rédiger un suivi client","Planifier les trois prochaines actions"],you:"Vous",hegeva:"HEGEVA"},
+ es:{context:"Contexto de trabajo",continuity:"Continuidad",continuityText:"HEGEVA conserva esta conversación junto a tu espacio de trabajo.",customers:"Clientes",tasks:"Tareas abiertas",documents:"Documentos",start:"Empieza por el resultado",empty:"Describe qué quieres decidir, crear o mejorar. HEGEVA usará el contexto visible cuando sea relevante.",suggestions:["Resumir mis prioridades","Redactar seguimiento a un cliente","Planificar las próximas tres acciones"],you:"Tú",hegeva:"HEGEVA"},
+} as const
 
 function detectMessageLanguage(message: string, fallback: SupportedLanguage): SupportedLanguage {
   const text = message.toLocaleLowerCase()
@@ -38,8 +45,12 @@ function detectMessageLanguage(message: string, fallback: SupportedLanguage): Su
 
 export function AssistantChat() {
   const { locale, t } = useI18n()
+  const p=partnerCopy[locale]
   const { data: session, isPending } = authClient.useSession()
   const { items: messages, setItems: setMessages, syncState } = useWorkspaceData<ChatMessage>("assistant_history")
+  const {items:customers}=useWorkspaceData<{id:string}>("customers")
+  const {items:tasks}=useWorkspaceData<{id:string;done:boolean}>("planner")
+  const {items:documents}=useWorkspaceData<{id:string}>("documents")
   const [message, setMessage] = useState("")
   const [sending, setSending] = useState(false)
   const [error, setError] = useState("")
@@ -188,22 +199,16 @@ export function AssistantChat() {
   }
 
   return (
-    <div className="ve-panel overflow-hidden rounded-3xl shadow-sm">
-      <div className="border-b border-border px-5 py-4 sm:px-6">
+    <div className="partner-workspace">
+      <aside className="partner-context">
+        <div><p className="ve-eyebrow">{p.context}</p><h2>{p.continuity}</h2><p>{p.continuityText}</p></div>
+        <dl><div><dt><Users aria-hidden/>{p.customers}</dt><dd>{customers.length}</dd></div><div><dt><ListChecks aria-hidden/>{p.tasks}</dt><dd>{tasks.filter(item=>!item.done).length}</dd></div><div><dt><FileText aria-hidden/>{p.documents}</dt><dd>{documents.length}</dd></div></dl>
+        <div className="partner-state"><span/><div><strong>{syncState==="cloud"?t.assistant.synced:syncState==="saving"?t.assistant.saving:t.assistant.loading}</strong><small>{usage?`${usage.plan} · ${usage.aiMessages}/${usage.aiLimit}`:"HEGEVA workspace"}</small></div></div>
+      </aside>
+      <section className="partner-conversation">
+      <div className="partner-conversation-head">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm text-muted-foreground">
-              {t.assistant.signedIn} {session.user.email}
-            </p>
-            {usage && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {usage.plan.charAt(0).toUpperCase() + usage.plan.slice(1)} {t.assistant.plan} · {usage.aiMessages} / {usage.aiLimit} {t.assistant.messagesMonth}
-              </p>
-            )}
-            <p className="mt-1 text-xs text-muted-foreground">
-              {syncState === "saving" ? t.assistant.saving : syncState === "cloud" ? t.assistant.synced : syncState === "error" ? t.assistant.syncError : t.assistant.loading}
-            </p>
-          </div>
+          <div><p className="ve-eyebrow">Human layer · alpha</p><p className="text-sm text-muted-foreground">{t.assistant.signedIn} {session.user.email}</p></div>
           {messages.length > 0 && (
             <button
               type="button"
@@ -220,21 +225,12 @@ export function AssistantChat() {
         </div>
       </div>
 
-      <div className="min-h-[420px] space-y-4 p-5 sm:p-6">
+      <div className="partner-thread">
         {messages.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border p-6 text-muted-foreground">
-            {t.assistant.empty}
-          </div>
+          <div className="partner-empty"><Sparkles aria-hidden/><p className="ve-eyebrow">{p.start}</p><h3>{p.empty}</h3><div>{p.suggestions.map(suggestion=><button key={suggestion} type="button" onClick={()=>setMessage(suggestion)}>{suggestion}<ArrowUp aria-hidden/></button>)}</div></div>
         ) : (
           messages.map((item, index) => (
-            <div
-              key={`${item.role}-${index}`}
-              className={
-                item.role === "user"
-                  ? "ml-auto max-w-[85%] rounded-2xl bg-primary px-4 py-3 text-primary-foreground"
-                  : "group relative mr-auto max-w-[90%] rounded-2xl bg-muted px-4 py-3 pr-11 text-foreground"
-              }
-            >
+            <article key={`${item.role}-${index}`} className={item.role === "user"?"partner-message is-user":"partner-message is-hegeva"}><header><span>{item.role==="user"?p.you:p.hegeva}</span><small>{String(index+1).padStart(2,"0")}</small></header><div>
               {item.role === "user" ? (
                 <p className="whitespace-pre-wrap text-sm leading-6">{item.content}</p>
               ) : (
@@ -266,12 +262,12 @@ export function AssistantChat() {
                   </button>
                 </>
               )}
-            </div>
+            </div></article>
           ))
         )}
 
         {sending && (
-          <div className="mr-auto flex max-w-[90%] items-center gap-3 rounded-2xl border border-violet/20 bg-violet/8 px-4 py-3 text-sm text-muted-foreground" role="status" aria-live="polite">
+          <div className="partner-thinking" role="status" aria-live="polite">
             <AICore state="thinking" className="scale-75" />
             <span>{t.assistant.thinking}</span>
           </div>
@@ -285,10 +281,7 @@ export function AssistantChat() {
         <div ref={messagesEndRef} />
       </div>
 
-      <form
-        onSubmit={submit}
-        className="border-t border-border p-4 sm:p-5"
-      >
+      <form onSubmit={submit} className="partner-composer">
         <div className="flex flex-col gap-3 sm:flex-row">
           <textarea
             value={message}
@@ -297,20 +290,20 @@ export function AssistantChat() {
             maxLength={2500}
             rows={3}
             placeholder={t.assistant.placeholder}
-            className="min-h-24 flex-1 resize-none rounded-2xl border border-input bg-background px-4 py-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+            className="min-h-24 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-sm outline-none"
           />
           <button
             type="submit"
             disabled={sending || !message.trim()}
-            className="min-h-11 w-full self-end rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 self-end rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
-            {sending ? t.assistant.sending : t.assistant.send}
+            {sending ? t.assistant.sending : t.assistant.send}<ArrowUp className="size-4" aria-hidden/>
           </button>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
           {t.assistant.hint}
         </p>
-      </form>
+      </form></section>
     </div>
   )
 }

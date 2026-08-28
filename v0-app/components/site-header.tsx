@@ -73,8 +73,8 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 border-b border-border/80 bg-background/80 shadow-[0_12px_40px_-32px_rgba(0,0,0,.9)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/65">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
-          <HegevaLogo priority />
-          <nav className="hidden items-center gap-0.5 lg:flex" aria-label={aria.primary}>
+          <span className="xl:hidden"><HegevaLogo priority /></span>
+          <nav className="hidden items-center gap-0.5 lg:flex xl:hidden" aria-label={aria.primary}>
             {navLink("/", t.nav.home)}
             {navLink("/command-center", t.nav.commandCenter)}
             <div ref={studioRef} className="relative">

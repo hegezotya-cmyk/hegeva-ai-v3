@@ -23,6 +23,7 @@ import {
   WandSparkles,
 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
+import { AICore } from "@/components/visual-engine"
 import {
   downloadTextFile,
   looksLikeHtmlDocument,
@@ -43,6 +44,13 @@ const MODE_KEY = "hegeva:x20:studio:mode"
 const BUILD_KEY = "hegeva:x20:studio:build-mode"
 const VERSION_KEY = "hegeva:x20:studio:version"
 const VERSION = "studio-wow-2026-08-25-2"
+const stageCopy={
+  en:{stages:["Request","Build","Verify","Result"],states:["Ready for a request","Building and checking","Build needs attention","Verified result ready"],summary:"User-safe X20 status"},
+  hu:{stages:["Kérés","Építés","Ellenőrzés","Eredmény"],states:["Kérésre kész","Építés és ellenőrzés","A build figyelmet igényel","Ellenőrzött eredmény kész"],summary:"Biztonságos X20 állapot"},
+  de:{stages:["Anfrage","Build","Prüfung","Ergebnis"],states:["Bereit für eine Anfrage","Build und Prüfung","Build benötigt Aufmerksamkeit","Geprüftes Ergebnis bereit"],summary:"Sicherer X20-Status"},
+  fr:{stages:["Demande","Build","Vérification","Résultat"],states:["Prêt pour une demande","Construction et vérification","Le build nécessite une attention","Résultat vérifié prêt"],summary:"Statut X20 sûr"},
+  es:{stages:["Solicitud","Build","Verificación","Resultado"],states:["Listo para una solicitud","Construyendo y verificando","El build requiere atención","Resultado verificado listo"],summary:"Estado X20 seguro"},
+} as const
 
 const copy = {
   en: {
@@ -170,6 +178,7 @@ function health(html: string) {
 export function BuildMyAppX20StudioWow() {
   const { locale } = useI18n()
   const c = copy[locale]
+  const stage=stageCopy[locale]
   const [idea, setIdea] = useState("")
   const [html, setHtml] = useState("")
   const [mode, setMode] = useState<BuildMode>("premium")
@@ -257,6 +266,12 @@ export function BuildMyAppX20StudioWow() {
     { key: "dashboard", label: "Dashboard layer", icon: Gauge },
     { key: "accessibility", label: "Accessibility", icon: ShieldCheck },
   ]
+  const buildStages=[
+    {label:stage.stages[0],done:Boolean(idea.trim()),active:!idea.trim()},
+    {label:stage.stages[1],done:Boolean(html),active:busy},
+    {label:stage.stages[2],done:Boolean(html)&&score>=75,active:Boolean(html)&&score<75},
+    {label:stage.stages[3],done:Boolean(html)&&score>=75,active:false},
+  ]
 
   return (
     <div className="mx-auto max-w-[1560px] px-4 py-8 sm:px-6 lg:px-8">
@@ -274,6 +289,8 @@ export function BuildMyAppX20StudioWow() {
           </div>
         </div>
       </section>
+
+      <section className="x20-stage-rail" aria-label="X20 build workflow"><div><AICore state={busy?"working":error?"warning":html?"completed":"ready"}/><span><b>{busy?stage.states[1]:error?stage.states[2]:html?stage.states[3]:stage.states[0]}</b><small>{stage.summary}</small></span></div><ol>{buildStages.map((item,index)=><li key={item.label} className={item.done?"is-done":item.active?"is-active":""}><span>{item.done?<CheckCircle2 aria-hidden/>:String(index+1).padStart(2,"0")}</span><b>{item.label}</b></li>)}</ol></section>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[.78fr_1.22fr]">
         <section className="glass-panel rounded-3xl p-5 sm:p-6">

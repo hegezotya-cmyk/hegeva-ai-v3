@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowRight, MessageSquareText, Sparkles } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { buttonVariants } from "@/components/ui/button"
@@ -8,11 +9,11 @@ import { cn } from "@/lib/utils"
 import { AICore, LiveStatus } from "@/components/visual-engine"
 
 const honestHero = {
-  en: { subtitle: "One connected workspace for AI assistance, customers, documents, expenses, planning, reports and app planning — built around the features HEGEVA has working today.", pills: ["AI Assistant", "CRM", "Business Tools", "App Studio Beta"] },
-  hu: { subtitle: "Egy összekapcsolt munkaterület AI-segítséghez, ügyfelekhez, dokumentumokhoz, kiadásokhoz, tervezéshez, jelentésekhez és alkalmazástervezéshez — a HEGEVA ma működő funkcióira építve.", pills: ["AI Asszisztens", "CRM", "Üzleti eszközök", "App Stúdió Béta"] },
-  de: { subtitle: "Ein verbundener Arbeitsbereich für KI-Unterstützung, Kunden, Dokumente, Ausgaben, Planung, Berichte und App-Planung — auf den heute funktionierenden HEGEVA-Funktionen aufgebaut.", pills: ["KI-Assistent", "CRM", "Business-Tools", "App Studio Beta"] },
-  fr: { subtitle: "Un espace connecté pour l’assistance IA, les clients, documents, dépenses, la planification, les rapports et la conception d’applications — basé sur les fonctions HEGEVA déjà opérationnelles.", pills: ["Assistant IA", "CRM", "Outils pro", "App Studio Bêta"] },
-  es: { subtitle: "Un espacio conectado para asistencia con IA, clientes, documentos, gastos, planificación, informes y diseño de apps — basado en las funciones de HEGEVA que ya están operativas.", pills: ["Asistente IA", "CRM", "Herramientas", "App Studio Beta"] },
+  en: { motto:"AI POWERED · HUMAN DRIVEN · RESULTS FOCUSED",subtitle: "One connected operating environment for intelligent assistance, business work and application engineering — built around the HEGEVA systems available today.",status:"CORE READY",signal:"Connected systems" },
+  hu: { motto:"AI-VEZÉRELT · EMBERKÖZPONTÚ · EREDMÉNYFÓKUSZÚ",subtitle: "Egy összekapcsolt működési környezet intelligens segítséghez, üzleti munkához és alkalmazásfejlesztéshez — a ma elérhető HEGEVA rendszerek köré építve.",status:"A MAG KÉSZ",signal:"Kapcsolt rendszerek" },
+  de: { motto:"KI-GESTÜTZT · MENSCHLICH GEFÜHRT · ERGEBNISORIENTIERT",subtitle: "Eine verbundene Betriebsumgebung für intelligente Assistenz, Business-Arbeit und App-Entwicklung — rund um die heute verfügbaren HEGEVA-Systeme.",status:"CORE BEREIT",signal:"Verbundene Systeme" },
+  fr: { motto:"PROPULSÉ PAR L’IA · GUIDÉ PAR L’HUMAIN · ORIENTÉ RÉSULTATS",subtitle: "Un environnement opérationnel connecté pour l’assistance intelligente, le travail métier et l’ingénierie d’applications — fondé sur les systèmes HEGEVA disponibles aujourd’hui.",status:"CORE PRÊT",signal:"Systèmes connectés" },
+  es: { motto:"IMPULSADO POR IA · GUIADO POR PERSONAS · ENFOCADO EN RESULTADOS",subtitle: "Un entorno operativo conectado para asistencia inteligente, trabajo empresarial e ingeniería de aplicaciones — construido sobre los sistemas HEGEVA disponibles hoy.",status:"NÚCLEO LISTO",signal:"Sistemas conectados" },
 } as const
 
 export function Hero() {
@@ -20,28 +21,30 @@ export function Hero() {
   const copy = honestHero[locale]
 
   return (
-    <section
-      className="relative isolate min-h-[650px] overflow-hidden bg-cover bg-[70%_20%] sm:bg-[65%_20%] lg:bg-[center_18%]"
-      style={{ backgroundImage: "url('/hegeva-hero-background.webp')" }}
-    >
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(2,10,8,.98)_0%,rgba(2,10,8,.92)_34%,rgba(2,10,8,.5)_57%,rgba(2,10,8,.08)_78%)] max-lg:bg-[linear-gradient(90deg,rgba(2,10,8,.97)_0%,rgba(2,10,8,.88)_45%,rgba(2,10,8,.28)_100%)]" aria-hidden />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-background to-transparent" aria-hidden />
-      <div className="mx-auto flex min-h-[650px] max-w-7xl items-center px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
-        <div className="relative z-10 max-w-xl rounded-3xl bg-background/10 py-4 backdrop-blur-[1px]">
-          <div className="flex items-center gap-3"><AICore state="active" /><div><span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary"><Sparkles className="size-3.5" aria-hidden />{t.hero.badge}</span><LiveStatus className="mt-2" label="HEGEVA Core" /></div></div>
+    <section className="cinematic-hero relative isolate overflow-hidden">
+      <Image src="/hegeva-home-cinematic-v2.png" alt="" fill priority sizes="(max-width: 768px) 1100px, 100vw" className="hero-environment" aria-hidden />
+      <div className="hero-spectrum" aria-hidden />
+      <div className="hero-energy-trail trail-one" aria-hidden />
+      <div className="hero-energy-trail trail-two" aria-hidden />
+      <div className="hero-particles" aria-hidden>{Array.from({length:14},(_,index)=><i key={index}/>)}</div>
+      <div className="hero-layout mx-auto grid min-h-[800px] max-w-[94rem] items-center px-4 pb-40 pt-16 sm:px-6 lg:grid-cols-[minmax(30rem,.82fr)_minmax(34rem,1.18fr)] lg:px-10 lg:pb-44 lg:pt-20">
+        <div className="hero-copy relative z-10 max-w-3xl py-4">
+          <div className="hero-core-status"><AICore state="ready" /><div><span><Sparkles aria-hidden />{t.hero.badge}</span><LiveStatus label="HEGEVA Core" /></div><b>{copy.status}</b></div>
 
-          <h1 className="mt-6 font-display text-4xl font-semibold leading-[1.02] tracking-[-0.055em] text-balance sm:text-5xl lg:text-7xl">
+          <p className="hero-motto">{copy.motto}</p>
+
+          <h1 className="hero-title mt-6 font-display text-5xl font-semibold leading-[.92] tracking-[-0.065em] text-balance sm:text-6xl lg:text-[5.5rem]">
             <span className="block text-foreground">{t.hero.titleLine1}</span>
-            <span className="block text-gradient-emerald">{t.hero.titleLine2}</span>
+            <span className="block hero-title-energy">{t.hero.titleLine2}</span>
             <span className="block text-foreground">{t.hero.titleLine3}</span>
           </h1>
 
-          <p className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground text-pretty">
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground text-pretty">
             {copy.subtitle}
           </p>
 
-          <div className="mt-7 flex flex-wrap items-center gap-3">
-            <Link href="/command-center" className={cn(buttonVariants({ size: "lg" }), "group h-11 gap-2 px-5 text-sm glow-emerald")}>
+          <div className="hero-actions mt-8 flex flex-wrap items-center gap-3">
+            <Link href="/command-center" className={cn(buttonVariants({ size: "lg" }), "hegeva-primary group h-12 gap-2 px-6 text-sm")}>
               {t.hero.ctaPrimary}
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
             </Link>
@@ -54,21 +57,9 @@ export function Hero() {
             </Link>
           </div>
 
-          <ul className="mt-8 flex flex-wrap gap-2">
-            {copy.pills.map((p) => (
-              <li
-                key={p}
-                className="rounded-lg border border-border bg-card/40 px-3 py-1.5 text-xs font-medium tracking-wide text-foreground/80"
-              >
-                {p}
-              </li>
-            ))}
-          </ul>
+          <div className="hero-truth-line"><i/><span>{copy.signal}</span><b>ASSIST · OPERATE · BUILD</b></div>
         </div>
-      </div>
-
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="h-px w-full bg-gradient-to-r from-transparent via-border to-transparent" />
+        <div className="hero-robot-zone" aria-label="HEGEVA intelligence visual"><div className="hero-hand-core"><span/><span/><i>H</i></div><div className="hero-scan"><span>HEGEVA / CORE 01</span><b>{copy.status}</b></div></div>
       </div>
     </section>
   )

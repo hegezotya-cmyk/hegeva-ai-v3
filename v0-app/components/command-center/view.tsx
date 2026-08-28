@@ -20,14 +20,13 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
-import { PageHeader } from "@/components/page-header"
 import { StatusBadge, type FeatureStatus } from "@/components/status-badge"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
-import { WorkspaceOverview } from "@/components/command-center/workspace-overview"
+import { OperatingCenter } from "@/components/command-center/operating-center"
 import { COMMAND_OVERVIEW_COPY } from "@/lib/i18n/command-overview-copy"
-import { AICore, IntelligenceCard, SectionHeading } from "@/components/visual-engine"
+import { AICore, SectionHeading } from "@/components/visual-engine"
 
 type ModuleDef = {
   icon: LucideIcon
@@ -62,51 +61,22 @@ export function CommandCenterView() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <PageHeader
-        eyebrow="HEGEVA"
-        title={t.commandCenter.title}
-        subtitle={t.commandCenter.subtitle}
-        action={
-          <Link href={session?.user ? "/assistant" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "bg-gold text-gold-foreground hover:bg-gold/90")}>
-            {session?.user ? t.commandCenter.openAssistant : t.dashboard.connect}
-          </Link>
-        }
-      />
+      <section className="command-crown"><div><p>HEGEVA / MISSION CONTROL</p><h1>{t.commandCenter.title}</h1><span>{t.commandCenter.subtitle}</span><div className="command-connection">{session?.user ? <Cloud aria-hidden /> : <Info aria-hidden />}<p>{isPending ? t.commandCenter.checking : session?.user ? t.commandCenter.connected : t.commandCenter.previewNote}</p></div><Link href={session?.user ? "/assistant" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "hegeva-primary mt-7 h-12 px-6")}>{session?.user ? t.commandCenter.openAssistant : t.dashboard.connect}</Link></div><div className="command-radar" aria-hidden><span/><span/><span/><AICore state={session?.user?"ready":"warning"}/><b>MISSION<br/>CONTROL</b></div></section>
 
-      <IntelligenceCard tone="cyan" className="mt-8 flex items-center gap-4 p-4 sm:p-5">
-        <AICore state={session?.user ? "active" : "ready"} className="hidden sm:grid" />
-        {session?.user ? <Cloud className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden /> : <Info className="mt-0.5 size-4 shrink-0 text-cyan" aria-hidden />}
-        <p className="text-sm leading-relaxed text-foreground/80 text-pretty">
-          {isPending ? t.commandCenter.checking : session?.user ? t.commandCenter.connected : t.commandCenter.previewNote}
-        </p>
-      </IntelligenceCard>
+      <OperatingCenter />
 
-      <WorkspaceOverview />
-
-      <SectionHeading className="mt-12" eyebrow="Intelligence layer" title={copy.aiModules} />
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <SectionHeading className="mt-12" eyebrow="Intelligence layer" title={copy.aiModules} description="Move from a question to a verified result with the right HEGEVA workspace." />
+      <div className="module-ledger mt-4">
         {aiModules.map(({ icon: Icon, title, desc, status, href }) => (
-          <Link key={title} href={href} className="glass-panel glass-panel-hover group flex flex-col gap-3 rounded-2xl p-5">
-            <div className="flex items-center justify-between"><span className="flex size-11 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary"><Icon className="size-5" aria-hidden /></span><StatusBadge status={status} /></div>
-            <div><h3 className="text-base font-semibold text-foreground">{title}</h3><p className="mt-1 text-sm leading-relaxed text-muted-foreground text-pretty">{desc}</p></div>
+          <Link key={title} href={href} className="group"><span><Icon aria-hidden /></span><div><h3>{title}</h3><p>{desc}</p></div><StatusBadge status={status} />
           </Link>
         ))}
       </div>
 
       <SectionHeading className="mt-12" eyebrow="Operations layer" title={copy.businessModules} />
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="operation-index mt-4">
         {modules.map(({ icon: Icon, title, desc, status, href }) => (
-          <Link key={title} href={href} className="glass-panel glass-panel-hover group flex flex-col gap-3 rounded-2xl p-5">
-            <div className="flex items-center justify-between">
-              <span className="flex size-11 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
-                <Icon className="size-5" aria-hidden />
-              </span>
-              <StatusBadge status={status} />
-            </div>
-            <div>
-              <h3 className="text-base font-semibold text-foreground">{title}</h3>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground text-pretty">{desc}</p>
-            </div>
+          <Link key={title} href={href}><span><Icon aria-hidden /></span><div><h3>{title}</h3><p>{desc}</p></div><StatusBadge status={status} />
           </Link>
         ))}
       </div>

@@ -3,6 +3,7 @@ import { Activity, BrainCircuit, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type Tone = "emerald" | "cyan" | "violet" | "gold" | "neutral"
+export type AICoreState = "ready" | "understanding" | "planning" | "working" | "checking" | "repairing" | "completed" | "warning" | "failed"
 
 const toneStyles: Record<Tone, string> = {
   emerald: "border-primary/25 bg-primary/10 text-primary",
@@ -29,8 +30,9 @@ export function MetricCard({ label, value, detail, icon, tone = "neutral", class
   return <IntelligenceCard tone={tone} className={cn("p-4 sm:p-5", className)}><div className="flex items-start justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>{Icon && <Icon className={cn("size-4", toneStyles[tone].split(" ").at(-1))} aria-hidden />}</div><div className="mt-3 font-display text-2xl font-semibold tracking-[-0.04em] text-foreground">{value}</div>{detail && <p className="mt-1 text-xs text-muted-foreground">{detail}</p>}</IntelligenceCard>
 }
 
-export function AICore({ state = "ready", label = "HEGEVA intelligence core", className }: { state?: "ready" | "thinking" | "active"; label?: string; className?: string }) {
-  return <div className={cn("ve-core", `ve-core-${state}`, className)} role="img" aria-label={`${label}: ${state}`}><span className="ve-core-orbit" aria-hidden /><span className="ve-core-center" aria-hidden>{state === "thinking" ? <Sparkles className="size-5" /> : <BrainCircuit className="size-5" />}</span></div>
+export function AICore({ state = "ready", label = "HEGEVA intelligence core", className }: { state?: AICoreState | "thinking" | "active"; label?: string; className?: string }) {
+  const normalized:AICoreState=state==="thinking"?"working":state==="active"?"ready":state
+  return <div className={cn("ve-core", `ve-core-${normalized}`, className)} role="img" aria-label={`${label}: ${normalized}`}><span className="ve-core-orbit" aria-hidden /><span className="ve-core-center" aria-hidden>{["understanding","planning","working","checking","repairing"].includes(normalized) ? <Sparkles className="size-5" /> : <BrainCircuit className="size-5" />}</span></div>
 }
 
 export function LiveStatus({ label, detail, tone = "emerald", active = true, className }: { label: string; detail?: string; tone?: Tone; active?: boolean; className?: string }) {

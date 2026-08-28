@@ -17,13 +17,14 @@ for (const component of ['IntelligenceCard','SignalIcon','SectionHeading','Metri
   assert(new RegExp(`export function ${component}\\b`).test(engine), `Reusable visual primitive missing: ${component}`)
 }
 assert(/prefers-reduced-motion/.test(css), 'Motion system must honor reduced motion')
+for (const state of ['understanding','planning','working','checking','repairing','completed','warning','failed']) assert(css.includes(`ve-core-${state}`), `HEGEVA Core state missing: ${state}`)
 assert(/:focus-visible/.test(css) && /outline-offset/.test(css), 'Global keyboard focus must remain visible')
 assert(/@media \(max-width: 640px\)/.test(css), 'Visual Engine must define narrow-screen behavior')
 assert(/z-\[1\]/.test(shell), 'Content must remain above ambient visual layers')
 assert(/aria-current/.test(header), 'Primary navigation must expose the active page')
 assert(/role="status"/.test(assistant) && /aria-live="polite"/.test(assistant), 'AI processing feedback must be announced accessibly')
 assert(/MetricCard/.test(command), 'Command Center must use semantic metric surfaces')
-assert(/AICore/.test(home) && /IntelligenceCard/.test(home), 'Homepage must use the shared HEGEVA identity components')
+assert(/AICore/.test(home) && /hero-robot-zone/.test(home) && /hero-environment/.test(home) && /system-portals/.test(home), 'Homepage must use the shared HEGEVA Core and authored cinematic system composition')
 assert(!/framer-motion|three|gsap/.test(read('package.json')), 'Visual Engine must not add a heavy animation dependency')
 
 console.log('Visual Engine audit passed: semantic tokens, reusable identity components, responsive motion, accessible status and lightweight architecture')

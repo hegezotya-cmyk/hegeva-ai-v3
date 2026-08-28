@@ -1,81 +1,25 @@
 "use client"
 
 import Link from "next/link"
-import { BarChart3, Bot, FileText, FolderLock, LayoutGrid, Users, type LucideIcon } from "lucide-react"
+import { ArrowUpRight, Blocks, Bot, Command, Hammer, Layers3 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
-import { StatusBadge, type FeatureStatus } from "@/components/status-badge"
-import { IntelligenceCard, SectionHeading, SignalIcon } from "@/components/visual-engine"
+import { SectionHeading } from "@/components/visual-engine"
 
-const honestCopy = {
-  en: {
-    reports: ["Workspace Reports", "Summaries of customers, documents, expenses and tasks from the data you save."],
-    invoices: ["Invoice & Quote Builder", "Create, save and print invoices and quotes with calculated totals and VAT."],
-    documents: ["Document Records", "Save lightweight document records and sync them with your workspace."],
-    studio: ["App Studio", "Beta planning workflows for prompting, building and diagnosing app ideas; AI enhancement is still rolling out."],
-  },
-  hu: {
-    reports: ["Munkaterületi jelentések", "A mentett ügyfél-, dokumentum-, kiadás- és feladatadatok összesítése."],
-    invoices: ["Számla- és árajánlat-készítő", "Számlák és árajánlatok létrehozása, mentése és nyomtatása számított végösszeggel és ÁFÁ-val."],
-    documents: ["Dokumentum-nyilvántartás", "Egyszerű dokumentumrekordok mentése és szinkronizálása a munkaterülettel."],
-    studio: ["App Stúdió", "Béta tervezési folyamatok appötletek promptolásához, felépítéséhez és diagnosztikájához; az AI-bővítés még bevezetés alatt áll."],
-  },
-  de: {
-    reports: ["Arbeitsbereich-Berichte", "Zusammenfassungen aus Ihren gespeicherten Kunden-, Dokument-, Ausgaben- und Aufgabendaten."],
-    invoices: ["Rechnungs- & Angebotseditor", "Rechnungen und Angebote mit berechneten Summen und MwSt. erstellen, speichern und drucken."],
-    documents: ["Dokumenteinträge", "Einfache Dokumenteinträge speichern und mit dem Arbeitsbereich synchronisieren."],
-    studio: ["App Studio", "Beta-Planungsabläufe für App-Ideen; KI-Erweiterungen werden noch schrittweise eingeführt."],
-  },
-  fr: {
-    reports: ["Rapports de l’espace", "Synthèses des clients, documents, dépenses et tâches à partir des données enregistrées."],
-    invoices: ["Créateur de factures et devis", "Créez, enregistrez et imprimez des factures et devis avec totaux et TVA calculés."],
-    documents: ["Registre de documents", "Enregistrez des fiches documentaires simples et synchronisez-les avec votre espace."],
-    studio: ["App Studio", "Flux bêta pour planifier et diagnostiquer des idées d’applications ; l’amélioration IA est encore en déploiement."],
-  },
-  es: {
-    reports: ["Informes del espacio", "Resúmenes de clientes, documentos, gastos y tareas a partir de los datos guardados."],
-    invoices: ["Creador de facturas y presupuestos", "Crea, guarda e imprime facturas y presupuestos con totales e IVA calculados."],
-    documents: ["Registro de documentos", "Guarda registros sencillos de documentos y sincronízalos con tu espacio."],
-    studio: ["App Studio", "Flujos beta para planificar y diagnosticar ideas de apps; la mejora con IA todavía se está desplegando."],
-  },
+const copy={
+ en:{eyebrow:"HEGEVA systems",title:"Enter the operating environment.",sub:"Five illuminated paths into the systems that help you think, direct and build.",command:["Command Center","Direct current work, missions and legitimate system activity."],x20:["X20 Builder","Generate and verify working applications through the proven X20 workflow."],x30:["X30 Alpha","Explore structured specifications, safe components and deterministic rendering."],open:"Enter system"},
+ hu:{eyebrow:"HEGEVA rendszerek",title:"Lépj be a működési környezetbe.",sub:"Öt megvilágított út a gondolkodást, irányítást és építést segítő rendszerekhez.",command:["Parancsközpont","Irányítsd az aktuális munkát, küldetéseket és valós rendszeraktivitást."],x20:["X20 Építő","Működő alkalmazások létrehozása és ellenőrzése a bevált X20 folyamattal."],x30:["X30 Alpha","Strukturált specifikációk, biztonságos komponensek és determinisztikus renderelés."],open:"Rendszer megnyitása"},
+ de:{eyebrow:"HEGEVA-Systeme",title:"Betreten Sie die Betriebsumgebung.",sub:"Fünf Zugänge zu den Systemen für Denken, Steuern und Entwickeln.",command:["Command Center","Aktuelle Arbeit, Missionen und echte Systemaktivität steuern."],x20:["X20 Builder","Funktionierende Apps mit dem bewährten X20-Ablauf generieren und prüfen."],x30:["X30 Alpha","Strukturierte Spezifikationen, sichere Komponenten und deterministisches Rendering erkunden."],open:"System öffnen"},
+ fr:{eyebrow:"Systèmes HEGEVA",title:"Entrez dans l’environnement opérationnel.",sub:"Cinq accès lumineux aux systèmes qui vous aident à réfléchir, diriger et créer.",command:["Centre de commande","Pilotez le travail, les missions et l’activité réelle du système."],x20:["Builder X20","Générez et vérifiez des applications avec le processus X20 éprouvé."],x30:["X30 Alpha","Explorez les spécifications structurées, composants sûrs et rendu déterministe."],open:"Entrer dans le système"},
+ es:{eyebrow:"Sistemas HEGEVA",title:"Entra en el entorno operativo.",sub:"Cinco accesos iluminados a los sistemas para pensar, dirigir y construir.",command:["Centro de mando","Dirige el trabajo, las misiones y la actividad real del sistema."],x20:["Constructor X20","Genera y verifica aplicaciones mediante el flujo X20 probado."],x30:["X30 Alpha","Explora especificaciones estructuradas, componentes seguros y renderizado determinista."],open:"Entrar al sistema"},
 } as const
-
-export function Capabilities() {
-  const { t, locale } = useI18n()
-  const h = honestCopy[locale]
-
-  const items: { icon: LucideIcon; title: string; desc: string; status: FeatureStatus; href: string }[] = [
-    { icon: Bot, title: t.capabilities.assistant.title, desc: t.capabilities.assistant.desc, status: "beta", href: "/assistant" },
-    { icon: BarChart3, title: h.reports[0], desc: h.reports[1], status: "working", href: "/business/reports" },
-    { icon: FileText, title: h.invoices[0], desc: h.invoices[1], status: "working", href: "/business/invoices" },
-    { icon: FolderLock, title: h.documents[0], desc: h.documents[1], status: "working", href: "/business/documents" },
-    { icon: Users, title: t.capabilities.crm.title, desc: t.capabilities.crm.desc, status: "working", href: "/business/customers" },
-    { icon: LayoutGrid, title: h.studio[0], desc: h.studio[1], status: "beta", href: "/app-studio" },
-  ]
-
-  return (
-    <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <SectionHeading eyebrow="Connected capabilities" title={t.capabilities.heading} description={t.capabilities.subheading} />
-
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map(({ icon: Icon, title, desc, status, href }, index) => (
-          <Link
-            key={title}
-            href={href}
-            className="group rounded-3xl focus-visible:outline-none"
-          >
-            <IntelligenceCard interactive tone={index===0||index===5?"violet":index===1?"cyan":index===2?"gold":"neutral"} className="flex h-full flex-col gap-3 p-5">
-            <div className="flex items-center justify-between">
-              <SignalIcon icon={Icon} tone={index===0||index===5?"violet":index===1?"cyan":index===2?"gold":"emerald"} />
-              <StatusBadge status={status} />
-            </div>
-            <div>
-              <h3 className="text-base font-semibold text-foreground">{title}</h3>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground text-pretty">{desc}</p>
-            </div>
-            </IntelligenceCard>
-          </Link>
-        ))}
-      </div>
-    </section>
-  )
+type PortalKind="assistant"|"command"|"studio"|"x20"|"x30"
+const visuals:Record<PortalKind,React.ReactNode>={
+ assistant:<div className="portal-orb"><span/><span/><Bot aria-hidden/></div>,command:<div className="portal-radar"><span/><span/><Command aria-hidden/></div>,studio:<div className="portal-geometry"><i/><i/><i/><Blocks aria-hidden/></div>,x20:<div className="portal-forge"><i/><i/><Hammer aria-hidden/></div>,x30:<div className="portal-stack"><i/><i/><i/><Layers3 aria-hidden/></div>,
+}
+export function Capabilities(){
+ const {t,locale}=useI18n();const c=copy[locale]
+ const portals:{kind:PortalKind;title:string;desc:string;href:string;icon:typeof Bot;meta:string}[]=[
+  {kind:"assistant",title:t.capabilities.assistant.title,desc:t.capabilities.assistant.desc,href:"/assistant",icon:Bot,meta:"HUMAN LAYER"},{kind:"command",title:c.command[0],desc:c.command[1],href:"/command-center",icon:Command,meta:"MISSION CONTROL"},{kind:"studio",title:t.nav.appStudio,desc:t.studio.buildDesc,href:"/app-studio",icon:Blocks,meta:"CREATE + VERIFY"},{kind:"x20",title:c.x20[0],desc:c.x20[1],href:"/app-studio/build-my-app-x20",icon:Hammer,meta:"PROVEN BUILDER"},{kind:"x30",title:c.x30[0],desc:c.x30[1],href:"/app-studio/x30-alpha",icon:Layers3,meta:"DEVELOPMENT PREVIEW"},
+ ]
+ return <section className="home-systems relative z-10 mx-auto max-w-[94rem] px-4 pb-24 sm:px-6 lg:px-10"><SectionHeading eyebrow={c.eyebrow} title={c.title} description={c.sub}/><div className="system-portals mt-10">{portals.map(({kind,title,desc,href,icon:Icon,meta},index)=><Link key={kind} href={href} className={`system-portal portal-${kind}`}><header><span>{String(index+1).padStart(2,"0")} / 05</span><b>{meta}</b></header><div className="portal-visual" aria-hidden>{visuals[kind]}</div><footer><span><Icon aria-hidden/><small>{c.open}</small></span><h3>{title}</h3><p>{desc}</p><ArrowUpRight aria-hidden/></footer></Link>)}</div></section>
 }
