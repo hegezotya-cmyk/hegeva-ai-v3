@@ -25,6 +25,17 @@ function stub(dbState) {
   return object
 }
 
+async function captureConsoleErrors(run) {
+  const original = console.error
+  const calls = []
+  console.error = (...args) => calls.push(args)
+  try {
+    return { result: await run(), calls }
+  } finally {
+    console.error = original
+  }
+}
+
 const s = state()
 const limiter = stub(s)
 for (let i = 0; i < 5; i += 1) { const admission = limiter.admit(i * 100); assert.equal(admission.allowed, true); limiter.release(admission.token) }
@@ -85,10 +96,26 @@ async function admissionCase({ distributed, runtime = { inFlight: new Set(), las
   return handleAiChatAdmission({ request: new Request("https://example.test/api/chat", { method: "POST", body: JSON.stringify(body) }), user: { id: "server-user" }, planInfo: { plan: "basic", limit: 50 }, period: "2026-08", runtime, distributed, reserve, readUsage: async () => 50, now: () => 1_000, cooldownMs: 0, execute })
 }
 
-const missing = await admissionCase({ distributed: undefined })
-assert.equal(missing.status, 503)
-const thrown = await admissionCase({ distributed: { admit: async () => { throw new Error("unavailable") } } })
-assert.equal(thrown.status, 503)
+let diagnosticReservations = 0
+const diagnosticReserve = async () => { diagnosticReservations += 1; return { reserved: true } }
+const missing = await captureConsoleErrors(() => admissionCase({ distributed: undefined, reserve: diagnosticReserve }))
+assert.equal(missing.result.status, 503); assert.equal(diagnosticReservations, 0)
+assert.deepEqual(missing.calls, [["HEGEVA_AI_ADMISSION_FAILURE", { reason: "distributed_binding_missing" }]])
+const thrown = await captureConsoleErrors(() => admissionCase({ distributed: { admit: async () => { throw new TypeError("unavailable") } }, reserve: diagnosticReserve }))
+assert.equal(thrown.result.status, 503); assert.equal(diagnosticReservations, 0)
+assert.deepEqual(thrown.calls, [["HEGEVA_AI_ADMISSION_FAILURE", { reason: "distributed_admit_threw", errorName: "TypeError" }]])
+for (const token of [undefined, "", 42, {}]) {
+  const invalidToken = await captureConsoleErrors(() => admissionCase({ distributed: { admit: async () => ({ allowed: true, token, retryAfterMs: 0 }) }, reserve: diagnosticReserve }))
+  assert.equal(invalidToken.result.status, 503); assert.equal(diagnosticReservations, 0)
+  assert.deepEqual(invalidToken.calls, [["HEGEVA_AI_ADMISSION_FAILURE", {
+    reason: "invalid_distributed_admission_token", resultType: "object", allowedType: "boolean", allowed: true,
+    tokenType: typeof token, tokenPresent: Boolean(token), retryAfterMsType: "number",
+  }]])
+}
+const normalDenial = await captureConsoleErrors(() => admissionCase({ distributed: { admit: async () => ({ allowed: false, reason: "burst", retryAfterMs: 2_000 }) }, reserve: diagnosticReserve }))
+assert.equal(normalDenial.result.status, 429); assert.equal(diagnosticReservations, 0); assert.deepEqual(normalDenial.calls, [])
+const validAdmission = await captureConsoleErrors(() => admissionCase({ distributed: { admit: async () => ({ allowed: true, token: "valid-token", retryAfterMs: 0 }), release: async () => ({ released: true }) }, reserve: diagnosticReserve }))
+assert.equal(validAdmission.result.status, 200); assert.equal(diagnosticReservations, 1); assert.deepEqual(validAdmission.calls, [])
 const quotaCalls = []; const quotaRejected = await admissionCase({ distributed: { admit: async () => ({ allowed: true, token: "quota-token" }), release: async (token) => quotaCalls.push(token) }, reserve: async () => ({ reserved: false }) })
 assert.equal(quotaRejected.status, 429); assert.deepEqual(quotaCalls, ["quota-token"])
 

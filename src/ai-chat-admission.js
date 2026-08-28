@@ -53,12 +53,17 @@ export async function handleAiChatAdmission({
   let distributedToken = null
   try {
     if (!distributed) {
+      console.error("HEGEVA_AI_ADMISSION_FAILURE", { reason: "distributed_binding_missing" })
       return Response.json({ error: "AI service is temporarily unavailable." }, { status: 503 })
     }
     let distributedResult
     try {
       distributedResult = await distributed.admit(current)
-    } catch {
+    } catch (error) {
+      console.error("HEGEVA_AI_ADMISSION_FAILURE", {
+        reason: "distributed_admit_threw",
+        errorName: error instanceof Error ? error.name : "Unknown",
+      })
       return Response.json({ error: "AI service is temporarily unavailable." }, { status: 503 })
     }
     if (!distributedResult?.allowed) {
@@ -68,6 +73,15 @@ export async function handleAiChatAdmission({
       )
     }
     if (typeof distributedResult.token !== "string" || !distributedResult.token) {
+      console.error("HEGEVA_AI_ADMISSION_FAILURE", {
+        reason: "invalid_distributed_admission_token",
+        resultType: typeof distributedResult,
+        allowedType: typeof distributedResult?.allowed,
+        allowed: distributedResult?.allowed === true,
+        tokenType: typeof distributedResult?.token,
+        tokenPresent: Boolean(distributedResult?.token),
+        retryAfterMsType: typeof distributedResult?.retryAfterMs,
+      })
       return Response.json({ error: "AI service is temporarily unavailable." }, { status: 503 })
     }
     distributedToken = distributedResult.token
