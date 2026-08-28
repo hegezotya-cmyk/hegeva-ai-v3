@@ -31,6 +31,7 @@ import {
   stripCodeFence,
   type StudioLocale,
 } from "@/lib/app-studio-ai"
+import { preparePreviewHtml, verifyGeneratedHtml } from "@/lib/app-studio-boundary"
 
 type BuildMode = "starter" | "premium" | "growth"
 type ViewMode = "preview" | "code" | "split"
@@ -195,7 +196,9 @@ export function BuildMyAppX20StudioWow() {
       setIdea(localStorage.getItem(IDEA_KEY) || "")
       const savedMode = localStorage.getItem(BUILD_KEY) as BuildMode | null
       if (savedMode === "starter" || savedMode === "premium" || savedMode === "growth") setMode(savedMode)
-      if (version === VERSION && saved && looksLikeHtmlDocument(saved)) setHtml(saved)
+      if (version === VERSION && saved && looksLikeHtmlDocument(saved)) {
+        try { verifyGeneratedHtml(saved); setHtml(saved) } catch { localStorage.removeItem(HTML_KEY) }
+      }
       else {
         localStorage.removeItem(HTML_KEY)
         localStorage.removeItem(MODE_KEY)
@@ -212,6 +215,7 @@ export function BuildMyAppX20StudioWow() {
   const width = device === "mobile" ? "390px" : device === "tablet" ? "820px" : "100%"
 
   function save(next: string, label: string) {
+    verifyGeneratedHtml(next)
     setHtml(next)
     setHistory((current) => [{ html: next, label, at: Date.now() }, ...current].slice(0, 6))
     try {
@@ -331,7 +335,7 @@ export function BuildMyAppX20StudioWow() {
           </div>
 
           {!html ? <div className="flex min-h-[760px] items-center justify-center p-8 text-center"><div><div className="mx-auto flex size-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10"><WandSparkles className="size-6 text-primary" /></div><p className="mt-4 text-sm font-black text-foreground">{c.empty}</p><p className="mt-2 text-xs text-muted-foreground">Build → verify → preview → improve → export</p></div></div> : <div className={view === "split" ? "grid 2xl:grid-cols-2" : "block"}>
-            {(view === "preview" || view === "split") && <div className={`${view === "split" ? "border-b 2xl:border-b-0 2xl:border-r" : ""} border-border bg-[#040907] p-3 sm:p-5`}><div className="mx-auto overflow-hidden rounded-[22px] border border-white/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,.35)] transition-[width] duration-300" style={{ width, maxWidth: "100%" }}><div className="flex items-center justify-between border-b border-black/10 bg-[#f6f7f7] px-3 py-2"><div className="flex gap-1.5"><span className="size-2.5 rounded-full bg-red-400" /><span className="size-2.5 rounded-full bg-amber-400" /><span className="size-2.5 rounded-full bg-emerald-400" /></div><span className="text-[10px] font-semibold text-black/45">customer-app.local</span><span className="w-8" /></div><iframe title="HEGEVA customer app preview" srcDoc={html} sandbox="allow-scripts" className="h-[760px] w-full bg-white" /></div></div>}
+            {(view === "preview" || view === "split") && <div className={`${view === "split" ? "border-b 2xl:border-b-0 2xl:border-r" : ""} border-border bg-[#040907] p-3 sm:p-5`}><div className="mx-auto overflow-hidden rounded-[22px] border border-white/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,.35)] transition-[width] duration-300" style={{ width, maxWidth: "100%" }}><div className="flex items-center justify-between border-b border-black/10 bg-[#f6f7f7] px-3 py-2"><div className="flex gap-1.5"><span className="size-2.5 rounded-full bg-red-400" /><span className="size-2.5 rounded-full bg-amber-400" /><span className="size-2.5 rounded-full bg-emerald-400" /></div><span className="text-[10px] font-semibold text-black/45">customer-app.local</span><span className="w-8" /></div><iframe title="HEGEVA customer app preview" srcDoc={preparePreviewHtml(html)} sandbox="allow-scripts" className="h-[760px] w-full bg-white" /></div></div>}
             {(view === "code" || view === "split") && <div className="bg-[#07100d] p-3 sm:p-5"><div className="rounded-[22px] border border-white/10 bg-[#020705] p-4"><div className="mb-3 flex items-center justify-between"><div className="flex items-center gap-2"><Braces className="size-4 text-primary" /><span className="text-xs font-bold text-white/75">index.html</span></div><span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-primary">verified</span></div><pre className="h-[748px] overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 text-emerald-50/80">{html}</pre></div></div>}
           </div>}
         </section>

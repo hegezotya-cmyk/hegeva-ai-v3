@@ -30,6 +30,7 @@ import {
   stripCodeFence,
   type StudioLocale,
 } from "@/lib/app-studio-ai"
+import { preparePreviewHtml, verifyGeneratedHtml } from "@/lib/app-studio-boundary"
 
 const LAST_BUILD_KEY = "hegeva:app-studio:last-built-html"
 
@@ -183,6 +184,7 @@ export function FixMyApp() {
       const answer = await runStudioAI(instruction, locale as StudioLocale)
       const html = stripCodeFence(answer)
       if (!looksLikeHtmlDocument(html)) throw new Error(labels.error)
+      verifyGeneratedHtml(html)
       setFixedCode(html)
       setSourceCode(html)
       try {
@@ -279,7 +281,7 @@ export function FixMyApp() {
           <div className="mt-6 grid gap-5 xl:grid-cols-2">
             <div>
               <h3 className="text-sm font-semibold text-foreground">{labels.preview}</h3>
-              <iframe title={labels.preview} srcDoc={fixedCode} sandbox="allow-scripts" className="mt-3 h-[520px] w-full rounded-xl border border-border bg-white" />
+              <iframe title={labels.preview} srcDoc={preparePreviewHtml(fixedCode)} sandbox="allow-scripts" className="mt-3 h-[520px] w-full rounded-xl border border-border bg-white" />
             </div>
             <div>
               <div className="flex flex-wrap items-center justify-between gap-3">

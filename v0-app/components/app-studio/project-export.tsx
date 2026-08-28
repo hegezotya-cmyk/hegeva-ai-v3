@@ -10,6 +10,7 @@ import {
   stripCodeFence,
   type StudioLocale,
 } from "@/lib/app-studio-ai"
+import { blockingFindings, verifyGeneratedHtml } from "@/lib/app-studio-boundary"
 
 const LAST_BUILD_KEY = "hegeva:app-studio:last-built-html"
 
@@ -216,6 +217,7 @@ export function ProjectExport() {
     return () => window.clearInterval(id)
   }, [])
 
+  const securityFindings = useMemo(() => (html ? blockingFindings(html) : []), [html])
   const baseFiles = useMemo(() => (html ? splitPrototype(html) : null), [html])
   const checks = useMemo(() => {
     if (!baseFiles) return []
@@ -239,7 +241,7 @@ export function ProjectExport() {
     ] as const
   }, [baseFiles, c])
 
-  const allPassed = checks.length > 0 && checks.every(([, ok]) => ok)
+  const allPassed = securityFindings.length === 0 && checks.length > 0 && checks.every(([, ok]) => ok)
   const files = useMemo<ProjectFiles | null>(() => {
     if (!baseFiles) return null
     const report = [
@@ -275,6 +277,7 @@ export function ProjectExport() {
       const answer = await runStudioAI(instruction, locale as StudioLocale)
       const repaired = stripCodeFence(answer)
       if (!looksLikeHtmlDocument(repaired)) throw new Error(c.repairFailed)
+      verifyGeneratedHtml(repaired)
       const repairedFiles = splitPrototype(repaired)
       const repairedIndex = repairedFiles["index.html"]
       const projectOk = repairedFiles["styles.css"].trim().length > 0 && repairedFiles["app.js"].trim().length > 0 && javascriptParses(repairedFiles["app.js"]) && repairedIndex.includes('href="styles.css"') && repairedIndex.includes('src="app.js"')
