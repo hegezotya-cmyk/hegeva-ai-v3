@@ -3303,7 +3303,6 @@ QUALITY RULES:
           // =========================================
           // SAFE BASE 7 — AI RELIABILITY & COST CONTROL
           // =========================================
-          const AI_COOLDOWN_MS = 1500;
           const AI_TIMEOUT_MS = 30000;
 
           const aiRuntime =
@@ -3313,37 +3312,6 @@ QUALITY RULES:
               lastRequest: new Map()
             });
 
-          const aiUserKey = String(user.id);
-
-          const now = Date.now();
-          const lastRequest =
-            Number(aiRuntime.lastRequest.get(aiUserKey) || 0);
-
-          const retryAfterMs =
-            AI_COOLDOWN_MS - (now - lastRequest);
-
-          if (retryAfterMs > 0) {
-            return Response.json(
-              {
-                error:
-                  "Please wait a moment before sending another AI request.",
-                retryAfterMs
-              },
-              {
-                status: 429,
-                headers: {
-                  "Retry-After":
-                    String(
-                      Math.max(
-                        1,
-                        Math.ceil(retryAfterMs / 1000)
-                      )
-                    )
-                }
-              }
-            );
-          }
-
           const result =
             await handleAiChatAdmission({
               request,
@@ -3352,6 +3320,7 @@ QUALITY RULES:
               period,
               body,
               runtime: aiRuntime,
+              distributed: env.RATE_LIMITER?.getByName(`chat-rate-limit:${user.id}`),
               reserve: (userId, usagePeriod, limit) =>
                 reserveAIUsage(env, userId, usagePeriod, limit),
               readUsage: (userId, usagePeriod) =>

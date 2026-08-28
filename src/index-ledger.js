@@ -1,4 +1,5 @@
 import hegevaWorker from "./index.js";
+export { UserRateLimiter } from "./user-rate-limiter-do.js";
 
 function isStripeWebhookSecret(value) {
   return typeof value === "string" && value.startsWith("whsec_");

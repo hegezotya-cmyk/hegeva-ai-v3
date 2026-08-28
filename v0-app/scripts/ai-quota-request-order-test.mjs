@@ -14,6 +14,7 @@ function harness({ user = { id: "user-1" }, reserveResult = { reserved: true }, 
     get reservations() { return reservations }, get providers() { return providers }, get releases() { return releases },
     options: {
       request: request(), user, planInfo: { plan: "basic", limit: 50 }, period: "2026-08", runtime: state,
+      distributed: { admit: async () => { calls.push("distributed.admit"); return { allowed: true, token: "lease-token" } }, release: async (token) => { calls.push(`distributed.release:${token}`) } },
       reserve: async () => { calls.push("quota.reserve"); reservations += 1; return reserveResult },
       readUsage: async () => 50, now: () => 2_000, cooldownMs: 0,
       execute: async () => { calls.push("provider"); providers += 1; return provider() },
@@ -38,13 +39,19 @@ const inflight = harness(); inflight.options.runtime.inFlight.add("user-1"); con
 assert.equal(inflightResult.status, 429); assert.equal(inflight.reservations, 0); assert.equal(inflight.providers, 0)
 
 const accepted = harness(); const acceptedResult = await run(accepted)
-assert.deepEqual(accepted.calls, ["inFlight.acquire", "quota.reserve", "provider", "inFlight.release"])
+assert.deepEqual(accepted.calls, ["inFlight.acquire", "distributed.admit", "quota.reserve", "provider", "distributed.release:lease-token", "inFlight.release"])
 assert.equal(acceptedResult.response, "ok"); assert.equal(accepted.reservations, 1); assert.equal(accepted.providers, 1); assert.equal(accepted.releases, 1)
 
 const limited = harness({ reserveResult: { reserved: false } }); const limitedResult = await run(limited)
-assert.equal(limitedResult.status, 429); assert.equal(limited.providers, 0); assert.equal(limited.releases, 1)
+assert.equal(limitedResult.status, 429); assert.equal(limited.providers, 0); assert.equal(limited.releases, 1); assert.ok(limited.calls.includes("distributed.release:lease-token"))
 
 const failed = harness({ provider: async () => { throw new Error("timeout") } })
 await assert.rejects(() => run(failed), /timeout/); assert.equal(failed.reservations, 1); assert.equal(failed.providers, 1); assert.equal(failed.releases, 1)
+assert.ok(failed.calls.includes("distributed.release:lease-token"))
+
+const timedOut = harness({ provider: async () => { throw new Error("HEGEVA_AI_TIMEOUT") } })
+await assert.rejects(() => run(timedOut), /HEGEVA_AI_TIMEOUT/)
+assert.equal(timedOut.reservations, 1); assert.equal(timedOut.providers, 1); assert.equal(timedOut.releases, 1)
+assert.ok(timedOut.calls.includes("distributed.release:lease-token"))
 
 console.log("Production admission behavior test passed: real handler, Request inputs, ordering, rejection paths, provider failure, and guard release")
