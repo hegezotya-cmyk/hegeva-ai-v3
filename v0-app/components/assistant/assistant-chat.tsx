@@ -57,6 +57,7 @@ export function AssistantChat() {
   const [usage, setUsage] = useState<PlanStatus | null>(null)
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const pendingOperationRef = useRef<{ message: string; operationId: string } | null>(null)
 
   const recentHistory = useMemo(
     () => messages.slice(-10),
@@ -122,9 +123,20 @@ export function AssistantChat() {
       { role: "user", content: cleanMessage } as ChatMessage,
     ].slice(-100))
 
+    const pending = pendingOperationRef.current
+    const operationId = pending?.message === cleanMessage
+      ? pending.operationId
+      : globalThis.crypto?.randomUUID?.()
+    if (!operationId) {
+      setError(t.assistant.unavailable)
+      setSending(false)
+      return
+    }
+
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), 30000)
 
+    let responseStatus = 0
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -138,8 +150,10 @@ export function AssistantChat() {
           history: recentHistory,
           language: detectMessageLanguage(cleanMessage, locale),
           mode: "general",
+          assistantOperationId: operationId,
         }),
       })
+      responseStatus = response.status
 
       const data = await response.json().catch(() => null)
 
@@ -162,8 +176,11 @@ export function AssistantChat() {
         ...current,
         { role: "assistant", content: answer } as ChatMessage,
       ].slice(-100))
+      pendingOperationRef.current = null
       await loadUsage()
     } catch (requestError) {
+      if (responseStatus >= 400 && responseStatus < 500) pendingOperationRef.current = null
+      else pendingOperationRef.current = { message: cleanMessage, operationId }
       setError(
         controller.signal.aborted
           ? t.assistant.unavailable

@@ -77,6 +77,18 @@ export async function handleAiChatAdmission({
       if (reservation.reason === "duplicate_attempt") {
         return Response.json({ error: "This X20 attempt was already received." }, { status: 409 })
       }
+      if (reservation.reason === "duplicate_assistant_operation") {
+        return Response.json({ error: "This Assistant request was already received." }, { status: 409 })
+      }
+      if (reservation.reason === "invalid_assistant_operation") {
+        return Response.json({ error: "A valid Assistant operation is required." }, { status: 400 })
+      }
+      if (reservation.reason === "expired_assistant_operation") {
+        return Response.json({ error: "This Assistant request has expired. Please start a new request." }, { status: 409 })
+      }
+      if (reservation.reason === "invalid_assistant_plan_limit") {
+        return Response.json({ error: "AI service is temporarily unavailable." }, { status: 503 })
+      }
       const used = await readUsage(user.id, period)
       return Response.json(
         { error: "Monthly AI message limit reached.", plan: planInfo.plan, limit: planInfo.limit, used },
