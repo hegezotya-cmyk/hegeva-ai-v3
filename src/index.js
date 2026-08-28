@@ -20,6 +20,119 @@ const PLAN_LIMITS = {
   pro: 1000
 };
 
+// These limits leave room for legitimate payloads while bounding buffering
+// before parsing, persistence, provider calls, or AI execution. Workspace is
+// 768 KiB because the application checks JSON.stringify(data).length in UTF-16
+// code units (250,000 max); BMP characters can require three UTF-8 bytes each,
+// plus the small {"data":...} request wrapper.
+export const REQUEST_BODY_LIMITS = Object.freeze({
+  default: 64 * 1024,
+  auth: 32 * 1024,
+  chat: 64 * 1024,
+  contact: 16 * 1024,
+  workspace: 768 * 1024,
+  billing: 16 * 1024,
+  webhook: 512 * 1024,
+  email: 16 * 1024,
+});
+
+function requestBodyLimit(pathname) {
+  if (pathname.startsWith("/api/auth/")) return REQUEST_BODY_LIMITS.auth;
+  if (pathname === "/api/chat") return REQUEST_BODY_LIMITS.chat;
+  if (pathname === "/api/contact") return REQUEST_BODY_LIMITS.contact;
+  if (pathname.startsWith("/api/workspace/")) return REQUEST_BODY_LIMITS.workspace;
+  if (pathname === "/api/billing/webhook") return REQUEST_BODY_LIMITS.webhook;
+  if (pathname.startsWith("/api/billing/")) return REQUEST_BODY_LIMITS.billing;
+  if (pathname === "/api/email/test") return REQUEST_BODY_LIMITS.email;
+  if (pathname.startsWith("/api/admin/")) return REQUEST_BODY_LIMITS.contact;
+  return pathname === "/api" || pathname.startsWith("/api/")
+    ? REQUEST_BODY_LIMITS.default
+    : null;
+}
+
+function requestTooLargeResponse() {
+  return Response.json(
+    { error: "Request body is too large." },
+    {
+      status: 413,
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+        "X-Content-Type-Options": "nosniff",
+      },
+    },
+  );
+}
+
+function safeErrorName(error) {
+  return error instanceof Error && typeof error.name === "string"
+    ? error.name
+    : "UnknownError";
+}
+
+function logFailure(reason, error, metadata = {}) {
+  console.error("HEGEVA_REQUEST_FAILURE", {
+    reason,
+    errorName: safeErrorName(error),
+    ...metadata,
+  });
+}
+
+export async function readBodyWithinLimit(request, limit) {
+  const declared = request.headers.get("content-length");
+  if (declared !== null) {
+    const declaredBytes = Number(declared);
+    if (!Number.isFinite(declaredBytes) || declaredBytes < 0 || declaredBytes > limit) {
+      return null;
+    }
+  }
+
+  if (!request.body) return new Uint8Array();
+
+  const reader = request.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > limit) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
+async function enforceRequestBodyLimit(request, pathname) {
+  if (["GET", "HEAD", "OPTIONS"].includes(request.method)) return request;
+  const limit = requestBodyLimit(pathname);
+  if (!limit) return request;
+
+  const body = await readBodyWithinLimit(request, limit);
+  if (body === null) return requestTooLargeResponse();
+
+  const headers = new Headers(request.headers);
+  headers.delete("content-length");
+  return new Request(request.url, {
+    method: request.method,
+    headers,
+    body: body.byteLength ? body : null,
+    redirect: "manual",
+  });
+}
+
 function validWorkspaceType(type) {
   return /^[a-z0-9_-]{1,40}$/i.test(type);
 }
@@ -962,10 +1075,13 @@ async function createStripeCheckoutSession(
   } catch {}
 
   if (!response.ok) {
-    console.error(
-      "HEGEVA Stripe checkout error:",
-      data
-    );
+    console.error("HEGEVA_PROVIDER_FAILURE", {
+      provider: "stripe",
+      operation: "checkout",
+      reason: "provider_rejected",
+      status: response.status,
+      responseType: typeof data,
+    });
 
     return {
       ok: false,
@@ -974,9 +1090,7 @@ async function createStripeCheckoutSession(
         response.status ||
         502,
 
-      error:
-        data?.error?.message ||
-        "Stripe test checkout could not be created."
+      error: "Stripe test checkout could not be created."
     };
   }
 
@@ -1041,8 +1155,14 @@ async function createStripePortalSession(request, env, user) {
   const data = await response.json().catch(() => null);
 
   if (!response.ok || typeof data?.url !== "string" || !data.url.startsWith("https://billing.stripe.com/")) {
-    console.error("HEGEVA Stripe portal error:", data);
-    return { ok: false, status: response.status || 502, error: data?.error?.message || "Stripe billing portal could not be opened." };
+    console.error("HEGEVA_PROVIDER_FAILURE", {
+      provider: "stripe",
+      operation: "portal",
+      reason: "provider_rejected",
+      status: response.status,
+      responseType: typeof data,
+    });
+    return { ok: false, status: response.status || 502, error: "Stripe billing portal could not be opened." };
   }
 
   return { ok: true, status: 200, url: data.url };
@@ -1081,6 +1201,10 @@ export default {
       );
     }
 
+    const limitedRequest = await enforceRequestBodyLimit(request, url.pathname);
+    if (limitedRequest instanceof Response) return limitedRequest;
+    request = limitedRequest;
+
     // =========================================
     // BETTER AUTH
     // =========================================
@@ -1102,10 +1226,7 @@ export default {
           request
         );
       } catch (error) {
-        console.error(
-          "HEGEVA Auth error:",
-          error
-        );
+        logFailure("auth_handler_failed", error);
 
         return Response.json(
           {
@@ -1244,10 +1365,7 @@ export default {
             null
         });
       } catch (error) {
-        console.error(
-          "HEGEVA security test email error:",
-          error
-        );
+        logFailure("resend_security_test_failed", error);
 
         return Response.json(
           {
@@ -1404,10 +1522,7 @@ export default {
           createdAt
         });
       } catch (error) {
-        console.error(
-          "HEGEVA contact error:",
-          error
-        );
+        logFailure("contact_handler_failed", error);
 
         return Response.json(
           { error: "Contact service temporarily unavailable." },
@@ -1549,10 +1664,7 @@ export default {
           }
         );
       } catch (error) {
-        console.error(
-          "HEGEVA owner lead inbox error:",
-          error
-        );
+        logFailure("owner_lead_inbox_failed", error);
 
         return Response.json(
           { error: "Lead inbox temporarily unavailable." },
@@ -1633,10 +1745,7 @@ export default {
           period
         });
       } catch (error) {
-        console.error(
-          "HEGEVA plan error:",
-          error
-        );
+        logFailure("plan_handler_failed", error);
 
         return Response.json(
           {
@@ -1743,10 +1852,7 @@ export default {
             webhookSecret
           );
       } catch (error) {
-        console.error(
-          "HEGEVA Stripe webhook signature error:",
-          error
-        );
+        logFailure("stripe_webhook_signature_failed", error);
       }
 
       if (!signatureValid) {
@@ -1958,10 +2064,7 @@ export default {
           );
         }
       } catch (error) {
-        console.error(
-          "HEGEVA Stripe webhook processing error:",
-          error
-        );
+        logFailure("stripe_webhook_processing_failed", error);
 
         return Response.json(
           {
@@ -2181,10 +2284,7 @@ export default {
               : "Billing API is available, but Stripe test checkout setup is incomplete."
         });
       } catch (error) {
-        console.error(
-          "HEGEVA billing status error:",
-          error
-        );
+        logFailure("billing_status_failed", error);
 
         return Response.json(
           {
@@ -2230,7 +2330,7 @@ export default {
           { status: portal.status }
         );
       } catch (error) {
-        console.error("HEGEVA billing portal error:", error);
+        logFailure("stripe_portal_handler_failed", error);
         return Response.json(
           { error: "Billing portal is temporarily unavailable." },
           { status: 500 }
@@ -2431,10 +2531,7 @@ export default {
             stripeSession.id
         });
       } catch (error) {
-        console.error(
-          "HEGEVA Stripe confirmation error:",
-          error
-        );
+        logFailure("stripe_confirmation_failed", error);
 
         return Response.json(
           {
@@ -2684,10 +2781,7 @@ export default {
             "Stripe test checkout session created. Managed Payments is disabled. Paid entitlement changes only after verified Stripe webhook events."
         });
       } catch (error) {
-        console.error(
-          "HEGEVA billing checkout error:",
-          error
-        );
+        logFailure("stripe_checkout_handler_failed", error);
 
         return Response.json(
           {
@@ -3028,10 +3122,7 @@ export default {
           }
         );
       } catch (error) {
-        console.error(
-          "HEGEVA workspace error:",
-          error
-        );
+        logFailure("workspace_handler_failed", error);
 
         return Response.json(
           {
@@ -3465,10 +3556,7 @@ QUALITY RULES:
           ...(isX20Action && x20Action?.actionId ? { actionId: x20Action.actionId, attemptId: x20Attempt?.attemptId || null, actionKind: "x20" } : {})
         });
       } catch (error) {
-        console.error(
-          "HEGEVA AI chat error:",
-          error
-        );
+        logFailure("ai_chat_handler_failed", error);
 
         return Response.json(
           {

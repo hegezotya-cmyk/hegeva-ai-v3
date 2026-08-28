@@ -5,6 +5,80 @@ export const dynamic = "force-dynamic"
 type WorkspaceItem = Record<string, unknown>
 type ServiceBinding = { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> }
 
+// Workspace mirrors the backend's 250,000 UTF-16-code-unit data limit. The
+// 768 KiB byte cap covers worst-case three-byte BMP UTF-8 plus JSON framing.
+const REQUEST_BODY_LIMITS = {
+  default: 64 * 1024,
+  auth: 32 * 1024,
+  chat: 64 * 1024,
+  contact: 16 * 1024,
+  workspace: 768 * 1024,
+  billing: 16 * 1024,
+  webhook: 512 * 1024,
+  email: 16 * 1024,
+} as const
+
+function bodyLimit(pathname: string) {
+  if (pathname.startsWith("/api/auth/")) return REQUEST_BODY_LIMITS.auth
+  if (pathname === "/api/chat") return REQUEST_BODY_LIMITS.chat
+  if (pathname === "/api/contact") return REQUEST_BODY_LIMITS.contact
+  if (pathname.startsWith("/api/workspace/")) return REQUEST_BODY_LIMITS.workspace
+  if (pathname === "/api/billing/webhook") return REQUEST_BODY_LIMITS.webhook
+  if (pathname.startsWith("/api/billing/")) return REQUEST_BODY_LIMITS.billing
+  if (pathname === "/api/email/test") return REQUEST_BODY_LIMITS.email
+  if (pathname.startsWith("/api/admin/")) return REQUEST_BODY_LIMITS.contact
+  return REQUEST_BODY_LIMITS.default
+}
+
+function tooLarge() {
+  return Response.json(
+    { error: "Request body is too large." },
+    {
+      status: 413,
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+        "Pragma": "no-cache",
+        "X-Content-Type-Options": "nosniff",
+      },
+    },
+  )
+}
+
+async function readBodyWithinLimit(request: Request, limit: number) {
+  const declared = request.headers.get("content-length")
+  if (declared !== null) {
+    const declaredBytes = Number(declared)
+    if (!Number.isFinite(declaredBytes) || declaredBytes < 0 || declaredBytes > limit) return null
+  }
+  if (!request.body) return new Uint8Array()
+
+  const reader = request.body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      total += value.byteLength
+      if (total > limit) {
+        await reader.cancel()
+        return null
+      }
+      chunks.push(value)
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  const bytes = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return bytes
+}
+
 function publicApiUrl(pathname: string, search = "") {
   return new URL(`${pathname}${search}`, "https://hegevaai.co.uk")
 }
@@ -89,13 +163,22 @@ async function proxyToHegevaApi(request: Request) {
   const incomingUrl = new URL(request.url)
   const publicUrl = publicApiUrl(incomingUrl.pathname, incomingUrl.search)
   const headers = forwardedHeaders(request)
-  let body: BodyInit | null = request.body
+  const bodyBytes = ["GET", "HEAD", "OPTIONS"].includes(request.method)
+    ? new Uint8Array()
+    : await readBodyWithinLimit(request, bodyLimit(incomingUrl.pathname))
+  if (bodyBytes === null) return tooLarge()
+  let body: BodyInit | null = bodyBytes.byteLength ? bodyBytes : null
 
   // Ground Assistant answers in the authenticated user's real HEGEVA data.
   // This enrichment happens server-side so browser input cannot spoof the
   // workspace facts that are sent to the AI Worker.
   if (request.method === "POST" && incomingUrl.pathname === "/api/chat") {
-    const payload = await request.json().catch(() => null) as Record<string, unknown> | null
+    let payload: Record<string, unknown> | null = null
+    try {
+      payload = bodyBytes.byteLength
+        ? JSON.parse(new TextDecoder().decode(bodyBytes)) as Record<string, unknown>
+        : null
+    } catch {}
 
     if (payload) {
       const workspaceContext = await buildWorkspaceContext(env.HEGEVA_API, request)

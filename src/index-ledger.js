@@ -1,6 +1,56 @@
 import hegevaWorker from "./index.js";
 export { UserRateLimiter } from "./user-rate-limiter-do.js";
 
+export const STRIPE_WEBHOOK_BODY_LIMIT = 512 * 1024;
+
+function requestTooLargeResponse() {
+  return Response.json(
+    { error: "Request body is too large." },
+    {
+      status: 413,
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+        "X-Content-Type-Options": "nosniff",
+      },
+    },
+  );
+}
+
+async function readRawBodyWithinLimit(request, limit) {
+  const declared = request.headers.get("content-length");
+  if (declared !== null) {
+    const declaredBytes = Number(declared);
+    if (!Number.isFinite(declaredBytes) || declaredBytes < 0 || declaredBytes > limit) return null;
+  }
+  if (!request.body) return new Uint8Array();
+
+  const reader = request.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > limit) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
 function isStripeWebhookSecret(value) {
   return typeof value === "string" && value.startsWith("whsec_");
 }
@@ -361,7 +411,8 @@ async function handleStripeWebhook(request, env, ctx) {
   let event;
 
   try {
-    rawBytes = new Uint8Array(await request.arrayBuffer());
+    rawBytes = await readRawBodyWithinLimit(request, STRIPE_WEBHOOK_BODY_LIMIT);
+    if (rawBytes === null) return requestTooLargeResponse();
     const signatureValid = await verifyStripeWebhookSignature(
       rawBytes,
       signatureHeader,
@@ -394,7 +445,10 @@ async function handleStripeWebhook(request, env, ctx) {
   try {
     claim = await claimStripeEvent(env, event);
   } catch (error) {
-    console.error("HEGEVA Stripe event ledger claim error:", error);
+    console.error("HEGEVA_REQUEST_FAILURE", {
+      reason: "stripe_event_claim_failed",
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
     return Response.json(
       { error: "Stripe webhook event ledger unavailable." },
       { status: 500 },
@@ -447,7 +501,10 @@ async function handleStripeWebhook(request, env, ctx) {
       return Response.json(terminalSubscriptionResult);
     }
   } catch (error) {
-    console.error("HEGEVA Stripe stale/cancellation guard error:", error);
+    console.error("HEGEVA_REQUEST_FAILURE", {
+      reason: "stripe_event_guard_failed",
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
     try {
       await releaseStripeEvent(env, claim.eventId);
     } catch {}
@@ -470,7 +527,10 @@ async function handleStripeWebhook(request, env, ctx) {
     try {
       await releaseStripeEvent(env, claim.eventId);
     } catch (error) {
-      console.error("HEGEVA Stripe event ledger release error:", error);
+      console.error("HEGEVA_REQUEST_FAILURE", {
+        reason: "stripe_event_release_failed",
+        errorName: error instanceof Error ? error.name : "UnknownError",
+      });
     }
     return response;
   }
@@ -479,7 +539,10 @@ async function handleStripeWebhook(request, env, ctx) {
     const responseData = await responseCopy.json().catch(() => null);
     await finalizeStripeEvent(env, claim.eventId, responseData);
   } catch (error) {
-    console.error("HEGEVA Stripe event ledger finalize error:", error);
+    console.error("HEGEVA_REQUEST_FAILURE", {
+      reason: "stripe_event_finalize_failed",
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
   }
 
   return response;

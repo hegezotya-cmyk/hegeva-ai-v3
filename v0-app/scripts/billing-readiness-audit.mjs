@@ -9,6 +9,7 @@ const account = fs.readFileSync(new URL("../app/account/page.tsx", import.meta.u
 const migration = fs.readFileSync(new URL("../../migrations/0007_stripe_customers.sql", import.meta.url), "utf8")
 const lifecycle = fs.readFileSync(new URL("../../scripts/stripe-test-lifecycle.mjs", import.meta.url), "utf8")
 const priceReconcile = fs.readFileSync(new URL("../../scripts/stripe-test-price-reconcile.mjs", import.meta.url), "utf8")
+const proxy = fs.readFileSync(new URL("../app/api/[...path]/route.ts", import.meta.url), "utf8")
 
 assert(/\/api\/billing\/status/.test(pricing), "Pricing must load backend billing readiness before enabling checkout")
 assert(/billingStatus\?\.mode === "test"/.test(pricing), "Pricing must require the declared Sandbox mode")
@@ -36,5 +37,13 @@ assert(/\/api\/billing\/portal/.test(account) && /billing\.stripe\.com/.test(acc
 assert(/cancel_at_period_end/.test(lifecycle) && /invoice\.payment_failed/.test(lifecycle) && /duplicate/.test(lifecycle) && /stale/.test(lifecycle), "Lifecycle integration must cover renewal, payment failure, scheduled cancellation, duplicates, and stale events")
 assert(/secret\.startsWith\("sk_test_"\)/.test(priceReconcile) && /price\.livemode, false/.test(priceReconcile), "Price reconciliation must reject live keys and live Price objects")
 assert(/1499/.test(priceReconcile) && /2999/.test(priceReconcile) && /"gbp"/.test(priceReconcile) && /"month"/.test(priceReconcile), "Premium and Pro test prices must reconcile to the displayed monthly GBP amounts")
+assert(/STRIPE_WEBHOOK_BODY_LIMIT\s*=\s*512 \* 1024/.test(ledger), "webhook must have a bounded raw-body limit")
+assert(/readRawBodyWithinLimit/.test(ledger) && /reader\.read\(\)/.test(ledger) && /reader\.cancel\(\)/.test(ledger), "webhook body must be streamed and capped")
+assert(/rawBytes = await readRawBodyWithinLimit/.test(ledger), "webhook must cap bytes before signature verification")
+assert(/if \(rawBytes === null\) return requestTooLargeResponse\(\)/.test(ledger), "oversized webhook must stop before signature or ledger mutation")
+assert(/body: rawBytes/.test(ledger), "verified webhook forwarding must preserve exact raw bytes")
+assert(/readBodyWithinLimit/.test(proxy) && /bodyBytes/.test(proxy), "API proxy must cap and forward exact bounded webhook bytes")
+assert(/webhook: 512 \* 1024/.test(proxy), "API proxy must allow only a bounded webhook body")
+assert(!/data\?\.error\?\.message/.test(worker), "Stripe provider details must not be returned to clients")
 
 console.log("Billing readiness audit passed: fail-closed Sandbox gating, test-only checkout, verified idempotent webhooks, lifecycle handling, and backend-authoritative entitlement")

@@ -49,16 +49,15 @@ export async function sendResendEmail(
     .catch(() => null);
 
   if (!response.ok) {
-    console.error(
-      "HEGEVA Resend error:",
-      response.status,
-      data
-    );
+    console.error("HEGEVA_PROVIDER_FAILURE", {
+      provider: "resend",
+      operation: "email",
+      reason: "provider_rejected",
+      status: response.status,
+      responseType: typeof data,
+    });
 
-    throw new Error(
-      data?.message ||
-        `Email provider returned HTTP ${response.status}.`
-    );
+    throw new Error("Email provider unavailable.");
   }
 
   return data;
