@@ -163,20 +163,6 @@ async function requestStudioAI(message: string, language: StudioLocale, action?:
   }
 }
 
-async function repairHtml(html: string, originalMessage: string, language: StudioLocale, compact = false, action?: X20ActionContext, assistantOperationId?: string) {
-  const verification = verifyBrowserPrototype(html)
-  const issues = verificationIssues(verification)
-  const instruction = [
-    compact ? "HEGEVA emergency compact repair." : "HEGEVA App Studio verification repair.",
-    `Visible UI language: ${language}.`,
-    "Return ONLY one complete compact self-contained HTML document.",
-    "Include meaningful application markup and real local button/form interaction. Inline JavaScript must parse. No external assets or fake external-service success.",
-    `FAILED CHECKS: ${issues.join("; ")}`,
-    `ORIGINAL TASK: ${originalMessage.slice(0, 700)}`,
-  ].join("\n\n")
-  return closeSafeHtmlStructure(stripCodeFence(await requestStudioAI(instruction, language, action, assistantOperationId)))
-}
-
 function tryHardcorePolish(html: string, message: string) {
   if (!isPremiumStudioRequest(message)) return html
   const polished = closeSafeHtmlStructure(applyHardcoreVisualPolish(html))
@@ -208,9 +194,9 @@ export async function runStudioAI(message: string, language: StudioLocale, actio
     let html = await buildCompactX20(message, language, x20Action)
     let verification = verifyBrowserPrototype(html)
     if (!verification.ok || !passesRequestFidelity(html, message)) {
-      const domainFallback = verifiedDomainFallback(fidelityRequest(message), language)
-      if (domainFallback) html = closeSafeHtmlStructure(domainFallback)
-      else html = closeSafeHtmlStructure(wrapX20Fragment(fallbackX20Fragment(language), language))
+      const fallback = verifiedDomainFallback(fidelityRequest(message), language)
+      if (!fallback) throw new Error("HEGEVA refused an unrelated generic fallback for this specific app request. Please retry.")
+      html = closeSafeHtmlStructure(fallback)
       verification = verifyBrowserPrototype(html)
     }
     if (!verification.ok || !passesRequestFidelity(html, message)) throw new Error(`HEGEVA X20 request-fidelity build failed: ${verificationIssues(verification).join("; ")}`)
@@ -222,18 +208,7 @@ export async function runStudioAI(message: string, language: StudioLocale, actio
   let html = closeSafeHtmlStructure(stripCodeFence(firstAnswer))
   let verification = verifyBrowserPrototype(html)
   if (!verification.ok || !passesRequestFidelity(html, message)) {
-    html = await repairHtml(html, message, language, false, x20Action, assistantOperationId)
-    verification = verifyBrowserPrototype(html)
-  }
-  if (!verification.ok || !passesRequestFidelity(html, message)) {
-    html = await repairHtml(html, message, language, true, x20Action, assistantOperationId)
-    verification = verifyBrowserPrototype(html)
-  }
-  if (!verification.ok || !passesRequestFidelity(html, message)) {
-    const fallback = verifiedDomainFallback(message, language)
-    if (!fallback) throw new Error("HEGEVA refused an unrelated generic fallback for this specific app request. Please retry.")
-    html = closeSafeHtmlStructure(fallback)
-    verification = verifyBrowserPrototype(html)
+    throw new Error("HEGEVA could not verify this App Studio build. Start a new build when you are ready to retry.")
   }
   if (!verification.ok || !passesRequestFidelity(html, message)) throw new Error(`HEGEVA request-fidelity verification failed after recovery: ${verificationIssues(verification).join("; ")}`)
   return tryHardcorePolish(html, message)

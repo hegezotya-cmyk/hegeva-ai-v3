@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import { Braces, CheckCircle2, Code2, Download, Eye, Laptop, Smartphone, Sparkles, Tablet, WandSparkles } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
-import { downloadTextFile, looksLikeHtmlDocument, runStudioAI, stripCodeFence, type StudioLocale } from "@/lib/app-studio-ai"
+import { downloadTextFile, looksLikeHtmlDocument, runStudioAI, stripCodeFence, type AssistantOperationContext, type StudioLocale } from "@/lib/app-studio-ai"
 import { auditStudioSpecMatch } from "@/lib/app-studio-spec-match"
 import { preparePreviewHtml, verifyGeneratedHtml } from "@/lib/app-studio-boundary"
 
@@ -11,7 +11,6 @@ type ViewMode = "preview" | "code"
 type DeviceMode = "desktop" | "tablet" | "mobile"
 
 const X10_MIN_REQUEST_MATCH = 75
-const X10_MAX_ATTEMPTS = 3
 
 function audit(html: string, idea: string) {
   const spec = auditStudioSpecMatch(html, idea)
@@ -74,30 +73,13 @@ export function BuildMyAppX10Tuned() {
     setBusy(true)
     setError("")
     try {
-      let bestHtml = ""
-      let bestCheck: ReturnType<typeof audit> | null = null
-      let missing: string[] = []
-      let previousScore: number | undefined
-
-      for (let attempt = 0; attempt < X10_MAX_ATTEMPTS; attempt += 1) {
-        const candidate = stripCodeFence(await runStudioAI(instruction(request, locale, missing, previousScore), locale as StudioLocale))
-        if (!looksLikeHtmlDocument(candidate)) continue
-        const candidateCheck = audit(candidate, request)
-        if (!bestCheck || candidateCheck.specScore > bestCheck.specScore || (candidateCheck.specScore === bestCheck.specScore && candidateCheck.capabilityScore > bestCheck.capabilityScore)) {
-          bestHtml = candidate
-          bestCheck = candidateCheck
-        }
-        if (candidateCheck.specScore >= X10_MIN_REQUEST_MATCH && candidateCheck.capabilityScore >= 67) break
-        missing = candidateCheck.missing.slice(0, 14)
-        previousScore = candidateCheck.specScore
-      }
-
-      if (!bestCheck || !bestHtml) throw new Error("HEGEVA could not verify this X10 build.")
+      const operation: AssistantOperationContext = { assistantOperationId: crypto.randomUUID() }
+      const bestHtml = stripCodeFence(await runStudioAI(instruction(request, locale), locale as StudioLocale, undefined, operation))
+      if (!looksLikeHtmlDocument(bestHtml)) throw new Error("HEGEVA could not verify this X10 build.")
+      const bestCheck = audit(bestHtml, request)
       verifyGeneratedHtml(bestHtml)
       if (bestCheck.specScore < X10_MIN_REQUEST_MATCH) {
-        setHtml(bestHtml)
-        setView("preview")
-        throw new Error(`X10 did not pass request verification (${bestCheck.specScore}%/${X10_MIN_REQUEST_MATCH}%). The best attempt is shown for inspection, but it is not accepted as a finished build.`)
+        throw new Error(`X10 did not pass request verification (${bestCheck.specScore}%/${X10_MIN_REQUEST_MATCH}%). Start a new build when you are ready to retry.`)
       }
 
       setHtml(bestHtml)
