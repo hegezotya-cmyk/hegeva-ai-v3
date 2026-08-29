@@ -6,6 +6,7 @@ import { auditStudioSpecMatch, isPawFlowRequest, requestsGenericBusinessWorkspac
 
 export type StudioLocale = "en" | "hu" | "de" | "fr" | "es"
 export type X20ActionContext = { startRequestId: string; actionId?: string }
+export type AssistantOperationContext = { assistantOperationId: string }
 
 function newRequestId() {
   const secureCrypto = globalThis.crypto
@@ -139,12 +140,14 @@ function withPremiumEditContract(message: string) {
   return `${contract}\n\n${message}`
 }
 
-async function requestStudioAI(message: string, language: StudioLocale, action?: X20ActionContext) {
+async function requestStudioAI(message: string, language: StudioLocale, action?: X20ActionContext, assistantOperationId?: string) {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), 30000)
   const safeMessage = fitStudioMessage(withPremiumEditContract(message))
   try {
-    const metadata = action ? { actionKind: "x20", startRequestId: action.startRequestId, ...(action.actionId ? { actionId: action.actionId } : {}), attemptRequestId: newRequestId() } : {}
+    const metadata = action
+      ? { actionKind: "x20", startRequestId: action.startRequestId, ...(action.actionId ? { actionId: action.actionId } : {}), attemptRequestId: newRequestId() }
+      : { assistantOperationId: assistantOperationId || newRequestId() }
     const response = await fetch("/api/chat", { method: "POST", credentials: "include", signal: controller.signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: safeMessage, history: [], language, mode: "general", ...metadata }) })
     const data = await response.json().catch(() => null)
     if (action && typeof data?.actionId === "string") action.actionId = data.actionId
@@ -160,7 +163,7 @@ async function requestStudioAI(message: string, language: StudioLocale, action?:
   }
 }
 
-async function repairHtml(html: string, originalMessage: string, language: StudioLocale, compact = false, action?: X20ActionContext) {
+async function repairHtml(html: string, originalMessage: string, language: StudioLocale, compact = false, action?: X20ActionContext, assistantOperationId?: string) {
   const verification = verifyBrowserPrototype(html)
   const issues = verificationIssues(verification)
   const instruction = [
@@ -171,7 +174,7 @@ async function repairHtml(html: string, originalMessage: string, language: Studi
     `FAILED CHECKS: ${issues.join("; ")}`,
     `ORIGINAL TASK: ${originalMessage.slice(0, 700)}`,
   ].join("\n\n")
-  return closeSafeHtmlStructure(stripCodeFence(await requestStudioAI(instruction, language, action)))
+  return closeSafeHtmlStructure(stripCodeFence(await requestStudioAI(instruction, language, action, assistantOperationId)))
 }
 
 function tryHardcorePolish(html: string, message: string) {
@@ -196,10 +199,11 @@ function verifiedDomainFallback(message: string, language: StudioLocale) {
   return ""
 }
 
-export async function runStudioAI(message: string, language: StudioLocale, action?: X20ActionContext) {
+export async function runStudioAI(message: string, language: StudioLocale, action?: X20ActionContext, assistantContext?: AssistantOperationContext) {
   const x20 = Boolean(action) || isX20Request(message)
   const htmlRequest = isHtmlBuildRequest(message)
   const x20Action = x20 ? (action || { startRequestId: newRequestId() }) : undefined
+  const assistantOperationId = x20 ? undefined : (assistantContext?.assistantOperationId || newRequestId())
   if (x20 && htmlRequest) {
     let html = await buildCompactX20(message, language, x20Action)
     let verification = verifyBrowserPrototype(html)
@@ -213,16 +217,16 @@ export async function runStudioAI(message: string, language: StudioLocale, actio
     return html
   }
 
-  const firstAnswer = await requestStudioAI(message, language, x20Action)
+  const firstAnswer = await requestStudioAI(message, language, x20Action, assistantOperationId)
   if (!htmlRequest) return firstAnswer
   let html = closeSafeHtmlStructure(stripCodeFence(firstAnswer))
   let verification = verifyBrowserPrototype(html)
   if (!verification.ok || !passesRequestFidelity(html, message)) {
-    html = await repairHtml(html, message, language, false, x20Action)
+    html = await repairHtml(html, message, language, false, x20Action, assistantOperationId)
     verification = verifyBrowserPrototype(html)
   }
   if (!verification.ok || !passesRequestFidelity(html, message)) {
-    html = await repairHtml(html, message, language, true, x20Action)
+    html = await repairHtml(html, message, language, true, x20Action, assistantOperationId)
     verification = verifyBrowserPrototype(html)
   }
   if (!verification.ok || !passesRequestFidelity(html, message)) {

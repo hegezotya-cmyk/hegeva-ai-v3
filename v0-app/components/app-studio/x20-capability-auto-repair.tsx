@@ -14,6 +14,7 @@ const REPAIR_KEY = "hegeva:x20:capability-repair-key"
 const REPAIR_ATTEMPTS_KEY = "hegeva:x20:capability-repair-attempts"
 const MAX_REPAIR_ATTEMPTS = 3
 const MIN_REQUEST_MATCH = 80
+const BUILD_INTENT_KEY = "hegeva:x20:studio:build-intent"
 
 function quality(html: string) {
   const controls = (html.match(/<(button|input|select|textarea)\b/gi) || []).length
@@ -87,6 +88,7 @@ export function X20CapabilityAutoRepair() {
     const check = async () => {
       if (running.current || cancelled) return
       try {
+        if (localStorage.getItem(BUILD_INTENT_KEY) !== "explicit") return
         const html = localStorage.getItem(HTML_KEY) || ""
         const idea = (localStorage.getItem(IDEA_KEY) || "").trim()
         const mode = selectedMode(localStorage.getItem(BUILD_KEY))

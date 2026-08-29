@@ -45,6 +45,9 @@ const HTML_KEY = "hegeva:x20:studio:html"
 const MODE_KEY = "hegeva:x20:studio:mode"
 const BUILD_KEY = "hegeva:x20:studio:build-mode"
 const VERSION_KEY = "hegeva:x20:studio:version"
+const META_KEY = "hegeva:x20:studio:result-meta"
+const BUILD_INTENT_KEY = "hegeva:x20:studio:build-intent"
+const SCOPE_KEY = "hegeva:x20:studio:scope"
 const VERSION = "studio-wow-2026-08-25-2"
 const stageCopy={
   en:{stages:["Request","Build","Verify","Result"],states:["Ready for a request","Building and checking","Build needs attention","Verified result ready"],summary:"User-safe X20 status"},
@@ -192,12 +195,16 @@ export function BuildMyAppX20StudioWow() {
 
   useEffect(() => {
     try {
+      const scope = sessionStorage.getItem(SCOPE_KEY) || crypto.randomUUID()
+      sessionStorage.setItem(SCOPE_KEY, scope)
       const version = localStorage.getItem(VERSION_KEY)
       const saved = localStorage.getItem(HTML_KEY) || ""
-      setIdea(localStorage.getItem(IDEA_KEY) || "")
+      const savedIdea = localStorage.getItem(IDEA_KEY) || ""
+      setIdea(savedIdea)
+      const meta = JSON.parse(localStorage.getItem(META_KEY) || "null") as { version?: number; scope?: string; fingerprint?: string; fidelity?: string } | null
       const savedMode = localStorage.getItem(BUILD_KEY) as BuildMode | null
       if (savedMode === "starter" || savedMode === "premium" || savedMode === "growth") setMode(savedMode)
-      if (version === VERSION && saved && looksLikeHtmlDocument(saved)) {
+      if (version === VERSION && saved && meta?.version === 1 && meta.scope === scope && meta.fingerprint === `${localStorage.getItem(BUILD_KEY) || "premium"}:${savedIdea.trim().toLowerCase()}` && meta.fidelity === "passed" && looksLikeHtmlDocument(saved)) {
         try { verifyGeneratedHtml(saved); setHtml(saved) } catch { localStorage.removeItem(HTML_KEY) }
       }
       else {
@@ -215,7 +222,7 @@ export function BuildMyAppX20StudioWow() {
   const appQuality = html ? quality(html) : 0
   const width = device === "mobile" ? "390px" : device === "tablet" ? "820px" : "100%"
 
-  function save(next: string, label: string) {
+  function save(next: string, label: string, actionId?: string) {
     verifyGeneratedHtml(next)
     setHtml(next)
     setHistory((current) => [{ html: next, label, at: Date.now() }, ...current].slice(0, 6))
@@ -223,6 +230,8 @@ export function BuildMyAppX20StudioWow() {
       localStorage.setItem(HTML_KEY, next)
       localStorage.setItem(MODE_KEY, label)
       localStorage.setItem(VERSION_KEY, VERSION)
+      const scope = sessionStorage.getItem(SCOPE_KEY) || ""
+      localStorage.setItem(META_KEY, JSON.stringify({ version: 1, scope, fingerprint: `${mode}:${idea.trim().toLowerCase()}`, actionId: actionId || null, fidelity: "passed", updatedAt: Date.now() }))
     } catch {}
   }
 
@@ -231,6 +240,8 @@ export function BuildMyAppX20StudioWow() {
     if (!request || busy) return
     setBusy(true)
     setError("")
+    setHtml("")
+    try { localStorage.setItem(BUILD_INTENT_KEY, "explicit") } catch {}
     try {
       const action: X20ActionContext = { startRequestId: crypto.randomUUID() }
       let next = stripCodeFence(await runStudioAI(buildInstruction(request, locale, mode), locale as StudioLocale, action))
@@ -240,11 +251,12 @@ export function BuildMyAppX20StudioWow() {
         const retry = stripCodeFence(await runStudioAI(buildInstruction(request, locale, mode, true), locale as StudioLocale, action))
         if (looksLikeHtmlDocument(retry) && quality(retry) > quality(next)) next = retry
       }
-      save(next, `${c.modes[mode][0]} build`)
+      save(next, `${c.modes[mode][0]} build`, action.actionId || action.startRequestId)
       setView("preview")
     } catch (e) {
       setError(e instanceof Error ? e.message : "HEGEVA build failed.")
     } finally {
+      try { localStorage.removeItem(BUILD_INTENT_KEY) } catch {}
       setBusy(false)
     }
   }

@@ -32,6 +32,7 @@ export function extractRequestedAppName(value: string, fallback = "My App") {
 
 export function isPawFlowRequest(value: string) {
   const text = normalize(value)
+  if (/\b(previous|historical|diagnostic|failed|failure|error|older|prior|generic)\b/.test(text)) return false
   return /\b(pawflow|pet grooming|dog grooming|grooming appointment|groomer)\b/.test(text)
 }
 

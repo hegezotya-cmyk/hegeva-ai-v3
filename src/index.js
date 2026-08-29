@@ -3155,15 +3155,19 @@ QUALITY RULES:
                       ? await env.DB.prepare(`SELECT actionId, userId, period, kind, userReserved, providerCalls, status, actionExpiresAt FROM x20_request_ledger WHERE actionId = ?1 LIMIT 1`).bind(body.actionId).first()
                       : await startX20Action(env, { startRequestId: body.startRequestId, userId, period: usagePeriod, planLimit: limit });
                   } catch (error) {
-                    if (/monthly quota unavailable/i.test(String(error?.message || error))) return { reserved: false };
+                    if (/monthly quota unavailable/i.test(String(error?.message || error))) return { reserved: false, reason: "x20_allowance_unavailable" };
                     throw error;
                   }
-                  if (!x20Action || x20Action.userId && (x20Action.userId !== userId || x20Action.period !== usagePeriod || x20Action.kind !== "x20" || new Date(x20Action.actionExpiresAt).getTime() <= Date.now())) return { reserved: false };
+                  if (!x20Action) return { reserved: false, reason: body.actionId ? "invalid_action_identity" : "x20_allowance_exhausted" };
+                  if (!body.actionId && x20Action.created === false) return { reserved: false, reason: "duplicate_action_start" };
+                  if (x20Action.userId && x20Action.userId !== userId) return { reserved: false, reason: "invalid_action_identity" };
+                  if (x20Action.period !== usagePeriod || x20Action.kind !== "x20") return { reserved: false, reason: "invalid_action_identity" };
+                  if (new Date(x20Action.actionExpiresAt).getTime() <= Date.now()) return { reserved: false, reason: "expired_action" };
                 }
-                if (!body.attemptRequestId) return { reserved: false };
+                if (!body.attemptRequestId) return { reserved: false, reason: "invalid_attempt_request" };
                 x20Attempt = await registerX20Attempt(env, { actionId: x20Action.actionId, attemptRequestId: body.attemptRequestId, userId, period: usagePeriod });
                 if (x20Attempt.duplicate) return { reserved: false, reason: "duplicate_attempt" };
-                return { reserved: Boolean(x20Attempt.admitted) };
+                return { reserved: Boolean(x20Attempt.admitted), reason: x20Attempt.reason };
               },
               readUsage: (userId, usagePeriod) =>
                 isX20Action ? readAIUsage(env, userId, usagePeriod) : readAssistantUsage(env, userId, usagePeriod),

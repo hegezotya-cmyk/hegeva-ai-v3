@@ -103,6 +103,20 @@ export async function handleAiChatAdmission({
       if (reservation.reason === "invalid_assistant_plan_limit") {
         return Response.json({ error: "AI service is temporarily unavailable." }, { status: 503 })
       }
+      if (input.actionKind === "x20") {
+        const x20Messages = {
+          x20_allowance_exhausted: ["Monthly X20 action allowance reached.", 429],
+          attempt_cap: ["X20 build attempts are exhausted for this action.", 429],
+          duplicate_attempt: ["This X20 attempt was already received.", 409],
+          duplicate_action_start: ["This X20 build was already started.", 409],
+          expired_action: ["This X20 action has expired. Please start a new build.", 409],
+          invalid_action_identity: ["This X20 action is not valid for the current session.", 409],
+          invalid_attempt_request: ["A valid X20 attempt is required.", 400],
+          x20_allowance_unavailable: ["X20 service is temporarily unavailable.", 503],
+        }
+        const [error, status] = x20Messages[reservation.reason] || ["X20 action could not be admitted.", 429]
+        return Response.json({ error }, { status })
+      }
       const used = await readUsage(user.id, period)
       return Response.json(
         { error: "Monthly AI message limit reached.", plan: planInfo.plan, limit: planInfo.limit, used },
