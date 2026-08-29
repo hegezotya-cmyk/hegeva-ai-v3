@@ -32,7 +32,7 @@ export function extractRequestedAppName(value: string, fallback = "My App") {
 
 export function isPawFlowRequest(value: string) {
   const text = normalize(value)
-  if (/\b(previous|historical|diagnostic|failed|failure|error|older|prior|generic)\b/.test(text)) return false
+  if (/\b(previous|historical|diagnostic|failed|failure|error|older|prior|generic)\b/.test(text) || /\b(?:do not|dont|without|exclude|no)\s+(?:use\s+)?(?:pawflow|pet|dog|grooming)\b/.test(text)) return false
   return /\b(pawflow|pet grooming|dog grooming|grooming appointment|groomer)\b/.test(text)
 }
 
@@ -78,7 +78,8 @@ export function extractStudioSpecTerms(value: string, limit = 24) {
 
 export function auditStudioSpecMatch(html: string, request: string): StudioSpecMatch {
   const lower = normalize(html)
-  const terms = extractStudioSpecTerms(request)
+  const excluded = /\b(?:do not|don't|without|exclude|no)\s+(?:use\s+)?(?:pawflow|pet(?:-\s*)?grooming|dog(?:-\s*)?grooming|grooming)\b/i.test(request)
+  const terms = extractStudioSpecTerms(request).filter((term) => !(excluded && ["pawflow", "pet", "grooming", "dog"].includes(term)))
   const matched = terms.filter((term) => lower.includes(term))
   const missing = terms.filter((term) => !matched.includes(term))
   const lexicalScore = terms.length ? Math.round((matched.length / terms.length) * 100) : 100

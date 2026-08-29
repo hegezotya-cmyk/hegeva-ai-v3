@@ -35,6 +35,10 @@ export const REQUEST_BODY_LIMITS = Object.freeze({
   email: 16 * 1024,
 });
 
+export function selectAiOutputTokens({ isX20Action = false, appStudioProfile } = {}) {
+  return !isX20Action && appStudioProfile === "x10" ? 1800 : 700;
+}
+
 function requestBodyLimit(pathname) {
   if (pathname.startsWith("/api/auth/")) return REQUEST_BODY_LIMITS.auth;
   if (pathname === "/api/chat") return REQUEST_BODY_LIMITS.chat;
@@ -3127,6 +3131,7 @@ QUALITY RULES:
             });
 
           const isX20Action = body.actionKind === "x20";
+          const isX10StudioProfile = !isX20Action && body.appStudioProfile === "x10";
           let x20Action = null;
           let x20Attempt = null;
           let assistantOperationId = null;
@@ -3188,7 +3193,7 @@ QUALITY RULES:
                         }
                       ],
                       temperature: 0.15,
-                      max_tokens: 700
+                      max_tokens: selectAiOutputTokens({ isX20Action, appStudioProfile: isX10StudioProfile ? body.appStudioProfile : undefined })
                     }
                   );
 

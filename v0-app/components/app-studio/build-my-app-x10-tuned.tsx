@@ -29,21 +29,13 @@ function audit(html: string, idea: string) {
 
 function instruction(idea: string, locale: string, missing: string[] = [], previousScore?: number) {
   return [
-    "You are the HEGEVA Build My App X10 premium browser-app engine.",
-    `Visible UI language: ${locale}.`,
-    "Create one polished, genuinely working self-contained index.html with inline CSS and vanilla JavaScript.",
-    "Build the CUSTOMER'S ACTUAL REQUEST. Do not replace a specific domain request with a generic CRM, dashboard, Business OS, invoice app or template unless the customer explicitly asked for that.",
-    "Preserve the customer's important domain nouns, entities, fields and workflows in the visible UI, navigation, forms, state model and working interactions.",
-    "X10 should be focused rather than huge: 2-4 meaningful product areas with one excellent end-to-end workflow.",
-    "Every visible primary button and form must work locally. Use real add/update/delete/search/filter/calculation behavior when relevant to the request.",
-    "Persist useful user-created data with localStorage when appropriate.",
-    "Use strong premium SaaS UX, responsive mobile layout, clear hierarchy, helpful empty states and accessible labels.",
-    "Do not fake server authentication, payments, cloud database, email or external API success. Mark external integrations honestly when they cannot run locally.",
-    previousScore !== undefined ? `PREVIOUS REQUEST MATCH: ${previousScore}%. This is below the X10 target of ${X10_MIN_REQUEST_MATCH}%. Rebuild around the customer's actual domain instead of preserving unrelated generic modules.` : "",
-    missing.length ? `PREVIOUS BUILD MISSED THESE REQUEST CONCEPTS. The new build must visibly and functionally implement them where relevant: ${missing.join(", ")}. Do not merely mention these words in headings or comments.` : "",
-    "Before returning, mentally verify that the main records, form fields, navigation labels and actions are specific to the customer's request rather than a generic business template.",
-    "Return ONLY the complete HTML document. No Markdown fences or explanation.",
-    `CUSTOMER REQUEST:\n${idea.slice(0, 1600)}`,
+    "HEGEVA X10. Return ONLY one complete <!doctype html> document; no Markdown or explanation. Close html/head/body.",
+    `Language: ${locale}. Inline CSS and vanilla JavaScript only. Build the exact customer domain, not a generic CRM/Business OS/template.`,
+    "Implement the requested fields and one complete local workflow with working add/edit/delete, search/filter, localStorage persistence, responsive mobile layout, accessible labels, and clear demo/local-only wording.",
+    "Never claim cloud sync, authentication, payments, email, API or external success. Keep controls honest and local.",
+    previousScore !== undefined ? `Request match was ${previousScore}%; correct the customer's domain.` : "",
+    missing.length ? `Required concepts: ${missing.join(", ")}.` : "",
+    `CUSTOMER REQUEST (preserve all requirements; exclusions are not positive domain terms):\n${idea.slice(0, 1500)}`,
   ].filter(Boolean).join("\n\n")
 }
 
@@ -73,7 +65,7 @@ export function BuildMyAppX10Tuned() {
     setBusy(true)
     setError("")
     try {
-      const operation: AssistantOperationContext = { assistantOperationId: crypto.randomUUID() }
+      const operation: AssistantOperationContext = { assistantOperationId: crypto.randomUUID(), appStudioProfile: "x10" }
       const bestHtml = stripCodeFence(await runStudioAI(instruction(request, locale), locale as StudioLocale, undefined, operation))
       if (!looksLikeHtmlDocument(bestHtml)) throw new Error("HEGEVA could not verify this X10 build.")
       const bestCheck = audit(bestHtml, request)

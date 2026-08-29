@@ -30,7 +30,7 @@ try {
   const { runStudioAI } = await import(`${pathToFileURL(bundle).href}?v=${Date.now()}`)
   const flows = ["X10 Customer Build", "Prompt enhancement", "Fix repair"]
   for (const flow of flows) {
-    const context = { assistantOperationId: crypto.randomUUID() }
+    const context = { assistantOperationId: crypto.randomUUID(), ...(flow === "X10 Customer Build" ? { appStudioProfile: "x10" } : {}) }
     assert.match(context.assistantOperationId, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
     const before = requests.length
     mode = "network"
@@ -38,6 +38,7 @@ try {
     assert.equal(requests.length, before + 1, `${flow}: no automatic retry after network failure`)
     const first = requests.at(-1)
     assert.equal(first.assistantOperationId, context.assistantOperationId)
+    assert.equal(first.appStudioProfile, flow === "X10 Customer Build" ? "x10" : undefined)
     assert.equal(first.actionKind, undefined)
     assert.equal(first.startRequestId, undefined)
     assert.equal(first.attemptRequestId, undefined)
@@ -48,6 +49,7 @@ try {
       await assert.rejects(() => runStudioAI(`${flow} request`, "en", undefined, context))
       assert.equal(requests.length, failureBefore + 1, `${flow}: ${failure} must not auto-retry`)
       assert.equal(requests.at(-1).assistantOperationId, context.assistantOperationId, `${flow}: ${failure} must preserve operation identity`)
+      assert.equal(requests.at(-1).appStudioProfile, flow === "X10 Customer Build" ? "x10" : undefined)
     }
 
     mode = "success"

@@ -6,7 +6,7 @@ import { auditStudioSpecMatch, isPawFlowRequest, requestsGenericBusinessWorkspac
 
 export type StudioLocale = "en" | "hu" | "de" | "fr" | "es"
 export type X20ActionContext = { startRequestId: string; actionId?: string }
-export type AssistantOperationContext = { assistantOperationId: string }
+export type AssistantOperationContext = { assistantOperationId: string; appStudioProfile?: "x10" }
 
 function newRequestId() {
   const secureCrypto = globalThis.crypto
@@ -140,14 +140,14 @@ function withPremiumEditContract(message: string) {
   return `${contract}\n\n${message}`
 }
 
-async function requestStudioAI(message: string, language: StudioLocale, action?: X20ActionContext, assistantOperationId?: string) {
+async function requestStudioAI(message: string, language: StudioLocale, action?: X20ActionContext, assistantOperationId?: string, appStudioProfile?: "x10") {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), 30000)
   const safeMessage = fitStudioMessage(withPremiumEditContract(message))
   try {
     const metadata = action
       ? { actionKind: "x20", startRequestId: action.startRequestId, ...(action.actionId ? { actionId: action.actionId } : {}), attemptRequestId: newRequestId() }
-      : { assistantOperationId: assistantOperationId || newRequestId() }
+      : { assistantOperationId: assistantOperationId || newRequestId(), ...(appStudioProfile === "x10" ? { appStudioProfile } : {}) }
     const response = await fetch("/api/chat", { method: "POST", credentials: "include", signal: controller.signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: safeMessage, history: [], language, mode: "general", ...metadata }) })
     const data = await response.json().catch(() => null)
     if (action && typeof data?.actionId === "string") action.actionId = data.actionId
@@ -172,6 +172,14 @@ function tryHardcorePolish(html: string, message: string) {
 function passesRequestFidelity(html: string, message: string) {
   const match = auditStudioSpecMatch(html, fidelityRequest(message))
   return !match.severeMismatch && match.score >= 80
+}
+
+function studioFailureCode(html: string, message: string, verification: ReturnType<typeof verifyBrowserPrototype>) {
+  if (!verifyBrowserPrototype(html).checks.find((check) => check.key === "document")?.ok || !verification.checks.find((check) => check.key === "structure")?.ok) return "incomplete_output"
+  if (!verification.checks.find((check) => check.key === "javascript")?.ok) return "invalid_javascript"
+  if (!passesRequestFidelity(html, message)) return "request_mismatch"
+  if (!verification.checks.find((check) => check.key === "trust")?.ok) return "unsafe_output"
+  return "invalid_document"
 }
 
 function fidelityRequest(message: string) {
@@ -203,12 +211,12 @@ export async function runStudioAI(message: string, language: StudioLocale, actio
     return html
   }
 
-  const firstAnswer = await requestStudioAI(message, language, x20Action, assistantOperationId)
+  const firstAnswer = await requestStudioAI(message, language, x20Action, assistantOperationId, assistantContext?.appStudioProfile)
   if (!htmlRequest) return firstAnswer
   let html = closeSafeHtmlStructure(stripCodeFence(firstAnswer))
   let verification = verifyBrowserPrototype(html)
   if (!verification.ok || !passesRequestFidelity(html, message)) {
-    throw new Error("HEGEVA could not verify this App Studio build. Start a new build when you are ready to retry.")
+    throw new Error(`HEGEVA could not verify this App Studio build (${studioFailureCode(html, message, verification)}). Start a new build when you are ready to retry.`)
   }
   if (!verification.ok || !passesRequestFidelity(html, message)) throw new Error(`HEGEVA request-fidelity verification failed after recovery: ${verificationIssues(verification).join("; ")}`)
   return tryHardcorePolish(html, message)
