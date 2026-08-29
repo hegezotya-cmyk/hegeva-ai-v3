@@ -9,6 +9,8 @@ export type StudioSpecMatch = {
   missing: string[]
   score: number
   severeMismatch: boolean
+  capabilities?: string[]
+  missingCapabilities?: string[]
 }
 
 const GENERIC_BUSINESS_ENTITIES = ["invoice", "quote", "expense", "task"] as const
@@ -71,29 +73,69 @@ function normalize(value: string) {
   return value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
 }
 
+const NEGATION = /\b(?:do not|don't|dont|no|without|exclude|must not|never)\b/i
+const CAPABILITY_GROUPS = [
+  { code: "follow_up", weight: 12, aliases: ["follow-up", "followup", "follow up"] },
+  { code: "responsive", weight: 8, aliases: ["responsive", "mobile-friendly", "mobile friendly", "mobile layout", "viewport"] },
+  { code: "local_persistence", weight: 10, aliases: ["localstorage", "local storage", "stored locally", "locally persisted", "browser storage"] },
+  { code: "create", weight: 8, aliases: ["add", "create", "new record"] },
+  { code: "update", weight: 8, aliases: ["edit", "update", "modify"] },
+  { code: "delete", weight: 8, aliases: ["delete", "remove"] },
+  { code: "search", weight: 7, aliases: ["search", "query", "find"] },
+  { code: "filter", weight: 7, aliases: ["filter", "filtering", "status filter"] },
+  { code: "demo_local", weight: 8, aliases: ["demo data", "sample data", "local-only", "local only", "no cloud sync", "stored locally"] },
+  { code: "customer", weight: 7, aliases: ["customer", "client"] },
+  { code: "company", weight: 5, aliases: ["company", "business", "organisation", "organization"] },
+  { code: "follow_up_date", weight: 7, aliases: ["follow-up date", "followup date", "next contact", "due date"] },
+  { code: "status_workflow", weight: 8, aliases: ["new", "in progress", "completed", "pending", "done"] },
+  { code: "style", weight: 3, aliases: ["premium", "dark", "hegeva-style", "interface"] },
+]
+
+function positiveClauses(value: string) {
+  return normalize(value).split(/[.!?;\n]+/).flatMap((clause) => clause.split(/[,•]+/)).filter(Boolean).filter((clause) => !NEGATION.test(clause))
+}
+
+function hasAlias(text: string, alias: string) {
+  const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+")
+  return new RegExp(`(?:^|\\b)${escaped}(?:\\b|$)`, "i").test(text)
+}
+
+function capabilityMatches(value: string, excluded = false) {
+  const clauses = positiveClauses(value).join(" ")
+  const normalized = normalize(value)
+  return CAPABILITY_GROUPS.filter((group) => group.aliases.some((alias) => hasAlias(clauses, alias) || (!excluded && hasAlias(normalized, alias))))
+}
+
 export function extractStudioSpecTerms(value: string, limit = 24) {
-  const words = normalize(value).match(/[a-z0-9][a-z0-9-]{3,}/g) || []
+  const words = positiveClauses(value).join(" ").match(/[a-z0-9][a-z0-9-]{3,}/g) || []
   return Array.from(new Set(words.filter((word) => !STOP.has(word)))).slice(0, limit)
 }
 
 export function auditStudioSpecMatch(html: string, request: string): StudioSpecMatch {
   const lower = normalize(html)
-  const excluded = /\b(?:do not|don't|without|exclude|no)\s+(?:use\s+)?(?:pawflow|pet(?:-\s*)?grooming|dog(?:-\s*)?grooming|grooming)\b/i.test(request)
-  const terms = extractStudioSpecTerms(request).filter((term) => !(excluded && ["pawflow", "pet", "grooming", "dog"].includes(term)))
+  const terms = extractStudioSpecTerms(request)
   const matched = terms.filter((term) => lower.includes(term))
   const missing = terms.filter((term) => !matched.includes(term))
+  const requestedCapabilities = capabilityMatches(request, true)
+  const outputCapabilities = capabilityMatches(html)
+  const matchedCapabilities = requestedCapabilities.filter((group) => outputCapabilities.some((candidate) => candidate.code === group.code))
+  const capabilityWeight = requestedCapabilities.reduce((sum, group) => sum + group.weight, 0)
+  const matchedWeight = matchedCapabilities.reduce((sum, group) => sum + group.weight, 0)
+  const capabilityScore = capabilityWeight ? Math.round((matchedWeight / capabilityWeight) * 100) : 100
   const lexicalScore = terms.length ? Math.round((matched.length / terms.length) * 100) : 100
   const pawFlow = isPawFlowRequest(request) ? auditPawFlowStructure(html) : null
   const genericModuleCount = GENERIC_BUSINESS_ENTITIES.filter((entity) => new RegExp(`\\b${entity}s?\\b`).test(lower)).length
   const genericDrift = !requestsGenericBusinessWorkspace(request) && genericModuleCount >= 3
   const pawGenericDrift = Boolean(pawFlow && !pawFlow.checks.noGenericDrift)
-  const score = pawFlow ? Math.min(lexicalScore, pawFlow.score) : lexicalScore
+  const score = pawFlow ? Math.min(capabilityScore, pawFlow.score) : Math.round((capabilityScore * 0.85) + (lexicalScore * 0.15))
   return {
     terms,
     matched,
     missing,
     score,
-    severeMismatch: genericDrift || pawGenericDrift || (terms.length >= 4 && (score < 60 || matched.length < Math.min(4, terms.length))),
+    capabilities: matchedCapabilities.map((group) => group.code),
+    missingCapabilities: requestedCapabilities.filter((group) => !matchedCapabilities.some((candidate) => candidate.code === group.code)).map((group) => group.code),
+    severeMismatch: genericDrift || pawGenericDrift || (requestedCapabilities.filter((group) => group.weight >= 7).some((group) => !matchedCapabilities.some((candidate) => candidate.code === group.code)) && score < 75) || (terms.length >= 4 && (score < 60 || matched.length < Math.min(4, terms.length))),
   }
 }
 
