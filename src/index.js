@@ -80,6 +80,10 @@ function logFailure(reason, error, metadata = {}) {
   });
 }
 
+function logX20Lifecycle(event, metadata = {}) {
+  console.info("HEGEVA_X20_LIFECYCLE", { event, ...metadata });
+}
+
 export async function readBodyWithinLimit(request, limit) {
   const declared = request.headers.get("content-length");
   if (declared !== null) {
@@ -3154,13 +3158,18 @@ QUALITY RULES:
                   assistantOperationReserved = Boolean(operation.reserved);
                   return operation;
                 }
+                logX20Lifecycle("x20_reservation_started", { startRequestId: body.startRequestId || null, actionId: body.actionId || null });
                 if (!x20Action) {
                   try {
                     x20Action = body.actionId
                       ? await env.DB.prepare(`SELECT actionId, userId, period, kind, userReserved, providerCalls, status, actionExpiresAt FROM x20_request_ledger WHERE actionId = ?1 LIMIT 1`).bind(body.actionId).first()
                       : await startX20Action(env, { startRequestId: body.startRequestId, userId, period: usagePeriod, planLimit: limit });
                   } catch (error) {
-                    if (/monthly quota unavailable/i.test(String(error?.message || error))) return { reserved: false, reason: "x20_allowance_unavailable" };
+                    if (/monthly quota unavailable/i.test(String(error?.message || error))) {
+                      logX20Lifecycle("x20_reservation_failed", { reason: "x20_allowance_unavailable", errorName: safeErrorName(error) });
+                      return { reserved: false, reason: "x20_allowance_unavailable" };
+                    }
+                    logX20Lifecycle("x20_reservation_failed", { reason: "ledger_error", errorName: safeErrorName(error) });
                     throw error;
                   }
                   if (!x20Action) return { reserved: false, reason: body.actionId ? "invalid_action_identity" : "x20_allowance_exhausted" };
@@ -3172,11 +3181,14 @@ QUALITY RULES:
                 if (!body.attemptRequestId) return { reserved: false, reason: "invalid_attempt_request" };
                 x20Attempt = await registerX20Attempt(env, { actionId: x20Action.actionId, attemptRequestId: body.attemptRequestId, userId, period: usagePeriod });
                 if (x20Attempt.duplicate) return { reserved: false, reason: "duplicate_attempt" };
-                return { reserved: Boolean(x20Attempt.admitted), reason: x20Attempt.reason };
+                if (!x20Attempt.admitted) return { reserved: false, reason: x20Attempt.reason };
+                logX20Lifecycle("x20_attempt_reserved", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber });
+                return { reserved: true, reason: x20Attempt.reason };
               },
               readUsage: (userId, usagePeriod) =>
                 isX20Action ? readAIUsage(env, userId, usagePeriod) : readAssistantUsage(env, userId, usagePeriod),
               execute: async ({ message: admittedMessage, safeHistory: admittedHistory }) => {
+                if (isX20Action) logX20Lifecycle("x20_provider_started", { actionId: x20Action?.actionId, attemptId: x20Attempt?.attemptId, attemptNumber: x20Attempt?.attemptNumber });
                 const aiPromise =
                   env.AI.run(
                     "@cf/meta/llama-3.1-8b-instruct-fast",
@@ -3208,11 +3220,20 @@ QUALITY RULES:
 
                 try {
                   const providerResult = await Promise.race([aiPromise, timeoutPromise]);
-                  if (isX20Action && x20Attempt) await finishX20Attempt(env, { attemptId: x20Attempt.attemptId, actionId: x20Action.actionId, status: "succeeded" });
+                  if (isX20Action && x20Attempt) {
+                    await finishX20Attempt(env, { attemptId: x20Attempt.attemptId, actionId: x20Action.actionId, status: "succeeded" });
+                    logX20Lifecycle("x20_provider_completed", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber });
+                    logX20Lifecycle("x20_attempt_completed", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber, status: "succeeded" });
+                  }
                   if (!isX20Action && assistantOperationReserved) await finishAssistantOperation(env, { operationId: assistantOperationId, status: "succeeded" });
                   return providerResult;
                 } catch (error) {
-                  if (isX20Action && x20Attempt) await finishX20Attempt(env, { attemptId: x20Attempt.attemptId, actionId: x20Action.actionId, status: error?.message === "HEGEVA_AI_TIMEOUT" ? "timed_out" : "failed" });
+                  if (isX20Action && x20Attempt) {
+                    const status = error?.message === "HEGEVA_AI_TIMEOUT" ? "timed_out" : "failed";
+                    await finishX20Attempt(env, { attemptId: x20Attempt.attemptId, actionId: x20Action.actionId, status });
+                    logX20Lifecycle("x20_provider_failed", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber, status, errorName: safeErrorName(error) });
+                    logX20Lifecycle("x20_attempt_failed", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber, status, errorName: safeErrorName(error) });
+                  }
                   if (!isX20Action && assistantOperationReserved) await finishAssistantOperation(env, { operationId: assistantOperationId, status: error?.message === "HEGEVA_AI_TIMEOUT" ? "timed_out" : "failed" });
                   throw error;
                 } finally {

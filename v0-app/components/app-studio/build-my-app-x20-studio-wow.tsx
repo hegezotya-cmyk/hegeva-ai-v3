@@ -46,7 +46,10 @@ const MODE_KEY = "hegeva:x20:studio:mode"
 const BUILD_KEY = "hegeva:x20:studio:build-mode"
 const VERSION_KEY = "hegeva:x20:studio:version"
 const META_KEY = "hegeva:x20:studio:result-meta"
+const REPAIR_KEY = "hegeva:x20:capability-repair-key"
+const REPAIR_ATTEMPTS_KEY = "hegeva:x20:capability-repair-attempts"
 const BUILD_INTENT_KEY = "hegeva:x20:studio:build-intent"
+const BUILD_SESSION_KEY = "hegeva:x20:studio:build-session"
 const SCOPE_KEY = "hegeva:x20:studio:scope"
 const VERSION = "studio-wow-2026-08-25-2"
 const stageCopy={
@@ -241,7 +244,15 @@ export function BuildMyAppX20StudioWow() {
     setBusy(true)
     setError("")
     setHtml("")
-    try { localStorage.setItem(BUILD_INTENT_KEY, "explicit") } catch {}
+    const buildSessionId = crypto.randomUUID()
+    try {
+      localStorage.removeItem(HTML_KEY)
+      localStorage.removeItem(META_KEY)
+      localStorage.removeItem(REPAIR_KEY)
+      localStorage.removeItem(REPAIR_ATTEMPTS_KEY)
+      localStorage.setItem(BUILD_SESSION_KEY, buildSessionId)
+      localStorage.setItem(BUILD_INTENT_KEY, buildSessionId)
+    } catch {}
     try {
       const action: X20ActionContext = { startRequestId: crypto.randomUUID() }
       let next = stripCodeFence(await runStudioAI(buildInstruction(request, locale, mode), locale as StudioLocale, action))
@@ -256,7 +267,12 @@ export function BuildMyAppX20StudioWow() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "HEGEVA build failed.")
     } finally {
-      try { localStorage.removeItem(BUILD_INTENT_KEY) } catch {}
+      try {
+        if (localStorage.getItem(BUILD_SESSION_KEY) === buildSessionId) {
+          localStorage.removeItem(BUILD_INTENT_KEY)
+          localStorage.removeItem(BUILD_SESSION_KEY)
+        }
+      } catch {}
       setBusy(false)
     }
   }

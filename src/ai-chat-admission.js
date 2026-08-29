@@ -88,6 +88,12 @@ export async function handleAiChatAdmission({
     distributedAcquired = true
     const reservation = await reserve(user.id, period, planInfo.limit)
     if (!reservation.reserved) {
+      if (input.actionKind === "x20") {
+        console.info("HEGEVA_X20_LIFECYCLE", {
+          event: "x20_reservation_denied",
+          reason: typeof reservation.reason === "string" ? reservation.reason : "unknown",
+        })
+      }
       if (reservation.reason === "duplicate_attempt") {
         return Response.json({ error: "This X20 attempt was already received." }, { status: 409 })
       }
