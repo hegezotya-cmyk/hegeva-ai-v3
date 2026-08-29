@@ -5,7 +5,7 @@ import {
 } from "./auth.js";
 import { reserveAIUsage } from "./ai-quota-reservation.js";
 import { handleAiChatAdmission } from "./ai-chat-admission.js";
-import { registerX20Attempt, startX20Action, finishX20Attempt } from "./x20-ledger.js";
+import { isX20RequestId, registerX20Attempt, startX20Action, finishX20Attempt } from "./x20-ledger.js";
 import { readAssistantUsage, startAssistantOperation, finishAssistantOperation } from "./assistant-quota.js";
 
 // =========================================
@@ -3183,10 +3183,14 @@ QUALITY RULES:
                     throw error;
                   }
                   if (!x20Action) return { reserved: false, reason: body.actionId ? "invalid_action_identity" : "x20_allowance_exhausted" };
-                  if (!body.actionId && x20Action.created === false) return { reserved: false, reason: "duplicate_action_start" };
-                  if (x20Action.userId && x20Action.userId !== userId) return { reserved: false, reason: "invalid_action_identity" };
-                  if (x20Action.period !== usagePeriod || x20Action.kind !== "x20") return { reserved: false, reason: "invalid_action_identity" };
-                  if (new Date(x20Action.actionExpiresAt).getTime() <= Date.now()) return { reserved: false, reason: "expired_action" };
+                  const newlyCreatedAction = !body.actionId && x20Action.created === true;
+                  if (newlyCreatedAction && !isX20RequestId(x20Action.actionId)) return { reserved: false, reason: "invalid_action_identity" };
+                  if (!newlyCreatedAction) {
+                    if (!body.actionId && x20Action.created === false) return { reserved: false, reason: "duplicate_action_start" };
+                    if (x20Action.userId && x20Action.userId !== userId) return { reserved: false, reason: "invalid_action_identity" };
+                    if (x20Action.period !== usagePeriod || x20Action.kind !== "x20") return { reserved: false, reason: "invalid_action_identity" };
+                    if (new Date(x20Action.actionExpiresAt).getTime() <= Date.now()) return { reserved: false, reason: "expired_action" };
+                  }
                 }
                 if (!body.attemptRequestId) return { reserved: false, reason: "invalid_attempt_request" };
                 x20Attempt = await registerX20Attempt(env, { actionId: x20Action.actionId, attemptRequestId: body.attemptRequestId, userId, period: usagePeriod });
