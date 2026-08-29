@@ -10,8 +10,19 @@ assert.match(source, /const newlyCreatedAction = !body\.actionId && x20Action\.c
 assert.match(source, /newlyCreatedAction && !isX20RequestId\(x20Action\.actionId\)/)
 assert.match(source, /if \(!newlyCreatedAction\)/)
 assert.match(source, /registerX20Attempt\(env, \{ actionId: x20Action\.actionId/)
-assert.match(source, /x20Attempt\.admitted !== true \|\| x20Attempt\.status !== "reserved"/)
+assert.match(source, /x20Attempt\.duplicate === true \|\| x20Attempt\.status !== "reserved"/)
 assert.match(source, /return \{ reserved: true, reason: "x20_attempt_reserved" \}/)
+
+const remoteCompatibleAttempt = {
+  attemptId: "11111111-1111-4111-8111-111111111111",
+  attemptNumber: 1,
+  status: "reserved",
+  duplicate: false,
+}
+assert.equal(Object.hasOwn(remoteCompatibleAttempt, "admitted"), false)
+assert.equal(remoteCompatibleAttempt.status, "reserved")
+assert.equal(remoteCompatibleAttempt.duplicate, false)
+assert.equal(Number.isInteger(remoteCompatibleAttempt.attemptNumber) && remoteCompatibleAttempt.attemptNumber >= 1 && remoteCompatibleAttempt.attemptNumber <= 3, true)
 
 const migration = readFileSync(new URL("../../migrations/0008_x20_request_ledger.sql", import.meta.url), "utf8") + "\n" + readFileSync(new URL("../../migrations/0010_x20_independent_usage.sql", import.meta.url), "utf8")
 const dir = mkdtempSync(join(tmpdir(), "hegeva-x20-action-identity-"))
