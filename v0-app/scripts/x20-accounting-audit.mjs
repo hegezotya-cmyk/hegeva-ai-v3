@@ -5,7 +5,7 @@ import { join } from "node:path"
 import { DatabaseSync } from "node:sqlite"
 import { registerX20Attempt, startX20Action, finishX20Attempt } from "../../src/x20-ledger.js"
 
-const migration = readFileSync(new URL("../../migrations/0008_x20_request_ledger.sql", import.meta.url), "utf8")
+const migration = readFileSync(new URL("../../migrations/0008_x20_request_ledger.sql", import.meta.url), "utf8") + "\n" + readFileSync(new URL("../../migrations/0010_x20_independent_usage.sql", import.meta.url), "utf8")
 const usageSchema = `CREATE TABLE ai_usage (userId TEXT NOT NULL, period TEXT NOT NULL, aiMessages INTEGER NOT NULL DEFAULT 0, createdAt TEXT NOT NULL, updatedAt TEXT NOT NULL, PRIMARY KEY(userId, period));`
 const period = "2026-08"
 const now = new Date("2026-08-28T12:00:00.000Z")
@@ -38,11 +38,11 @@ async function run() {
   const action = await startX20Action(env, { startRequestId, userId: "u1", period, planLimit: 50, now })
   assert.equal(action.created, true)
   assert.match(action.actionId, /^[0-9a-f-]{36}$/i)
-  assert.equal(env.DB._db.prepare("SELECT aiMessages FROM ai_usage WHERE userId='u1' AND period='2026-08'").get().aiMessages, 1)
+  assert.equal(env.DB._db.prepare("SELECT x20Actions FROM x20_ai_usage WHERE userId='u1' AND period='2026-08'").get().x20Actions, 1)
   const duplicate = await startX20Action(env, { startRequestId, userId: "u1", period, planLimit: 50, now })
   assert.equal(duplicate.created, false)
   assert.equal(duplicate.actionId, action.actionId)
-  assert.equal(env.DB._db.prepare("SELECT aiMessages FROM ai_usage WHERE userId='u1' AND period='2026-08'").get().aiMessages, 1)
+  assert.equal(env.DB._db.prepare("SELECT x20Actions FROM x20_ai_usage WHERE userId='u1' AND period='2026-08'").get().x20Actions, 1)
 
   const attempts = []
   for (let i = 0; i < 3; i++) {
@@ -65,7 +65,7 @@ async function run() {
   const fresh = dbEnv()
   const ids = await Promise.all(Array.from({ length: 100 }, () => startX20Action(fresh, { startRequestId: "11111111-1111-4111-8111-111111111111", userId: "parallel", period, planLimit: 50, now })))
   assert.equal(new Set(ids.map((x) => x.actionId)).size, 1)
-  assert.equal(fresh.DB._db.prepare("SELECT aiMessages FROM ai_usage WHERE userId='parallel' AND period='2026-08'").get().aiMessages, 1)
+  assert.equal(fresh.DB._db.prepare("SELECT x20Actions FROM x20_ai_usage WHERE userId='parallel' AND period='2026-08'").get().x20Actions, 1)
   await finishX20Attempt(env, { attemptId: attempts[0].attemptId, actionId: action.actionId, status: "failed", now })
   env.close(); fresh.close()
   console.log("X20 accounting executable audit: PASS")

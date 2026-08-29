@@ -255,6 +255,11 @@ async function readAIUsage(
     : 0;
 }
 
+async function readX20Usage(env, userId, period) {
+  const row = await env.DB.prepare(`SELECT x20Actions FROM x20_ai_usage WHERE userId = ?1 AND period = ?2 LIMIT 1`).bind(userId, period).first();
+  return Number.isFinite(Number(row?.x20Actions)) ? Number(row.x20Actions) : 0;
+}
+
 function getPublicAppUrl(
   request,
   env
@@ -1670,6 +1675,8 @@ export default {
             period
           );
 
+        const x20Actions = await readX20Usage(env, user.id, period);
+
         return Response.json({
           plan:
             planInfo.plan,
@@ -1680,7 +1687,10 @@ export default {
           aiLimit:
             planInfo.limit,
 
-          period
+          period,
+          x20Actions,
+          x20Limit: planInfo.limit,
+          x20Remaining: Math.max(0, planInfo.limit - x20Actions)
         });
       } catch (error) {
         logFailure("plan_handler_failed", error);
