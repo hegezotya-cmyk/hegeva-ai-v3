@@ -3195,9 +3195,11 @@ QUALITY RULES:
                 if (!body.attemptRequestId) return { reserved: false, reason: "invalid_attempt_request" };
                 x20Attempt = await registerX20Attempt(env, { actionId: x20Action.actionId, attemptRequestId: body.attemptRequestId, userId, period: usagePeriod });
                 if (x20Attempt.duplicate) return { reserved: false, reason: "duplicate_attempt" };
-                if (!x20Attempt.admitted) return { reserved: false, reason: x20Attempt.reason };
+                if (x20Attempt.admitted !== true || x20Attempt.status !== "reserved" || !isX20RequestId(x20Attempt.attemptId)) {
+                  return { reserved: false, reason: x20Attempt.reason || "attempt_cap" };
+                }
                 logX20Lifecycle("x20_attempt_reserved", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber });
-                return { reserved: true, reason: x20Attempt.reason };
+                return { reserved: true, reason: "x20_attempt_reserved" };
               },
               readUsage: (userId, usagePeriod) =>
                 isX20Action ? readAIUsage(env, userId, usagePeriod) : readAssistantUsage(env, userId, usagePeriod),
