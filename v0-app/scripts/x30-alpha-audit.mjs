@@ -10,6 +10,7 @@ const direction=read("lib/x30/domain-visual-intelligence.ts")
 const schemaModule=ts.transpileModule(schema,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText
 const {validateX30Spec}=await import(`data:text/javascript;base64,${Buffer.from(schemaModule).toString("base64")}`)
 assert(schema.includes('X30_SCHEMA_VERSION = "0.1"'),"X30 schema must be versioned")
+assert(fs.readFileSync(new URL("../app/app-studio/x30-alpha/page.tsx", import.meta.url), "utf8").includes("deriveWorkspaceVisualDirection"), "X30 workspace preview must derive direction from bounded summaries")
 assert(schema.includes("x30.unknown_component")&&schema.includes("x30.unsafe_prop"),"X30 must reject unknown nodes and props")
 assert(!renderer.includes("dangerouslySetInnerHTML")&&!renderer.includes("eval("),"X30 renderer must not execute markup or code")
 assert(renderer.includes("validateX30Spec(spec)"),"Renderer must validate before rendering")

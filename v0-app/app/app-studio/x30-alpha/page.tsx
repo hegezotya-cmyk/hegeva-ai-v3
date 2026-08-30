@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Braces, CheckCircle2, FlaskConical, Layers3, Pal
 import { AppShell } from "@/components/app-shell"
 import { SafeX30Renderer } from "@/components/x30/safe-renderer"
 import { pawflowX30Fixture } from "@/lib/x30/fixtures"
+import { deriveWorkspaceVisualDirection } from "@/lib/x30/domain-visual-intelligence"
 import { evaluateVisualQuality } from "@/lib/visual-quality"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { useSession } from "@/lib/auth-client"
@@ -23,7 +24,8 @@ const copy = {
 
 function workspaceSpec(customers: Row[], documents: Row[], expenses: Row[], invoices: Row[], planner: Row[]) {
  const open = planner.filter((item) => !item.done)
- return { version:"0.1" as const, id:"workspace-overview", name:"HEGEVA Workspace", direction:{industry:"Professional services",mood:"calm" as const,density:"balanced" as const,primaryWorkflow:"Plan and complete work",palette:"studio" as const,surface:"structured" as const,typography:"confident" as const,navigation:"workspace" as const,mobilePriority:"Current work and next action",componentPriorities:["workflow","activity","result"]}, nodes:[
+ const direction = deriveWorkspaceVisualDirection({ customerCount:customers.length, documentCount:documents.length, expenseCount:expenses.length, invoiceCount:invoices.length, plannerCount:planner.length })
+ return { version:"0.1" as const, id:"workspace-overview", name:"HEGEVA Workspace", direction, nodes:[
   {id:"welcome",type:"hero" as const,props:{eyebrow:"Live workspace",title:"Your current work at a glance.",description:"A read-only summary from the records saved in this workspace."}},
   {id:"customers",type:"metric" as const,props:{label:"Customers",value:String(customers.length),detail:"Saved workspace records"}},
   {id:"documents",type:"metric" as const,props:{label:"Documents",value:String(documents.length),detail:"Saved workspace records"}},
