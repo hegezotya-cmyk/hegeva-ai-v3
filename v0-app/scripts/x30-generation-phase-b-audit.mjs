@@ -8,6 +8,7 @@ const generation = fs.readFileSync(new URL("../src/x30-generation.js", root), "u
 const adapter = fs.readFileSync(new URL("lib/x30/x30-ai.ts", root), "utf8")
 const migration = fs.readFileSync(new URL("../migrations/0011_x30_generation_accounting.sql", root), "utf8")
 const contract = fs.readFileSync(new URL("lib/x30/generation-contract.ts", root), "utf8")
+const provider = fs.readFileSync(new URL("../src/x30-provider.js", root), "utf8")
 
 assert(index.includes('url.pathname === "/api/x30/generate"'), "dedicated X30 route required")
 assert(index.includes("getLoggedInUser") && index.includes("if (!user)"), "X30 generation must require authentication")
@@ -31,6 +32,9 @@ assert(generation.includes('targetUsers: "bounded-user-summary"') && generation.
 assert(!adapter.includes("fetch(") && !adapter.includes("AI.run") && !adapter.includes("localStorage"), "frontend adapter must remain side-effect free in Phase B")
 assert(!index.includes("setInterval") && !index.includes("queueMicrotask"), "no autonomous loop")
 assert(index.includes("workspaceScope: user.id"), "workspace scope must be server-derived from authenticated user.id")
+const x30Route = index.slice(index.indexOf('url.pathname === "/api/x30/generate"'))
+assert(x30Route.includes("isX30CanaryOwner") && x30Route.indexOf("isX30CanaryOwner") < x30Route.indexOf("startX30Generation"), "owner canary must precede quota reservation")
+assert(provider.includes('X30_PROVIDER_MAX_TOKENS = 1200') && provider.includes('X30_PROVIDER_TIMEOUT_MS = 20_000'), "bounded provider adapter required")
 assert(index.includes("user.id") && !index.includes("workspaceScope: body.workspace"), "client cannot select the workspace scope")
 assert(!index.includes("membership") && !index.includes("organizationId"), "current product must not imply a shared-workspace model")
 assert(workspaceMigration.includes("workspaceLimit") && workspaceMigration.includes("DEFAULT 50"), "workspace defense-in-depth limit must remain explicit")

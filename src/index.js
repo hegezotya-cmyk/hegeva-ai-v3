@@ -8,7 +8,8 @@ import { handleAiChatAdmission } from "./ai-chat-admission.js";
 import { isX20RequestId, registerX20Attempt, startX20Action, finishX20Attempt } from "./x20-ledger.js";
 import { readAssistantUsage, startAssistantOperation, finishAssistantOperation } from "./assistant-quota.js";
 import { isX30OperationId, startX30Generation, finishX30Generation, X30_MONTHLY_LIMIT, X30_WORKSPACE_LIMIT } from "./x30-generation-ledger.js";
-import { validateX30ProviderBrief, x30ProviderEnabled } from "./x30-generation.js";
+import { validateX30ProviderBrief, x30ProviderEnabled, isX30CanaryOwner } from "./x30-generation.js";
+import { invokeX30Provider } from "./x30-provider.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -3345,22 +3346,23 @@ QUALITY RULES:
       try {
         const user = await getLoggedInUser(request, env, ctx);
         if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        if (!isX30CanaryOwner(user, env)) return Response.json({ error: "X30 generation is not currently available." }, { status: 403 });
+        if (!x30ProviderEnabled(env)) return Response.json({ error: "X30 generation is not currently available." }, { status: 503 });
         const body = await request.json();
         const operationId = body?.operationId;
         if (!isX30OperationId(operationId)) return Response.json({ error: "A valid X30 generation operation is required." }, { status: 400 });
         const briefResult = validateX30ProviderBrief(body?.brief);
         if (!briefResult.ok) return Response.json({ error: "The X30 brief could not be validated." }, { status: 400 });
-        if (!x30ProviderEnabled(env)) return Response.json({ error: "X30 generation is not currently available." }, { status: 503 });
-        const planInfo = await getUserPlan(env, user.id);
         const period = getCurrentPeriod();
         const reservation = await startX30Generation(env, { operationId, userId: user.id, workspaceScope: user.id, period, planLimit: X30_MONTHLY_LIMIT, workspaceLimit: X30_WORKSPACE_LIMIT });
         if (!reservation.reserved) {
           const status = reservation.reason === "x30_allowance_exhausted" ? 429 : reservation.reason === "expired_x30_operation" ? 409 : 503;
           return Response.json({ error: status === 429 ? "X30 generation allowance reached." : "X30 generation is not currently available." }, { status });
         }
-        // Provider invocation is intentionally disabled until a separately approved activation.
-        await finishX30Generation(env, { operationId, userId: user.id, status: "rejected" });
-        return Response.json({ error: "X30 generation is not currently available." }, { status: 503 });
+        const provider = await invokeX30Provider(env, { brief: briefResult.brief, operationId, scope: "authenticated" });
+        await finishX30Generation(env, { operationId, userId: user.id, status: provider.ok ? "ready-for-review" : "rejected" });
+        if (!provider.ok) return Response.json({ error: "X30 generation is temporarily unavailable." }, { status: provider.reason === "timeout" ? 504 : 502 });
+        return Response.json(provider.result, { status: 200 });
       } catch {
         return Response.json({ error: "X30 generation is not currently available." }, { status: 503 });
       }
