@@ -81,6 +81,35 @@ export function advanceBrainRun(run: SafeBrainRun, input: BrainTransitionInput):
   }
 }
 
+/** Read-only workspace projection; it intentionally stops at permission. */
+export type WorkspaceMissionProjectionInput = {
+  scope: "authenticated-cloud" | "local-browser"
+  hasRecords: boolean
+  openTasks: number
+  overdueItems: number
+}
+
+export function createWorkspaceMissionProjection(input: WorkspaceMissionProjectionInput): SafeBrainRun {
+  let run = createBrainRun({
+    id: "workspace-mission-projection",
+    correlationId: "workspace-read-only-projection",
+    request: "Review workspace readiness",
+  })
+  for (const stage of ["understand", "spec", "plan", "permission"] as const) {
+    run = advanceBrainRun(run, {
+      stage,
+      safeSummary: stage === "understand"
+        ? input.hasRecords ? "Workspace records available" : "No workspace data available"
+        : stage === "plan"
+          ? input.openTasks > 0 ? "Open work is visible for review" : "No open work is visible"
+          : stage === "permission"
+            ? input.scope === "authenticated-cloud" ? "Awaiting owner approval" : "Local preview; approval required"
+            : "Workspace context reviewed",
+    })
+  }
+  return run
+}
+
 function requireSummary(value: string) {
   const summary = value.trim()
   if (!summary) throw new BrainTransitionError("invalid-summary", "Every Brain transition requires a concise user-safe summary.")

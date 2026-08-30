@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n/provider"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { AICore } from "@/components/visual-engine"
 import { cn } from "@/lib/utils"
+import { createWorkspaceMissionProjection } from "@/lib/foundation/brain-runtime"
 
 type RecordItem={id:string;amount?:number}
 type Task={id:string;due?:string;done:boolean;title?:string}
@@ -32,9 +33,10 @@ export function OperatingCenter(){
  const overdueTasks=open.filter(item=>item.due&&item.due<today).length
  const overdueInvoices=invoices.filter(item=>item.type==="invoice"&&item.status!=="paid"&&item.dueDate&&item.dueDate<today).length
  const hasRecords=customers.length+documents.length+expenses.length+invoices.length>0
+ const missionProjection=createWorkspaceMissionProjection({scope:cloudEnabled?"authenticated-cloud":"local-browser",hasRecords,openTasks:open.length,overdueItems:overdueTasks+overdueInvoices})
  const stages=[{label:c.understand,done:hasRecords,active:!hasRecords},{label:c.plan,done:tasks.length>0,active:hasRecords&&tasks.length===0},{label:c.work,done:tasks.length>0&&open.length===0,active:open.length>0},{label:c.check,done:hasRecords&&overdueTasks+overdueInvoices===0,active:false},{label:c.result,done:hasRecords&&tasks.length>0&&open.length===0&&overdueTasks+overdueInvoices===0,active:false}]
  const completedStages=stages.filter(stage=>stage.done).length
- const currentStage=stages.find(stage=>stage.active)?.label||stages.find(stage=>!stage.done)?.label||c.result
+ const currentStage=missionProjection.stage==="permission"?c.plan:stages.find(stage=>stage.active)?.label||stages.find(stage=>!stage.done)?.label||c.result
  const inventory=[[Users,c.customers,customers.length,"/business/customers"],[FileText,c.documents,documents.length,"/business/documents"],[Receipt,c.expenses,expenses.length,"/business/expenses"],[ListChecks,c.invoices,invoices.length,"/business/invoices"],[MessageSquareText,c.messages,messages.length,"/business/messages"]] as const
  return <section className="mt-8 overflow-hidden border-y border-border bg-background/35">
   <div className="control-room-head"><div><p className="ve-eyebrow">{c.eyebrow}</p><h2>{c.title}</h2><p>{c.sub}</p></div><div className="flex items-center gap-3"><AICore state={syncState==="saving"?"working":syncState==="error"?"warning":"ready"}/><div><strong className="block text-sm">{c.sync}</strong><span className="text-xs capitalize text-muted-foreground">{syncState}</span></div></div></div>
