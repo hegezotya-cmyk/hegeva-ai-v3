@@ -34,6 +34,7 @@ type ModuleDef = {
   desc: string
   status: FeatureStatus
   href: string
+  tone?: "emerald" | "cyan" | "violet" | "gold"
 }
 
 export function CommandCenterView() {
@@ -49,15 +50,15 @@ export function CommandCenterView() {
   const { data: session, isPending } = authClient.useSession()
 
   const modules: ModuleDef[] = [
-    { icon: Users, title: t.capabilities.crm.title, desc: t.capabilities.crm.desc, status: "working", href: "/business/customers" },
-    { icon: FileText, title: t.dashboard.documents, desc: t.capabilities.documents.desc, status: "working", href: "/business/documents" },
-    { icon: FileSpreadsheet, title: t.capabilities.invoices.title, desc: t.capabilities.invoices.desc, status: "working", href: "/business/invoices" },
-    { icon: Receipt, title: t.dashboard.expenses, desc: t.commandCenter.expensesDesc, status: "working", href: "/business/expenses" },
-    { icon: CalendarClock, title: t.commandCenter.planner, desc: t.commandCenter.plannerDesc, status: "working", href: "/business/planner" },
-    { icon: BarChart3, title: t.capabilities.reports.title, desc: t.capabilities.reports.desc, status: "working", href: "/business/reports" },
-    { icon: MessageSquareText, title: t.commandCenter.messageStudio, desc: t.commandCenter.messageDesc, status: "working", href: "/business/messages" },
-    { icon: FolderLock, title: t.commandCenter.vault, desc: t.commandCenter.vaultDesc, status: "working", href: "/business/vault" },
-    { icon: Wrench, title: t.commandCenter.tools, desc: t.commandCenter.toolsDesc, status: "working", href: "/business/tools" },
+    { icon: Users, title: t.capabilities.crm.title, desc: t.capabilities.crm.desc, status: "working", href: "/business/customers", tone: "emerald" },
+    { icon: FileText, title: t.dashboard.documents, desc: t.capabilities.documents.desc, status: "working", href: "/business/documents", tone: "gold" },
+    { icon: FileSpreadsheet, title: t.capabilities.invoices.title, desc: t.capabilities.invoices.desc, status: "working", href: "/business/invoices", tone: "cyan" },
+    { icon: Receipt, title: t.dashboard.expenses, desc: t.commandCenter.expensesDesc, status: "working", href: "/business/expenses", tone: "cyan" },
+    { icon: CalendarClock, title: t.commandCenter.planner, desc: t.commandCenter.plannerDesc, status: "working", href: "/business/planner", tone: "violet" },
+    { icon: BarChart3, title: t.capabilities.reports.title, desc: t.capabilities.reports.desc, status: "working", href: "/business/reports", tone: "cyan" },
+    { icon: MessageSquareText, title: t.commandCenter.messageStudio, desc: t.commandCenter.messageDesc, status: "working", href: "/business/messages", tone: "emerald" },
+    { icon: FolderLock, title: t.commandCenter.vault, desc: t.commandCenter.vaultDesc, status: "working", href: "/business/vault", tone: "gold" },
+    { icon: Wrench, title: t.commandCenter.tools, desc: t.commandCenter.toolsDesc, status: "working", href: "/business/tools", tone: "violet" },
   ]
   const aiModules: ModuleDef[] = [
     {icon:Bot,title:copy.assistantTitle,desc:copy.assistantDesc,status:"working",href:"/assistant"},
@@ -82,8 +83,10 @@ export function CommandCenterView() {
 
       <SectionHeading className="mt-16" eyebrow={layers.operations} title={copy.businessModules} action={<Link href="/pricing" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-2")}>{layers.pricing}</Link>} />
       <div className="operation-index mt-4">
-        {modules.map(({ icon: Icon, title, desc, status, href }) => (
-          <Link key={title} href={href}><span><Icon aria-hidden /></span><div><h3>{title}</h3><p>{desc}</p></div><StatusBadge status={status} />
+        {modules.map(({ icon: Icon, title, desc, status, href, tone }) => (
+          <Link key={title} href={href} className={`operation-card operation-card-${tone}`}>
+            <div className="operation-card-head"><span className="operation-card-icon"><Icon aria-hidden /></span><StatusBadge status={status} /></div>
+            <div className="operation-card-copy"><h3>{title}</h3><p>{desc}</p></div>
           </Link>
         ))}
       </div>
