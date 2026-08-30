@@ -9,6 +9,7 @@ import { authClient } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { AICore, IntelligenceCard, SkeletonSurface } from "@/components/visual-engine"
+import { createCompanionProjection, createWorkspacePulseProjection } from "@/lib/foundation/roadmap-foundations"
 
 type ChatMessage = {
   role: "user" | "assistant"
@@ -111,7 +112,7 @@ export function AssistantChat() {
   const { locale, t } = useI18n()
   const p=partnerCopy[locale]
   const { data: session, isPending } = authClient.useSession()
-  const { items: messages, setItems: setMessages, syncState } = useWorkspaceData<ChatMessage>("assistant_history")
+  const { items: messages, setItems: setMessages, syncState, cloudEnabled } = useWorkspaceData<ChatMessage>("assistant_history")
   const {items:customers}=useWorkspaceData<{id:string}>("customers")
   const {items:tasks}=useWorkspaceData<{id:string;done:boolean}>("planner")
   const {items:documents}=useWorkspaceData<{id:string}>("documents")
@@ -127,6 +128,9 @@ export function AssistantChat() {
     () => messages.slice(-10),
     [messages]
   )
+  const workspaceHasRecords = customers.length + tasks.length + documents.length > 0
+  const pulse = createWorkspacePulseProjection({ scope: cloudEnabled ? "authenticated-cloud" : "local-browser", hasRecords: workspaceHasRecords, openTasks: tasks.filter((item) => !item.done).length, missionState: "awaiting-approval" })
+  const companion = createCompanionProjection({ pulse, scope: cloudEnabled ? "authenticated-cloud" : "local-browser", customers: customers.length, openTasks: tasks.filter((item) => !item.done).length, documents: documents.length, suggestions: p.suggestions })
 
   const loadUsage = useCallback(async () => {
     try {
@@ -308,7 +312,7 @@ export function AssistantChat() {
   return (
     <div className="partner-workspace">
       <aside className="partner-context">
-        <div><p className="ve-eyebrow">{p.context}</p><h2>{p.continuity}</h2><p>{p.continuityText}</p></div>
+        <div><p className="ve-eyebrow">{p.context}</p><h2>{p.continuity}</h2><p>{p.continuityText}</p><small className="text-xs text-muted-foreground">{companion.context.slice(0, 2).join(" · ")}</small></div>
         <dl><div><dt><Users aria-hidden/>{p.customers}</dt><dd>{customers.length}</dd></div><div><dt><ListChecks aria-hidden/>{p.tasks}</dt><dd>{tasks.filter(item=>!item.done).length}</dd></div><div><dt><FileText aria-hidden/>{p.documents}</dt><dd>{documents.length}</dd></div></dl>
         <div className="partner-state"><span/><div><strong>{syncState==="cloud"?t.assistant.synced:syncState==="saving"?t.assistant.saving:t.assistant.loading}</strong><small>{usage?`${usage.plan} · ${usage.aiMessages}/${usage.aiLimit}`:"HEGEVA workspace"}</small></div></div>
       </aside>
@@ -334,7 +338,7 @@ export function AssistantChat() {
 
       <div className="partner-thread">
         {messages.length === 0 ? (
-          <div className="partner-empty"><Sparkles aria-hidden/><p className="ve-eyebrow">{p.start}</p><h3>{p.empty}</h3><div>{p.suggestions.map(suggestion=><button key={suggestion} type="button" onClick={()=>setMessage(suggestion)}>{suggestion}<ArrowUp aria-hidden/></button>)}</div></div>
+          <div className="partner-empty"><Sparkles aria-hidden/><p className="ve-eyebrow">{p.start}</p><h3>{p.empty}</h3><div>{companion.suggestions.map(suggestion=><button key={suggestion} type="button" onClick={()=>setMessage(suggestion)}>{suggestion}<ArrowUp aria-hidden/></button>)}</div></div>
         ) : (
           messages.map((item, index) => (
             <article key={`${item.role}-${index}`} className={item.role === "user"?"partner-message is-user":"partner-message is-hegeva"}><header><span>{item.role==="user"?p.you:p.hegeva}</span><small>{String(index+1).padStart(2,"0")}</small></header><div>

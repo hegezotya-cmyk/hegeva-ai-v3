@@ -28,6 +28,32 @@ export function createWorkspacePulseProjection(input: WorkspacePulseProjectionIn
 export interface CompanionProfile { name:"HEGEVA"; role:"working-partner"; tone:"clear"|"calm"|"direct"; initiative:"suggest"|"ask-first"; mayImpersonateHuman:false; mayInferEmotion:false }
 export const DEFAULT_COMPANION:CompanionProfile={name:"HEGEVA",role:"working-partner",tone:"clear",initiative:"suggest",mayImpersonateHuman:false,mayInferEmotion:false}
 
+export type CompanionProjectionInput = {
+  pulse: Pick<PulseBrief, "understood" | "continuity" | "needsUser">
+  scope: "authenticated-cloud" | "local-browser"
+  customers: number
+  openTasks: number
+  documents: number
+  suggestions: readonly string[]
+}
+export type CompanionProjection = {
+  context: readonly string[]
+  suggestions: readonly string[]
+  scope: CompanionProjectionInput["scope"]
+  userControlled: true
+}
+
+/** Bounded Companion context; it accepts only safe Pulse text and aggregate counts. */
+export function createCompanionProjection(input: CompanionProjectionInput): CompanionProjection {
+  const safe = (value: string) => value.trim().slice(0, 120)
+  return {
+    context: [safe(input.pulse.understood), ...input.pulse.continuity.slice(0, 3).map(safe), input.pulse.needsUser ? safe(input.pulse.needsUser) : ""].filter(Boolean),
+    suggestions: input.suggestions.slice(0, 3).map(safe).filter(Boolean),
+    scope: input.scope,
+    userControlled: true,
+  }
+}
+
 export type MissionRuntimeState="draft"|"awaiting-approval"|"ready"|"executing"|"verifying"|"completed"|"failed"|"cancelled"
 export interface MissionRuntime { id:string; ownerUserId:string; workspaceId:string; goal:string; state:MissionRuntimeState; approval:"pending"|"approved"|"rejected"; artifactIds:readonly string[]; safeSummary:string }
 export function nextMissionState(mission:MissionRuntime,next:MissionRuntimeState):MissionRuntime{const allowed:Record<MissionRuntimeState,readonly MissionRuntimeState[]>={draft:["awaiting-approval","cancelled"],"awaiting-approval":["ready","cancelled"],ready:["executing","cancelled"],executing:["verifying","failed","cancelled"],verifying:["completed","failed"],completed:[],failed:["ready","cancelled"],cancelled:[]};if(!allowed[mission.state].includes(next))throw new Error("mission-transition-denied");if(["ready","executing"].includes(next)&&mission.approval!=="approved")throw new Error("mission-approval-required");return{...mission,state:next,safeSummary:`Mission ${next}`}}
