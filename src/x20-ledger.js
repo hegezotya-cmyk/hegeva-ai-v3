@@ -31,9 +31,11 @@ export async function registerX20Attempt(env, { actionId, attemptRequestId, user
   const existing = await env.DB.prepare(`SELECT attemptId, attemptNumber, status FROM x20_provider_attempts WHERE actionId = ?1 AND attemptRequestId = ?2 AND userId = ?3 AND period = ?4 LIMIT 1`).bind(actionId, attemptRequestId, userId, period).first()
   if (existing) return { ...existing, admitted: existing.status === "reserved", duplicate: true }
   try {
-    const result = await env.DB.prepare(`INSERT INTO x20_provider_attempts (attemptId,attemptRequestId,actionId,userId,period,attemptNumber,status,createdAt,updatedAt) SELECT ?1,?2,?3,?4,?5,COALESCE(MAX(attemptNumber),0)+1,'reserved',?6,?6 FROM x20_provider_attempts WHERE actionId = ?3 AND userId = ?4 AND period = ?5 HAVING COALESCE(MAX(attemptNumber),0) < 3`).bind(attemptId, attemptRequestId, actionId, userId, period, createdAt).run()
-    if (Number(result?.meta?.changes || 0) !== 1) return { admitted: false, reason: "attempt_cap" }
-    return { attemptId, attemptNumber: Number((await env.DB.prepare(`SELECT attemptNumber FROM x20_provider_attempts WHERE attemptId = ?1`).bind(attemptId).first())?.attemptNumber || 0), status: "reserved", admitted: true, duplicate: false }
+    await env.DB.prepare(`INSERT INTO x20_provider_attempts (attemptId,attemptRequestId,actionId,userId,period,attemptNumber,status,createdAt,updatedAt) SELECT ?1,?2,?3,?4,?5,COALESCE(MAX(attemptNumber),0)+1,'reserved',?6,?6 FROM x20_provider_attempts WHERE actionId = ?3 AND userId = ?4 AND period = ?5 HAVING COALESCE(MAX(attemptNumber),0) < 3`).bind(attemptId, attemptRequestId, actionId, userId, period, createdAt).run()
+    const persisted = await env.DB.prepare(`SELECT attemptId, attemptNumber, status FROM x20_provider_attempts WHERE attemptId = ?1 AND actionId = ?2 AND userId = ?3 AND period = ?4 LIMIT 1`).bind(attemptId, actionId, userId, period).first()
+    const attemptNumber = Number(persisted?.attemptNumber)
+    if (!persisted || persisted.status !== "reserved" || !isX20RequestId(persisted.attemptId) || !Number.isInteger(attemptNumber) || attemptNumber < 1 || attemptNumber > 3) return { admitted: false, reason: "attempt_cap" }
+    return { attemptId: persisted.attemptId, attemptNumber, status: "reserved", admitted: true, duplicate: false }
   } catch {
     const retry = await env.DB.prepare(`SELECT attemptId, attemptNumber, status FROM x20_provider_attempts WHERE actionId = ?1 AND attemptRequestId = ?2 AND userId = ?3 AND period = ?4 LIMIT 1`).bind(actionId, attemptRequestId, userId, period).first()
     return retry ? { ...retry, admitted: retry.status === "reserved", duplicate: true } : { admitted: false, reason: "action_unavailable" }

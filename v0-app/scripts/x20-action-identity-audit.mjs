@@ -42,4 +42,17 @@ assert.equal(attempt.admitted, true)
 assert.equal(db.prepare("SELECT userReserved, providerCalls, status FROM x20_request_ledger WHERE actionId=?").get(action.actionId).providerCalls, 1)
 assert.equal(db.prepare("SELECT status FROM x20_request_ledger WHERE actionId=?").get(action.actionId).status, "active")
 db.close(); rmSync(dir, { recursive: true, force: true })
-console.log("X20 action identity audit passed: new server action shape accepted and existing identity checks remain guarded")
+const persistedAttempt = { attemptId: uuid(), attemptNumber: 1, status: "reserved" }
+const d1Compatible = {
+  prepare(sql) {
+    return { bind() {
+      return {
+        async run() { return { meta: { changes: 0 } } },
+        async first() { return sql.includes("WHERE attemptId = ?1 AND actionId") ? persistedAttempt : null },
+      }
+    } }
+  },
+}
+const normalized = await registerX20Attempt({ DB: d1Compatible }, { actionId: uuid(), attemptRequestId: uuid(), userId: "u1", period, now })
+assert.deepEqual(normalized, { ...persistedAttempt, admitted: true, duplicate: false })
+console.log("X20 action identity audit passed: new server action shape and D1-compatible attempt normalization")
