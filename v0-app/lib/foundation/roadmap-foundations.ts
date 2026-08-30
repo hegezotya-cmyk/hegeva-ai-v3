@@ -2,6 +2,29 @@ export type PulseContext = { userId:string; workspaceId:string; projectId?:strin
 export type PulseBrief = { understood:string; continuity:readonly string[]; needsUser?:string; nextActions:readonly string[] }
 export function createPulseBrief(context:PulseContext):PulseBrief{return{understood:context.currentGoal?.trim()||"No active goal has been selected.",continuity:[context.projectId&&"Project context available",context.lastArtifactId&&"Previous artifact available",context.approvedMemoryIds.length&&`${context.approvedMemoryIds.length} approved memories available`].filter(Boolean) as string[],needsUser:context.currentGoal?undefined:"Choose the work you want to continue.",nextActions:context.currentGoal?["Review current state","Continue the next verified step"]:["Open a workspace","Start a mission"]}}
 
+export type WorkspacePulseProjectionInput = {
+  scope: "authenticated-cloud" | "local-browser"
+  hasRecords: boolean
+  openTasks: number
+  missionState: MissionRuntimeState
+}
+
+/** Deterministic, bounded continuity derived from already-scoped workspace state. */
+export function createWorkspacePulseProjection(input: WorkspacePulseProjectionInput): PulseBrief {
+  const local = input.scope === "local-browser"
+  const continuity = [
+    local ? "Local workspace" : "Authenticated workspace",
+    input.hasRecords ? "Workspace records available" : "No workspace data available",
+    input.missionState === "awaiting-approval" ? "Mission awaiting approval" : "Mission context available",
+  ]
+  return {
+    understood: input.hasRecords ? "Workspace continuity is ready for review." : "No workspace data available.",
+    continuity,
+    needsUser: input.missionState === "awaiting-approval" ? "Review and approve the next mission step." : undefined,
+    nextActions: input.openTasks > 0 ? ["Review open work", "Open the planner"] : ["Review current state", "Choose the next step"],
+  }
+}
+
 export interface CompanionProfile { name:"HEGEVA"; role:"working-partner"; tone:"clear"|"calm"|"direct"; initiative:"suggest"|"ask-first"; mayImpersonateHuman:false; mayInferEmotion:false }
 export const DEFAULT_COMPANION:CompanionProfile={name:"HEGEVA",role:"working-partner",tone:"clear",initiative:"suggest",mayImpersonateHuman:false,mayInferEmotion:false}
 

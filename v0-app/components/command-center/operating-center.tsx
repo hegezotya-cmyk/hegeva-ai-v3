@@ -7,6 +7,7 @@ import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { AICore } from "@/components/visual-engine"
 import { cn } from "@/lib/utils"
 import { createWorkspaceMissionProjection } from "@/lib/foundation/brain-runtime"
+import { createWorkspacePulseProjection } from "@/lib/foundation/roadmap-foundations"
 
 type RecordItem={id:string;amount?:number}
 type Task={id:string;due?:string;done:boolean;title?:string}
@@ -34,6 +35,7 @@ export function OperatingCenter(){
  const overdueInvoices=invoices.filter(item=>item.type==="invoice"&&item.status!=="paid"&&item.dueDate&&item.dueDate<today).length
  const hasRecords=customers.length+documents.length+expenses.length+invoices.length>0
  const missionProjection=createWorkspaceMissionProjection({scope:cloudEnabled?"authenticated-cloud":"local-browser",hasRecords,openTasks:open.length,overdueItems:overdueTasks+overdueInvoices})
+ const pulse=createWorkspacePulseProjection({scope:cloudEnabled?"authenticated-cloud":"local-browser",hasRecords,openTasks:open.length,missionState:"awaiting-approval"})
  const stages=[{label:c.understand,done:hasRecords,active:!hasRecords},{label:c.plan,done:tasks.length>0,active:hasRecords&&tasks.length===0},{label:c.work,done:tasks.length>0&&open.length===0,active:open.length>0},{label:c.check,done:hasRecords&&overdueTasks+overdueInvoices===0,active:false},{label:c.result,done:hasRecords&&tasks.length>0&&open.length===0&&overdueTasks+overdueInvoices===0,active:false}]
  const completedStages=stages.filter(stage=>stage.done).length
  const currentStage=missionProjection.stage==="permission"?c.plan:stages.find(stage=>stage.active)?.label||stages.find(stage=>!stage.done)?.label||c.result
@@ -42,7 +44,7 @@ export function OperatingCenter(){
   <div className="control-room-head"><div><p className="ve-eyebrow">{c.eyebrow}</p><h2>{c.title}</h2><p>{c.sub}</p></div><div className="flex items-center gap-3"><AICore state={syncState==="saving"?"working":syncState==="error"?"warning":"ready"}/><div><strong className="block text-sm">{c.sync}</strong><span className="text-xs capitalize text-muted-foreground">{syncState}</span></div></div></div>
   <div className="control-room-grid">
    <article className="mission-surface"><header><div><p>{c.mission}</p><h3>{c.goal}</h3></div><span>01</span></header><div className="mission-body"><div className="mission-core-visual" style={{background:`conic-gradient(var(--gold) ${completedStages*72}deg,oklch(.82 .13 85/.07) 0)`}}><div><AICore state={completedStages===stages.length?"completed":open.length?"working":"ready"}/><small>{currentStage}</small><strong>{completedStages}/{stages.length}</strong></div></div><ol>{stages.map((stage,index)=><li key={stage.label} className={cn(stage.done&&"is-done",stage.active&&"is-active")}><span>{stage.done?<Check aria-hidden/>:stage.active?<span className="mission-current"/>:<Circle aria-hidden/>}</span><div><b>{stage.label}</b><small>{index+1} / {stages.length}</small></div></li>)}</ol></div></article>
-   <article className="current-work"><header><p>{c.current}</p><Link href="/business/planner">{c.openPlanner}<ArrowUpRight aria-hidden/></Link></header>{open.length?<div>{open.slice(0,4).map((task,index)=><div key={task.id}><span>{String(index+1).padStart(2,"0")}</span><p>{task.title||`${c.current} ${index+1}`}</p><time>{task.due||"—"}</time></div>)}</div>:<div className="current-empty"><Check className="size-5 text-primary"/><p>{c.empty}</p></div>}
+   <article className="current-work"><header><div><p>{c.current}</p><span className="text-xs text-muted-foreground">{pulse.understood}</span></div><Link href="/business/planner">{c.openPlanner}<ArrowUpRight aria-hidden/></Link></header>{open.length?<div>{open.slice(0,4).map((task,index)=><div key={task.id}><span>{String(index+1).padStart(2,"0")}</span><p>{task.title||`${c.current} ${index+1}`}</p><time>{task.due||"—"}</time></div>)}</div>:<div className="current-empty"><Check className="size-5 text-primary"/><p>{c.empty}</p></div>}
     <footer className={cn(overdueTasks+overdueInvoices&&"has-alert")}><AlertTriangle aria-hidden/><span>{overdueTasks+overdueInvoices?`${overdueTasks+overdueInvoices} · ${c.attention}`:c.clear}</span></footer></article>
   </div>
   <div className="inventory-strip"><p>{c.inventory}</p>{inventory.map(([Icon,label,value,href])=><Link key={label} href={href}><Icon aria-hidden/><span>{label}</span><strong>{value}</strong></Link>)}<span className="ml-auto hidden items-center gap-2 text-xs text-muted-foreground xl:flex"><Cloud className="size-3.5"/>{cloudEnabled ? c.cloud : c.local}</span></div>
