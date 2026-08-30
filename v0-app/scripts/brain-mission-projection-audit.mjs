@@ -5,11 +5,14 @@ import ts from "typescript"
 const source = fs.readFileSync(new URL("../lib/foundation/brain-runtime.ts", import.meta.url), "utf8")
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText
 const { createWorkspaceMissionProjection, advanceBrainRun, BrainTransitionError } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`)
+assert(source.includes("export type WorkspaceMissionProjection = SafeBrainRun"), "Mission projection must have an explicit SafeBrainRun-based return contract")
 
 for (const scope of ["authenticated-cloud", "local-browser"]) {
   const projection = createWorkspaceMissionProjection({ scope, hasRecords: true, openTasks: 1, overdueItems: 0 })
   assert.equal(projection.stage, "permission")
   assert.equal(projection.permission, "pending")
+  assert.equal(typeof projection.safeSummary, "string")
+  assert.equal(typeof projection.needsUser, "string")
   assert.match(projection.safeSummary, /approval|required/i)
   assert.throws(() => advanceBrainRun(projection, { stage: "model", safeSummary: "should not execute" }), (error) => error instanceof BrainTransitionError && error.code === "approval-required")
 }

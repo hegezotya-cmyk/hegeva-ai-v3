@@ -89,7 +89,12 @@ export type WorkspaceMissionProjectionInput = {
   overdueItems: number
 }
 
-export function createWorkspaceMissionProjection(input: WorkspaceMissionProjectionInput): SafeBrainRun {
+export type WorkspaceMissionProjection = SafeBrainRun & {
+  safeSummary: string
+  needsUser?: string
+}
+
+export function createWorkspaceMissionProjection(input: WorkspaceMissionProjectionInput): WorkspaceMissionProjection {
   let run = createBrainRun({
     id: "workspace-mission-projection",
     correlationId: "workspace-read-only-projection",
@@ -107,7 +112,7 @@ export function createWorkspaceMissionProjection(input: WorkspaceMissionProjecti
             : "Workspace context reviewed",
     })
   }
-  return run
+  return { ...run, needsUser: "Review and approve the next mission step." }
 }
 
 function requireSummary(value: string) {
