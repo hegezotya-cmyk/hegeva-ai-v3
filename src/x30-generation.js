@@ -33,8 +33,8 @@ export function x30ProviderEnabled(env) { return env?.X30_GENERATION_ENABLED ===
 
 export function isX30CanaryOwner(user, env) {
   const userEmail = typeof user?.email === "string" ? user.email.trim().toLowerCase() : ""
-  const adminEmail = typeof env?.ADMIN_EMAIL === "string" ? env.ADMIN_EMAIL.trim().toLowerCase() : ""
-  return Boolean(userEmail && adminEmail && userEmail === adminEmail)
+  const canaryEmail = typeof env?.X30_CANARY_EMAIL === "string" ? env.X30_CANARY_EMAIL.trim().toLowerCase() : ""
+  return Boolean(userEmail && canaryEmail && canaryEmail.includes("@") && userEmail === canaryEmail)
 }
 
 export function validateX30ProviderEnvelope(value, validateSpec) {

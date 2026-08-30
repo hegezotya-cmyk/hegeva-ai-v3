@@ -34,6 +34,8 @@ assert(!index.includes("setInterval") && !index.includes("queueMicrotask"), "no 
 assert(index.includes("workspaceScope: user.id"), "workspace scope must be server-derived from authenticated user.id")
 const x30Route = index.slice(index.indexOf('url.pathname === "/api/x30/generate"'))
 assert(x30Route.includes("isX30CanaryOwner") && x30Route.indexOf("isX30CanaryOwner") < x30Route.indexOf("startX30Generation"), "owner canary must precede quota reservation")
+assert(x30Route.includes("X30_CANARY_EMAIL") || generation.includes("X30_CANARY_EMAIL"), "dedicated X30 canary secret required")
+assert(!x30Route.includes("ADMIN_EMAIL"), "X30 route must not reuse the shared admin secret")
 assert(provider.includes('X30_PROVIDER_MAX_TOKENS = 1200') && provider.includes('X30_PROVIDER_TIMEOUT_MS = 20_000'), "bounded provider adapter required")
 assert(index.includes("user.id") && !index.includes("workspaceScope: body.workspace"), "client cannot select the workspace scope")
 assert(!index.includes("membership") && !index.includes("organizationId"), "current product must not imply a shared-workspace model")

@@ -12,8 +12,11 @@ const route = index.slice(index.indexOf('url.pathname === "/api/x30/generate"'))
 assert(route.includes("isX30CanaryOwner") && route.indexOf("isX30CanaryOwner") < route.indexOf("startX30Generation"), "canary must precede reservation")
 assert(route.indexOf("startX30Generation") < route.indexOf("invokeX30Provider"), "reservation must precede provider")
 assert(generation.includes('env?.X30_GENERATION_ENABLED === "enabled"'), "kill switch must require exact enabled value")
-assert.equal(isX30CanaryOwner({ email: " Owner@Example.test " }, { ADMIN_EMAIL: "owner@example.test" }), true)
-assert.equal(isX30CanaryOwner({ email: "other@example.test" }, { ADMIN_EMAIL: "owner@example.test" }), false)
+assert.equal(isX30CanaryOwner({ email: " Owner@Example.test " }, { X30_CANARY_EMAIL: "owner@example.test" }), true)
+assert.equal(isX30CanaryOwner({ email: "other@example.test" }, { X30_CANARY_EMAIL: "owner@example.test" }), false)
+assert.equal(isX30CanaryOwner({ email: "owner@example.test" }, { ADMIN_EMAIL: "owner@example.test" }), false)
+assert.equal(isX30CanaryOwner({ email: "owner@example.test" }, { X30_CANARY_EMAIL: "" }), false)
+assert.equal(isX30CanaryOwner({ email: "owner@example.test" }, { X30_CANARY_EMAIL: "not-an-email" }), false)
 assert.equal(isX30CanaryOwner({ email: "owner@example.test" }, {}), false)
 assert.equal(X30_PROVIDER_MODEL, "@cf/meta/llama-3.1-8b-instruct-fast")
 assert.equal(X30_PROVIDER_MAX_TOKENS, 1200)
@@ -22,6 +25,7 @@ assert(provider.includes("temperature: 0.1") && provider.includes("stream: false
 assert(!provider.includes("retry") && !provider.includes("repair") && !provider.includes("fetch("), "no retry, repair or fetch path")
 assert(!provider.includes("dangerouslySetInnerHTML") && !provider.includes("new Function") && !provider.includes("dynamic import"), "no executable output path")
 assert(!page.includes("/api/x30/generate") && !page.includes("fetch("), "frontend must not invoke the provider in Phase C")
+assert(generation.includes("X30_CANARY_EMAIL") && !generation.includes("ADMIN_EMAIL"), "X30 canary must use its dedicated secret")
 
 const operationId = "00000000-0000-4000-8000-000000000001"
 const brief = { domain: "professional-services", targetUsers: "bounded-user-summary", primaryGoal: "bounded-goal-summary", requiredPages: ["Overview"], requiredCapabilities: ["records"], visualDirection: "professional", language: "en", dataSensitivity: "internal", deploymentIntent: "preview-only" }
