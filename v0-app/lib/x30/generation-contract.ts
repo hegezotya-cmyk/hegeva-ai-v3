@@ -44,6 +44,16 @@ export type X30GenerationResult = {
   executionState: "not-started"
 }
 
+export type X30GenerationRejectionCode =
+  | "RESPONSE_NOT_OBJECT"
+  | "RESULT_CONTRACT_INVALID"
+  | "SPEC_INVALID"
+  | "PROVENANCE_INVALID"
+  | "SCOPE_INVALID"
+  | "OPERATION_METADATA_INVALID"
+  | "SAFE_RENDER_REJECTED"
+
+
 type Validation = { ok: true } | { ok: false; errors: string[] }
 const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value) && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)
 const text = (value: unknown) => typeof value === "string" ? value.normalize("NFKC").trim() : ""
@@ -107,6 +117,25 @@ export function validateX30GenerationResult(value: unknown): Validation & { resu
   if (value.executionState !== "not-started") errors.push("x30.generation.invalid_execution_state")
   if (errors.length === 0 && utf8Bytes(value) > X30_GENERATION_REQUEST_MAX_BYTES) errors.push("x30.generation.result_too_large")
   return errors.length ? { ok: false, errors: [...new Set(errors)] } : { ok: true, result: value as X30GenerationResult }
+}
+
+/** Returns only a fixed diagnostic code; payload values and validator details never leave this boundary. */
+export function classifyX30GenerationResult(value: unknown): X30GenerationRejectionCode | null {
+  if (!isRecord(value)) return "RESPONSE_NOT_OBJECT"
+  const checked = validateX30GenerationResult(value)
+  if (!checked.ok) {
+    if (checked.errors.some((error) => error.includes("invalid_spec") || error.includes("missing_spec") || error.includes("result_too_large"))) return "SPEC_INVALID"
+    if (checked.errors.some((error) => error.includes("provenance"))) return "PROVENANCE_INVALID"
+    if (checked.errors.some((error) => error.includes("scope"))) return "SCOPE_INVALID"
+    if (checked.errors.some((error) => error.includes("operation") || error.includes("attempt"))) return "OPERATION_METADATA_INVALID"
+    return "RESULT_CONTRACT_INVALID"
+  }
+  if (!checked.result) return "RESULT_CONTRACT_INVALID"
+  if (checked.result.status !== "ready-for-review") return "RESULT_CONTRACT_INVALID"
+  if (checked.result.provenance.source !== "x30-ai" || checked.result.provenance.mode !== "preview-only") return "PROVENANCE_INVALID"
+  if (checked.result.provenance.scope !== "authenticated") return "SCOPE_INVALID"
+  if (!checked.result.spec) return "SPEC_INVALID"
+  return null
 }
 
 const LABELS = { en: { eyebrow: "Preview only", title: "Structured workspace preview", description: "A safe local simulation.", customers: "Customers", documents: "Documents", expenses: "Expenses", invoices: "Invoices", records: "Workspace records", schedule: "Schedule", noValue: "—", plannerItem: "Open planner item" }, hu: { eyebrow: "Csak előnézet", title: "Strukturált munkaterületi előnézet", description: "Biztonságos helyi szimuláció.", customers: "Ügyfelek", documents: "Dokumentumok", expenses: "Kiadások", invoices: "Számlák", records: "Munkaterületi rekordok", schedule: "Ütemezés", noValue: "—", plannerItem: "Nyitott tervezési elem" }, de: { eyebrow: "Nur Vorschau", title: "Strukturierte Workspace-Vorschau", description: "Eine sichere lokale Simulation.", customers: "Kunden", documents: "Dokumente", expenses: "Ausgaben", invoices: "Rechnungen", records: "Workspace-Datensätze", schedule: "Planung", noValue: "—", plannerItem: "Offenes Planungselement" }, fr: { eyebrow: "Aperçu uniquement", title: "Aperçu structuré de l’espace", description: "Une simulation locale sûre.", customers: "Clients", documents: "Documents", expenses: "Dépenses", invoices: "Factures", records: "Enregistrements de l’espace", schedule: "Planning", noValue: "—", plannerItem: "Élément de planning ouvert" }, es: { eyebrow: "Solo vista previa", title: "Vista previa estructurada del espacio", description: "Una simulación local segura.", customers: "Clientes", documents: "Documentos", expenses: "Gastos", invoices: "Facturas", records: "Registros del espacio", schedule: "Planificación", noValue: "—", plannerItem: "Elemento de planificación abierto" } } as const
