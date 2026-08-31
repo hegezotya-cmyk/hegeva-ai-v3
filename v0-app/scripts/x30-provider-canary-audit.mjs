@@ -27,7 +27,7 @@ for (const reason of ["provider_failure", "provider_timeout", "missing_response"
 assert(!provider.includes("console.") && !provider.includes("prompt") && !provider.includes("email"), "provider path must not log sensitive data")
 assert(!provider.includes("retry") && !provider.includes("repair") && !provider.includes("fetch("), "no retry, repair or fetch path")
 assert(!provider.includes("dangerouslySetInnerHTML") && !provider.includes("new Function") && !provider.includes("dynamic import"), "no executable output path")
-assert(!page.includes("/api/x30/generate") && !page.includes("fetch("), "frontend must not invoke the provider in Phase C")
+assert(page.includes('fetch("/api/x30/generate"') && page.includes('credentials:"include"') && !page.includes("AI.run") && !page.includes("setInterval"), "frontend must use only the explicit bounded X30 generation request")
 assert(generation.includes("X30_CANARY_EMAIL") && !generation.includes("ADMIN_EMAIL"), "X30 canary must use its dedicated secret")
 
 const operationId = "00000000-0000-4000-8000-000000000001"

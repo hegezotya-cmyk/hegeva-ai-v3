@@ -1,0 +1,29 @@
+import assert from "node:assert/strict"
+import fs from "node:fs"
+
+const root = new URL("../", import.meta.url)
+const page = fs.readFileSync(new URL("app/app-studio/x30-alpha/page.tsx", root), "utf8")
+const contract = fs.readFileSync(new URL("lib/x30/generation-contract.ts", root), "utf8")
+const renderer = fs.readFileSync(new URL("components/x30/safe-renderer.tsx", root), "utf8")
+
+for (const locale of ["en", "hu", "de", "fr", "es"]) assert(page.includes(`${locale}:{`), `locale copy missing: ${locale}`)
+for (const text of ["generate", "generating", "authRequired", "ownerOnly", "disabled", "quota", "conflict", "timeout", "unavailable"]) assert(page.includes(`${text}:`), `safe generation copy missing: ${text}`)
+assert(page.includes('fetch("/api/x30/generate"'), "only the explicit X30 generation endpoint may be called")
+assert(page.includes('credentials:"include"'), "generation request must include authenticated credentials")
+assert(page.includes("crypto.randomUUID()"), "operation identity must be generated client-side for one explicit request")
+assert(page.includes("if(isGenerating||briefState!==\"ready-for-review\") return"), "duplicate or unreviewed submissions must be blocked")
+assert(page.includes("validateX30GenerationResult(payload)"), "server result must be validated before rendering")
+assert(page.includes("checked.result.status!==\"ready-for-review\""), "only ready-for-review results may render")
+assert(page.includes("checked.result.provenance.source!==\"x30-ai\""), "provider provenance must be trusted from the validated result")
+assert(page.includes("generatedSpec || briefSpec || spec"), "validated server spec must feed the existing renderer")
+assert(page.includes("setGeneratedSpec(null)"), "editing or returning to draft must clear the prior generated preview")
+assert(page.includes("disabled={isGenerating||briefState!==\"ready-for-review\"}"), "generate action must expose disabled semantics")
+assert(page.includes("response.status===401") && page.includes("response.status===403") && page.includes("response.status===429") && page.includes("response.status===409") && page.includes("response.status===504") && page.includes("response.status===503"), "safe HTTP states must be mapped without exposing server details")
+assert(!page.includes("response.error") && !page.includes("payload.error") && !page.includes("operationId}</"), "raw diagnostics and operation identity must not be rendered")
+assert(!page.includes("retry") && !page.includes("repair") && !page.includes("setInterval") && !page.includes("setTimeout"), "no retry, repair or background loop may be introduced")
+assert(!page.includes("AI.run") && !page.includes("dangerouslySetInnerHTML") && !page.includes("localStorage") && !page.includes("sessionStorage"), "frontend must not invoke providers or persist data")
+assert(contract.includes("validateX30GenerationResult") && contract.includes("executionState: \"not-started\""), "Phase A result validation and execution boundary remain mandatory")
+assert(renderer.includes("validateX30Spec(spec)"), "SafeX30Renderer validation boundary must remain mandatory")
+assert(page.includes("SafeX30Renderer"), "validated output must use the existing inert renderer")
+
+console.log("X30 Phase D audit passed: explicit authenticated preview request, one-shot loading/error states, validated ready-for-review rendering and preserved inert boundaries")

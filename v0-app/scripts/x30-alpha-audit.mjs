@@ -19,7 +19,7 @@ assert(brief.includes('X30_BRIEF_SCHEMA_VERSION = "0.1"') && brief.includes("X30
 assert(brief.includes("x30.brief.unsafe_key") && brief.includes("x30.brief.duplicate_capability"), "X30 brief validation must fail closed with stable codes")
 assert(brief.includes("brief-preview") && brief.includes("brief-item-${index}"), "brief mapping must use deterministic presentation identifiers")
 assert(!brief.includes("brief.projectName")&&!brief.includes("brief.targetUsers")&&!brief.includes("brief.primaryGoal"), "raw brief text must not enter X30AppSpec")
-assert(!page.includes("fetch(")&&!page.includes("localStorage")&&!page.includes("/api/"), "brief editor must remain client-local with no persistence or server mutation")
+assert(page.includes('fetch("/api/x30/generate"') && page.includes('credentials:"include"') && !page.includes("localStorage") && !page.includes("sessionStorage"), "X30 preview may use only the explicit authenticated generation endpoint without persistence")
 assert(schema.includes("x30.unknown_component")&&schema.includes("x30.unsafe_prop"),"X30 must reject unknown nodes and props")
 assert(!renderer.includes("dangerouslySetInnerHTML")&&!renderer.includes("eval("),"X30 renderer must not execute markup or code")
 assert(renderer.includes("validateX30Spec(spec)"),"Renderer must validate before rendering")

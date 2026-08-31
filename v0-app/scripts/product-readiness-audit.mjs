@@ -30,6 +30,6 @@ for (const type of ["customers", "documents", "expenses", "invoice_documents", "
 assert(/href=\"\/assistant\"/.test(operatingCenter) && /href=\"\/app-studio\/build-my-app-x20\"/.test(operatingCenter), "Operating Center must retain read-only Assistant and App Studio navigation")
 assert(/cloudEnabled/.test(operatingCenter) && /not cloud-synced/.test(operatingCenter), "Operating Center must distinguish cloud and local state")
 assert(/useWorkspaceData/.test(x30Page) && /No workspace data available/.test(x30Page) && /PawFlow/.test(x30Page), "X30 must be workspace-aware with explicit empty and demo states")
-assert(!/fetch\(|reserveAIUsage|startX20Action|setItems\(/.test(x30Page), "X30 page must remain read-only without AI, quota, or mutation calls")
+assert(x30Page.includes('fetch("/api/x30/generate"') && !/reserveAIUsage|startX20Action|setItems\(/.test(x30Page), "X30 page must use only the explicit preview request without quota or mutation calls")
 
 console.log("Product readiness audit passed: editable business records, real invoice reporting, invoice updates, planner completion, and message persistence")

@@ -33,5 +33,5 @@ assert(page.includes('disabled={briefState!=="ready-for-review"}') && page.inclu
 assert(page.includes('setBriefState("draft")') && page.includes("setBriefErrors([])"), "editing must invalidate prior review and preview permission")
 assert(page.includes("flex-wrap") && page.includes("justify-between") && page.includes("shrink-0"), "required-page controls must wrap safely")
 for (const token of ["professional-services", "local-persistence", "owner-approved-preview", "not-started"]) assert(!page.includes(`>${token}<`), "internal enum tokens must not be rendered directly")
-assert(!page.includes("fetch(") && !page.includes("server action") && !page.includes("localStorage"), "brief flow must have no provider, server or persistence path")
+assert(page.includes('fetch("/api/x30/generate"') && !page.includes("server action") && !page.includes("localStorage") && !page.includes("sessionStorage"), "brief flow must use only the explicit preview request without persistence")
 console.log("X30 Brief foundation audit passed: bounded v0.1 contract, deterministic safe mapping, review state and no-provider boundaries")

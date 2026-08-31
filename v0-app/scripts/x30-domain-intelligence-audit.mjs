@@ -18,7 +18,7 @@ assert.deepEqual(finance, deriveWorkspaceVisualDirection({ customerCount: 1, doc
 assert.equal(deriveWorkspaceVisualDirection({ customerCount: -1, documentCount: Number.NaN, expenseCount: 1e9, invoiceCount: 0, plannerCount: 0 }).industry, "Professional services", "invalid or unbounded counts must fall back safely")
 assert(page.includes("deriveWorkspaceVisualDirection"), "X30 page must use the workspace projection")
 assert(page.includes("cloud ? c.cloud : c.local") && page.includes("c.empty"), "cloud/local and empty states must remain explicit")
-assert(!/fetch\(|setItems\(|reserveAIUsage|startX20Action|AI\.run|localStorage\.setItem/.test(page), "X30 page must not add providers, quota or mutation paths")
+assert(!/setItems\(|reserveAIUsage|startX20Action|AI\.run|localStorage\.setItem/.test(page) && page.includes('fetch("/api/x30/generate"'), "X30 page must use only the explicit preview request without mutation paths")
 assert(source.includes("WorkspaceVisualSummary") && source.includes("boundedCount"), "domain projection must consume bounded aggregate summaries")
 assert(!source.includes("email") && !source.includes("userId") && !source.includes("prompt"), "domain projection must not consume identity or private content")
 

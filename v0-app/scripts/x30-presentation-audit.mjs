@@ -21,7 +21,7 @@ for (const legacySurface of ["#f4f1e8", "#fbfaf5", "#d9d6c9", "#e3e0d6"]) assert
 for (const selector of [".x30-app>nav strong", ".x30-app>nav span", ".x30-hero h2", ".x30-metric strong", ".x30-schedule header h3", ".x30-schedule article strong", ".x30-schedule article span", ".x30-schedule svg", ".x30-list h3", ".x30-list strong", ".x30-list small"]) assert(darkLayer.includes(selector), `explicit X30 contrast rule missing: ${selector}`)
 for (const accent of ["var(--gold)", "var(--primary)", "var(--cyan)", "var(--violet)"]) assert(css.includes(accent), `semantic X30 accent missing: ${accent}`)
 assert(/prefers-reduced-motion/.test(css), "reduced-motion support must remain present")
-assert(!page.includes("fetch(") && !page.includes("setItems(") && !page.includes("startX20Action") && !page.includes("reserveAIUsage"), "X30 presentation must remain side-effect free")
+assert(page.includes('fetch("/api/x30/generate"') && !page.includes("setItems(") && !page.includes("startX20Action") && !page.includes("reserveAIUsage"), "X30 presentation must use only the explicit preview request")
 assert(!page.includes("http://") && !page.includes("https://"), "X30 presentation must not add remote assets")
 
 console.log("X30 Presentation audit passed: five-locale boundary labels, privacy-safe aggregate preview, premium dark surfaces and inert renderer")
