@@ -1,7 +1,7 @@
 # HEGEVA Launch Readiness
 
-Status: development complete for this roadmap pass; production deployment blocked
-pending explicit approval and the launch blockers below.
+Status: development complete for this roadmap pass; public launch remains blocked
+pending the owner-controlled live billing gates below.
 
 ## Completed in this pass
 
@@ -27,6 +27,21 @@ pending explicit approval and the launch blockers below.
 - The release preflight now includes the complete product, mobile, billing, and X20
   roadmap audit suite.
 
+## Locally verified safeguards
+
+- Checkout is authenticated, explicitly test-mode, and disabled when billing
+  readiness is incomplete.
+- Live Stripe keys, live prices and live webhook events are rejected by the
+  committed source contracts.
+- Webhook bodies are bounded before signature verification.
+- Verified webhook handling is signature-checked, idempotent and protected against
+  stale event ordering.
+- Entitlements are changed only by verified webhook lifecycle events; browser
+  confirmation cannot grant access.
+- Customer and subscription mappings have durable uniqueness constraints.
+- These checks are local source/audit evidence only and do not prove live billing
+  readiness.
+
 ## Automated gates
 
 - `npm run audit:roadmap`
@@ -34,7 +49,7 @@ pending explicit approval and the launch blockers below.
 - `npm run build`
 - `npm run cf:build`
 
-## Launch blockers
+## Owner-controlled live launch blockers
 
 1. Billing is intentionally restricted to Stripe test mode. Live keys, live recurring
    prices, and a live webhook endpoint must be configured and independently verified
@@ -45,9 +60,12 @@ pending explicit approval and the launch blockers below.
 3. Premium and Pro displayed prices must be reconciled against the exact live Stripe
    recurring Price objects before removing Sandbox messaging.
 4. Production smoke testing happens only after a separately approved deployment.
+5. The owner must independently verify live keys, recurring prices, webhook
+   delivery, lifecycle behavior and payment-provider account readiness before
+   accepting money. Sandbox evidence cannot satisfy this gate.
 
 ## Deployment policy
 
-No production deployment is authorized by this roadmap pass. Ask for explicit user
-approval after all non-deployment checks pass and launch blockers are resolved or
-formally accepted.
+No production launch is authorized by this roadmap pass. Ask for explicit owner
+approval only after the local gates pass and every live blocker is independently
+verified or formally accepted.
