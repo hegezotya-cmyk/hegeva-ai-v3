@@ -27,10 +27,17 @@ export function SiteHeader() {
   const pathname = usePathname()
   const router = useRouter()
   const { data: session, isPending: sessionPending } = authClient.useSession()
+  // Keep the server render and first client render deterministic; auth can
+  // replace the anonymous controls after hydration without a mismatch.
+  const [authHydrated, setAuthHydrated] = useState(false)
   const [studioOpen, setStudioOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const studioRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setAuthHydrated(true)
+  }, [])
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -103,13 +110,13 @@ export function SiteHeader() {
         </div>
         <div className="flex items-center gap-2">
           <LanguageSwitcher className="hidden sm:block" />
-          {!sessionPending && (session?.user ? (
+          {authHydrated && !sessionPending && (session?.user ? (
             <div className="hidden items-center gap-1 sm:flex">
               <Link href="/account" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "gap-2")}><UserRound className="size-4" aria-hidden />{t.nav.account}</Link>
               <button type="button" disabled={loggingOut} onClick={() => void logout()} className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "gap-2 text-muted-foreground disabled:opacity-60")}><LogOut className="size-4" aria-hidden />{t.nav.logout}</button>
             </div>
           ) : <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "hidden sm:inline-flex")}>{t.nav.login}</Link>)}
-          <Link href={session?.user ? "/command-center" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "hidden bg-gold text-gold-foreground hover:bg-gold/90 sm:inline-flex")}>{session?.user ? t.nav.openWorkspace : t.nav.getStarted}</Link>
+          <Link href={authHydrated && session?.user ? "/command-center" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "hidden bg-gold text-gold-foreground hover:bg-gold/90 sm:inline-flex")}>{authHydrated && session?.user ? t.nav.openWorkspace : t.nav.getStarted}</Link>
           <button type="button" onClick={() => setMobileOpen((v) => !v)} aria-label={aria.menu} aria-expanded={mobileOpen} className="inline-flex size-11 items-center justify-center rounded-xl border border-border bg-secondary/60 text-foreground shadow-sm transition-colors hover:border-primary/30 hover:bg-secondary lg:hidden">{mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}</button>
         </div>
       </div>
@@ -125,8 +132,8 @@ export function SiteHeader() {
             <Link href="/contact" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.contact}</Link>
             <div className="mt-3 grid grid-cols-2 items-center gap-2 border-t border-border pt-4">
               <LanguageSwitcher className="col-span-2" />
-              {session?.user ? <button type="button" disabled={loggingOut} onClick={() => void logout()} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1 gap-2 disabled:opacity-60")}><LogOut className="size-4" aria-hidden /> {t.nav.logout}</button> : <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1")}>{t.nav.login}</Link>}
-              <Link href={session?.user ? "/command-center" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "flex-1 bg-gold text-gold-foreground hover:bg-gold/90")}>{session?.user ? t.nav.openWorkspace : t.nav.getStarted}</Link>
+              {authHydrated && session?.user ? <button type="button" disabled={loggingOut} onClick={() => void logout()} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1 gap-2 disabled:opacity-60")}><LogOut className="size-4" aria-hidden /> {t.nav.logout}</button> : <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1")}>{t.nav.login}</Link>}
+              <Link href={authHydrated && session?.user ? "/command-center" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "flex-1 bg-gold text-gold-foreground hover:bg-gold/90")}>{authHydrated && session?.user ? t.nav.openWorkspace : t.nav.getStarted}</Link>
             </div>
           </nav>
         </div>

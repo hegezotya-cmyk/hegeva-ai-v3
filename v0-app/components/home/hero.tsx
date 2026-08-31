@@ -2,11 +2,10 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, MessageSquareText, Sparkles } from "lucide-react"
+import { ArrowRight, MessageSquareText } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { AICore, LiveStatus } from "@/components/visual-engine"
 
 const honestHero = {
   en: { motto:"AI POWERED · HUMAN DRIVEN · RESULTS FOCUSED",subtitle: "One connected operating environment for intelligent assistance, business work and application engineering — built around the HEGEVA systems available today.",status:"CORE READY",signal:"Connected systems" },
@@ -22,15 +21,15 @@ export function Hero() {
 
   return (
     <section className="cinematic-hero relative isolate overflow-hidden">
-      <Image src="/hegeva-hero-background.webp" alt="" fill priority sizes="(max-width: 768px) 1100px, 100vw" className="hero-environment" aria-hidden />
+      <div className="hero-artwork-layer" aria-hidden>
+        <Image src="/hegeva-hero-clean-final-source.png" alt="" fill priority sizes="(min-width: 901px) 62vw, (min-width: 640px) 58vw, 100vw" className="hero-environment" />
+      </div>
       <div className="hero-spectrum" aria-hidden />
       <div className="hero-energy-trail trail-one" aria-hidden />
       <div className="hero-energy-trail trail-two" aria-hidden />
       <div className="hero-particles" aria-hidden>{Array.from({length:14},(_,index)=><i key={index}/>)}</div>
       <div className="hero-layout mx-auto grid min-h-[800px] max-w-[94rem] items-center px-4 pb-40 pt-16 sm:px-6 lg:grid-cols-[minmax(30rem,.82fr)_minmax(34rem,1.18fr)] lg:px-10 lg:pb-44 lg:pt-20">
         <div className="hero-copy relative z-10 max-w-3xl py-4">
-          <div className="hero-core-status"><AICore state="ready" /><div><span><Sparkles aria-hidden />{t.hero.badge}</span><LiveStatus label="HEGEVA Core" /></div><b>{copy.status}</b></div>
-
           <p className="hero-motto">{copy.motto}</p>
 
           <h1 className="hero-title mt-6 font-display text-5xl font-semibold leading-[.92] tracking-[-0.065em] text-balance sm:text-6xl lg:text-[5.5rem]">
