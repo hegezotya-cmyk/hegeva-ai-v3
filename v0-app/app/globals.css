@@ -148,6 +148,61 @@
     outline-offset: 3px;
   }
 
+  /* Shared control baseline: readable, touch-friendly and translation-safe. */
+  button,
+  input,
+  select,
+  textarea {
+    min-width: 0;
+  }
+
+  button[data-slot="button"] {
+    min-height: 2.5rem;
+  }
+
+  input,
+  select,
+  textarea {
+    color: var(--foreground);
+    border-color: var(--input);
+    background-color: color-mix(in oklab, var(--input) 42%, transparent);
+    transition: border-color var(--motion-fast), box-shadow var(--motion-fast), background-color var(--motion-fast);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: color-mix(in oklab, var(--muted-foreground) 82%, transparent);
+  }
+
+  input:hover,
+  select:hover,
+  textarea:hover {
+    border-color: color-mix(in oklab, var(--primary) 42%, var(--input));
+  }
+
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 22%, transparent);
+  }
+
+  input:disabled,
+  select:disabled,
+  textarea:disabled,
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 640px) {
+    button[data-slot="button"],
+    input,
+    select,
+    textarea {
+      min-height: 2.75rem;
+    }
+  }
+
   ::selection { background: oklch(0.74 0.165 158 / 0.28); color: var(--foreground); }
 }
 
