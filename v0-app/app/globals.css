@@ -149,7 +149,6 @@
   }
 
   /* Shared control baseline: readable, touch-friendly and translation-safe. */
-  button,
   input,
   select,
   textarea {
@@ -190,7 +189,7 @@
   input:disabled,
   select:disabled,
   textarea:disabled,
-  button:disabled {
+  button[data-slot="button"]:disabled {
     cursor: not-allowed;
   }
 

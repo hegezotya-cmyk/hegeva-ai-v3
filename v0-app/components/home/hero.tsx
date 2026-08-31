@@ -22,7 +22,7 @@ export function Hero() {
 
   return (
     <section className="cinematic-hero relative isolate overflow-hidden">
-      <Image src="/hegeva-home-cinematic-v2.png" alt="" fill priority sizes="(max-width: 768px) 1100px, 100vw" className="hero-environment" aria-hidden />
+      <Image src="/hegeva-hero-background.webp" alt="" fill priority sizes="(max-width: 768px) 1100px, 100vw" className="hero-environment" aria-hidden />
       <div className="hero-spectrum" aria-hidden />
       <div className="hero-energy-trail trail-one" aria-hidden />
       <div className="hero-energy-trail trail-two" aria-hidden />
