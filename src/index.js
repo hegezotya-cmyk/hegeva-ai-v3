@@ -3361,7 +3361,7 @@ QUALITY RULES:
         }
         const provider = await invokeX30Provider(env, { brief: briefResult.brief, operationId, scope: "authenticated" });
         await finishX30Generation(env, { operationId, userId: user.id, status: provider.ok ? "ready-for-review" : "rejected" });
-        if (!provider.ok) return Response.json({ error: "X30 generation is temporarily unavailable." }, { status: provider.reason === "timeout" ? 504 : 502 });
+        if (!provider.ok) return Response.json({ error: "X30 generation is temporarily unavailable." }, { status: provider.reason === "provider_timeout" ? 504 : 502 });
         return Response.json(provider.result, { status: 200 });
       } catch {
         return Response.json({ error: "X30 generation is not currently available." }, { status: 503 });

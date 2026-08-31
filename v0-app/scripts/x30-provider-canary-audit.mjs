@@ -22,6 +22,9 @@ assert.equal(X30_PROVIDER_MODEL, "@cf/meta/llama-3.1-8b-instruct-fast")
 assert.equal(X30_PROVIDER_MAX_TOKENS, 1200)
 assert.equal(X30_PROVIDER_TIMEOUT_MS, 20_000)
 assert(provider.includes("temperature: 0.1") && provider.includes("stream: false"), "provider controls must be fixed")
+assert(provider.includes("response_format") && provider.includes("json_schema"), "documented structured JSON mode must be requested")
+for (const reason of ["provider_failure", "provider_timeout", "missing_response", "malformed_response", "invalid_provider_decision", "invalid_result", "invalid_spec"]) assert(provider.includes(reason), `stable failure category missing: ${reason}`)
+assert(!provider.includes("console.") && !provider.includes("prompt") && !provider.includes("email"), "provider path must not log sensitive data")
 assert(!provider.includes("retry") && !provider.includes("repair") && !provider.includes("fetch("), "no retry, repair or fetch path")
 assert(!provider.includes("dangerouslySetInnerHTML") && !provider.includes("new Function") && !provider.includes("dynamic import"), "no executable output path")
 assert(!page.includes("/api/x30/generate") && !page.includes("fetch("), "frontend must not invoke the provider in Phase C")
@@ -29,22 +32,37 @@ assert(generation.includes("X30_CANARY_EMAIL") && !generation.includes("ADMIN_EM
 
 const operationId = "00000000-0000-4000-8000-000000000001"
 const brief = { domain: "professional-services", targetUsers: "bounded-user-summary", primaryGoal: "bounded-goal-summary", requiredPages: ["Overview"], requiredCapabilities: ["records"], visualDirection: "professional", language: "en", dataSensitivity: "internal", deploymentIntent: "preview-only" }
-const spec = { version: "0.1", id: "safe-preview", name: "X30 Preview", direction: { industry: "Professional services", mood: "direct", density: "balanced", primaryWorkflow: "workflow", palette: "meadow", surface: "soft", typography: "confident", navigation: "workspace", mobilePriority: "responsive" }, nodes: [{ id: "brief-hero", type: "hero", props: { eyebrow: "Preview", title: "Workspace", description: "Safe preview" } }] }
 let calls = 0
 let captured
-const success = await invokeX30Provider({ AI: { async run(...args) { calls += 1; captured = args; return { response: JSON.stringify({ schemaVersion: "0.1", kind: "x30-generation-result", status: "ready-for-review", spec, provenance: { source: "x30-ai", mode: "preview-only", scope: "authenticated" }, operation: { operationId, attemptNumber: 1 }, executionState: "not-started" }) } } } }, { brief, operationId })
+const decisions = ["professional", "ledger", "hospitality", "studio", "editorial", "technical"]
+const success = await invokeX30Provider({ AI: { async run(...args) { calls += 1; captured = args; return { response: { visualDirection: "professional", density: "balanced", accent: "violet", emphasis: ["records", "search"] } } } } }, { brief, operationId })
 assert.equal(success.ok, true)
 assert.equal(calls, 1)
 assert.equal(captured[0], X30_PROVIDER_MODEL)
 assert.equal(captured[1].temperature, 0.1)
 assert.equal(captured[1].max_tokens, 1200)
 assert.equal(captured[1].stream, false)
+assert.equal(captured[1].response_format.type, "json_schema")
 assert(!captured[1].messages[1].content.includes("targetUsers") || captured[1].messages[1].content.includes("bounded-user-summary"))
+assert(!captured[1].messages[1].content.includes("private goal text") && captured[1].messages[1].content.includes("bounded-goal-summary") && !captured[1].messages[1].content.includes("projectName"), "raw brief values must not reach provider")
+
+for (const visualDirection of decisions) {
+  const result = await invokeX30Provider({ AI: { async run() { return { response: { visualDirection, density: "balanced", accent: "cyan", emphasis: ["records"] } } } } }, { brief, operationId })
+  assert.equal(result.ok, true, `allowlisted decision ${visualDirection} must construct a valid result`)
+}
 
 let malformedCalls = 0
-const malformed = await invokeX30Provider({ AI: { async run() { malformedCalls += 1; return { response: "<html>unsafe</html>" } } } }, { brief, operationId })
+const malformed = await invokeX30Provider({ AI: { async run() { malformedCalls += 1; return { response: "not-json" } } } }, { brief, operationId })
 assert.equal(malformed.ok, false)
-assert.equal(malformed.reason, "malformed_result")
+assert.equal(malformed.reason, "malformed_response")
 assert.equal(malformedCalls, 1)
+assert.equal((await invokeX30Provider({ AI: { async run() { return {} } } }, { brief, operationId })).reason, "missing_response")
+assert.equal((await invokeX30Provider({ AI: { async run() { return { response: { visualDirection: "unsafe", density: "balanced", accent: "cyan", emphasis: [] } } } } }, { brief, operationId })).reason, "invalid_provider_decision")
+assert.equal((await invokeX30Provider({ AI: { async run() { throw new Error("provider unavailable") } } }, { brief, operationId })).reason, "provider_failure")
+const originalSetTimeout = globalThis.setTimeout
+globalThis.setTimeout = (callback) => originalSetTimeout(callback, 0)
+const timeout = await invokeX30Provider({ AI: { async run() { return new Promise(() => {}) } } }, { brief, operationId })
+globalThis.setTimeout = originalSetTimeout
+assert.equal(timeout.reason, "provider_timeout")
 
 console.log("X30 provider canary audit passed: owner-only gate, disabled-by-default activation, one bounded attempt, fixed model/limits, strict result validation and fail-closed errors")
