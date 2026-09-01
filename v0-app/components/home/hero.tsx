@@ -22,14 +22,14 @@ export function Hero() {
   return (
     <section className="cinematic-hero relative isolate overflow-hidden">
       <div className="hero-artwork-layer" aria-hidden>
-        <Image src="/hegeva-hero-owner-final.png" alt="" fill priority sizes="(min-width: 901px) 62vw, (min-width: 640px) 58vw, 100vw" className="hero-environment" />
+        <Image src="/hegeva-homepage-core-clean-v3.png" alt="" fill priority sizes="100vw" className="hero-environment" />
       </div>
       <div className="hero-spectrum" aria-hidden />
       <div className="hero-energy-trail trail-one" aria-hidden />
       <div className="hero-energy-trail trail-two" aria-hidden />
       <div className="hero-particles" aria-hidden>{Array.from({length:14},(_,index)=><i key={index}/>)}</div>
       <div className="hero-layout mx-auto grid min-h-[800px] max-w-[94rem] items-center px-4 pb-40 pt-16 sm:px-6 lg:grid-cols-[minmax(30rem,.82fr)_minmax(34rem,1.18fr)] lg:px-10 lg:pb-44 lg:pt-20">
-        <div className="hero-copy relative z-10 max-w-3xl py-4">
+        <div className="hero-copy hero-live-copy relative z-10 max-w-3xl py-4">
           <p className="hero-motto">{copy.motto}</p>
 
           <h1 className="hero-title mt-6 font-display text-5xl font-semibold leading-[.92] tracking-[-0.065em] text-balance sm:text-6xl lg:text-[5.5rem]">
@@ -59,6 +59,10 @@ export function Hero() {
           <div className="hero-truth-line"><i/><span>{copy.signal}</span><b>ASSIST · OPERATE · BUILD</b></div>
         </div>
         <div className="hero-robot-zone" aria-label="HEGEVA intelligence visual"><div className="hero-hand-core"><span/><span/><i>H</i></div><div className="hero-scan"><span>HEGEVA / CORE 01</span><b>{copy.status}</b></div></div>
+      </div>
+      <div className="hero-functional-hotspots" aria-label="Homepage actions">
+        <Link href="/command-center" className="hero-hotspot hero-hotspot-primary"><span className="sr-only">{t.hero.ctaPrimary}</span></Link>
+        <Link href="/assistant" className="hero-hotspot hero-hotspot-secondary"><span className="sr-only">{t.hero.ctaSecondary}</span></Link>
       </div>
     </section>
   )

@@ -8,7 +8,7 @@ const css = read("app/globals.css")
 const dashboard = read("components/home/command-dashboard.tsx")
 
 const assert = (condition, message) => { if (!condition) throw new Error(`Homepage visual contract failed: ${message}`) }
-assert(hero.includes("hero-artwork-layer") && hero.includes("hegeva-hero-owner-final.png"), "hero artwork must be isolated from live copy")
+assert(hero.includes("hero-artwork-layer") && hero.includes("hegeva-homepage-core-clean-v3.png"), "hero artwork must be isolated from duplicate live copy")
 assert(!hero.includes("hegeva-home-cinematic-v2.png"), "full screenshot artwork must never sit behind live content")
 assert(hero.includes("t.hero.titleLine1") && hero.includes("t.hero.titleLine2") && hero.includes("t.hero.titleLine3"), "live headline must remain semantic and unique")
 assert(hero.includes('href="/command-center"') && hero.includes('href="/assistant"'), "both live hero CTAs must retain working routes")
