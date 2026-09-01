@@ -1,10 +1,11 @@
 import { readFile } from "node:fs/promises"
-import { join } from "node:path"
-const root = new URL("..", import.meta.url).pathname
-const index = await readFile(join(root, "..", "src/index.js"), "utf8")
-const adapter = await readFile(join(root, "..", "src/cloudflare-ai-provider.js"), "utf8")
-const botPage = await readFile(join(root, "app/app-studio/ai-bots/page.tsx"), "utf8")
-const botClient = await readFile(join(root, "components/app-studio/ai-bot-execution.tsx"), "utf8")
+import { dirname, join, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
+const scriptDir = dirname(fileURLToPath(import.meta.url)); const appRoot = resolve(scriptDir, ".."); const repositoryRoot = resolve(appRoot, ".."); const sourceRoot = join(repositoryRoot, "src")
+const index = await readFile(join(sourceRoot, "index.js"), "utf8")
+const adapter = await readFile(join(sourceRoot, "cloudflare-ai-provider.js"), "utf8")
+const botPage = await readFile(join(appRoot, "app/app-studio/ai-bots/page.tsx"), "utf8")
+const botClient = await readFile(join(appRoot, "components/app-studio/ai-bot-execution.tsx"), "utf8")
 const assert = (v, m) => { if (!v) throw new Error(m) }
 assert(index.includes('from "./cloudflare-ai-provider.js"'), "worker must import prepared adapter")
 assert(index.includes('buildWorkersAiProjection({ operation: "assistant"'), "assistant must reach adapter projection")

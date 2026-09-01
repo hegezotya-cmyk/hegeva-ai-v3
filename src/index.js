@@ -10,7 +10,7 @@ import { readAssistantUsage, startAssistantOperation, finishAssistantOperation }
 import { isX30OperationId, startX30Generation, finishX30Generation, X30_MONTHLY_LIMIT, X30_WORKSPACE_LIMIT } from "./x30-generation-ledger.js";
 import { validateX30ProviderBrief, x30ProviderEnabled, isX30CanaryOwner } from "./x30-generation.js";
 import { invokeX30Provider } from "./x30-provider.js";
-import { buildWorkersAiProjection, getWorkersAiConfig, invokeWorkersAiText } from "./cloudflare-ai-provider.js";
+import { buildWorkersAiProjection, getWorkersAiConfig, invokeWorkersAiText, parseProviderFlags, CANARY_BOUNDS } from "./cloudflare-ai-provider.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -165,6 +165,34 @@ function getCurrentPeriod() {
 const AI_BOT_OPERATION_ID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const AI_BOT_PROFILE_ID = /^bot-[A-Za-z0-9._:-]{1,95}$/;
 
+async function sha256Hex(value) {
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function consumeCanaryAuthorization(env, request, { actorHash, workspaceHash, operationType }) {
+  const raw = request.headers.get("X-HEGEVA-CANARY-TOKEN");
+  const expected = typeof env.AI_BOT_CANARY_AUTHORIZATION_HASH === "string" ? env.AI_BOT_CANARY_AUTHORIZATION_HASH.trim().toLowerCase() : "";
+  if (!raw || !expected || (await sha256Hex(raw)) !== expected) return { ok: false, reason: "authorization-required" };
+  const row = await env.DB.prepare("SELECT authorizationHash,actorHash,workspaceHash,operationType,expiresAt,status,consumedCount FROM ai_canary_authorizations WHERE authorizationHash=?1 LIMIT 1").bind(expected).first();
+  if (!row || row.status !== "active" || row.operationType !== operationType || row.actorHash !== actorHash || row.workspaceHash !== workspaceHash || row.consumedCount !== 0 || Date.parse(row.expiresAt) <= Date.now()) return { ok: false, reason: "authorization-expired" };
+  const now = new Date().toISOString();
+  const result = await env.DB.prepare("UPDATE ai_canary_authorizations SET consumedCount=1,status='consumed',consumedAt=?1 WHERE authorizationHash=?2 AND status='active' AND consumedCount=0 AND expiresAt>?1").bind(now, expected).run();
+  return Number(result?.meta?.changes || 0) === 1 ? { ok: true } : { ok: false, reason: "authorization-consumed" };
+}
+
+async function admitAIBotCanary(env, request, values) {
+  const raw = request.headers.get("X-HEGEVA-CANARY-TOKEN");
+  const expected = typeof env.AI_BOT_CANARY_AUTHORIZATION_HASH === "string" ? env.AI_BOT_CANARY_AUTHORIZATION_HASH.trim().toLowerCase() : "";
+  if (!raw || !expected || (await sha256Hex(raw)) !== expected) return { ok: false, reason: "authorization-required" };
+  const now = new Date().toISOString(); const period = now.slice(0, 10); const retention = new Date(Date.now() + 90 * 86400000).toISOString();
+  const actorHash = await sha256Hex(values.userId); const workspaceHash = actorHash; const reservationId = `fg-${values.operationId}`;
+  try {
+    await env.DB.prepare("INSERT INTO ai_canary_admissions(operationId,authorizationHash,actorHash,workspaceHash,profileId,period,estimatedNeurons,globalDailyCeiling,userDailyCeiling,workspaceDailyCeiling,neuronDailyCeiling,prepaidAvailable,approvedAt,approvalExpiresAt,approvalVersion,approvedByActorHash,createdAt) VALUES (?1,?2,?3,?4,?5,?6,1,?7,?8,?9,?10,1,?11,?12,?13,?14,?11)").bind(values.operationId, expected, actorHash, workspaceHash, values.profileId, period, values.globalDailyCeiling || 1, values.userDailyCeiling || 1, values.workspaceDailyCeiling || 1, values.neuronDailyCeiling || 1, values.approvedAt, values.approvalExpiresAt, values.approvalVersion, values.approvedByActorHash).run();
+    return { ok: true, reservationId };
+  } catch { return { ok: false, reason: "admission-rejected" }; }
+}
+
 async function loadCanonicalAIBotProfile(env, userId, profileId) {
   const row = await env.DB.prepare("SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(userId).first();
   if (!row || typeof row.data !== "string") return null;
@@ -191,10 +219,11 @@ async function reserveAIBotOperation(env, { operationId, userId, profileId, peri
   }
 }
 
-async function finishAIBotOperation(env, { operationId, userId, profileId, status, failureCode = null }) {
+async function finishAIBotOperation(env, { operationId, userId, profileId, reservationId, status, failureCode = null }) {
   const now = new Date().toISOString();
   const retentionUntil = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
   await env.DB.batch([
+    env.DB.prepare("UPDATE financial_guard_reservations SET status=?1,finalizedAt=?2,failureCode=?3 WHERE reservationId=?4 AND status='reserved'").bind(status === "succeeded" ? "finalized" : "released", now, failureCode, reservationId),
     env.DB.prepare("UPDATE ai_bot_operations SET status=?1,attemptNumber=1,updatedAt=?2 WHERE operationId=?3 AND userId=?4 AND status='reserved'").bind(status, now, operationId, userId),
     env.DB.prepare("INSERT INTO ai_bot_execution_history (id,operationId,userId,workspaceScope,profileId,status,failureCode,attemptNumber,createdAt,retentionUntil) VALUES (?1,?2,?3,?3,?4,?5,?6,1,?7,?8)").bind(crypto.randomUUID(), operationId, userId, profileId, status, failureCode, now, retentionUntil),
   ]);
@@ -3405,10 +3434,11 @@ QUALITY RULES:
         if (!profile) return Response.json({ error: "AI Bot approval is required." }, { status: 403 });
         const canaryEmail = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
         const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
-        if (env.AI_BOT_CANARY_ENABLED !== "enabled" || !canaryEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(canaryEmail) || userEmail !== canaryEmail) return Response.json({ error: "AI Bot approval is required." }, { status: 403 });
+        const flags = parseProviderFlags(env);
+        if (!flags.canaryEnabled || !canaryEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(canaryEmail) || userEmail !== canaryEmail) return Response.json({ error: "AI Bot approval is required." }, { status: 403 });
         const providerConfig = getWorkersAiConfig(env);
         if (!providerConfig.enabled || providerConfig.globalKillSwitch || providerConfig.freeAllocationSource !== "configured" || env.FINANCIAL_GUARD_ENABLED !== "enabled" || !env.AI) return Response.json({ error: "AI Bot provider is currently unavailable." }, { status: 503 });
-        const prompt = typeof body?.prompt === "string" ? body.prompt.slice(0, 4_000) : "";
+        const prompt = typeof body?.prompt === "string" ? body.prompt.slice(0, CANARY_BOUNDS.maxInputTokens) : "";
         const projection = buildWorkersAiProjection({ operation: "ai-bot", locale: typeof body?.locale === "string" ? body.locale : "en", prompt });
         if (!projection) return Response.json({ error: "The AI Bot request could not be validated." }, { status: 400 });
         const runtime = globalThis.__hegevaAiBotRuntime || (globalThis.__hegevaAiBotRuntime = { inFlight: new Set(), daily: new Map() });
@@ -3416,10 +3446,10 @@ QUALITY RULES:
         runtime.inFlight.add(user.id);
         try {
           const period = getCurrentPeriod();
-          const reservation = await reserveAIBotOperation(env, { operationId, userId: user.id, profileId, period, limit: providerConfig.perUserCeiling, approvedAt: profile.approvedAt, approvalExpiresAt: profile.approvalExpiresAt, approvalVersion: profile.approvalVersion, approvedByActorHash: profile.approvedByActorHash });
-          if (!reservation.reserved) return Response.json({ error: reservation.reason === "duplicate-operation" ? "This AI Bot operation was already received." : "AI Bot allowance is unavailable." }, { status: reservation.reason === "duplicate-operation" ? 409 : 429 });
+          const reservation = await admitAIBotCanary(env, request, { userId: user.id, operationId, profileId, approvedAt: profile.approvedAt, approvalExpiresAt: profile.approvalExpiresAt, approvalVersion: profile.approvalVersion, approvedByActorHash: profile.approvedByActorHash, globalDailyCeiling: providerConfig.dailyRequestCeiling, userDailyCeiling: providerConfig.perUserCeiling, workspaceDailyCeiling: providerConfig.perWorkspaceCeiling, neuronDailyCeiling: providerConfig.dailyNeuronCeiling });
+          if (!reservation.ok) return Response.json({ error: "AI Bot allowance is unavailable." }, { status: reservation.reason === "authorization-consumed" ? 409 : 429 });
           const provider = await invokeWorkersAiText(env, projection);
-          await finishAIBotOperation(env, { operationId, userId: user.id, profileId, status: provider.ok ? "succeeded" : "rejected", failureCode: provider.ok ? null : provider.reason });
+          await finishAIBotOperation(env, { operationId, userId: user.id, profileId, reservationId: reservation.reservationId, status: provider.ok ? "succeeded" : "failed", failureCode: provider.ok ? null : provider.reason });
           if (!provider.ok) return Response.json({ error: "AI Bot execution is temporarily unavailable." }, { status: provider.reason === "timeout" ? 504 : 503 });
           return Response.json({ schemaVersion: "0.1", status: "ready-for-review", provider: "workers-ai", executionState: "not-started", response: provider.response }, { status: 200 });
         } finally { runtime.inFlight.delete(user.id); }

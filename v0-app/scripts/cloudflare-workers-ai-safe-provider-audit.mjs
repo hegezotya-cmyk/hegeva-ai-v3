@@ -1,8 +1,9 @@
 import { readFile } from "node:fs/promises"
-import { join } from "node:path"
-const root = new URL("..", import.meta.url).pathname
-const source = await readFile(join(root, "..", "src/cloudflare-ai-provider.js"), "utf8")
-const config = await readFile(join(root, "lib/commercial-config.ts"), "utf8")
+import { dirname, join, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
+const scriptDir = dirname(fileURLToPath(import.meta.url)); const appRoot = resolve(scriptDir, ".."); const repositoryRoot = resolve(appRoot, ".."); const sourceRoot = join(repositoryRoot, "src"); const migrationsRoot = join(repositoryRoot, "migrations")
+const source = await readFile(join(sourceRoot, "cloudflare-ai-provider.js"), "utf8")
+const config = await readFile(join(appRoot, "lib/commercial-config.ts"), "utf8")
 const assert = (value, message) => { if (!value) throw new Error(message) }
 for (const token of ["WORKERS_AI_MODEL", "getWorkersAiConfig", "AI_PROVIDER_ENABLED", "AI_MAX_INPUT_TOKENS", "AI_MAX_OUTPUT_TOKENS", "AI_TIMEOUT_MS", "AI_DAILY_REQUEST_CEILING", "AI_DAILY_NEURON_CEILING", "AI_PER_USER_CEILING", "AI_PER_WORKSPACE_CEILING", "AI_CONCURRENCY_CEILING", "AI_GLOBAL_KILL_SWITCH"]) assert(source.includes(token), `missing ${token}`)
 assert(source.includes('env.AI_PROVIDER_ENABLED'), "provider flag must be environment controlled")

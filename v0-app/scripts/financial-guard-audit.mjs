@@ -1,10 +1,11 @@
 import { readFile } from "node:fs/promises"
-import { join } from "node:path"
-const root=new URL("..",import.meta.url).pathname
-const page=await readFile(join(root,"app/business/financial-guard/page.tsx"),"utf8")
-const component=await readFile(join(root,"components/business/financial-guard.tsx"),"utf8")
-const config=await readFile(join(root,"lib/commercial-config.ts"),"utf8")
-const domain=await readFile(join(root,"lib/financial-guard.ts"),"utf8")
+import { dirname, join, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
+const scriptDir=dirname(fileURLToPath(import.meta.url)); const appRoot=resolve(scriptDir,".."); const repositoryRoot=resolve(appRoot,".."); const sourceRoot=join(repositoryRoot,"src"); const migrationsRoot=join(repositoryRoot,"migrations")
+const page=await readFile(join(appRoot,"app/business/financial-guard/page.tsx"),"utf8")
+const component=await readFile(join(appRoot,"components/business/financial-guard.tsx"),"utf8")
+const config=await readFile(join(appRoot,"lib/commercial-config.ts"),"utf8")
+const domain=await readFile(join(appRoot,"lib/financial-guard.ts"),"utf8")
 const assert=(v,m)=>{if(!v)throw new Error(m)}
 assert(page.includes("FinancialGuard"),"route must render FinancialGuard")
 for(const token of ["invoice_documents","financial_guard_monthly_closes","ready-for-review","data-incomplete","ownerNotes","revenue","costs","contribution","forecast","ceiling"])assert(component.includes(token),`missing ${token}`)

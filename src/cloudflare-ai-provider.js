@@ -17,6 +17,8 @@ export const WORKERS_AI_DEFAULTS = Object.freeze({
   globalKillSwitch: true,
 })
 
+export const CANARY_BOUNDS = Object.freeze({ maxRequests: 1, maxInputTokens: 200, maxOutputTokens: 100, concurrency: 1, timeoutMs: 10_000 })
+
 const exactEnabled = (value) => value === "enabled"
 const boundedInt = (value, fallback, max) => {
   const n = Number(value)
@@ -24,6 +26,7 @@ const boundedInt = (value, fallback, max) => {
 }
 
 export function getWorkersAiConfig(env = {}) {
+  const canaryMode = env.AI_BOT_CANARY_ENABLED === "enabled"
   const freeAllocation = boundedInt(env.AI_DOCUMENTED_DAILY_NEURON_ALLOCATION, 0, 10_000_000)
   const appCeiling = Math.min(
     boundedInt(env.AI_DAILY_NEURON_CEILING, Math.floor(freeAllocation * 0.7), 10_000_000),
@@ -32,15 +35,15 @@ export function getWorkersAiConfig(env = {}) {
   return Object.freeze({
     enabled: exactEnabled(env.AI_PROVIDER_ENABLED),
     model: typeof env.AI_PROVIDER_MODEL === "string" && env.AI_PROVIDER_MODEL === WORKERS_AI_MODEL ? env.AI_PROVIDER_MODEL : WORKERS_AI_MODEL,
-    maxInputTokens: boundedInt(env.AI_MAX_INPUT_TOKENS, WORKERS_AI_DEFAULTS.maxInputTokens, 4_000),
-    maxOutputTokens: boundedInt(env.AI_MAX_OUTPUT_TOKENS, WORKERS_AI_DEFAULTS.maxOutputTokens, 1_200),
-    timeoutMs: boundedInt(env.AI_TIMEOUT_MS, WORKERS_AI_DEFAULTS.timeoutMs, 20_000),
+    maxInputTokens: canaryMode ? CANARY_BOUNDS.maxInputTokens : boundedInt(env.AI_MAX_INPUT_TOKENS, WORKERS_AI_DEFAULTS.maxInputTokens, 4_000),
+    maxOutputTokens: canaryMode ? CANARY_BOUNDS.maxOutputTokens : boundedInt(env.AI_MAX_OUTPUT_TOKENS, WORKERS_AI_DEFAULTS.maxOutputTokens, 1_200),
+    timeoutMs: canaryMode ? CANARY_BOUNDS.timeoutMs : boundedInt(env.AI_TIMEOUT_MS, WORKERS_AI_DEFAULTS.timeoutMs, 20_000),
     dailyRequestCeiling: boundedInt(env.AI_DAILY_REQUEST_CEILING, WORKERS_AI_DEFAULTS.dailyRequestCeiling, 1_000),
     dailyNeuronCeiling: appCeiling,
     perUserCeiling: boundedInt(env.AI_PER_USER_CEILING, WORKERS_AI_DEFAULTS.perUserCeiling, 100),
     perWorkspaceCeiling: boundedInt(env.AI_PER_WORKSPACE_CEILING, WORKERS_AI_DEFAULTS.perWorkspaceCeiling, 100),
     concurrencyCeiling: boundedInt(env.AI_CONCURRENCY_CEILING, WORKERS_AI_DEFAULTS.concurrencyCeiling, 10),
-    globalKillSwitch: env.AI_GLOBAL_KILL_SWITCH !== "enabled",
+    globalKillSwitch: env.AI_GLOBAL_KILL_SWITCH !== "disabled",
     freeAllocationSource: typeof env.AI_DOCUMENTED_DAILY_NEURON_ALLOCATION === "string" ? "configured" : "unavailable",
   })
 }
@@ -50,6 +53,10 @@ export function buildWorkersAiProjection({ operation, locale, prompt }) {
   const boundedPrompt = prompt.trim().slice(0, 8_000)
   if (!boundedPrompt || /(?:https?:\/\/|javascript:|<\/?[a-z]|\b(?:tool|deploy|execute)\b)/i.test(boundedPrompt)) return null
   return { schemaVersion: "0.1", operation, locale, prompt: boundedPrompt }
+}
+
+export function parseProviderFlags(env = {}) {
+  return Object.freeze({ providerEnabled: env.AI_PROVIDER_ENABLED === "enabled", killSwitchActive: env.AI_GLOBAL_KILL_SWITCH !== "disabled", canaryEnabled: env.AI_BOT_CANARY_ENABLED === "enabled" })
 }
 
 export function classifyAllocation(usedNeurons, ceiling) {
