@@ -107,6 +107,19 @@
   --motion-base: 240ms;
   --motion-slow: 520ms;
 
+  /* HEGEVA AAA contract aliases for every current and future surface. */
+  --aaa-ink: var(--background);
+  --aaa-ink-raised: var(--surface-0);
+  --aaa-surface: var(--surface-1);
+  --aaa-surface-raised: var(--surface-2);
+  --aaa-gold: var(--gold);
+  --aaa-emerald: var(--emerald);
+  --aaa-cyan: var(--cyan);
+  --aaa-violet: var(--violet);
+  --aaa-radius: .75rem;
+  --aaa-focus: 0 0 0 3px color-mix(in oklab,var(--ring) 28%,transparent);
+  --aaa-elevation: 0 24px 70px -42px oklch(0 0 0 / .88);
+
   --chart-1: oklch(0.74 0.165 158);
   --chart-2: oklch(0.8 0.12 196);
   --chart-3: oklch(0.82 0.13 85);
@@ -555,3 +568,27 @@
 .cinematic-hero .hero-environment{top:calc(var(--baked-nav-crop) * -1)!important;left:0!important;width:100%!important;height:auto!important;object-fit:contain!important;object-position:top center!important}
 .cinematic-hero .hero-artwork-layer::after{background:transparent}
 @media (max-width:900px){.cinematic-hero .hero-artwork-layer{--baked-nav-crop:clamp(3rem,9vw,4.75rem);height:calc(100vw * .609 - var(--baked-nav-crop))}.cinematic-hero .hero-environment{object-fit:contain!important;object-position:top center!important}}
+
+/* AAA homepage foundation: live copy and actions sit over isolated artwork. */
+.cinematic-hero .hero-live-copy{position:relative!important;width:auto!important;height:auto!important;overflow:visible!important;clip:auto!important;clip-path:none!important;white-space:normal!important;max-width:34rem;padding-top:clamp(1rem,4vw,3rem)}
+.cinematic-hero .hero-robot-zone{display:none!important}
+.cinematic-hero .hero-artwork-layer{height:100%;min-height:52rem;overflow:hidden}
+.cinematic-hero .hero-environment{inset:0!important;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center center!important;filter:saturate(1.08) contrast(1.04) brightness(.92)!important}
+.cinematic-hero .hero-artwork-layer::after{background:linear-gradient(90deg,color-mix(in oklab,#020306 58%,transparent),color-mix(in oklab,#020306 18%,transparent) 42%,transparent 70%),linear-gradient(180deg,transparent 68%,color-mix(in oklab,#020306 42%,transparent) 100%)}
+@media (max-width:900px){.cinematic-hero .hero-artwork-layer{height:100%;min-height:54rem}.cinematic-hero .hero-environment{object-position:62% center!important}.cinematic-hero .hero-layout{padding-bottom:10rem}.cinematic-hero .hero-live-copy{max-width:30rem}}
+
+/* Shared AAA shell contract: consistent depth, focus and responsive containment. */
+.hegeva-atmosphere{isolation:isolate;color:var(--foreground)}
+.hegeva-atmosphere main,.hegeva-atmosphere section,.hegeva-atmosphere form{min-width:0}
+.hegeva-atmosphere :where(.glass-panel,.ve-panel){border-radius:var(--aaa-radius);box-shadow:var(--aaa-elevation),0 1px 0 oklch(1 0 0/.05) inset}
+.hegeva-atmosphere :where(button,a,input,select,textarea):focus-visible{outline:2px solid var(--aaa-focus-color,var(--ring));outline-offset:3px}
+@media (prefers-reduced-motion:reduce){.hegeva-atmosphere :where(*,::before,::after){animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
+/* Shared route surfaces: one AAA hierarchy for Core, Assistant, Studio and Business views. */
+.hegeva-atmosphere>div>header.sticky{background:color-mix(in oklab,var(--aaa-ink) 82%,transparent);border-color:color-mix(in oklab,var(--aaa-gold) 18%,var(--border));backdrop-filter:blur(18px) saturate(1.08)}
+.hegeva-atmosphere :where(h1,h2,h3){font-family:var(--font-display);letter-spacing:-.035em}
+.hegeva-atmosphere :where(table){width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid var(--border);border-radius:var(--aaa-radius);background:color-mix(in oklab,var(--aaa-surface) 78%,transparent)}
+.hegeva-atmosphere :where(th,td){padding:.75rem 1rem;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;overflow-wrap:anywhere}
+.hegeva-atmosphere :where(th){font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-foreground);background:color-mix(in oklab,var(--aaa-surface-raised) 72%,transparent)}
+.hegeva-atmosphere :where(tr:last-child td){border-bottom:0}
+.hegeva-atmosphere :where(.tablewrap){min-width:0;max-width:100%;overflow-x:auto;border-radius:var(--aaa-radius)}

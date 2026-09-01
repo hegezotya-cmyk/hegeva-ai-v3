@@ -4,7 +4,7 @@ import Link from "next/link"
 import { AppShell } from "@/components/app-shell"
 import { PageHeader } from "@/components/page-header"
 import { StatusBadge } from "@/components/status-badge"
-import { Users, FileText, ReceiptText, ArrowRight, CalendarCheck2, BarChart3, MessageSquareText, Wrench, FolderLock, FileSpreadsheet } from "lucide-react"
+import { Users, FileText, ReceiptText, ArrowRight, CalendarCheck2, BarChart3, MessageSquareText, Wrench, FolderLock, FileSpreadsheet, ShieldCheck } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { TOOLS_COPY } from "@/lib/i18n/tools-copy"
 import { VAULT_COPY } from "@/lib/i18n/vault-copy"
@@ -23,6 +23,8 @@ export default function BusinessPage() {
     { href: "/business/tools", title: TOOLS_COPY[locale].moduleTitle, text: TOOLS_COPY[locale].moduleDesc, icon: Wrench },
     { href: "/business/vault", title: VAULT_COPY[locale].moduleTitle, text: VAULT_COPY[locale].moduleDesc, icon: FolderLock },
     { href: "/business/invoices", title: INVOICE_COPY[locale].moduleTitle, text: INVOICE_COPY[locale].moduleDesc, icon: FileSpreadsheet },
+    { href: "/business/financial-guard", title: t.nav.financialGuard, text: t.nav.financialGuard, icon: ShieldCheck },
+    ...(locale === "hu" ? [{ href: "/business/contracts", title: "Szerződések", text: "Saját szerződéstervezetek kezelése.", icon: FileText }, { href: "/business/receipts", title: "Nyugták", text: "Valós tranzakciók nyilvántartása.", icon: ReceiptText }, { href: "/business/tax-summaries", title: "Adóösszesítők", text: "Saját bevételek és kiadások áttekintése.", icon: FileSpreadsheet }] : locale === "de" ? [{ href: "/business/contracts", title: "Verträge", text: "Eigene Vertragsentwürfe verwalten.", icon: FileText }, { href: "/business/receipts", title: "Quittungen", text: "Echte Transaktionen erfassen.", icon: ReceiptText }, { href: "/business/tax-summaries", title: "Steuerübersichten", text: "Eigene Einnahmen und Ausgaben prüfen.", icon: FileSpreadsheet }] : locale === "fr" ? [{ href: "/business/contracts", title: "Contrats", text: "Gérer vos brouillons de contrats.", icon: FileText }, { href: "/business/receipts", title: "Reçus", text: "Enregistrer des transactions réelles.", icon: ReceiptText }, { href: "/business/tax-summaries", title: "Synthèses fiscales", text: "Examiner vos revenus et dépenses.", icon: FileSpreadsheet }] : locale === "es" ? [{ href: "/business/contracts", title: "Contratos", text: "Gestiona tus borradores de contrato.", icon: FileText }, { href: "/business/receipts", title: "Recibos", text: "Registra transacciones reales.", icon: ReceiptText }, { href: "/business/tax-summaries", title: "Resúmenes fiscales", text: "Revisa tus ingresos y gastos.", icon: FileSpreadsheet }] : [{ href: "/business/contracts", title: "Contracts", text: "Prepare and manage contract drafts.", icon: FileText }, { href: "/business/receipts", title: "Receipts", text: "Record real transactions.", icon: ReceiptText }, { href: "/business/tax-summaries", title: "Tax summaries", text: "Review supplied income and expenses.", icon: FileSpreadsheet }]),
   ]
   return (
     <AppShell>

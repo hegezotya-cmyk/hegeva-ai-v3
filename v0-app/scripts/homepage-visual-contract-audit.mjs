@@ -8,9 +8,9 @@ const css = read("app/globals.css")
 const dashboard = read("components/home/command-dashboard.tsx")
 
 const assert = (condition, message) => { if (!condition) throw new Error(`Homepage visual contract failed: ${message}`) }
-assert(hero.includes("hero-artwork-layer") && hero.includes("hegeva-homepage-core-clean-v3.png"), "hero artwork must be isolated from duplicate live copy")
+assert(hero.includes("hero-artwork-layer") && hero.includes("hegeva-homepage-clean-master-aaa-v2.png"), "hero artwork must be isolated from duplicate live copy")
 assert(!hero.includes("hegeva-home-cinematic-v2.png"), "full screenshot artwork must never sit behind live content")
-assert(hero.includes("t.hero.titleLine1") && hero.includes("t.hero.titleLine2") && hero.includes("t.hero.titleLine3"), "live headline must remain semantic and unique")
+assert(hero.includes("copy.title[0]") && hero.includes("copy.title[1]") && hero.includes("copy.title[2]"), "live headline must remain semantic and unique")
 assert(hero.includes('href="/command-center"') && hero.includes('href="/assistant"'), "both live hero CTAs must retain working routes")
 assert(css.includes(".hero-artwork-layer") && css.includes("overflow:hidden") && css.includes("@media (max-width:900px){.hero-artwork-layer{display:none}}"), "artwork crop and mobile fallback must be explicit")
 assert(css.includes("command-rail-core") && css.includes("mobile-action-dock") && css.includes("prefers-reduced-motion"), "core visual and motion safeguards must remain")

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { ChevronDown, Hammer, LogOut, Menu, Rocket, Sparkles, UserRound, Wrench, X } from "lucide-react"
+import { ChevronDown, Hammer, LogOut, Menu, Megaphone, Rocket, Sparkles, UserRound, Video, Wrench, X } from "lucide-react"
 import { HegevaLogo } from "@/components/hegeva-logo"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useI18n } from "@/lib/i18n/provider"
@@ -11,7 +11,15 @@ import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
 
-const studioIcons = { prompt: Sparkles, build: Hammer, x20: Rocket, fix: Wrench }
+const studioIcons = { prompt: Sparkles, build: Hammer, x20: Rocket, fix: Wrench, advertising: Megaphone, video: Video }
+
+const studioAdditions = {
+  en: { advertising: ["Advertising Studio", "Prepare and manage campaign briefs."], video: ["Video Ad Studio", "Create production-ready video specifications."] },
+  hu: { advertising: ["Hirdetési Stúdió", "Kampánybriefek előkészítése és kezelése."], video: ["Videóhirdetési Stúdió", "Gyártásra kész videóspecifikációk készítése."] },
+  de: { advertising: ["Werbe-Studio", "Kampagnenbriefs vorbereiten und verwalten."], video: ["Videoanzeigen-Studio", "Produktionsreife Videospezifikationen erstellen."] },
+  fr: { advertising: ["Studio publicitaire", "Préparer et gérer des briefs de campagne."], video: ["Studio vidéo publicitaire", "Créer des spécifications vidéo prêtes à produire."] },
+  es: { advertising: ["Estudio publicitario", "Prepara y gestiona briefs de campaña."], video: ["Estudio de anuncios en vídeo", "Crea especificaciones de vídeo listas para producción."] },
+} as const
 
 const x20Copy = {
   en: { title: "Build My App X20", desc: "Pro app builder with verified builds, live preview and AI improvement passes." },
@@ -57,6 +65,8 @@ export function SiteHeader() {
     { key: "build" as const, href: "/app-studio/build-my-app", title: t.studio.build, desc: t.studio.buildDesc, pro: false },
     { key: "x20" as const, href: "/app-studio/build-my-app-x20", title: x20Copy[locale].title, desc: x20Copy[locale].desc, pro: true },
     { key: "fix" as const, href: "/app-studio/fix-my-app", title: t.studio.fix, desc: t.studio.fixDesc, pro: false },
+    { key: "advertising" as const, href: "/app-studio/advertising", title: studioAdditions[locale].advertising[0], desc: studioAdditions[locale].advertising[1], pro: false },
+    { key: "video" as const, href: "/app-studio/video-ad-studio", title: studioAdditions[locale].video[0], desc: studioAdditions[locale].video[1], pro: false },
   ]
 
   async function logout() {
@@ -104,6 +114,9 @@ export function SiteHeader() {
               )}
             </div>
             {navLink("/business", t.nav.business)}
+            {navLink("/app-studio/ai-bots", t.nav.bots)}
+            {navLink("/bots/trading", t.nav.trading)}
+            {navLink("/enterprise", t.nav.enterprise)}
             {navLink("/pricing", t.nav.pricing)}
             {navLink("/contact", t.nav.contact)}
           </nav>
@@ -128,6 +141,10 @@ export function SiteHeader() {
             <div className="mt-1 px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.nav.appStudio}</div>
             {studioItems.map((item) => { const Icon = studioIcons[item.key]; return <Link key={item.key} href={item.href} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-secondary", item.pro && "border border-gold/20 bg-gold/5")}><Icon className={cn("size-4", item.pro ? "text-gold" : "text-primary")} aria-hidden /><span className="flex-1 text-sm font-medium text-foreground">{item.title}</span>{item.pro ? <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] font-bold text-gold">PRO</span> : null}</Link> })}
             <Link href="/business" className="mt-1 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.business}</Link>
+            <Link href="/business/financial-guard" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.financialGuard}</Link>
+            <Link href="/app-studio/ai-bots" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.bots}</Link>
+            <Link href="/bots/trading" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.trading}</Link>
+            <Link href="/enterprise" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.enterprise}</Link>
             <Link href="/pricing" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.pricing}</Link>
             <Link href="/contact" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.contact}</Link>
             <div className="mt-3 grid grid-cols-2 items-center gap-2 border-t border-border pt-4">

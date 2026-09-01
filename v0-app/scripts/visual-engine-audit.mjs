@@ -27,7 +27,7 @@ assert(/mission-surface/.test(command) && /current-work/.test(command) && /inven
 assert(/useWorkspaceData/.test(command) && /cloudEnabled/.test(command), 'Operating Center must use real workspace state with cloud/local provenance')
 assert(/href="\/assistant"/.test(command) && /href="\/app-studio\/build-my-app-x20"/.test(command), 'Operating Center must retain read-only Assistant and App Studio navigation')
 assert(/control-room-grid/.test(css) && /max-width: 900px/.test(css) && /max-width: 640px/.test(css), 'Operating Center must retain responsive layout contracts')
-assert(/AICore/.test(home) && /hero-robot-zone/.test(home) && /hero-environment/.test(home) && /system-portals/.test(home), 'Homepage must use the shared HEGEVA Core and authored cinematic system composition')
+assert(/hero-artwork-layer/.test(home) && /hero-environment/.test(home) && /system-portals/.test(home), 'Homepage must use the isolated cinematic artwork layer and authored system composition')
 assert(!/framer-motion|three|gsap/.test(read('package.json')), 'Visual Engine must not add a heavy animation dependency')
 
 console.log('Visual Engine audit passed: semantic tokens, reusable identity components, responsive motion, accessible status and lightweight architecture')

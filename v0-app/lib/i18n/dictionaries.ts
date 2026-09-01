@@ -18,6 +18,11 @@ const dictionaries = {
       appStudio: "App Studio",
       business: "Business",
       pricing: "Pricing",
+      advertising: "Advertising Studio",
+      videoAds: "Video Ad Studio",
+      contracts: "Contracts",
+      receipts: "Receipts",
+      taxSummaries: "Tax summaries", financialGuard: "Financial Guard", bots: "AI Bots", trading: "Trading", enterprise: "Enterprise",
       contact: "Contact",
       login: "Login",
       getStarted: "Get Started",
@@ -144,6 +149,11 @@ const overrides: Partial<Record<Locale, DeepPartial<Dict>>> = {
       account: "Fiók",
       logout: "Kijelentkezés",
       openWorkspace: "Munkaterület megnyitása",
+      advertising: "Hirdetési Stúdió",
+      videoAds: "Videóhirdetési Stúdió",
+      contracts: "Szerződések",
+      receipts: "Nyugták",
+      taxSummaries: "Adóösszesítők", financialGuard: "Pénzügyi védelem", bots: "AI botok", trading: "Kereskedési szimuláció", enterprise: "Vállalati központ",
     },
     hero: {
       badge: "AI Üzleti Operációs Rendszer",
@@ -184,6 +194,7 @@ const overrides: Partial<Record<Locale, DeepPartial<Dict>>> = {
       login: "Anmelden",
       getStarted: "Loslegen",
       account: "Konto", logout: "Abmelden", openWorkspace: "Arbeitsbereich öffnen",
+      advertising: "Werbestudio", videoAds: "Video-Anzeigenstudio", contracts: "Verträge", receipts: "Quittungen", taxSummaries: "Steuerübersichten", financialGuard: "Finanzschutz", bots: "KI-Bots", trading: "Trading-Simulation", enterprise: "Enterprise",
     },
     hero: {
       badge: "KI-Betriebssystem für Unternehmen",
@@ -218,6 +229,7 @@ const overrides: Partial<Record<Locale, DeepPartial<Dict>>> = {
       login: "Connexion",
       getStarted: "Commencer",
       account: "Compte", logout: "Déconnexion", openWorkspace: "Ouvrir l’espace",
+      advertising: "Studio publicitaire", videoAds: "Studio de publicité vidéo", contracts: "Contrats", receipts: "Reçus", taxSummaries: "Synthèses fiscales", financialGuard: "Garde financière", bots: "Bots IA", trading: "Simulation de trading", enterprise: "Entreprise",
     },
     hero: {
       badge: "Système d'exploitation d'entreprise IA",
@@ -252,6 +264,7 @@ const overrides: Partial<Record<Locale, DeepPartial<Dict>>> = {
       login: "Entrar",
       getStarted: "Empezar",
       account: "Cuenta", logout: "Cerrar sesión", openWorkspace: "Abrir espacio",
+      advertising: "Estudio publicitario", videoAds: "Estudio de anuncios de vídeo", contracts: "Contratos", receipts: "Recibos", taxSummaries: "Resúmenes fiscales", financialGuard: "Protección financiera", bots: "Bots de IA", trading: "Simulación de trading", enterprise: "Empresa",
     },
     hero: {
       badge: "Sistema operativo de negocio con IA",

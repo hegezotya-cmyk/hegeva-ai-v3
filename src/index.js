@@ -10,6 +10,7 @@ import { readAssistantUsage, startAssistantOperation, finishAssistantOperation }
 import { isX30OperationId, startX30Generation, finishX30Generation, X30_MONTHLY_LIMIT, X30_WORKSPACE_LIMIT } from "./x30-generation-ledger.js";
 import { validateX30ProviderBrief, x30ProviderEnabled, isX30CanaryOwner } from "./x30-generation.js";
 import { invokeX30Provider } from "./x30-provider.js";
+import { buildWorkersAiProjection, getWorkersAiConfig, invokeWorkersAiText } from "./cloudflare-ai-provider.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -159,6 +160,44 @@ function getCurrentPeriod() {
     ).padStart(2, "0");
 
   return `${year}-${month}`;
+}
+
+const AI_BOT_OPERATION_ID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
+const AI_BOT_PROFILE_ID = /^bot-[A-Za-z0-9._:-]{1,95}$/;
+
+async function loadCanonicalAIBotProfile(env, userId, profileId) {
+  const row = await env.DB.prepare("SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(userId).first();
+  if (!row || typeof row.data !== "string") return null;
+  let records;
+  try { records = JSON.parse(row.data); } catch { return null; }
+  if (!Array.isArray(records)) return null;
+  const profile = records.find((item) => item && item.id === profileId);
+  const now = Date.now();
+  if (!profile || profile.enabled !== true || profile.approvalState !== "owner-approved" || profile.executionState !== "not-started" || !Number.isSafeInteger(profile.approvalVersion) || profile.approvalVersion < 1 || typeof profile.approvedAt !== "string" || typeof profile.approvalExpiresAt !== "string" || typeof profile.approvedByActorHash !== "string" || profile.approvedByActorHash.length < 16 || !Number.isFinite(Date.parse(profile.approvedAt)) || !Number.isFinite(Date.parse(profile.approvalExpiresAt)) || Date.parse(profile.approvalExpiresAt) <= now) return null;
+  return profile;
+}
+
+async function reserveAIBotOperation(env, { operationId, userId, profileId, period, limit, approvedAt, approvalExpiresAt, approvalVersion, approvedByActorHash }) {
+  const now = new Date().toISOString();
+  try {
+    await env.DB.prepare("INSERT INTO ai_bot_operations (operationId,userId,workspaceScope,profileId,period,status,attemptNumber,approvedAt,approvalExpiresAt,approvalVersion,approvedByActorHash,usageLimit,createdAt,updatedAt) VALUES (?1,?2,?2,?3,?4,'reserved',0,?5,?6,?7,?8,?9,?10,?11,?11)").bind(operationId,userId,profileId,period,approvedAt,approvalExpiresAt,approvalVersion,approvedByActorHash,limit,now).run();
+    return { reserved: true };
+  } catch (error) {
+    try {
+      const existing = await env.DB.prepare("SELECT operationId,userId,period,status FROM ai_bot_operations WHERE operationId = ?1 LIMIT 1").bind(operationId).first();
+      if (existing) return existing.userId === userId && existing.period === period ? { reserved: false, reason: "duplicate-operation" } : { reserved: false, reason: "operation-owner-mismatch" };
+    } catch {}
+    return { reserved: false, reason: "persistence-unavailable" };
+  }
+}
+
+async function finishAIBotOperation(env, { operationId, userId, profileId, status, failureCode = null }) {
+  const now = new Date().toISOString();
+  const retentionUntil = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+  await env.DB.batch([
+    env.DB.prepare("UPDATE ai_bot_operations SET status=?1,attemptNumber=1,updatedAt=?2 WHERE operationId=?3 AND userId=?4 AND status='reserved'").bind(status, now, operationId, userId),
+    env.DB.prepare("INSERT INTO ai_bot_execution_history (id,operationId,userId,workspaceScope,profileId,status,failureCode,attemptNumber,createdAt,retentionUntil) VALUES (?1,?2,?3,?3,?4,?5,?6,1,?7,?8)").bind(crypto.randomUUID(), operationId, userId, profileId, status, failureCode, now, retentionUntil),
+  ]);
 }
 
 async function ensureUserPlan(
@@ -3208,6 +3247,17 @@ QUALITY RULES:
                 isX20Action ? readAIUsage(env, userId, usagePeriod) : readAssistantUsage(env, userId, usagePeriod),
               execute: async ({ message: admittedMessage, safeHistory: admittedHistory }) => {
                 if (isX20Action) logX20Lifecycle("x20_provider_started", { actionId: x20Action?.actionId, attemptId: x20Attempt?.attemptId, attemptNumber: x20Attempt?.attemptNumber });
+                if (!isX20Action) {
+                  const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage });
+                  const adapted = await invokeWorkersAiText(env, projection);
+                  if (!adapted.ok) {
+                    const unavailable = new Error("Workers AI unavailable");
+                    unavailable.name = adapted.reason === "timeout" ? "HEGEVA_AI_TIMEOUT" : "HEGEVA_PROVIDER_UNAVAILABLE";
+                    throw unavailable;
+                  }
+                  await finishAssistantOperation(env, { operationId: assistantOperationId, status: "succeeded" });
+                  return { response: adapted.response };
+                }
                 const aiPromise =
                   env.AI.run(
                     "@cf/meta/llama-3.1-8b-instruct-fast",
@@ -3339,6 +3389,41 @@ QUALITY RULES:
           }
         );
       }
+    }
+
+    if (url.pathname === "/api/ai-bot/execute") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      let operationId = null; let profileId = null;
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        const body = await request.json();
+        profileId = typeof body?.profileId === "string" ? body.profileId : "";
+        operationId = typeof body?.operationId === "string" ? body.operationId : "";
+        if (!AI_BOT_PROFILE_ID.test(profileId) || !AI_BOT_OPERATION_ID.test(operationId)) return Response.json({ error: "A valid AI Bot operation is required." }, { status: 400 });
+        const profile = await loadCanonicalAIBotProfile(env, user.id, profileId);
+        if (!profile) return Response.json({ error: "AI Bot approval is required." }, { status: 403 });
+        const canaryEmail = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
+        const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+        if (env.AI_BOT_CANARY_ENABLED !== "enabled" || !canaryEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(canaryEmail) || userEmail !== canaryEmail) return Response.json({ error: "AI Bot approval is required." }, { status: 403 });
+        const providerConfig = getWorkersAiConfig(env);
+        if (!providerConfig.enabled || providerConfig.globalKillSwitch || providerConfig.freeAllocationSource !== "configured" || env.FINANCIAL_GUARD_ENABLED !== "enabled" || !env.AI) return Response.json({ error: "AI Bot provider is currently unavailable." }, { status: 503 });
+        const prompt = typeof body?.prompt === "string" ? body.prompt.slice(0, 4_000) : "";
+        const projection = buildWorkersAiProjection({ operation: "ai-bot", locale: typeof body?.locale === "string" ? body.locale : "en", prompt });
+        if (!projection) return Response.json({ error: "The AI Bot request could not be validated." }, { status: 400 });
+        const runtime = globalThis.__hegevaAiBotRuntime || (globalThis.__hegevaAiBotRuntime = { inFlight: new Set(), daily: new Map() });
+        if (runtime.inFlight.has(user.id)) return Response.json({ error: "An AI Bot operation is already running." }, { status: 429 });
+        runtime.inFlight.add(user.id);
+        try {
+          const period = getCurrentPeriod();
+          const reservation = await reserveAIBotOperation(env, { operationId, userId: user.id, profileId, period, limit: providerConfig.perUserCeiling, approvedAt: profile.approvedAt, approvalExpiresAt: profile.approvalExpiresAt, approvalVersion: profile.approvalVersion, approvedByActorHash: profile.approvedByActorHash });
+          if (!reservation.reserved) return Response.json({ error: reservation.reason === "duplicate-operation" ? "This AI Bot operation was already received." : "AI Bot allowance is unavailable." }, { status: reservation.reason === "duplicate-operation" ? 409 : 429 });
+          const provider = await invokeWorkersAiText(env, projection);
+          await finishAIBotOperation(env, { operationId, userId: user.id, profileId, status: provider.ok ? "succeeded" : "rejected", failureCode: provider.ok ? null : provider.reason });
+          if (!provider.ok) return Response.json({ error: "AI Bot execution is temporarily unavailable." }, { status: provider.reason === "timeout" ? 504 : 503 });
+          return Response.json({ schemaVersion: "0.1", status: "ready-for-review", provider: "workers-ai", executionState: "not-started", response: provider.response }, { status: 200 });
+        } finally { runtime.inFlight.delete(user.id); }
+      } catch { return Response.json({ error: "AI Bot execution is temporarily unavailable." }, { status: 503 }); }
     }
 
     if (url.pathname === "/api/x30/generate") {
