@@ -126,16 +126,24 @@ export async function invokeWorkersAiText(env, projection, { signal } = {}) {
   if (!config.enabled || config.globalKillSwitch || !env?.AI || typeof env.AI.run !== "function") return { ok: false, reason: "provider-disabled" }
   if (!projection) return { ok: false, reason: "invalid-projection" }
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), config.timeoutMs)
+  let timeoutId
+  const timeoutError = new DOMException("Workers AI request timed out", "AbortError")
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      controller.abort()
+      reject(timeoutError)
+    }, config.timeoutMs)
+  })
   try {
-    const response = await env.AI.run(config.model, {
+    const providerPromise = env.AI.run(config.model, {
       messages: [{ role: "system", content: "Return a concise answer. Do not call tools." }, { role: "user", content: projection.prompt }],
       max_tokens: config.maxOutputTokens,
       temperature: 0.2,
       stream: false,
     }, { signal: signal || controller.signal })
+    const response = await Promise.race([providerPromise, timeoutPromise])
     return response && typeof response.response === "string" ? { ok: true, response: response.response.slice(0, 12_000) } : { ok: false, reason: "missing-response" }
   } catch (error) {
     return { ok: false, reason: error?.name === "AbortError" ? "timeout" : "provider-failure" }
-  } finally { clearTimeout(timeout) }
+  } finally { clearTimeout(timeoutId) }
 }
