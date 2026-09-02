@@ -201,7 +201,7 @@ async function revokeUnusedCanaryAuthorization(env, authorizationHash) {
 }
 
 async function loadCanonicalAIBotProfile(env, userId, profileId) {
-  const row = await env.DB.prepare("SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(userId).first();
+  const row = await env.DB.prepare("SELECT data,updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(userId).first();
   if (!row || typeof row.data !== "string") return null;
   let records;
   try { records = JSON.parse(row.data); } catch { return null; }
@@ -213,7 +213,7 @@ async function loadCanonicalAIBotProfile(env, userId, profileId) {
 }
 
 async function loadCanaryProfile(env, userId, profileId) {
-  const row = await env.DB.prepare("SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(userId).first();
+  const row = await env.DB.prepare("SELECT data,updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(userId).first();
   if (!row || typeof row.data !== "string") return { profile: null, reason: "profile-not-found" };
   let records;
   try { records = JSON.parse(row.data); } catch { return { profile: null, reason: "profile-not-found" }; }
@@ -226,6 +226,7 @@ async function loadCanaryProfile(env, userId, profileId) {
   if (typeof profile.approvedAt !== "string" || typeof profile.approvalExpiresAt !== "string" || !Number.isFinite(Date.parse(profile.approvedAt)) || !Number.isFinite(Date.parse(profile.approvalExpiresAt))) return { profile: null, reason: "profile-approval-stale" };
   if (Date.parse(profile.approvalExpiresAt) <= Date.now()) return { profile: null, reason: "profile-approval-expired" };
   if (typeof profile.approvedByActorHash !== "string" || profile.approvedByActorHash.length < 16) return { profile: null, reason: "profile-approval-stale" };
+  if (typeof profile.approvalRevision !== "string" || !profile.approvalRevision || profile.approvalRevision !== row.updatedAt) return { profile: null, reason: "profile-approval-stale" };
   return { profile };
 }
 
@@ -1239,7 +1240,8 @@ async function createStripePortalSession(request, env, user) {
   return { ok: true, status: 200, url: data.url };
 }
 
-export default {
+export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {}) {
+  return {
   async fetch(
     request,
     env,
@@ -2362,7 +2364,7 @@ export default {
       }
 
       try {
-        const user = await getLoggedInUser(request, env, ctx);
+      const user = await getLoggedInUserFn(request, env, ctx);
         if (!user) {
           return Response.json({ error: "Authentication required." }, { status: 401 });
         }
@@ -3458,7 +3460,7 @@ QUALITY RULES:
     if (url.pathname === "/api/ai-bot/approve") {
       if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
       try {
-        const user = await getLoggedInUser(request, env, ctx);
+        const user = await getLoggedInUserFn(request, env, ctx);
         if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
         const body = await request.json();
         const profileId = typeof body?.profileId === "string" ? body.profileId : "";
@@ -3472,7 +3474,7 @@ QUALITY RULES:
         const now = new Date(); const approvedAt = now.toISOString(); const approvalExpiresAt = new Date(now.getTime() + 30 * 60 * 1000).toISOString();
         const approvalVersion = Number.isSafeInteger(current.approvalVersion) && current.approvalVersion > 0 ? current.approvalVersion + 1 : 1;
         const approvedByActorHash = await sha256Hex(user.id);
-        const next = { ...current, approvalState: "owner-approved", approvedAt, approvalExpiresAt, approvedByActorHash, approvalVersion, updatedAt: approvedAt };
+        const next = { ...current, approvalState: "owner-approved", approvedAt, approvalExpiresAt, approvedByActorHash, approvalVersion, approvalRevision: approvedAt, updatedAt: approvedAt };
         const records = stored.records.map((item) => item && item.id === profileId ? next : item);
         const result = await env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='ai-bot-profiles' AND updatedAt=?4").bind(JSON.stringify(records), approvedAt, user.id, stored.row.updatedAt).run();
         if (Number(result?.meta?.changes || 0) !== 1) return Response.json({ error: "The profile changed; reload and try again." }, { status: 409 });
@@ -3486,7 +3488,7 @@ QUALITY RULES:
       const canaryReply = (reason, status) => Response.json({ reason }, { status });
       try {
         if (!request.headers.get("cookie")) return canaryReply("authentication-required", 401);
-        const user = await getLoggedInUser(request, env, ctx);
+        const user = await getLoggedInUserFn(request, env, ctx);
         if (!user) return canaryReply("authentication-required", 401);
         const body = await request.json();
         const keys = body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body) : [];
@@ -3626,4 +3628,7 @@ QUALITY RULES:
       request
     );
   }
-};
+  };
+}
+
+export default createRequestHandler();
