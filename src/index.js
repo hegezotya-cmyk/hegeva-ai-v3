@@ -10,7 +10,7 @@ import { readAssistantUsage, startAssistantOperation, finishAssistantOperation }
 import { isX30OperationId, startX30Generation, finishX30Generation, X30_MONTHLY_LIMIT, X30_WORKSPACE_LIMIT } from "./x30-generation-ledger.js";
 import { validateX30ProviderBrief, x30ProviderEnabled, isX30CanaryOwner } from "./x30-generation.js";
 import { invokeX30Provider } from "./x30-provider.js";
-import { buildWorkersAiProjection, getWorkersAiConfig, invokeWorkersAiText, parseProviderFlags, CANARY_BOUNDS } from "./cloudflare-ai-provider.js";
+import { buildWorkersAiProjection, getWorkersAiConfig, getWorkersAiCanaryConfig, invokeWorkersAiText, parseProviderFlags, CANARY_BOUNDS } from "./cloudflare-ai-provider.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -210,6 +210,23 @@ async function loadCanonicalAIBotProfile(env, userId, profileId) {
   const now = Date.now();
   if (!profile || profile.enabled !== true || profile.approvalState !== "owner-approved" || profile.executionState !== "not-started" || !Number.isSafeInteger(profile.approvalVersion) || profile.approvalVersion < 1 || typeof profile.approvedAt !== "string" || typeof profile.approvalExpiresAt !== "string" || typeof profile.approvedByActorHash !== "string" || profile.approvedByActorHash.length < 16 || !Number.isFinite(Date.parse(profile.approvedAt)) || !Number.isFinite(Date.parse(profile.approvalExpiresAt)) || Date.parse(profile.approvalExpiresAt) <= now) return null;
   return profile;
+}
+
+async function loadCanaryProfile(env, userId, profileId) {
+  const row = await env.DB.prepare("SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(userId).first();
+  if (!row || typeof row.data !== "string") return { profile: null, reason: "profile-not-found" };
+  let records;
+  try { records = JSON.parse(row.data); } catch { return { profile: null, reason: "profile-not-found" }; }
+  if (!Array.isArray(records)) return { profile: null, reason: "profile-not-found" };
+  const profile = records.find((item) => item && item.id === profileId);
+  if (!profile) return { profile: null, reason: "profile-not-found" };
+  if (profile.enabled !== true) return { profile: null, reason: "profile-disabled" };
+  if (profile.approvalState !== "owner-approved") return { profile: null, reason: "profile-not-approved" };
+  if (!Number.isSafeInteger(profile.approvalVersion) || profile.approvalVersion < 1) return { profile: null, reason: "profile-approval-stale" };
+  if (typeof profile.approvedAt !== "string" || typeof profile.approvalExpiresAt !== "string" || !Number.isFinite(Date.parse(profile.approvedAt)) || !Number.isFinite(Date.parse(profile.approvalExpiresAt))) return { profile: null, reason: "profile-approval-stale" };
+  if (Date.parse(profile.approvalExpiresAt) <= Date.now()) return { profile: null, reason: "profile-approval-expired" };
+  if (typeof profile.approvedByActorHash !== "string" || profile.approvedByActorHash.length < 16) return { profile: null, reason: "profile-approval-stale" };
+  return { profile };
 }
 
 async function loadStoredAIBotProfile(env, userId, profileId) {
@@ -3466,23 +3483,42 @@ QUALITY RULES:
     if (url.pathname === "/api/ai-bot/canary-once") {
       if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
       let authorizationHash = null;
+      const canaryReply = (reason, status) => Response.json({ reason }, { status });
       try {
+        if (!request.headers.get("cookie")) return canaryReply("authentication-required", 401);
         const user = await getLoggedInUser(request, env, ctx);
-        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        if (!user) return canaryReply("authentication-required", 401);
         const body = await request.json();
         const keys = body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body) : [];
-        if (keys.length !== 1 || keys[0] !== "profileId" || typeof body.profileId !== "string" || !AI_BOT_PROFILE_ID.test(body.profileId)) return Response.json({ error: "A valid AI Bot profile is required." }, { status: 400 });
+        if (keys.length !== 1 || keys[0] !== "profileId" || typeof body.profileId !== "string" || !AI_BOT_PROFILE_ID.test(body.profileId)) return canaryReply("invalid-request", 400);
         const configuredOwner = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
         const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
-        if (!configuredOwner || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredOwner) || !userEmail || userEmail !== configuredOwner) return Response.json({ error: "Canary is unavailable." }, { status: 403 });
-        const profile = await loadCanonicalAIBotProfile(env, user.id, body.profileId);
-        if (!profile) return Response.json({ error: "AI Bot approval is required." }, { status: 403 });
+        if (!configuredOwner || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredOwner) || !userEmail || userEmail !== configuredOwner) return canaryReply("owner-identity-mismatch", 403);
+        const loaded = await loadCanaryProfile(env, user.id, body.profileId);
+        if (!loaded.profile) return canaryReply(loaded.reason, 403);
+        const profile = loaded.profile;
         const actorHash = await sha256Hex(user.id);
-        if (profile.approvedByActorHash !== actorHash) return Response.json({ error: "AI Bot approval is required." }, { status: 403 });
+        if (profile.approvedByActorHash !== actorHash) return canaryReply("profile-actor-mismatch", 403);
         const flags = parseProviderFlags(env);
-        const providerConfig = getWorkersAiConfig(env);
-        if (!flags.providerEnabled || flags.killSwitchActive || !flags.canaryEnabled || !providerConfig.enabled || providerConfig.globalKillSwitch || providerConfig.freeAllocationSource !== "configured" || env.FINANCIAL_GUARD_ENABLED !== "enabled" || !env.AI) return Response.json({ error: "Canary is unavailable." }, { status: 503 });
-        if (providerConfig.concurrencyCeiling !== 1) return Response.json({ error: "Canary limits are not configured." }, { status: 503 });
+        if (!flags.providerEnabled) return canaryReply("provider-disabled", 503);
+        if (flags.killSwitchActive) return canaryReply("kill-switch-active", 503);
+        if (!flags.canaryEnabled) return canaryReply("canary-disabled", 503);
+        if (env.FINANCIAL_GUARD_ENABLED !== "enabled") return canaryReply("financial-guard-disabled", 503);
+        if (!env.AI || typeof env.AI.run !== "function") return canaryReply("ai-binding-unavailable", 503);
+        const providerConfig = getWorkersAiCanaryConfig(env);
+        if (!providerConfig.ok) return canaryReply(providerConfig.reason, 503);
+        const period = new Date().toISOString().slice(0, 10);
+        let usageRows;
+        try { usageRows = await env.DB.prepare("SELECT scopeHash,scopeType,requests,estimatedNeurons,prepaidReserved FROM ai_provider_usage WHERE period=?1 AND (scopeHash='global-scope-hash' OR scopeHash=?2) AND scopeType IN ('global','user','workspace')").bind(period, actorHash).all(); } catch { return canaryReply("internal-unavailable", 503); }
+        if (!Array.isArray(usageRows?.results)) return canaryReply("included-allowance-unavailable", 503);
+        const rows = usageRows.results;
+        const usageFor = (scopeType) => rows.find((row) => row.scopeType === scopeType && (scopeType === "global" || row.scopeHash === actorHash));
+        const global = usageFor("global") || {}; const userUsage = usageFor("user") || {}; const workspace = usageFor("workspace") || {};
+        if ((Number(global.requests) || 0) >= providerConfig.requestCeiling) return canaryReply("included-allowance-unavailable", 429);
+        if ((Number(userUsage.requests) || 0) >= providerConfig.userCeiling) return canaryReply("included-allowance-unavailable", 429);
+        if ((Number(workspace.requests) || 0) >= providerConfig.workspaceCeiling) return canaryReply("included-allowance-unavailable", 429);
+        if ((Number(global.estimatedNeurons) || 0) + 1 > providerConfig.neuronCeiling || (Number(global.estimatedNeurons) || 0) + 1 > Math.floor(providerConfig.allocation * 0.7)) return canaryReply("included-allowance-unavailable", 429);
+        if ((Number(global.prepaidReserved) || 0) >= 1 || (Number(userUsage.prepaidReserved) || 0) >= 1 || (Number(workspace.prepaidReserved) || 0) >= 1) return canaryReply("included-allowance-unavailable", 429);
         const operationId = crypto.randomUUID();
         const rawToken = crypto.randomUUID() + crypto.randomUUID();
         authorizationHash = await sha256Hex(rawToken);
@@ -3491,8 +3527,8 @@ QUALITY RULES:
         const expiresAt = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
         await env.DB.prepare("INSERT INTO ai_canary_authorizations(authorizationHash,actorHash,workspaceHash,operationType,maximumRequests,consumedCount,createdAt,expiresAt,status) VALUES(?1,?2,?2,'ai-bot',1,0,?3,?4,'active')").bind(authorizationHash, actorHash, createdAt, expiresAt).run();
         const internalRequest = new Request(request.url, { method: "POST", headers: { "X-HEGEVA-CANARY-TOKEN": rawToken } });
-        const admission = await admitAIBotCanary(env, internalRequest, { authorizationHash, userId: user.id, operationId, profileId: body.profileId, approvedAt: profile.approvedAt, approvalExpiresAt: profile.approvalExpiresAt, approvalVersion: profile.approvalVersion, approvedByActorHash: profile.approvedByActorHash, globalDailyCeiling: 1, userDailyCeiling: 1, workspaceDailyCeiling: 1, neuronDailyCeiling: Math.max(1, Math.min(providerConfig.dailyNeuronCeiling, 1)) });
-        if (!admission.ok) { await revokeUnusedCanaryAuthorization(env, authorizationHash); return Response.json({ status: "rejected", providerAttempted: false, financialGuardStatus: "unavailable" }, { status: 429 }); }
+        const admission = await admitAIBotCanary(env, internalRequest, { authorizationHash, userId: user.id, operationId, profileId: body.profileId, approvedAt: profile.approvedAt, approvalExpiresAt: profile.approvalExpiresAt, approvalVersion: profile.approvalVersion, approvedByActorHash: profile.approvedByActorHash, globalDailyCeiling: providerConfig.requestCeiling, userDailyCeiling: providerConfig.userCeiling, workspaceDailyCeiling: providerConfig.workspaceCeiling, neuronDailyCeiling: providerConfig.neuronCeiling });
+        if (!admission.ok) { await revokeUnusedCanaryAuthorization(env, authorizationHash); return canaryReply(admission.reason === "authorization-consumed" ? "authorization-reservation-failed" : "included-allowance-unavailable", 429); }
         const projection = buildWorkersAiProjection({ operation: "ai-bot", locale: "en", prompt: "State the current HEGEVA canary readiness in one short sentence." });
         if (!projection) { await finishAIBotOperation(env, { operationId, userId: user.id, profileId: body.profileId, reservationId: admission.reservationId, status: "failed", failureCode: "invalid-projection" }); return Response.json({ status: "failed", providerAttempted: false, financialGuardStatus: "released" }, { status: 503 }); }
         const provider = await invokeWorkersAiText(env, projection);
@@ -3502,7 +3538,7 @@ QUALITY RULES:
         return Response.json({ status: provider.ok ? "succeeded" : "failed", providerAttempted: true, financialGuardStatus: provider.ok ? "finalized" : "released" }, { status: provider.ok ? 200 : 503 });
       } catch {
         if (authorizationHash) await revokeUnusedCanaryAuthorization(env, authorizationHash);
-        return Response.json({ status: "unavailable", providerAttempted: false, financialGuardStatus: "unknown" }, { status: 503 });
+        return canaryReply(authorizationHash ? "authorization-reservation-failed" : "internal-unavailable", 503);
       }
     }
 

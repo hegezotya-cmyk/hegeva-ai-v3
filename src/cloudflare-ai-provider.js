@@ -25,6 +25,31 @@ const boundedInt = (value, fallback, max) => {
   return Number.isSafeInteger(n) && n > 0 && n <= max ? n : fallback
 }
 
+const strictPositiveInt = (value, max) => typeof value === "string" && /^(?:[1-9][0-9]*)$/.test(value) && Number.isSafeInteger(Number(value)) && Number(value) <= max ? Number(value) : null
+
+export function getWorkersAiCanaryConfig(env = {}) {
+  const allocation = strictPositiveInt(env.AI_DOCUMENTED_DAILY_NEURON_ALLOCATION, 10_000_000)
+  const neuronCeiling = strictPositiveInt(env.AI_DAILY_NEURON_CEILING, 10_000_000)
+  const requestCeiling = strictPositiveInt(env.AI_DAILY_REQUEST_CEILING, 1_000)
+  const userCeiling = strictPositiveInt(env.AI_PER_USER_CEILING, 100)
+  const workspaceCeiling = strictPositiveInt(env.AI_PER_WORKSPACE_CEILING, 100)
+  const concurrency = strictPositiveInt(env.AI_CONCURRENCY_CEILING, 10)
+  const maxInput = strictPositiveInt(env.AI_MAX_INPUT_TOKENS, 4_000)
+  const maxOutput = strictPositiveInt(env.AI_MAX_OUTPUT_TOKENS, 1_200)
+  const timeout = strictPositiveInt(env.AI_TIMEOUT_MS, 20_000)
+  if (env.AI_PROVIDER_MODEL !== WORKERS_AI_MODEL) return { ok: false, reason: "model-invalid" }
+  if (!allocation) return { ok: false, reason: "allocation-invalid" }
+  if (!requestCeiling || requestCeiling !== 1) return { ok: false, reason: "request-ceiling-invalid" }
+  if (!userCeiling || userCeiling !== 1) return { ok: false, reason: "user-ceiling-invalid" }
+  if (!workspaceCeiling || workspaceCeiling !== 1) return { ok: false, reason: "workspace-ceiling-invalid" }
+  if (!neuronCeiling || neuronCeiling > Math.floor(allocation * 0.7)) return { ok: false, reason: "neuron-ceiling-invalid" }
+  if (!concurrency || concurrency !== 1) return { ok: false, reason: "concurrency-invalid" }
+  if (!maxInput || maxInput > CANARY_BOUNDS.maxInputTokens) return { ok: false, reason: "internal-unavailable" }
+  if (!maxOutput || maxOutput > CANARY_BOUNDS.maxOutputTokens) return { ok: false, reason: "internal-unavailable" }
+  if (!timeout || timeout > CANARY_BOUNDS.timeoutMs) return { ok: false, reason: "internal-unavailable" }
+  return { ok: true, allocation, neuronCeiling, requestCeiling, userCeiling, workspaceCeiling, concurrency, maxInput, maxOutput, timeout }
+}
+
 export function getWorkersAiConfig(env = {}) {
   const canaryMode = env.AI_BOT_CANARY_ENABLED === "enabled"
   const freeAllocation = boundedInt(env.AI_DOCUMENTED_DAILY_NEURON_ALLOCATION, 0, 10_000_000)
