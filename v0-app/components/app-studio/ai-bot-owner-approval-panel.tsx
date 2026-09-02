@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useI18n } from "@/lib/i18n/provider"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import type { AIBotProfile } from "@/lib/ai-bot"
@@ -15,8 +15,13 @@ const COPY = {
 const PROFILE_ID = /^bot-[A-Za-z0-9._:-]{1,95}$/
 
 export function AIBotOwnerApprovalPanel() {
-  const { locale } = useI18n(); const copy = COPY[locale]; const { items } = useWorkspaceData<AIBotProfile>("ai-bot-profiles"); const [profiles, setProfiles] = useState<AIBotProfile[]>([]); const [message, setMessage] = useState("")
-  useEffect(() => { setProfiles(items) }, [items])
+  const { locale } = useI18n(); const copy = COPY[locale]; const { items } = useWorkspaceData<AIBotProfile>("ai-bot-profiles"); const [profiles, setProfiles] = useState<AIBotProfile[]>([]); const [message, setMessage] = useState(""); const lastItemsSnapshot = useRef("")
+  useEffect(() => {
+    const snapshot = JSON.stringify(items)
+    if (snapshot === lastItemsSnapshot.current) return
+    lastItemsSnapshot.current = snapshot
+    setProfiles(items)
+  }, [items])
   async function update(profileId: string) { try { const response = await fetch("/api/workspace/ai-bot-profiles", { credentials: "include", cache: "no-store", headers: { Accept: "application/json" } }); const payload = await response.json().catch(() => null); if (!response.ok || !Array.isArray(payload?.data)) throw new Error("refresh-failed"); setProfiles(payload.data as AIBotProfile[]); setMessage(copy.enabled) } catch { setMessage(copy.disabled) } }
   return <section className="mx-auto mt-8 max-w-7xl px-4 sm:px-6 lg:px-8" aria-labelledby="ai-bot-owner-approval-title"><div className="rounded-2xl border border-amber-300/20 bg-amber-300/5 p-5"><h2 id="ai-bot-owner-approval-title" className="font-display text-xl">{copy.title}</h2><p className="mt-2 max-w-3xl text-sm text-muted-foreground">{copy.sub}</p>{message&&<p className="mt-2 text-sm" role="status">{message}</p>}{profiles.length===0&&<p className="mt-4 text-sm text-muted-foreground">{copy.empty}</p>}<div className="mt-5 grid gap-4 md:grid-cols-2">{profiles.filter(item=>PROFILE_ID.test(item.id)).map(item=><div key={item.id} className="rounded-xl border border-white/10 p-4"><div className="flex items-center justify-between gap-3"><h3 className="font-medium">{item.name}</h3><span className="text-xs text-muted-foreground">{item.enabled?copy.enabled:copy.disabledLabel}</span></div>{item.enabled?<AIBotOwnerApprovalControl profile={item} locale={locale} onApproved={update}/>:<p className="mt-3 text-xs text-muted-foreground">{copy.disabled}</p>}</div>)}</div></div></section>
 }
