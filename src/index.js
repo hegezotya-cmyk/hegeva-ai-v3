@@ -230,6 +230,43 @@ async function loadCanaryProfile(env, userId, profileId) {
   return { profile };
 }
 
+// Side-effect-free preflight shared by readiness diagnostics and the one-shot
+// route. It intentionally stops before authorization creation or any provider
+// invocation and returns only bounded reason codes.
+async function evaluateAIBotCanaryPreflight(env, request, user, profileId) {
+  const fail = (reason, status) => ({ ok: false, reason, status });
+  if (!user || typeof user.id !== "string") return fail("authentication-required", 401);
+  const configuredOwner = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
+  const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+  if (!configuredOwner || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredOwner) || !userEmail || userEmail !== configuredOwner) return fail("owner-identity-mismatch", 403);
+  const loaded = await loadCanaryProfile(env, user.id, profileId);
+  if (!loaded.profile) return fail(loaded.reason, 403);
+  const profile = loaded.profile;
+  const actorHash = await sha256Hex(user.id);
+  if (profile.approvedByActorHash !== actorHash) return fail("profile-actor-mismatch", 403);
+  const flags = parseProviderFlags(env);
+  if (!flags.providerEnabled) return fail("provider-disabled", 503);
+  if (flags.killSwitchActive) return fail("kill-switch-active", 503);
+  if (!flags.canaryEnabled) return fail("canary-disabled", 503);
+  if (env.FINANCIAL_GUARD_ENABLED !== "enabled") return fail("financial-guard-disabled", 503);
+  if (!env.AI || typeof env.AI.run !== "function") return fail("ai-binding-unavailable", 503);
+  const providerConfig = getWorkersAiCanaryConfig(env);
+  if (!providerConfig.ok) return fail(providerConfig.reason, 503);
+  const period = new Date().toISOString().slice(0, 10);
+  let usageRows;
+  try { usageRows = await env.DB.prepare("SELECT scopeHash,scopeType,requests,estimatedNeurons,prepaidReserved FROM ai_provider_usage WHERE period=?1 AND (scopeHash='global-scope-hash' OR scopeHash=?2) AND scopeType IN ('global','user','workspace')").bind(period, actorHash).all(); } catch { return fail("internal-unavailable", 503); }
+  if (!Array.isArray(usageRows?.results)) return fail("included-allowance-unavailable", 503);
+  const rows = usageRows.results;
+  const usageFor = (scopeType) => rows.find((row) => row.scopeType === scopeType && (scopeType === "global" || row.scopeHash === actorHash));
+  const global = usageFor("global") || {}; const userUsage = usageFor("user") || {}; const workspace = usageFor("workspace") || {};
+  if ((Number(global.requests) || 0) >= providerConfig.requestCeiling) return fail("included-allowance-unavailable", 429);
+  if ((Number(userUsage.requests) || 0) >= providerConfig.userCeiling) return fail("included-allowance-unavailable", 429);
+  if ((Number(workspace.requests) || 0) >= providerConfig.workspaceCeiling) return fail("included-allowance-unavailable", 429);
+  if ((Number(global.estimatedNeurons) || 0) + 1 > providerConfig.neuronCeiling || (Number(global.estimatedNeurons) || 0) + 1 > Math.floor(providerConfig.allocation * 0.7)) return fail("included-allowance-unavailable", 429);
+  if ((Number(global.prepaidReserved) || 0) >= 1 || (Number(userUsage.prepaidReserved) || 0) >= 1 || (Number(workspace.prepaidReserved) || 0) >= 1) return fail("included-allowance-unavailable", 429);
+  return { ok: true, profile, actorHash, providerConfig };
+}
+
 async function loadStoredAIBotProfile(env, userId, profileId) {
   const row = await env.DB.prepare("SELECT data,updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(userId).first();
   if (!row || typeof row.data !== "string") return null;
@@ -3482,6 +3519,20 @@ QUALITY RULES:
       } catch { return Response.json({ error: "Owner approval is temporarily unavailable." }, { status: 503 }); }
     }
 
+    if (url.pathname === "/api/ai-bot/canary-readiness") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        if (!request.headers.get("cookie")) return Response.json({ reason: "authentication-required" }, { status: 401 });
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ reason: "authentication-required" }, { status: 401 });
+        const body = await request.json();
+        const keys = body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body) : [];
+        if (keys.length !== 1 || keys[0] !== "profileId" || typeof body.profileId !== "string" || !AI_BOT_PROFILE_ID.test(body.profileId)) return Response.json({ reason: "invalid-request" }, { status: 400 });
+        const result = await evaluateAIBotCanaryPreflight(env, request, user, body.profileId);
+        return result.ok ? Response.json({ ready: true, reason: "ready" }, { status: 200 }) : Response.json({ reason: result.reason }, { status: result.status });
+      } catch { return Response.json({ reason: "internal-unavailable" }, { status: 503 }); }
+    }
+
     if (url.pathname === "/api/ai-bot/canary-once") {
       if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
       let authorizationHash = null;
@@ -3493,34 +3544,11 @@ QUALITY RULES:
         const body = await request.json();
         const keys = body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body) : [];
         if (keys.length !== 1 || keys[0] !== "profileId" || typeof body.profileId !== "string" || !AI_BOT_PROFILE_ID.test(body.profileId)) return canaryReply("invalid-request", 400);
-        const configuredOwner = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
-        const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
-        if (!configuredOwner || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredOwner) || !userEmail || userEmail !== configuredOwner) return canaryReply("owner-identity-mismatch", 403);
-        const loaded = await loadCanaryProfile(env, user.id, body.profileId);
-        if (!loaded.profile) return canaryReply(loaded.reason, 403);
-        const profile = loaded.profile;
-        const actorHash = await sha256Hex(user.id);
-        if (profile.approvedByActorHash !== actorHash) return canaryReply("profile-actor-mismatch", 403);
-        const flags = parseProviderFlags(env);
-        if (!flags.providerEnabled) return canaryReply("provider-disabled", 503);
-        if (flags.killSwitchActive) return canaryReply("kill-switch-active", 503);
-        if (!flags.canaryEnabled) return canaryReply("canary-disabled", 503);
-        if (env.FINANCIAL_GUARD_ENABLED !== "enabled") return canaryReply("financial-guard-disabled", 503);
-        if (!env.AI || typeof env.AI.run !== "function") return canaryReply("ai-binding-unavailable", 503);
-        const providerConfig = getWorkersAiCanaryConfig(env);
-        if (!providerConfig.ok) return canaryReply(providerConfig.reason, 503);
-        const period = new Date().toISOString().slice(0, 10);
-        let usageRows;
-        try { usageRows = await env.DB.prepare("SELECT scopeHash,scopeType,requests,estimatedNeurons,prepaidReserved FROM ai_provider_usage WHERE period=?1 AND (scopeHash='global-scope-hash' OR scopeHash=?2) AND scopeType IN ('global','user','workspace')").bind(period, actorHash).all(); } catch { return canaryReply("internal-unavailable", 503); }
-        if (!Array.isArray(usageRows?.results)) return canaryReply("included-allowance-unavailable", 503);
-        const rows = usageRows.results;
-        const usageFor = (scopeType) => rows.find((row) => row.scopeType === scopeType && (scopeType === "global" || row.scopeHash === actorHash));
-        const global = usageFor("global") || {}; const userUsage = usageFor("user") || {}; const workspace = usageFor("workspace") || {};
-        if ((Number(global.requests) || 0) >= providerConfig.requestCeiling) return canaryReply("included-allowance-unavailable", 429);
-        if ((Number(userUsage.requests) || 0) >= providerConfig.userCeiling) return canaryReply("included-allowance-unavailable", 429);
-        if ((Number(workspace.requests) || 0) >= providerConfig.workspaceCeiling) return canaryReply("included-allowance-unavailable", 429);
-        if ((Number(global.estimatedNeurons) || 0) + 1 > providerConfig.neuronCeiling || (Number(global.estimatedNeurons) || 0) + 1 > Math.floor(providerConfig.allocation * 0.7)) return canaryReply("included-allowance-unavailable", 429);
-        if ((Number(global.prepaidReserved) || 0) >= 1 || (Number(userUsage.prepaidReserved) || 0) >= 1 || (Number(workspace.prepaidReserved) || 0) >= 1) return canaryReply("included-allowance-unavailable", 429);
+        const preflight = await evaluateAIBotCanaryPreflight(env, request, user, body.profileId);
+        if (!preflight.ok) return canaryReply(preflight.reason, preflight.status);
+        const profile = preflight.profile;
+        const actorHash = preflight.actorHash;
+        const providerConfig = preflight.providerConfig;
         const operationId = crypto.randomUUID();
         const rawToken = crypto.randomUUID() + crypto.randomUUID();
         authorizationHash = await sha256Hex(rawToken);
