@@ -3558,14 +3558,15 @@ QUALITY RULES:
         await env.DB.prepare("INSERT INTO ai_canary_authorizations(authorizationHash,actorHash,workspaceHash,operationType,maximumRequests,consumedCount,createdAt,expiresAt,status) VALUES(?1,?2,?2,'ai-bot',1,0,?3,?4,'active')").bind(authorizationHash, actorHash, createdAt, expiresAt).run();
         const internalRequest = new Request(request.url, { method: "POST", headers: { "X-HEGEVA-CANARY-TOKEN": rawToken } });
         const admission = await admitAIBotCanary(env, internalRequest, { authorizationHash, userId: user.id, operationId, profileId: body.profileId, approvedAt: profile.approvedAt, approvalExpiresAt: profile.approvalExpiresAt, approvalVersion: profile.approvalVersion, approvedByActorHash: profile.approvedByActorHash, globalDailyCeiling: providerConfig.requestCeiling, userDailyCeiling: providerConfig.userCeiling, workspaceDailyCeiling: providerConfig.workspaceCeiling, neuronDailyCeiling: providerConfig.neuronCeiling });
-        if (!admission.ok) { await revokeUnusedCanaryAuthorization(env, authorizationHash); return canaryReply(admission.reason === "authorization-consumed" ? "authorization-reservation-failed" : "included-allowance-unavailable", 429); }
+        if (!admission.ok) { await revokeUnusedCanaryAuthorization(env, authorizationHash); return canaryReply(admission.reason === "authorization-consumed" ? "already-used" : "authorization-reservation-failed", 429); }
         const projection = buildWorkersAiProjection({ operation: "ai-bot", locale: "en", prompt: "State the current HEGEVA canary readiness in one short sentence." });
-        if (!projection) { await finishAIBotOperation(env, { operationId, userId: user.id, profileId: body.profileId, reservationId: admission.reservationId, status: "failed", failureCode: "invalid-projection" }); return Response.json({ status: "failed", providerAttempted: false, financialGuardStatus: "released" }, { status: 503 }); }
+        if (!projection) { await finishAIBotOperation(env, { operationId, userId: user.id, profileId: body.profileId, reservationId: admission.reservationId, status: "failed", failureCode: "invalid-projection" }); return Response.json({ status: "failed", providerAttempted: false, financialGuardStatus: "released", reason: "provider-response-invalid" }, { status: 503 }); }
         const provider = await invokeWorkersAiText(env, projection);
+        const failureReason = provider.ok ? null : provider.reason === "timeout" ? "provider-timeout" : provider.reason === "missing-response" ? "provider-response-invalid" : provider.reason === "provider-failure" ? "provider-failure" : "unknown";
         try {
           await finishAIBotOperation(env, { operationId, userId: user.id, profileId: body.profileId, reservationId: admission.reservationId, status: provider.ok ? "succeeded" : "failed", failureCode: provider.ok ? null : provider.reason });
-        } catch { return Response.json({ status: "failed", providerAttempted: true, financialGuardStatus: "reserved" }, { status: 503 }); }
-        return Response.json({ status: provider.ok ? "succeeded" : "failed", providerAttempted: true, financialGuardStatus: provider.ok ? "finalized" : "released" }, { status: provider.ok ? 200 : 503 });
+        } catch { return Response.json({ status: "failed", providerAttempted: true, financialGuardStatus: "reserved", reason: "operation-finalization-failed" }, { status: 503 }); }
+        return Response.json({ status: provider.ok ? "succeeded" : "failed", providerAttempted: true, financialGuardStatus: provider.ok ? "finalized" : "released", ...(failureReason ? { reason: failureReason } : {}) }, { status: provider.ok ? 200 : 503 });
       } catch {
         if (authorizationHash) await revokeUnusedCanaryAuthorization(env, authorizationHash);
         return canaryReply(authorizationHash ? "authorization-reservation-failed" : "internal-unavailable", 503);
