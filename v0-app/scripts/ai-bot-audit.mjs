@@ -6,7 +6,7 @@ const source = files.map((file) => readFileSync(join(root, file), "utf8")).join(
 for (const token of ["useWorkspaceData", "createAIBotProfile", "validateAIBotProfile", "validateAIBotAdapterRequest", "validateAIBotAdapterResult", "AI_BOT_TOOL_REGISTRY", "redactAIBotDiagnostics", "createDisabledAIBotAdapter", "window.confirm", "approval", "not-started", "maxLength", "ai-bot-profiles"]) if (!source.includes(token)) throw new Error(`AI Bot contract missing: ${token}`)
 const approvalControl = readFileSync(join(root, "components/app-studio/ai-bot-owner-approval-control.tsx"), "utf8")
 if (/\/api\/ai-bot\/execute|env\.AI|Workers AI|wrangler|X30_GENERATION_ENABLED|https?:\/\//i.test(approvalControl)) throw new Error("AI Bot approval control must not introduce a provider path")
-for (const match of source.matchAll(/fetch\s*\(\s*["']([^"']+)["']/g)) if (match[1] !== "/api/ai-bot/approve") throw new Error(`AI Bot client fetch is not the authenticated approval endpoint: ${match[1]}`)
+for (const match of source.matchAll(/fetch\s*\(\s*["']([^"']+)["']/g)) if (!["/api/ai-bot/approve", "/api/ai-bot/canary-once"].includes(match[1])) throw new Error(`AI Bot client fetch is not an approved authenticated boundary: ${match[1]}`)
 if (!/fetch\("\/api\/ai-bot\/approve"/.test(approvalControl) || !/method:\s*"POST"/.test(approvalControl) || !/credentials:\s*"include"/.test(approvalControl)) throw new Error("AI Bot approval control must use authenticated approval POST")
 const bodyMatch = approvalControl.match(/body:\s*JSON\.stringify\(([^)]+)\)/)
 if (!bodyMatch || bodyMatch[1].replace(/\s/g, "") !== "{profileId:profile.id}") throw new Error("AI Bot approval payload must contain only profileId")
