@@ -205,6 +205,17 @@ async function loadCanonicalAIBotProfile(env, userId, profileId) {
   return profile;
 }
 
+async function loadStoredAIBotProfile(env, userId, profileId) {
+  const row = await env.DB.prepare("SELECT data,updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(userId).first();
+  if (!row || typeof row.data !== "string") return null;
+  try {
+    const records = JSON.parse(row.data);
+    if (!Array.isArray(records)) return null;
+    const profile = records.find((item) => item && item.id === profileId);
+    return profile && typeof profile === "object" ? { row, records, profile } : null;
+  } catch { return null; }
+}
+
 async function reserveAIBotOperation(env, { operationId, userId, profileId, period, limit, approvedAt, approvalExpiresAt, approvalVersion, approvedByActorHash }) {
   const now = new Date().toISOString();
   try {
@@ -3418,6 +3429,31 @@ QUALITY RULES:
           }
         );
       }
+    }
+
+    if (url.pathname === "/api/ai-bot/approve") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        const body = await request.json();
+        const profileId = typeof body?.profileId === "string" ? body.profileId : "";
+        if (!AI_BOT_PROFILE_ID.test(profileId)) return Response.json({ error: "A valid AI Bot profile is required." }, { status: 400 });
+        const configuredOwner = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
+        const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+        if (!configuredOwner || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredOwner) || !userEmail || userEmail !== configuredOwner) return Response.json({ error: "Owner approval is unavailable." }, { status: 403 });
+        const stored = await loadStoredAIBotProfile(env, user.id, profileId);
+        if (!stored || stored.profile.enabled !== true) return Response.json({ error: "This AI Bot profile is unavailable." }, { status: 404 });
+        const current = stored.profile;
+        const now = new Date(); const approvedAt = now.toISOString(); const approvalExpiresAt = new Date(now.getTime() + 30 * 60 * 1000).toISOString();
+        const approvalVersion = Number.isSafeInteger(current.approvalVersion) && current.approvalVersion > 0 ? current.approvalVersion + 1 : 1;
+        const approvedByActorHash = await sha256Hex(user.id);
+        const next = { ...current, approvalState: "owner-approved", approvedAt, approvalExpiresAt, approvedByActorHash, approvalVersion, updatedAt: approvedAt };
+        const records = stored.records.map((item) => item && item.id === profileId ? next : item);
+        const result = await env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='ai-bot-profiles' AND updatedAt=?4").bind(JSON.stringify(records), approvedAt, user.id, stored.row.updatedAt).run();
+        if (Number(result?.meta?.changes || 0) !== 1) return Response.json({ error: "The profile changed; reload and try again." }, { status: 409 });
+        return Response.json({ status: "owner-approved", approvalExpiresAt, approvalVersion }, { status: 200 });
+      } catch { return Response.json({ error: "Owner approval is temporarily unavailable." }, { status: 503 }); }
     }
 
     if (url.pathname === "/api/ai-bot/execute") {
