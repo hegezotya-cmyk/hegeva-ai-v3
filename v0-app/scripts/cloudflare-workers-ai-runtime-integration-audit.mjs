@@ -15,7 +15,7 @@ assert(index.includes("const isX20Action = body.actionKind === \"x20\""), "X20 o
 assert(index.includes("if (!isX20Action)"), "assistant adapter branch must exclude X20")
 assert(adapter.includes("reserveUsage") && adapter.includes("reserveFinancial"), "shared reservation contract must remain available")
 assert(adapter.includes("releaseUsage?.()") && adapter.includes("releaseFinancial?.()"), "failure reconciliation must remain bounded")
-assert(botPage.includes("AIBotExecution") && botClient.includes("/api/ai-bot/execute") && botClient.includes('approvalState==="owner-approved"'), "AI Bot client must use authenticated approved route")
+assert(botPage.includes("AIBotExecution") && botClient.includes("/api/ai-bot/execute") && /approvalState\s*===\s*["']owner-approved["']/.test(botClient), "AI Bot client must use authenticated approved route")
 assert(!index.includes("AI_PROVIDER_ENABLED = \"enabled\""), "provider must not be enabled in source")
 assert(!/console\.(log|info|error).*prompt|console\.(log|info|error).*response/i.test(adapter), "adapter must not log raw prompt or response")
 console.log("Cloudflare Workers AI runtime integration audit passed")

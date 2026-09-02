@@ -29,7 +29,7 @@ assert(control.includes('fetch("/api/ai-bot/canary-once"') && /body:JSON\.string
 assert(["en:", "hu:", "de:", "fr:", "es:"].every((locale) => control.includes(locale)), "canary control localization missing")
 assert(!control.includes("/api/ai-bot/execute") && !control.includes("X-HEGEVA-CANARY-TOKEN"), "client canary bypasses server boundary")
 const panel = readFileSync(join(appRoot, "components/app-studio/ai-bot-owner-approval-panel.tsx"), "utf8")
-assert(panel.includes('/api/workspace/ai-bot-profiles') && panel.includes("setItems(payload.data"), "approval UI must refresh canonical cloud state")
+assert(panel.includes('/api/workspace/ai-bot-profiles') && panel.includes("setProfiles(payload.data") && !panel.includes("setItems(payload.data"), "approval UI must refresh canonical cloud state without persisting the reload")
 
 let providerCalls = 0
 const env = { DB: { prepare() { return { bind() { return this }, async first() { return null }, async all() { return { results: [] } }, async run() { throw new Error("unexpected write") } } } }, AI: { async run() { providerCalls += 1; return { response: "should-not-run" } } }, ASSETS: { fetch() { return new Response("ok") } }, AI_PROVIDER_ENABLED: "disabled", AI_GLOBAL_KILL_SWITCH: "enabled", AI_BOT_CANARY_ENABLED: "disabled", FINANCIAL_GUARD_ENABLED: "disabled" }

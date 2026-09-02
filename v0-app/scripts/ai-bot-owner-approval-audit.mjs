@@ -11,7 +11,7 @@ assert(studio.includes("credentials:\"include\"")&&studio.includes("/api/ai-bot/
 assert(studio.includes("approvalState:\"not-requested\"")&&studio.includes("approvalVersion:item.approvalVersion+1"),"editing does not revoke approval")
 assert(page.includes("AIBotOwnerApprovalPanel")&&panel.includes("useWorkspaceData<AIBotProfile>(\"ai-bot-profiles\")"),"page-level approval panel missing")
 assert(panel.includes("AIBotOwnerApprovalControl")&&panel.includes("item.enabled"),"saved enabled profile gating missing")
-assert(panel.includes('/api/workspace/ai-bot-profiles')&&panel.includes("setItems(payload.data"),"approval success must refresh canonical profile state")
+assert(panel.includes('/api/workspace/ai-bot-profiles')&&panel.includes("setProfiles(payload.data")&&!panel.includes("setItems(payload.data"),"approval success must refresh canonical profile state without a write-back")
 assert(control.includes("body:JSON.stringify({profileId:profile.id})")&&!control.includes("AI_BOT_CANARY_AUTHORIZATION_HASH"),"approval payload is not bounded")
 assert(control.includes("state===\"pending\"")&&control.includes("en:")&&control.includes("hu:")&&control.includes("de:")&&control.includes("fr:")&&control.includes("es:"),"pending/locale states missing")
 assert(!control.includes("/api/ai-bot/execute")&&!control.includes("AI_BOT_CANARY_AUTHORIZATION_HASH"),"approval control reaches execution/canary")
