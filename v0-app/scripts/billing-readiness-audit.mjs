@@ -36,6 +36,8 @@ assert(/existingCustomer\?\.stripeCustomerId/.test(worker) && /form\.set\(\s*"cu
 assert(/\/api\/billing\/portal/.test(worker) && /billing_portal\/sessions/.test(worker), "The backend must create authenticated Stripe portal sessions")
 assert(/isStripeSecretForMode\(secretKey, paymentMode\)/.test(worker), "The customer portal secret must match the active payment mode")
 assert(/\/api\/billing\/portal/.test(account) && /billing\.stripe\.com/.test(account), "Paid account UI must open only a validated Stripe portal URL")
+assert(/\/api\/billing\/status/.test(account) && /subscriptionStatus/.test(account) && /currentPeriodEnd/.test(account) && /cancelAtPeriodEnd/.test(account), "Paid account UI must show backend-authoritative subscription lifecycle details")
+assert(/hasPaidPlan \? <Link[^>]+href="\/account"/.test(pricing), "Existing paid subscribers must be routed to authenticated plan management instead of a second checkout")
 assert(/cancel_at_period_end/.test(lifecycle) && /invoice\.payment_failed/.test(lifecycle) && /duplicate/.test(lifecycle) && /stale/.test(lifecycle), "Lifecycle integration must cover renewal, payment failure, scheduled cancellation, duplicates, and stale events")
 assert(/secret\.startsWith\("sk_test_"\)/.test(priceReconcile) && /price\.livemode, false/.test(priceReconcile), "Price reconciliation must reject live keys and live Price objects")
 assert(/1499/.test(priceReconcile) && /2999/.test(priceReconcile) && /"gbp"/.test(priceReconcile) && /"month"/.test(priceReconcile), "Premium and Pro test prices must reconcile to the displayed monthly GBP amounts")
