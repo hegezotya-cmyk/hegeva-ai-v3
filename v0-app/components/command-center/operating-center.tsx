@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { AlertTriangle, ArrowUpRight, Bot, Blocks, Check, Circle, Cloud, FileText, ListChecks, MessageSquareText, Receipt, Users } from "lucide-react"
+import { AlertTriangle, ArrowUpRight, Bot, Blocks, CalendarDays, Check, Circle, Cloud, FilePlus2, FileText, ListChecks, MessageSquarePlus, MessageSquareText, PoundSterling, Receipt, UserPlus, Users } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { AICore } from "@/components/visual-engine"
@@ -11,7 +11,7 @@ import { createWorkspacePulseProjection } from "@/lib/foundation/roadmap-foundat
 
 type RecordItem={id:string;amount?:number}
 type Task={id:string;due?:string;done:boolean;title?:string}
-type Invoice={id:string;type:"invoice"|"quote";status?:"draft"|"sent"|"paid";dueDate?:string}
+type Invoice={id:string;type:"invoice"|"quote";status?:"draft"|"sent"|"paid";dueDate?:string;currency?:string;vatRate?:number;items?:{quantity?:number;unitPrice?:number}[]}
 
 const copy={
  en:{eyebrow:"Operating picture",title:"Your work, in one line of sight",sub:"HEGEVA reads the real records in this workspace. Nothing below is simulated.",mission:"Workspace readiness mission",goal:"Turn scattered work into an operating workspace",understand:"Understand",plan:"Plan",work:"Execute",check:"Check",result:"Result",current:"Current work",empty:"No open tasks yet",openPlanner:"Open planner",inventory:"Workspace inventory",customers:"Customers",documents:"Documents",expenses:"Expenses",invoices:"Invoices",messages:"Messages",assistant:"Assistant",appStudio:"App Studio",available:"Available",attention:"Needs attention",clear:"No overdue tasks or invoices",sync:"Workspace data",cloud:"Authenticated cloud workspace",local:"Local workspace · not cloud-synced"},
@@ -34,9 +34,17 @@ const projectionCopy={
  fr:{records:"Données de l’espace disponibles",empty:"Aucune donnée d’espace disponible",continuity:"La continuité de l’espace est prête à être examinée.",approval:"En attente de l’approbation du propriétaire",localApproval:"Aperçu local ; approbation requise",next:"Examinez et approuvez la prochaine étape de la mission.",cloud:"Espace cloud authentifié",local:"Espace local · non synchronisé dans le cloud"},
  es:{records:"Datos del espacio disponibles",empty:"No hay datos del espacio disponibles",continuity:"La continuidad del espacio está lista para revisarse.",approval:"Pendiente de aprobación del propietario",localApproval:"Vista previa local; se requiere aprobación",next:"Revisa y aprueba el siguiente paso de la misión.",cloud:"Espacio cloud autenticado",local:"Espacio local · no sincronizado en la nube"},
 } as const
+const pulseCopy={
+ en:{pulse:"HEGEVA Pulse",todaySummary:"Your business today",tasksToday:"Tasks due today",openInvoices:"Open invoices",expectedRevenue:"Expected GBP revenue",draftMessages:"Message drafts",quickActions:"Quick actions",newInvoice:"Create invoice",newMessage:"Write message",newTask:"Add task",newCustomer:"Add customer"},
+ hu:{pulse:"HEGEVA Pulse",todaySummary:"A vállalkozásod ma",tasksToday:"Mai feladatok",openInvoices:"Nyitott számlák",expectedRevenue:"Várható GBP-bevétel",draftMessages:"Üzenetvázlatok",quickActions:"Gyors műveletek",newInvoice:"Számla készítése",newMessage:"Üzenet írása",newTask:"Feladat hozzáadása",newCustomer:"Ügyfél hozzáadása"},
+ de:{pulse:"HEGEVA Pulse",todaySummary:"Ihr Unternehmen heute",tasksToday:"Heute fällige Aufgaben",openInvoices:"Offene Rechnungen",expectedRevenue:"Erwarteter GBP-Umsatz",draftMessages:"Nachrichtenentwürfe",quickActions:"Schnellaktionen",newInvoice:"Rechnung erstellen",newMessage:"Nachricht schreiben",newTask:"Aufgabe hinzufügen",newCustomer:"Kunden hinzufügen"},
+ fr:{pulse:"HEGEVA Pulse",todaySummary:"Votre entreprise aujourd’hui",tasksToday:"Tâches dues aujourd’hui",openInvoices:"Factures ouvertes",expectedRevenue:"Revenu GBP attendu",draftMessages:"Brouillons de messages",quickActions:"Actions rapides",newInvoice:"Créer une facture",newMessage:"Écrire un message",newTask:"Ajouter une tâche",newCustomer:"Ajouter un client"},
+ es:{pulse:"HEGEVA Pulse",todaySummary:"Tu negocio hoy",tasksToday:"Tareas para hoy",openInvoices:"Facturas abiertas",expectedRevenue:"Ingresos GBP previstos",draftMessages:"Borradores de mensajes",quickActions:"Acciones rápidas",newInvoice:"Crear factura",newMessage:"Escribir mensaje",newTask:"Añadir tarea",newCustomer:"Añadir cliente"},
+} as const
 
 export function OperatingCenter(){
  const {locale}=useI18n();const c=copy[locale]
+ const pc=pulseCopy[locale]
  const ux=missionUx[locale]
  const projection=projectionCopy[locale]
  const {items:customers,syncState,cloudEnabled}=useWorkspaceData<RecordItem>("customers")
@@ -49,6 +57,9 @@ export function OperatingCenter(){
  const open=tasks.filter(item=>!item.done)
  const overdueTasks=open.filter(item=>item.due&&item.due<today).length
  const overdueInvoices=invoices.filter(item=>item.type==="invoice"&&item.status!=="paid"&&item.dueDate&&item.dueDate<today).length
+ const tasksToday=open.filter(item=>item.due===today).length
+ const openInvoices=invoices.filter(item=>item.type==="invoice"&&item.status!=="paid")
+ const expectedRevenue=openInvoices.filter(item=>(item.currency||"GBP")==="GBP").reduce((sum,item)=>{const subtotal=(item.items||[]).reduce((value,line)=>value+(Number(line.quantity)||0)*(Number(line.unitPrice)||0),0);return sum+subtotal*(1+(Number(item.vatRate)||0)/100)},0)
  const hasRecords=customers.length+documents.length+expenses.length+invoices.length>0
  const missionProjection=createWorkspaceMissionProjection({scope:cloudEnabled?"authenticated-cloud":"local-browser",hasRecords,openTasks:open.length,overdueItems:overdueTasks+overdueInvoices})
  const pulse=createWorkspacePulseProjection({scope:cloudEnabled?"authenticated-cloud":"local-browser",hasRecords,openTasks:open.length,missionState:"awaiting-approval"})
@@ -60,8 +71,17 @@ export function OperatingCenter(){
  const missionSummary=missionProjection.safeSummary.includes("No workspace")?projection.empty:missionProjection.safeSummary.includes("Workspace records")?projection.records:missionProjection.safeSummary.includes("Local preview")?projection.localApproval:missionProjection.safeSummary.includes("Awaiting")?projection.approval:missionProjection.safeSummary
  const continuitySummary=pulse.understood.includes("No workspace")?projection.empty:projection.continuity
  const inventory=[[Users,c.customers,customers.length,"/business/customers"],[FileText,c.documents,documents.length,"/business/documents"],[Receipt,c.expenses,expenses.length,"/business/expenses"],[ListChecks,c.invoices,invoices.length,"/business/invoices"],[MessageSquareText,c.messages,messages.length,"/business/messages"]] as const
+ const pulseMetrics:Array<[typeof CalendarDays,string,string|number]>=[[CalendarDays,pc.tasksToday,tasksToday],[ListChecks,pc.openInvoices,openInvoices.length],[PoundSterling,pc.expectedRevenue,expectedRevenue.toLocaleString(locale,{style:"currency",currency:"GBP"})],[MessageSquareText,pc.draftMessages,messages.length]]
+ const quickActions:Array<[typeof CalendarDays,string,string]>=[[FilePlus2,pc.newInvoice,"/business/invoices"],[MessageSquarePlus,pc.newMessage,"/business/messages"],[CalendarDays,pc.newTask,"/business/planner"],[UserPlus,pc.newCustomer,"/business/customers"]]
  return <section className="mt-8 overflow-hidden border-y border-border bg-background/35">
   <div className="control-room-head"><div><p className="ve-eyebrow">{c.eyebrow}</p><h2>{c.title}</h2><p>{c.sub}</p></div><div className="flex items-center gap-3"><AICore state={syncState==="saving"?"working":syncState==="error"?"warning":"ready"}/><div><strong className="block text-sm">{c.sync}</strong><span className="text-xs capitalize text-muted-foreground">{syncState}</span></div></div></div>
+  <div className="border-t border-border bg-primary/[0.035] px-4 py-6 sm:px-6">
+   <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="ve-eyebrow">{pc.pulse}</p><h3 className="mt-1 font-display text-2xl font-semibold">{pc.todaySummary}</h3></div><p className="text-xs text-muted-foreground">{new Intl.DateTimeFormat(locale,{dateStyle:"full"}).format(new Date())}</p></div>
+   <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    {pulseMetrics.map(([Icon,label,value])=><article key={label} className="rounded-2xl border border-border bg-background/55 p-4"><Icon aria-hidden className="size-4 text-primary"/><p className="mt-3 text-xs text-muted-foreground">{label}</p><strong className="mt-1 block text-2xl">{value}</strong></article>)}
+   </div>
+   <div className="mt-5"><p className="text-xs font-semibold uppercase tracking-[.14em] text-muted-foreground">{pc.quickActions}</p><div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{quickActions.map(([Icon,label,href])=><Link key={label} href={href} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-primary/25 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/15"><Icon aria-hidden className="size-4"/>{label}<ArrowUpRight aria-hidden className="ml-auto size-3.5"/></Link>)}</div></div>
+  </div>
   <div className="control-room-grid">
    <article className="mission-surface"><header><div><p>{c.mission}</p><h3>{c.goal}</h3><small className="mt-2 block text-xs text-muted-foreground">{missionSummary}</small><small className="block text-xs text-muted-foreground">{ux.prepared} · {ux.approval} · {ux.notStarted}{missionProjection.needsUser ? ` · ${projection.next}` : ""}</small></div><span>01</span></header><div className="mission-body"><div className="mission-core-visual" style={{background:`conic-gradient(var(--gold) ${completedStages*72}deg,oklch(.82 .13 85/.07) 0)`}}><div><AICore state={completedStages===stages.length?"completed":open.length?"working":"ready"}/><small>{currentStage}</small><strong>{completedStages}/{stages.length}</strong></div></div><ol>{stages.map((stage,index)=><li key={stage.label} className={cn(stage.done&&"is-done",stage.active&&"is-active")}><span>{stage.done?<Check aria-hidden/>:stage.active?<span className="mission-current"/>:<Circle aria-hidden/>}</span><div><b>{stage.label}</b><small>{index+1} / {stages.length}</small></div></li>)}</ol></div></article>
    <article className="current-work"><header><div><p>{c.current}</p><span className="text-xs text-muted-foreground">{continuitySummary}</span></div><Link href="/business/planner">{c.openPlanner}<ArrowUpRight aria-hidden/></Link></header>{open.length?<div>{open.slice(0,4).map((task,index)=><div key={task.id}><span>{String(index+1).padStart(2,"0")}</span><p>{task.title||`${c.current} ${index+1}`}</p><time>{task.due||"—"}</time></div>)}</div>:<div className="current-empty"><Check className="size-5 text-primary"/><p>{c.empty}</p></div>}

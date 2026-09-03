@@ -22,6 +22,8 @@ assert(local.nextActions.every((entry) => !/execute|run|send|delete|save/i.test(
 
 const operatingCenter = fs.readFileSync(new URL("../components/command-center/operating-center.tsx", import.meta.url), "utf8")
 assert(operatingCenter.includes("createWorkspacePulseProjection"))
+assert(/tasksToday/.test(operatingCenter) && /openInvoices/.test(operatingCenter) && /expectedRevenue/.test(operatingCenter) && /draftMessages/.test(operatingCenter), "Pulse must summarize real daily workspace signals")
+for (const route of ["/business/invoices", "/business/messages", "/business/planner", "/business/customers"]) assert(operatingCenter.includes(route), `Pulse must link to ${route}`)
 assert(!/fetch\(|env\.AI|setItems\(|startX20Action|reserveAIUsage/.test(operatingCenter))
 assert(!/dangerouslySetInnerHTML|eval\(|new Function/.test(operatingCenter))
 
