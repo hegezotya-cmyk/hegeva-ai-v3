@@ -24,8 +24,14 @@ pending the owner-controlled live billing gates below.
 - Paid Sandbox accounts can create a short-lived, authenticated Stripe Customer
   Portal session from the account page.
 - Worker logs and sampled traces are enabled in the checked configuration.
+- Roadmap 3 is complete: HEGEVA Pulse summarizes real daily workspace signals,
+  exposes direct business actions, and keeps Mission execution explicitly behind
+  owner approval.
+- Roadmap 4 is complete: the HEGEVA Companion uses bounded workspace continuity,
+  offers user-controlled suggestions, and cannot silently impersonate a person or
+  initiate provider work.
 - The release preflight now includes the complete product, mobile, billing, and X20
-  roadmap audit suite.
+  roadmap audit suite, including dedicated Roadmap 3 and Roadmap 4 gates.
 
 ## Locally verified safeguards
 
@@ -45,6 +51,8 @@ pending the owner-controlled live billing gates below.
 ## Automated gates
 
 - `npm run audit:roadmap`
+- `npm run audit:roadmap-3`
+- `npm run audit:roadmap-4`
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm run cf:build`
