@@ -17,7 +17,7 @@ export const COMMERCIAL_PLANS = {
 } as const
 
 export const COMMERCIAL_CONFIG = {
-  billing: { currency: "GBP", mode: "sandbox" as const, liveEnabled: false },
+  billing: { currency: "GBP", mode: "live" as const, liveEnabled: true },
   plans: COMMERCIAL_PLANS,
   prices: { currency: "GBP", monthly: { free: 0, premium: 1499, pro: 2999, studio: 5999, enterprise: 14900 }, annual: { free: 0, premium: 14990, pro: 29990, studio: 59990, enterprise: 0 } },
   monthlyIncluded: { free: 50, premium: 300, pro: 1000, studio: 2500, enterprise: 0 },
@@ -51,11 +51,11 @@ export const COMMERCIAL_CONFIG = {
     marketData: { enabled: false, approvalRequired: true, source: "repository-sample" },
   },
   features: { x30Generation: { enabled: false, approvalRequired: true }, enterpriseSso: { enabled: false, approvalRequired: true } },
-  featureFlags: { x30Generation: false, liveBilling: false, paidAi: false, paidVideo: false, liveTrading: false, enterpriseSso: false },
+  featureFlags: { x30Generation: false, liveBilling: true, paidAi: false, paidVideo: false, liveTrading: false, enterpriseSso: false },
 } as const
 
-// Published catalogue values are fixed, while payment execution remains
-// sandbox-only and fail-closed until the separately approved live payment setup.
+// Published catalogue values and live monthly billing are active. Annual
+// billing and paid provider capabilities remain fail-closed until separately approved.
 
 export type CommercialPlan = keyof typeof COMMERCIAL_PLANS
 

@@ -17,5 +17,5 @@ assert(source.includes("releaseUsage?.()") && source.includes("releaseFinancial?
 assert(source.includes('operation === "assistant" || operation === "ai-bot"'), "only approved text operations may project")
 assert(source.includes("stream: false") && source.includes("Do not call tools"), "streaming and tools must remain unavailable")
 assert(source.includes("slice(0, 8_000)") && source.includes("slice(0, 12_000)"), "input/output bounds missing")
-assert(config.includes("liveBilling: false") && config.includes("paidAi: false"), "commercial provider gates must remain disabled")
+assert(config.includes("liveBilling: true") && config.includes("paidAi: false"), "live billing must remain independent from the disabled paid-AI gate")
 console.log("Cloudflare Workers AI safe provider audit passed")

@@ -1,10 +1,10 @@
 # HEGEVA Product, Commercial and Launch Inventory
 
-Read-only inventory generated from the current `approved-ui-integration` tree. Existing application changes and protected untracked files were preserved; this report is the only file added by this package.
+Living inventory maintained against the current `approved-ui-integration` tree. Protected untracked files remain preserved.
 
 ## Executive summary
 
-HEGEVA has a functional Core shell, Assistant, App Studio, Business workspace, bounded X30 contracts, AI Bot configuration, paper-trading simulation, Enterprise foundations, and five-locale UI. Provider execution, live trading, X30 generation, live Stripe, and SSO/SAML remain fail-closed. The smallest honest paid launch is a local/cloud business workspace with invoices, quotes, customers, documents, expenses, planner, reports and messaging; AI/video/trading/SSO must remain clearly gated.
+HEGEVA has a functional Core shell, Assistant, App Studio, Business workspace, bounded X30 contracts, AI Bot configuration, paper-trading simulation, Enterprise foundations, and five-locale UI. Live monthly Stripe billing is active for Premium and Pro with a verified webhook path. AI/video provider execution, live trading, X30 generation, and SSO/SAML remain fail-closed and clearly gated.
 
 ## Product and route matrix
 
@@ -20,11 +20,11 @@ HEGEVA has a functional Core shell, Assistant, App Studio, Business workspace, b
 | Advertising Studio | `app/app-studio/advertising`, `lib/advertising-workflows.ts` | Functional brief/draft CRUD; no generated output | Provider approval; post-launch |
 | Video Ad Studio | `app/app-studio/video-ad-studio`, `lib/video-advertisement.ts` | Functional storyboard/spec CRUD | Video provider approval; post-launch |
 | Business workspace | `app/business/page.tsx` and `app/business/*` | Functional cloud/local CRUD | Auth/cloud fallback; launch |
-| Invoices / quotes | `app/business/invoices/page.tsx`, `components/business/reports.tsx` | Functional calculations, CRUD, print | Sandbox billing only; launch |
+| Invoices / quotes | `app/business/invoices/page.tsx`, `components/business/reports.tsx` | Functional calculations, CRUD, print | Live subscription billing available; document legal/tax disclaimers remain |
 | Contracts / receipts / tax summaries | `app/business/{contracts,receipts,tax-summaries}`, `components/business/document-studio.tsx` | Functional CRUD/print with disclaimers | Legal/tax informational only; post-launch |
 | Paper Trading | `app/bots/trading`, `lib/paper-trading.ts` | Deterministic simulation and persistence | Live orders prohibited; post-launch beta |
 | Enterprise | `app/enterprise`, `components/enterprise/*`, `lib/enterprise.ts` | Organization/workspace/team foundation | SSO and commercial limits external; enterprise beta |
-| Pricing | `app/pricing/page.tsx` | Present, Sandbox/unpriced | Owner pricing and Stripe production setup; pre-payment gate |
+| Pricing | `app/pricing/page.tsx` | Live Premium £14.99/month and Pro £29.99/month | Monthly Stripe checkout active; annual billing remains unavailable |
 | Auth/account | `app/login`, `app/account`, `app/reset-password`, `lib/auth*` | Functional session/account flows | Production identity/provider review |
 | Admin/contact | `app/admin/contact-leads`, `app/contact`, `/api/contact`, `/api/admin/*` | Functional bounded lead flow | Admin authorization and email configuration |
 | Public/legal | `app/get-started`, `privacy`, `terms`, `robots.ts`, `sitemap.ts`, `manifest.ts`, `layout.tsx` | Present | Content/legal owner review |
@@ -41,14 +41,14 @@ External boundaries are Workers AI, Stripe, Resend/email, market data, broker ad
 
 - Route reachability for Advertising Studio, Video Ad Studio, AI Bots, Paper Trading, Enterprise, Contracts, Receipts and Tax Summaries is now covered by real Next.js routes and navigation links.
 - CRUD persistence, duplicate/delete behavior, validation, print previews, provider-disabled states, paper-only enforcement and Enterprise redaction boundaries are implemented and audited.
-- Centralized commercial configuration is present and all external capability flags remain disabled.
+- Centralized commercial configuration is present. Live monthly billing is enabled independently; paid AI, X30, live trading and SSO remain disabled.
 - Stable canonical persistence keys are used by the new business-document workflows.
 - Remaining items below are not silently marked complete; they require native Windows execution or owner/external authority.
 
 - Native Windows Next.js/OpenNext verification remains required; Linux is blocked by the unavailable SWC binary/read-only `.next` filesystem.
 - Several existing temporary-database audits require writable temporary directories; Durable Object audit requires the native Windows workerd binary.
 - Advertising channel labels and some legacy App Studio labels still need a final localization cleanup; this is a non-payment-blocking polish item.
-- Live Stripe prices, products, webhook secrets and entitlement mapping remain owner-controlled.
+- Live Stripe products, monthly prices, webhook secret and entitlement mapping are configured; operational monitoring and rollback remain owner-controlled.
 - AI, video, X30 and broker execution require explicit provider configuration, quota review and approval.
 - SSO/SAML requires external identity-provider configuration.
 - No fake provider completion, live-trading or deployment action is present.
@@ -69,7 +69,7 @@ Source: `v0-app/lib/commercial-config.ts`.
 - Paid-provider, live-billing, live-trading, X30 and SSO feature flags.
 - API/webhook availability, support/SLA tiers, overage policy and license rules.
 
-All current commercial values are provisional or disabled and must not be presented as final pricing.
+Premium and Pro monthly GBP prices and live billing are active. Annual pricing, trials, credits, quotas and provider-backed capabilities remain provisional or disabled and must not be presented as active.
 
 ## Provider and cost map
 
@@ -82,7 +82,7 @@ All current commercial values are provisional or disabled and must not be presen
 | Video generation | Storyboard/spec only | Paid video provider, seconds/render or job | No |
 | Image generation | No active generation path in this package | Image provider, image count/size | No |
 | Email/contact | Existing Resend/email boundary | Provider account and per-message cost | Contact only |
-| Stripe | Sandbox/readiness contracts | Live keys, products, prices, webhooks and tax/legal review | Required before payment |
+| Stripe | Live monthly checkout, portal and webhook path | Monitoring, rollback, tax/legal review and future annual prices | Yes |
 | Market data | Repository sample only | Licensed feed, request/stream cost | No |
 | Broker | Disabled adapter boundary | Broker credentials, compliance and order risk controls | No |
 | Enterprise SSO | Contract only | SAML/OIDC provider and enterprise agreement | No |
@@ -105,13 +105,17 @@ Final prices, credits, quotas, overages, taxes, seats and provider costs require
 
 ## Saturday launch matrix
 
-### Must complete before accepting payment
+### Completed payment-launch gates
 
 - Native Windows TypeScript, Next.js and OpenNext verification.
-- Live Stripe products/prices, webhook signature/idempotency, entitlement mapping and rollback procedure.
-- Production legal, privacy, terms, support and refund wording.
-- Auth/session, workspace isolation, quota and abuse review.
-- Honest pricing page with no Sandbox-to-live ambiguity.
+- Live monthly Stripe products/prices, webhook signature handling and entitlement mapping.
+- Auth/session and workspace-isolation review for the released billing flow.
+- Honest pricing and account copy with no Sandbox-to-live ambiguity.
+
+### Ongoing owner review
+
+- Production legal, privacy, terms, support, refund and tax wording.
+- Billing monitoring and documented rollback exercises.
 
 ### Should follow immediately after launch
 
@@ -133,26 +137,25 @@ Final prices, credits, quotas, overages, taxes, seats and provider costs require
 
 ## Recommended activation sequence
 
-1. Complete native Windows build and Cloudflare compatibility gate.
-2. Finalize legal/support and commercial decisions.
-3. Configure Stripe Sandbox-to-live migration only after webhook and entitlement review.
-4. Launch the business workspace paid surface with all AI/media/trading features clearly gated.
-5. Separately approve one AI owner canary, then bounded provider rollout.
-6. Add advertising/video providers only with independent quotas and cost kill switches.
-7. Add Enterprise SSO and live trading only under separate security/compliance approvals.
+1. Maintain the completed Windows build, Cloudflare deployment and live monthly Stripe path.
+2. Continue legal/support, refund, tax and operational monitoring review.
+3. Keep the business workspace paid surface separate from gated AI/media/trading features.
+4. Separately approve one AI owner canary, then bounded provider rollout.
+5. Add advertising/video providers only with independent quotas and cost kill switches.
+6. Add Enterprise SSO and live trading only under separate security/compliance approvals.
 
 ## Explicit owner decisions
 
-Owner decisions remain required for pricing, credits, quotas, trial policy, provider/model selection, AI/media costs, trading limits, Enterprise seats/workspaces, API/webhook exposure, support/SLA, overages, Stripe live activation, SSO provider, market-data licensing and broker compliance.
+Owner decisions remain required for annual pricing, credits, quotas, trial policy, provider/model selection, AI/media costs, trading limits, Enterprise seats/workspaces, API exposure, support/SLA, overages, SSO provider, market-data licensing and broker compliance. Live monthly Stripe activation is complete.
 
 ## Verification record
 
 - Route tree and destination references were cross-checked against `v0-app/app`.
 - Commercial settings were cross-checked against `lib/commercial-config.ts`.
 - Provider claims were cross-checked against adapters and disabled flags.
-- No application source was changed by this inventory package.
-- `git diff --check`: PASS.
-- No secrets, providers, D1, Stripe or external services were accessed.
+- Application and inventory state were aligned after live Stripe activation.
+- Verification is rerun after every material commercial-state change.
+- No secret values are stored in this document.
 
 ## Final application quality package status
 

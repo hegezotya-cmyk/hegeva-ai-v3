@@ -184,8 +184,8 @@ export default function PricingPage() {
       <p className="text-sm font-semibold tracking-[0.18em] text-primary">{c.eyebrow}</p>
       <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">{c.title}</h1>
       <p className="mt-4 text-base leading-7 text-muted-foreground">{c.subtitle}</p>
-      <p className="mt-5 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-gold">{liveBilling ? LIVE_BILLING_COPY[locale].notice : c.sandbox}</p>
-      {session?.user && <p role="status" className={`mt-4 rounded-xl border px-4 py-3 text-sm ${billingReady ? "border-primary/30 bg-primary/10 text-primary" : "border-gold/30 bg-gold/10 text-gold"}`}>{billingStatusLoading ? (liveBilling ? LIVE_BILLING_COPY[locale].checking : c.checkingBilling) : billingReady ? (liveBilling ? LIVE_BILLING_COPY[locale].ready : c.billingReady) : (liveBilling ? LIVE_BILLING_COPY[locale].incomplete : c.billingIncomplete)}</p>}
+      <p className="mt-5 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-gold">{billingStatusLoading || liveBilling ? LIVE_BILLING_COPY[locale].notice : c.sandbox}</p>
+      {session?.user && <p role="status" className={`mt-4 rounded-xl border px-4 py-3 text-sm ${billingReady ? "border-primary/30 bg-primary/10 text-primary" : "border-gold/30 bg-gold/10 text-gold"}`}>{billingStatusLoading ? LIVE_BILLING_COPY[locale].checking : billingReady ? (liveBilling ? LIVE_BILLING_COPY[locale].ready : c.billingReady) : (liveBilling ? LIVE_BILLING_COPY[locale].incomplete : c.billingIncomplete)}</p>}
       {billingCancelled && <p role="status" className="mt-4 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">{BILLING_CANCELLED_COPY[locale]}</p>}
     </div>
     <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">

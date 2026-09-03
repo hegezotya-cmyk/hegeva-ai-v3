@@ -12,7 +12,7 @@ for(const token of ["invoice_documents","financial_guard_monthly_closes","ready-
 for(const locale of ["en","hu","de","fr","es"])assert(component.includes(`${locale}:`),`missing locale ${locale}`)
 assert(component.includes("useSession")&&component.includes("useWorkspaceData"),"auth and workspace persistence required")
 assert(component.includes("slice(0,2000)"),"notes must be bounded")
-assert(config.includes("featureFlags")&&config.includes("liveBilling: false"),"external controls must remain disabled")
+assert(config.includes("featureFlags")&&config.includes("liveBilling: true")&&config.includes("paidAi: false"),"approved live billing must remain independent from disabled paid providers")
 for(const token of ["reserveGuardCost","expectedRevision","emergencyShutdown","prepaidCreditsRequired","creditsAvailable","creditsReserved","isStale","unavailableFinancialSource"])assert(domain.includes(token),`missing financial guard control ${token}`)
 assert(domain.includes("next.revision += 1")&&domain.includes("next.creditsAvailable -= cost"),"reservation must advance atomically")
 assert(domain.includes("return { decision: { allowed: false")&&domain.includes("nextState: next"),"rejections must not expose partial state")
