@@ -4,7 +4,7 @@ import Link from "next/link"
 import { AppShell } from "@/components/app-shell"
 import { PageHeader } from "@/components/page-header"
 import { StatusBadge } from "@/components/status-badge"
-import { Users, FileText, ReceiptText, ArrowRight, CalendarCheck2, BarChart3, MessageSquareText, Wrench, FolderLock, FileSpreadsheet, ShieldCheck } from "lucide-react"
+import { Users, FileText, ReceiptText, ArrowRight, CalendarCheck2, BarChart3, MessageSquareText, Wrench, FolderLock, FileSpreadsheet, ShieldCheck, Sparkles } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { TOOLS_COPY } from "@/lib/i18n/tools-copy"
 import { VAULT_COPY } from "@/lib/i18n/vault-copy"
@@ -14,6 +14,7 @@ import { IntelligenceCard, SignalIcon } from "@/components/visual-engine"
 export default function BusinessPage() {
   const { t, locale } = useI18n()
   const modules = [
+    { href: "/business/intelligence", title: locale === "hu" ? "Üzleti intelligencia" : "Business Intelligence", text: locale === "hu" ? "Reggeli összefoglaló, reklámok, utánkövetés, heti riport és Watchtower." : "Briefings, ads, follow-ups, weekly reports and Watchtower.", icon: Sparkles },
     { href: "/business/customers", title: t.business.customers, text: t.business.customersDesc, icon: Users },
     { href: "/business/documents", title: t.business.documents, text: t.business.documentsDesc, icon: FileText },
     { href: "/business/expenses", title: t.business.expenses, text: t.business.expensesDesc, icon: ReceiptText },
