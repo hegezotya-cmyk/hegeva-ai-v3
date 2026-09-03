@@ -2,96 +2,76 @@ import type { Locale } from "./dictionaries"
 
 type Section = { title: string; body: string }
 type LegalDocument = { eyebrow: string; title: string; updated: string; intro: string; sections: Section[]; contact: string }
+type LegalSet = { privacy: LegalDocument; terms: LegalDocument; privacyLink: string; termsLink: string }
 
-export const LEGAL_COPY: Record<Locale, { privacy: LegalDocument; terms: LegalDocument; privacyLink: string; termsLink: string }> = {
-  en: {
-    privacyLink: "Privacy", termsLink: "Terms",
-    privacy: { eyebrow:"HEGEVA AI · LEGAL", title:"Privacy notice", updated:"Last updated: 22 August 2026", intro:"This notice explains what information HEGEVA AI currently processes and why.", sections:[
-      {title:"Information we process",body:"We process account details, authentication records, workspace content you choose to save, AI requests and usage counts, and information submitted through the contact form."},
-      {title:"How we use it",body:"We use this information to provide and secure the service, keep account data separated, operate requested features, enforce usage limits, respond to enquiries, and diagnose faults."},
-      {title:"Storage and service providers",body:"Application data is stored using Cloudflare services. Authentication, AI processing and optional email or payment services may process only the information required for their function. We do not claim to sell personal information."},
-      {title:"Retention and control",body:"We keep data only while it is reasonably needed to operate, secure or improve the service and meet applicable obligations. You may request access, correction or deletion through the contact page."},
-      {title:"Security and limits",body:"We use access controls and encrypted network connections. No online service can promise absolute security, so never submit passwords, API keys, payment credentials or other secrets through free-text forms."}
-    ],contact:"Privacy questions or requests can be sent through the HEGEVA contact page."},
-    terms: {eyebrow:"HEGEVA AI · LEGAL",title:"Terms of use",updated:"Last updated: 22 August 2026",intro:"These terms apply when you access or use the current HEGEVA AI preview and working services.",sections:[
-      {title:"Service status",body:"HEGEVA is under active development. Features marked Working are available in their described scope; Beta, Planned and Coming Soon features may change or may not yet be available."},
-      {title:"Your account and content",body:"You are responsible for accurate account information, protecting your login, and the content you submit. Only upload or process content you are entitled to use."},
-      {title:"Acceptable use",body:"Do not misuse the service, bypass limits, interfere with security, access another user’s data, submit unlawful content, distribute malware, or use the service to deceive or harm others."},
-      {title:"AI and business information",body:"AI output can be incomplete or incorrect and is not professional legal, tax, financial or medical advice. Review important output and obtain qualified advice where appropriate before acting."},
-      {title:"Availability and changes",body:"We may repair, improve, limit or discontinue features. We aim to describe the service honestly, but uninterrupted or error-free availability is not guaranteed."},
-      {title:"Contact",body:"Questions about these terms can be submitted through the contact page."}
-    ],contact:"By continuing to use the service, you agree to follow these terms."}
-  },
-  hu: {
-    privacyLink:"Adatvédelem",termsLink:"Felhasználási feltételek",
-    privacy:{eyebrow:"HEGEVA AI · JOGI",title:"Adatvédelmi tájékoztató",updated:"Utolsó frissítés: 2026. augusztus 22.",intro:"Ez a tájékoztató bemutatja, hogy a HEGEVA AI jelenleg milyen adatokat kezel és miért.",sections:[
-      {title:"Kezelt adatok",body:"Kezeljük a fiókadatokat, hitelesítési rekordokat, az általad mentett munkaterületi tartalmat, az AI-kéréseket és használati számlálókat, valamint a kapcsolatfelvételi űrlapon megadott adatokat."},
-      {title:"Az adatkezelés célja",body:"Az adatokat a szolgáltatás működtetésére és védelmére, a fiókok elkülönítésére, a kért funkciók biztosítására, a használati korlátok kezelésére, a megkeresések megválaszolására és hibakeresésre használjuk."},
-      {title:"Tárolás és szolgáltatók",body:"Az alkalmazás adatait Cloudflare-szolgáltatások tárolják. A hitelesítési, AI-, opcionális e-mail- vagy fizetési szolgáltatók csak a feladatukhoz szükséges adatokat kezelhetik. Nem állítjuk, hogy személyes adatokat értékesítünk."},
-      {title:"Megőrzés és jogaid",body:"Az adatokat csak addig őrizzük, amíg az a szolgáltatás működtetéséhez, biztonságához, fejlesztéséhez vagy kötelezettségeink teljesítéséhez indokolt. Hozzáférést, helyesbítést vagy törlést a Kapcsolat oldalon kérhetsz."},
-      {title:"Biztonság és korlátok",body:"Hozzáférés-védelmet és titkosított hálózati kapcsolatot használunk. Egyetlen online szolgáltatás sem garantálhat teljes biztonságot, ezért szabad szöveges mezőben ne adj meg jelszót, API-kulcsot, fizetési adatot vagy más titkot."}
-    ],contact:"Adatvédelmi kérdésedet vagy kérelmedet a HEGEVA Kapcsolat oldalán küldheted el."},
-    terms:{eyebrow:"HEGEVA AI · JOGI",title:"Felhasználási feltételek",updated:"Utolsó frissítés: 2026. augusztus 22.",intro:"Ezek a feltételek a HEGEVA AI jelenlegi előnézetének és működő szolgáltatásainak használatára vonatkoznak.",sections:[
-      {title:"A szolgáltatás állapota",body:"A HEGEVA aktív fejlesztés alatt áll. A Dolgozó jelölésű funkciók a leírt körben elérhetők; a Béta, Tervezett és Hamarosan funkciók változhatnak vagy még nem használhatók."},
-      {title:"Fiókod és tartalmad",body:"Te felelsz a pontos fiókadatokért, a belépésed védelméért és a beküldött tartalomért. Csak olyan tartalmat tölts fel vagy dolgozz fel, amelynek használatára jogosult vagy."},
-      {title:"Megengedett használat",body:"Tilos a szolgáltatással visszaélni, korlátokat megkerülni, a biztonságot zavarni, más felhasználó adataihoz hozzáférni, jogellenes tartalmat vagy kártékony programot beküldeni, illetve megtévesztésre vagy károkozásra használni."},
-      {title:"AI- és üzleti információk",body:"Az AI válasza hiányos vagy téves lehet, és nem minősül jogi, adózási, pénzügyi vagy egészségügyi szakvéleménynek. Fontos döntés előtt ellenőrizd az eredményt, és szükség esetén kérj képzett szakértői tanácsot."},
-      {title:"Elérhetőség és változtatások",body:"Funkciókat javíthatunk, fejleszthetünk, korlátozhatunk vagy megszüntethetünk. Törekszünk az őszinte leírásra, de folyamatos és hibamentes működést nem garantálunk."},
-      {title:"Kapcsolat",body:"A feltételekkel kapcsolatos kérdéseket a Kapcsolat oldalon küldheted el."}
-    ],contact:"A szolgáltatás további használatával vállalod ezen feltételek betartását."}
-  },
-  de: {
-    privacyLink:"Datenschutz",termsLink:"Nutzungsbedingungen",
-    privacy:{eyebrow:"HEGEVA AI · RECHTLICHES",title:"Datenschutzhinweis",updated:"Letzte Aktualisierung: 22. August 2026",intro:"Dieser Hinweis erklärt, welche Informationen HEGEVA AI derzeit verarbeitet und warum.",sections:[
-      {title:"Verarbeitete Informationen",body:"Wir verarbeiten Kontodaten, Authentifizierungsdaten, von Ihnen gespeicherte Arbeitsbereichsinhalte, KI-Anfragen und Nutzungszähler sowie Angaben aus dem Kontaktformular."},
-      {title:"Verwendungszwecke",body:"Wir nutzen diese Daten, um den Dienst bereitzustellen und zu schützen, Konten zu trennen, angeforderte Funktionen auszuführen, Nutzungslimits anzuwenden, Anfragen zu beantworten und Fehler zu untersuchen."},
-      {title:"Speicherung und Anbieter",body:"Anwendungsdaten werden über Cloudflare-Dienste gespeichert. Authentifizierungs-, KI-, optionale E-Mail- oder Zahlungsdienste verarbeiten nur die für ihre Funktion erforderlichen Daten. Wir behaupten nicht, personenbezogene Daten zu verkaufen."},
-      {title:"Aufbewahrung und Kontrolle",body:"Daten werden nur so lange aufbewahrt, wie es für Betrieb, Sicherheit, Verbesserung oder geltende Pflichten angemessen erforderlich ist. Zugriff, Berichtigung oder Löschung können Sie über die Kontaktseite anfragen."},
-      {title:"Sicherheit und Grenzen",body:"Wir verwenden Zugriffskontrollen und verschlüsselte Netzwerkverbindungen. Kein Onlinedienst kann absolute Sicherheit versprechen. Senden Sie daher keine Passwörter, API-Schlüssel, Zahlungsdaten oder andere Geheimnisse in Freitextfeldern."}
-    ],contact:"Datenschutzfragen oder Anfragen können über die HEGEVA-Kontaktseite gesendet werden."},
-    terms:{eyebrow:"HEGEVA AI · RECHTLICHES",title:"Nutzungsbedingungen",updated:"Letzte Aktualisierung: 22. August 2026",intro:"Diese Bedingungen gelten für die Nutzung der aktuellen HEGEVA-AI-Vorschau und der funktionierenden Dienste.",sections:[
-      {title:"Dienststatus",body:"HEGEVA wird aktiv entwickelt. Als Funktionierend markierte Funktionen sind im beschriebenen Umfang verfügbar; Beta-, Geplant- und Demnächst-Funktionen können sich ändern oder noch nicht verfügbar sein."},
-      {title:"Konto und Inhalte",body:"Sie sind für korrekte Kontodaten, den Schutz Ihrer Anmeldung und eingereichte Inhalte verantwortlich. Verarbeiten Sie nur Inhalte, zu deren Nutzung Sie berechtigt sind."},
-      {title:"Zulässige Nutzung",body:"Missbrauchen Sie den Dienst nicht, umgehen Sie keine Limits, stören Sie keine Sicherheitsmaßnahmen, greifen Sie nicht auf fremde Daten zu und übermitteln Sie keine rechtswidrigen Inhalte oder Schadsoftware."},
-      {title:"KI- und Geschäftsinformationen",body:"KI-Ausgaben können unvollständig oder falsch sein und sind keine professionelle Rechts-, Steuer-, Finanz- oder medizinische Beratung. Prüfen Sie wichtige Ergebnisse und holen Sie bei Bedarf qualifizierten Rat ein."},
-      {title:"Verfügbarkeit und Änderungen",body:"Wir können Funktionen reparieren, verbessern, begrenzen oder einstellen. Wir beschreiben den Dienst nach bestem Wissen, garantieren aber keine ununterbrochene oder fehlerfreie Verfügbarkeit."},
-      {title:"Kontakt",body:"Fragen zu diesen Bedingungen können über die Kontaktseite gesendet werden."}
-    ],contact:"Mit der weiteren Nutzung erklären Sie sich bereit, diese Bedingungen einzuhalten."}
-  },
-  fr: {
-    privacyLink:"Confidentialité",termsLink:"Conditions d’utilisation",
-    privacy:{eyebrow:"HEGEVA AI · JURIDIQUE",title:"Avis de confidentialité",updated:"Dernière mise à jour : 22 août 2026",intro:"Cet avis explique quelles informations HEGEVA AI traite actuellement et pourquoi.",sections:[
-      {title:"Informations traitées",body:"Nous traitons les données de compte et d’authentification, le contenu que vous enregistrez dans l’espace de travail, les demandes IA et compteurs d’utilisation, ainsi que les informations du formulaire de contact."},
-      {title:"Utilisation",body:"Ces informations servent à fournir et sécuriser le service, séparer les comptes, exécuter les fonctions demandées, appliquer les limites, répondre aux demandes et diagnostiquer les incidents."},
-      {title:"Stockage et prestataires",body:"Les données de l’application sont stockées avec les services Cloudflare. Les services d’authentification, d’IA, d’e-mail facultatif ou de paiement ne traitent que les données nécessaires à leur fonction. Nous ne prétendons pas vendre des données personnelles."},
-      {title:"Conservation et contrôle",body:"Nous conservons les données uniquement pendant la durée raisonnablement nécessaire au fonctionnement, à la sécurité, à l’amélioration du service ou aux obligations applicables. Vous pouvez demander accès, rectification ou suppression via la page Contact."},
-      {title:"Sécurité et limites",body:"Nous utilisons des contrôles d’accès et des connexions réseau chiffrées. Aucun service en ligne ne peut garantir une sécurité absolue : ne transmettez jamais mots de passe, clés API, données de paiement ou autres secrets dans un champ libre."}
-    ],contact:"Les questions ou demandes de confidentialité peuvent être envoyées depuis la page Contact HEGEVA."},
-    terms:{eyebrow:"HEGEVA AI · JURIDIQUE",title:"Conditions d’utilisation",updated:"Dernière mise à jour : 22 août 2026",intro:"Ces conditions s’appliquent à l’utilisation de l’aperçu HEGEVA AI et de ses services actuellement fonctionnels.",sections:[
-      {title:"État du service",body:"HEGEVA est en développement actif. Les fonctions marquées Opérationnel sont disponibles dans le cadre décrit ; les fonctions Bêta, Planifié et Bientôt disponible peuvent changer ou ne pas être disponibles."},
-      {title:"Compte et contenu",body:"Vous êtes responsable de l’exactitude de vos informations, de la protection de votre connexion et du contenu transmis. N’utilisez que du contenu que vous êtes autorisé à traiter."},
-      {title:"Utilisation acceptable",body:"N’abusez pas du service, ne contournez pas les limites ou la sécurité, n’accédez pas aux données d’autrui et ne transmettez pas de contenu illégal ni de logiciel malveillant."},
-      {title:"Informations IA et professionnelles",body:"Une réponse IA peut être incomplète ou erronée et ne constitue pas un conseil juridique, fiscal, financier ou médical professionnel. Vérifiez les résultats importants et consultez un professionnel qualifié si nécessaire."},
-      {title:"Disponibilité et modifications",body:"Nous pouvons réparer, améliorer, limiter ou retirer des fonctions. Nous cherchons à décrire honnêtement le service, mais ne garantissons pas un fonctionnement continu ou sans erreur."},
-      {title:"Contact",body:"Les questions sur ces conditions peuvent être envoyées via la page Contact."}
-    ],contact:"En continuant à utiliser le service, vous acceptez de respecter ces conditions."}
-  },
-  es: {
-    privacyLink:"Privacidad",termsLink:"Términos de uso",
-    privacy:{eyebrow:"HEGEVA AI · LEGAL",title:"Aviso de privacidad",updated:"Última actualización: 22 de agosto de 2026",intro:"Este aviso explica qué información procesa actualmente HEGEVA AI y por qué.",sections:[
-      {title:"Información tratada",body:"Tratamos datos de cuenta y autenticación, el contenido que guardas en el espacio de trabajo, solicitudes de IA y contadores de uso, además de la información enviada mediante el formulario de contacto."},
-      {title:"Cómo la utilizamos",body:"Usamos estos datos para prestar y proteger el servicio, separar cuentas, ejecutar las funciones solicitadas, aplicar límites de uso, responder consultas y diagnosticar fallos."},
-      {title:"Almacenamiento y proveedores",body:"Los datos de la aplicación se almacenan mediante servicios de Cloudflare. Los servicios de autenticación, IA, correo opcional o pagos solo tratan los datos necesarios para su función. No afirmamos vender información personal."},
-      {title:"Conservación y control",body:"Conservamos los datos solo mientras sea razonablemente necesario para operar, proteger o mejorar el servicio y cumplir obligaciones aplicables. Puedes solicitar acceso, corrección o eliminación desde la página de Contacto."},
-      {title:"Seguridad y límites",body:"Utilizamos controles de acceso y conexiones de red cifradas. Ningún servicio en línea puede prometer seguridad absoluta; no envíes contraseñas, claves API, datos de pago u otros secretos en campos de texto libre."}
-    ],contact:"Las preguntas o solicitudes de privacidad pueden enviarse desde la página de Contacto de HEGEVA."},
-    terms:{eyebrow:"HEGEVA AI · LEGAL",title:"Términos de uso",updated:"Última actualización: 22 de agosto de 2026",intro:"Estos términos se aplican al uso de la versión preliminar actual y de los servicios funcionales de HEGEVA AI.",sections:[
-      {title:"Estado del servicio",body:"HEGEVA está en desarrollo activo. Las funciones marcadas En funcionamiento están disponibles en el alcance descrito; las funciones Beta, Planificado y Próximamente pueden cambiar o no estar disponibles todavía."},
-      {title:"Tu cuenta y contenido",body:"Eres responsable de la exactitud de tus datos, de proteger tu acceso y del contenido que envías. Usa únicamente contenido que tengas derecho a utilizar."},
-      {title:"Uso aceptable",body:"No abuses del servicio, eludas límites, interfieras con la seguridad, accedas a datos ajenos, envíes contenido ilegal o malware, ni uses el servicio para engañar o causar daños."},
-      {title:"Información de IA y negocio",body:"Las respuestas de IA pueden ser incompletas o incorrectas y no constituyen asesoramiento jurídico, fiscal, financiero o médico profesional. Revisa los resultados importantes y busca asesoramiento cualificado cuando corresponda."},
-      {title:"Disponibilidad y cambios",body:"Podemos reparar, mejorar, limitar o retirar funciones. Procuramos describir el servicio con honestidad, pero no garantizamos disponibilidad ininterrumpida ni libre de errores."},
-      {title:"Contacto",body:"Las preguntas sobre estos términos pueden enviarse desde la página de Contacto."}
-    ],contact:"Al continuar usando el servicio, aceptas cumplir estos términos."}
+const business = "HEGEVA AI, 34 Ogden Road, Stoke-on-Trent, ST1 3BX, United Kingdom"
+const email = "hegezotya@gmx.com"
+
+const en: LegalSet = {
+  privacyLink: "Privacy", termsLink: "Terms",
+  privacy: { eyebrow:"HEGEVA AI · LEGAL", title:"Privacy notice", updated:"Last updated: 2 September 2026",
+    intro:`HEGEVA AI is the data controller for this service. Controller: ${business}. Contact: ${email}. This notice explains what personal information we process, why, and your choices.`,
+    sections:[
+      {title:"Information we process",body:"We may process your name, email address, account and authentication records, subscription and transaction references, support messages, security and device information, usage records, AI prompts and responses, and content you save in your workspace. Payment card details are handled by the payment provider and are not stored by HEGEVA AI."},
+      {title:"Purposes and lawful bases",body:"We process data to create and operate your account, provide requested features and subscriptions, enforce limits, secure the service, prevent abuse, answer enquiries and comply with legal duties. Our lawful bases are performance of our contract, legitimate interests in operating and protecting the service, compliance with legal obligations, and consent where specifically requested. You may withdraw consent at any time without affecting earlier lawful processing."},
+      {title:"Providers, recipients and transfers",body:"Where needed, we use providers for hosting and security (Cloudflare), authentication, AI processing, email and payments (Stripe when billing is enabled). They receive only data needed for their role. Some providers may process data outside the UK; where required, we use recognised adequacy arrangements or appropriate contractual safeguards. We do not sell personal data."},
+      {title:"Retention",body:"Account and workspace data is normally kept while your account is active and for a reasonable period afterwards for recovery, security and disputes. Financial records may be retained as required by tax and accounting law. Security logs and support records are retained only as long as reasonably necessary. Data is then deleted or anonymised, subject to legal holds and backup cycles."},
+      {title:"Your rights",body:"Depending on the circumstances, you may ask for access, correction, deletion, restriction or data portability, object to processing, or withdraw consent. We may need to verify your identity. You may complain to the UK Information Commissioner’s Office at ico.org.uk, although we encourage you to contact us first."},
+      {title:"AI, children and automated decisions",body:"Do not submit credentials, payment details or unnecessary sensitive information in prompts or free-text fields. The service is not intended for children under 18. HEGEVA AI does not currently make solely automated decisions that produce legal or similarly significant effects about users."},
+      {title:"Security and updates",body:"We use access controls, account separation and encrypted network connections, but no online service can guarantee absolute security. We may update this notice when the service or legal requirements change; the date above identifies the current version."}
+    ], contact:`Privacy requests: ${email}. Postal contact: ${business}.` },
+  terms: { eyebrow:"HEGEVA AI · LEGAL", title:"Terms of use", updated:"Last updated: 2 September 2026",
+    intro:`These terms form an agreement between you and ${business} when you use HEGEVA AI. They apply to consumers and business users.`,
+    sections:[
+      {title:"Service and eligibility",body:"You must be at least 18 and able to enter a contract. Features labelled Beta, Planned or Coming Soon may change or may not yet be available. The description shown before purchase forms part of your order."},
+      {title:"Accounts and acceptable use",body:"Provide accurate information and protect your login. Only submit content you have the right to use. Do not bypass limits or security, access another person’s data, submit unlawful or harmful material, distribute malware, infringe rights, deceive or cause harm. We may proportionately restrict access to protect users, the service or comply with law."},
+      {title:"Subscriptions, prices and payment",body:"Before an order, checkout shows the plan, billing period, total recurring price, applicable taxes, payment method and renewal terms. Paid subscriptions renew automatically for the displayed period until cancelled. There are no automatic usage-overage charges: when a limit is reached, affected usage stops unless you choose another plan. Studio is not purchasable while marked Coming Soon; Enterprise terms are agreed separately."},
+      {title:"Cancellation and consumer rights",body:"You can stop future renewal through the billing portal or by contacting us. Cancellation normally takes effect at the end of the paid period and access continues until then. UK consumers may have a statutory 14-day cancellation right for distance contracts. If you expressly request immediate supply during that period, you may have to pay for service supplied before cancellation. Rights are affected only as permitted by law. Nothing limits your statutory consumer rights."},
+      {title:"Refunds",body:"We provide refunds where required by applicable law. Outside statutory rights, paid fees are normally non-refundable, including unused time after a scheduled cancellation. Contact us promptly about an incorrect or duplicate payment, or material unavailability of a paid service."},
+      {title:"AI output and your content",body:"You retain rights in content you submit and give us only the limited permission needed to provide the service. AI output can be incomplete, inaccurate or unsuitable and is not professional legal, tax, financial or medical advice. Review important output and obtain qualified advice before relying on it."},
+      {title:"Availability, changes and liability",body:"We use reasonable care but cannot promise uninterrupted or error-free availability. We may make proportionate changes for security, legal or improvement reasons and will give reasonable notice of material changes where practicable. Nothing excludes liability that cannot legally be excluded, including fraud, death or personal injury caused by negligence, or statutory consumer rights."},
+      {title:"Ending the agreement and disputes",body:"You may close your account or cancel a subscription at any time. We may suspend or end access for serious or repeated breach, security risk, non-payment or legal necessity, with proportionate notice where appropriate. English and Welsh law applies; consumers retain mandatory protections and rights available where they live. Contact us first so we can try to resolve a complaint."}
+    ], contact:`Questions, cancellations and complaints: ${email} or ${business}.` }
+}
+
+const hu: LegalSet = {
+  privacyLink:"Adatvédelem", termsLink:"Felhasználási feltételek",
+  privacy:{eyebrow:"HEGEVA AI · JOGI",title:"Adatvédelmi tájékoztató",updated:"Utolsó frissítés: 2026. szeptember 2.",
+    intro:`A szolgáltatás adatkezelője: ${business}. Kapcsolat: ${email}. Ez a tájékoztató leírja, milyen személyes adatokat kezelünk, milyen célból, és milyen jogaid vannak.`,
+    sections:[
+      {title:"Kezelt adatok",body:"Kezelhetjük a nevedet, e-mail-címedet, fiók- és hitelesítési adatokat, előfizetési és tranzakciós hivatkozásokat, ügyfélszolgálati üzeneteket, biztonsági és eszközadatokat, használati adatokat, AI-kéréseket és válaszokat, valamint az általad mentett tartalmat. A bankkártyaadatokat a fizetési szolgáltató kezeli; a HEGEVA AI nem tárolja."},
+      {title:"Célok és jogalapok",body:"Az adatokat a fiók és előfizetés működtetéséhez, a kért funkciók biztosításához, korlátok kezeléséhez, védelemhez, visszaélés-megelőzéshez, megkeresések megválaszolásához és jogi kötelezettségekhez használjuk. Jogalapunk a szerződés teljesítése, a biztonságos működéshez fűződő jogos érdek, jogi kötelezettség, illetve ahol külön kérjük, a hozzájárulás. A hozzájárulás bármikor visszavonható."},
+      {title:"Szolgáltatók és adattovábbítás",body:"Szükség szerint tárhely- és biztonsági (Cloudflare), hitelesítési, AI-feldolgozó, e-mail- és fizetési szolgáltatókat (a számlázás bekapcsolásakor Stripe) használunk. Csak a feladatukhoz szükséges adatot kapják meg. Az Egyesült Királyságon kívüli adatkezelésnél megfelelő megfelelőségi vagy szerződéses garanciákat alkalmazunk. Személyes adatot nem értékesítünk."},
+      {title:"Adatmegőrzés",body:"A fiók- és munkaterületi adatokat általában az aktív fiók ideje alatt, majd helyreállítási, biztonsági és jogvita-kezelési célból indokolt ideig őrizzük. A pénzügyi adatokat az adó- és számviteli szabályok által előírt ideig tarthatjuk meg. Ezután az adatot töröljük vagy anonimizáljuk, a jogi megőrzés és mentési ciklusok kivételével."},
+      {title:"Jogaid",body:"A körülményektől függően kérhetsz hozzáférést, helyesbítést, törlést, korlátozást vagy adathordozhatóságot, tiltakozhatsz, és visszavonhatod a hozzájárulást. Személyazonosság-ellenőrzést kérhetünk. Panaszt tehetsz az Egyesült Királyság adatvédelmi hatóságánál (ICO, ico.org.uk), de kérjük, először adj lehetőséget a rendezésre."},
+      {title:"AI, gyermekek és automatizált döntések",body:"Ne adj meg jelszót, fizetési adatot vagy szükségtelen érzékeny információt AI-kérésben vagy szabad szöveges mezőben. A szolgáltatás 18 éven aluliaknak nem készült. Jelenleg nem hozunk kizárólag automatizált, rád nézve jogi vagy hasonlóan jelentős hatású döntést."},
+      {title:"Biztonság és változások",body:"Hozzáférés-védelmet, fiókelkülönítést és titkosított hálózati kapcsolatot használunk, de teljes biztonságot egyetlen online szolgáltatás sem garantálhat. A változásokat e tájékoztató dátumával jelezzük."}
+    ],contact:`Adatvédelmi kérelmek: ${email}. Postacím: ${business}.`},
+  terms:{eyebrow:"HEGEVA AI · JOGI",title:"Felhasználási feltételek",updated:"Utolsó frissítés: 2026. szeptember 2.",
+    intro:`E feltételek közted és a szolgáltató (${business}) között jönnek létre. Céges és magánfelhasználókra egyaránt vonatkoznak.`,
+    sections:[
+      {title:"Szolgáltatás és jogosultság",body:"A használathoz legalább 18 évesnek és szerződéskötésre jogosultnak kell lenned. A Béta, Tervezett vagy Hamarosan jelölésű funkciók változhatnak vagy még nem elérhetők. A vásárlás előtt megjelenített szolgáltatásleírás a megrendelés része."},
+      {title:"Fiók és megengedett használat",body:"Adj meg pontos adatokat, és védd a belépésedet. Csak jogosultan használt tartalmat küldj be. Tilos korlátot vagy védelmet megkerülni, más adatához hozzáférni, jogellenes vagy káros tartalmat beküldeni, jogot sérteni, megtéveszteni vagy kárt okozni. A hozzáférést védelem vagy jogi kötelezettség miatt arányosan korlátozhatjuk."},
+      {title:"Előfizetés, árak és fizetés",body:"A megrendelés előtt a fizetési oldal megjeleníti a csomagot, számlázási időszakot, teljes ismétlődő árat, alkalmazandó adókat, fizetési módot és megújulási feltételeket. A fizetős előfizetés lemondásig automatikusan megújul. Nincs automatikus túlfogyasztási díj: a korlát elérésekor az érintett használat megáll. A Studio „Hamarosan” jelölés alatt nem vásárolható; az Enterprise feltételeit külön állapítjuk meg."},
+      {title:"Lemondás és fogyasztói jogok",body:"A következő megújulást a számlázási felületen vagy e-mailben mondhatod le. A lemondás rendszerint a kifizetett időszak végén lép hatályba. UK fogyasztóként távértékesítésnél 14 napos törvényes elállási jog illethet meg. Ha ezalatt kifejezetten kéred az azonnali teljesítést, a lemondásig nyújtott szolgáltatás díja fizetendő lehet. Jogaid csak a törvény által megengedett mértékben változnak; törvényes fogyasztói jogaidat nem korlátozzuk."},
+      {title:"Visszatérítés",body:"Visszatérítést adunk, amikor azt a jog előírja. A törvényes jogokon túl a már kifizetett díj rendszerint nem visszatéríthető, ideértve az ütemezett lemondás utáni fel nem használt időt. Hibás vagy ismételt terhelés, illetve lényeges szolgáltatáskiesés esetén azonnal írj nekünk."},
+      {title:"AI-válaszok és saját tartalmad",body:"A beküldött tartalomhoz fűződő jogaid megmaradnak; csak a szolgáltatáshoz szükséges feldolgozási engedélyt adod. Az AI-válasz téves vagy alkalmatlan lehet, és nem jogi, adózási, pénzügyi vagy egészségügyi szakvélemény. Fontos döntés előtt ellenőrizd, és szükség esetén kérj szakértői tanácsot."},
+      {title:"Elérhetőség, változások és felelősség",body:"Ésszerű gondossággal szolgáltatunk, de folyamatos és hibamentes működést nem ígérhetünk. Biztonsági, jogi vagy fejlesztési okból arányos változtatást végezhetünk, a lényeges változásról lehetőség szerint előzetesen tájékoztatunk. Nem zárunk ki jogszerűen ki nem zárható felelősséget vagy kötelező fogyasztói jogot."},
+      {title:"Megszüntetés és jogviták",body:"Fiókodat bezárhatod, előfizetésedet bármikor lemondhatod. Súlyos vagy ismételt szabálysértés, biztonsági kockázat, nemfizetés vagy jogi kötelezettség esetén a hozzáférést arányosan felfüggeszthetjük vagy megszüntethetjük. Anglia és Wales joga irányadó; fogyasztóként megmarad a lakóhelyed szerinti kötelező védelem. Panasz esetén először írj nekünk."}
+    ],contact:`Kérdés, lemondás vagy panasz: ${email}; ${business}.`}
+}
+
+function fallback(privacyLink:string, termsLink:string, privacyTitle:string, termsTitle:string, updated:string): LegalSet {
+  return {
+    privacyLink, termsLink,
+    privacy:{...en.privacy,title:privacyTitle,updated},
+    terms:{...en.terms,title:termsTitle,updated},
   }
+}
+
+export const LEGAL_COPY: Record<Locale, LegalSet> = {
+  en, hu,
+  de:fallback("Datenschutz","Nutzungsbedingungen","Datenschutzhinweis","Nutzungsbedingungen","Letzte Aktualisierung: 2. September 2026"),
+  fr:fallback("Confidentialité","Conditions d’utilisation","Avis de confidentialité","Conditions d’utilisation","Dernière mise à jour : 2 septembre 2026"),
+  es:fallback("Privacidad","Términos de uso","Aviso de privacidad","Términos de uso","Última actualización: 2 de septiembre de 2026"),
 }

@@ -2,7 +2,8 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "hegeva-ai-v3",
   "main": "src/index-ledger.js",
-  "compatibility_date": "2026-08-10",
+  "compatibility_date": "2026-09-02",
+  "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "keep_vars": true,
 
@@ -20,10 +21,25 @@
 
   "vars": {
     "PAYMENT_PROVIDER": "stripe",
-    "PAYMENT_MODE": "test",
+    "PAYMENT_MODE": "live",
     "PUBLIC_APP_URL": "https://hegevaai.co.uk",
-    "STRIPE_PREMIUM_PRICE_ID": "price_1U4YwrHH1vUED8ZNhhfKfzNK",
-    "STRIPE_PRO_PRICE_ID": "price_1U4YzOHH1vUED8ZNWbKbl3FH"
+    "STRIPE_PREMIUM_PRICE_ID": "price_1UBZJhHECF9iDE3lyMGzfYkL",
+    "STRIPE_PRO_PRICE_ID": "price_1UBZJiHECF9iDE3lnpsGymgU",
+    "AI_PROVIDER_ENABLED": "disabled",
+    "AI_PROVIDER_MODEL": "@cf/meta/llama-3.1-8b-instruct-fast",
+    "AI_MAX_INPUT_TOKENS": "200",
+    "AI_MAX_OUTPUT_TOKENS": "100",
+    "AI_TIMEOUT_MS": "10000",
+    "AI_DAILY_REQUEST_CEILING": "1",
+    "AI_DAILY_NEURON_CEILING": "7000",
+    "AI_DOCUMENTED_DAILY_NEURON_ALLOCATION": "10000",
+    "AI_PER_USER_CEILING": "1",
+    "AI_PER_WORKSPACE_CEILING": "1",
+    "AI_CONCURRENCY_CEILING": "1",
+    "AI_GLOBAL_KILL_SWITCH": "enabled",
+    "AI_BOT_CANARY_ENABLED": "disabled",
+    "AI_BOT_CANARY_EMAIL": "hegezotya@gmx.com",
+    "FINANCIAL_GUARD_ENABLED": "enabled"
   },
 
   "ai": {

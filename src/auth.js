@@ -64,12 +64,6 @@ export async function sendResendEmail(
 }
 
 export function createAuth(env, request, ctx) {
-  const requestUrl =
-    new URL(request.url);
-
-  const origin =
-    requestUrl.origin;
-
   const publicAppUrl =
     typeof env.PUBLIC_APP_URL === "string" &&
     env.PUBLIC_APP_URL.startsWith("https://")
@@ -86,9 +80,8 @@ export function createAuth(env, request, ctx) {
       publicAppUrl,
 
     trustedOrigins: [
-      "https://hegevaai.co.uk",
-      "https://www.hegevaai.co.uk",
-      origin
+      publicAppUrl,
+      "https://www.hegevaai.co.uk"
     ],
 
     advanced: {

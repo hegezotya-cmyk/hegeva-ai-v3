@@ -1,7 +1,8 @@
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import path from "node:path"
-const root=path.resolve(new URL("..",import.meta.url).pathname)
+import { fileURLToPath } from "node:url"
+const root=fileURLToPath(new URL("..",import.meta.url))
 const read=f=>fs.readFileSync(path.join(root,f),"utf8")
 for(const route of ["contracts","receipts","tax-summaries"]) assert(fs.existsSync(path.join(root,"app/business",route,"page.tsx")),`${route} route missing`)
 const ui=read("components/business/document-studio.tsx")

@@ -1,7 +1,7 @@
 import hegevaWorker from "./index.js";
 export { UserRateLimiter } from "./user-rate-limiter-do.js";
 
-export const STRIPE_WEBHOOK_BODY_LIMIT = 512 * 1024;
+const STRIPE_WEBHOOK_BODY_LIMIT = 512 * 1024;
 
 function requestTooLargeResponse() {
   return Response.json(
@@ -434,9 +434,14 @@ async function handleStripeWebhook(request, env, ctx) {
     );
   }
 
-  if (event?.livemode === true) {
+  const paymentMode = String(env.PAYMENT_MODE || "").trim().toLowerCase();
+  const eventMatchesMode =
+    (paymentMode === "live" && event?.livemode === true) ||
+    (paymentMode === "test" && event?.livemode === false);
+
+  if (!eventMatchesMode) {
     return Response.json(
-      { error: "Live Stripe events are not accepted by this test build." },
+      { error: "Stripe event mode does not match the active payment mode." },
       { status: 400 },
     );
   }

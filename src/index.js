@@ -259,11 +259,11 @@ async function evaluateAIBotCanaryPreflight(env, request, user, profileId) {
   const rows = usageRows.results;
   const usageFor = (scopeType) => rows.find((row) => row.scopeType === scopeType && (scopeType === "global" || row.scopeHash === actorHash));
   const global = usageFor("global") || {}; const userUsage = usageFor("user") || {}; const workspace = usageFor("workspace") || {};
-  if ((Number(global.requests) || 0) >= providerConfig.requestCeiling) return fail("included-allowance-unavailable", 429);
-  if ((Number(userUsage.requests) || 0) >= providerConfig.userCeiling) return fail("included-allowance-unavailable", 429);
-  if ((Number(workspace.requests) || 0) >= providerConfig.workspaceCeiling) return fail("included-allowance-unavailable", 429);
-  if ((Number(global.estimatedNeurons) || 0) + 1 > providerConfig.neuronCeiling || (Number(global.estimatedNeurons) || 0) + 1 > Math.floor(providerConfig.allocation * 0.7)) return fail("included-allowance-unavailable", 429);
-  if ((Number(global.prepaidReserved) || 0) >= 1 || (Number(userUsage.prepaidReserved) || 0) >= 1 || (Number(workspace.prepaidReserved) || 0) >= 1) return fail("included-allowance-unavailable", 429);
+  if ((Number(global.requests) || 0) >= providerConfig.requestCeiling) return fail("global-request-ceiling", 429);
+  if ((Number(userUsage.requests) || 0) >= providerConfig.userCeiling) return fail("user-request-ceiling", 429);
+  if ((Number(workspace.requests) || 0) >= providerConfig.workspaceCeiling) return fail("workspace-request-ceiling", 429);
+  if ((Number(global.estimatedNeurons) || 0) + 1 > providerConfig.neuronCeiling || (Number(global.estimatedNeurons) || 0) + 1 > Math.floor(providerConfig.allocation * 0.7)) return fail("neuron-ceiling", 429);
+  if ((Number(global.prepaidReserved) || 0) >= providerConfig.requestCeiling || (Number(userUsage.prepaidReserved) || 0) >= providerConfig.userCeiling || (Number(workspace.prepaidReserved) || 0) >= providerConfig.workspaceCeiling) return fail("reservation-in-use", 429);
   return { ok: true, profile, actorHash, providerConfig };
 }
 
@@ -295,10 +295,11 @@ async function reserveAIBotOperation(env, { operationId, userId, profileId, peri
 async function finishAIBotOperation(env, { operationId, userId, profileId, reservationId, status, failureCode = null }) {
   const now = new Date().toISOString();
   const retentionUntil = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+  const ledgerUserId = await sha256Hex(userId);
   await env.DB.batch([
     env.DB.prepare("UPDATE financial_guard_reservations SET status=?1,finalizedAt=?2,failureCode=?3 WHERE reservationId=?4 AND status='reserved'").bind(status === "succeeded" ? "finalized" : "released", now, failureCode, reservationId),
-    env.DB.prepare("UPDATE ai_bot_operations SET status=?1,attemptNumber=1,updatedAt=?2 WHERE operationId=?3 AND userId=?4 AND status='reserved'").bind(status, now, operationId, userId),
-    env.DB.prepare("INSERT INTO ai_bot_execution_history (id,operationId,userId,workspaceScope,profileId,status,failureCode,attemptNumber,createdAt,retentionUntil) VALUES (?1,?2,?3,?3,?4,?5,?6,1,?7,?8)").bind(crypto.randomUUID(), operationId, userId, profileId, status, failureCode, now, retentionUntil),
+    env.DB.prepare("UPDATE ai_bot_operations SET status=?1,attemptNumber=1,updatedAt=?2 WHERE operationId=?3 AND userId=?4 AND status='reserved'").bind(status, now, operationId, ledgerUserId),
+    env.DB.prepare("INSERT INTO ai_bot_execution_history (id,operationId,userId,workspaceScope,profileId,status,failureCode,attemptNumber,createdAt,retentionUntil) VALUES (?1,?2,?3,?3,?4,?5,?6,1,?7,?8)").bind(crypto.randomUUID(), operationId, ledgerUserId, profileId, status, failureCode, now, retentionUntil),
   ]);
 }
 
@@ -488,12 +489,16 @@ function getStripePriceId(
   return "";
 }
 
-function isStripeTestSecret(
-  value
-) {
+function getPaymentMode(env) {
+  const mode = String(env.PAYMENT_MODE || "").trim().toLowerCase();
+  return mode === "test" || mode === "live" ? mode : "";
+}
+
+function isStripeSecretForMode(value, mode) {
   return (
     typeof value === "string" &&
-    value.startsWith("sk_test_")
+    ((mode === "test" && value.startsWith("sk_test_")) ||
+      (mode === "live" && value.startsWith("sk_live_")))
   );
 }
 
@@ -1035,16 +1040,16 @@ async function createStripeCheckoutSession(
       ? env.STRIPE_SECRET_KEY.trim()
       : "";
 
+  const paymentMode = getPaymentMode(env);
+
   if (
-    !isStripeTestSecret(
-      secretKey
-    )
+    !isStripeSecretForMode(secretKey, paymentMode)
   ) {
     return {
       ok: false,
       status: 503,
       error:
-        "Stripe test secret is not configured."
+        "Stripe secret is not configured for the active payment mode."
     };
   }
 
@@ -1059,7 +1064,7 @@ async function createStripeCheckoutSession(
       ok: false,
       status: 503,
       error:
-        "Stripe test price is not configured for this plan."
+        "Stripe price is not configured for this plan."
     };
   }
 
@@ -1231,8 +1236,10 @@ async function createStripePortalSession(request, env, user) {
       ? env.STRIPE_SECRET_KEY.trim()
       : "";
 
-  if (!isStripeTestSecret(secretKey)) {
-    return { ok: false, status: 503, error: "Stripe test billing is not configured." };
+  const paymentMode = getPaymentMode(env);
+
+  if (!isStripeSecretForMode(secretKey, paymentMode)) {
+    return { ok: false, status: 503, error: "Stripe billing is not configured for the active payment mode." };
   }
 
   const customer = await env.DB
@@ -2001,13 +2008,16 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         );
       }
 
-      if (
-        event.livemode === true
-      ) {
+      const paymentMode = getPaymentMode(env);
+      const eventMatchesMode =
+        (paymentMode === "live" && event.livemode === true) ||
+        (paymentMode === "test" && event.livemode === false);
+
+      if (!eventMatchesMode) {
         return Response.json(
           {
             error:
-              "Live Stripe events are not accepted by this test build."
+              "Stripe event mode does not match the active payment mode."
           },
           {
             status: 400
@@ -2258,14 +2268,15 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         const providerSelected =
           provider === "stripe";
 
-        const testMode =
-          paymentMode === "test";
+        const validMode =
+          paymentMode === "test" || paymentMode === "live";
 
         const secretReady =
-          isStripeTestSecret(
+          isStripeSecretForMode(
             typeof env.STRIPE_SECRET_KEY === "string"
               ? env.STRIPE_SECRET_KEY.trim()
-              : ""
+              : "",
+            paymentMode
           );
 
         const premiumPriceReady =
@@ -2286,7 +2297,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
 
         const connected =
           providerSelected &&
-          testMode &&
+          validMode &&
           secretReady;
 
         const checkoutEnabled =
@@ -2323,7 +2334,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
               : null,
 
           mode:
-            "test",
+            paymentMode || null,
 
           checkoutEnabled,
 
@@ -2363,9 +2374,9 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           managedPaymentsEnabled:
             false,
 
-          testConfiguration: {
+          paymentConfiguration: {
             providerSelected,
-            testMode,
+            mode: paymentMode || null,
             secretReady,
             premiumPriceReady,
             proPriceReady
@@ -2373,8 +2384,8 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
 
           message:
             checkoutEnabled
-              ? "Stripe test checkout is configured. Managed Payments is disabled for the HEGEVA Sandbox checkout. Verified Stripe webhooks control paid entitlement."
-              : "Billing API is available, but Stripe test checkout setup is incomplete."
+              ? `Stripe ${paymentMode} checkout is configured. Managed Payments is disabled. Verified Stripe webhooks control paid entitlement.`
+              : "Billing API is available, but Stripe checkout setup is incomplete."
         });
       } catch (error) {
         logFailure("billing_status_failed", error);
@@ -2408,9 +2419,9 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
 
         const provider = String(env.PAYMENT_PROVIDER || "").trim().toLowerCase();
         const mode = String(env.PAYMENT_MODE || "").trim().toLowerCase();
-        if (provider !== "stripe" || mode !== "test") {
+        if (provider !== "stripe" || !["test", "live"].includes(mode)) {
           return Response.json(
-            { error: "Only Stripe test billing is available in this build." },
+            { error: "Stripe billing is not configured." },
             { status: 503 }
           );
         }
@@ -2418,8 +2429,8 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         const portal = await createStripePortalSession(request, env, user);
         return Response.json(
           portal.ok
-            ? { ok: true, mode: "test", url: portal.url }
-            : { ok: false, mode: "test", error: portal.error },
+            ? { ok: true, mode, url: portal.url }
+            : { ok: false, mode, error: portal.error },
           { status: portal.status }
         );
       } catch (error) {
@@ -2518,14 +2529,14 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           );
         }
 
-        if (
-          body?.mode !==
-          "test"
-        ) {
+        const requestedMode =
+          typeof body?.mode === "string" ? body.mode.trim().toLowerCase() : "";
+
+        if (!["test", "live"].includes(requestedMode)) {
           return Response.json(
             {
               error:
-                "Only test checkout is allowed in this build."
+                "Invalid payment mode."
             },
             {
               status: 400
@@ -2551,7 +2562,8 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
 
         if (
           provider !== "stripe" ||
-          paymentMode !== "test"
+          !["test", "live"].includes(paymentMode) ||
+          requestedMode !== paymentMode
         ) {
           return Response.json(
             {
@@ -2562,7 +2574,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
                 null,
 
               mode:
-                "test",
+                paymentMode || null,
 
               plan:
                 requestedPlan,
@@ -2577,7 +2589,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
                 false,
 
               message:
-                "Stripe test mode is not configured."
+                "Stripe payment mode is not configured or does not match the request."
             },
             {
               status: 503
@@ -2603,7 +2615,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
                 "Stripe",
 
               mode:
-                "test",
+                paymentMode,
 
               plan:
                 requestedPlan,
@@ -2635,7 +2647,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
             "Stripe",
 
           mode:
-            "test",
+            paymentMode,
 
           plan:
             requestedPlan,
@@ -2662,7 +2674,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
             false,
 
           message:
-            "Stripe test checkout session created. Managed Payments is disabled. Paid entitlement changes only after verified Stripe webhook events."
+            `Stripe ${paymentMode} checkout session created. Managed Payments is disabled. Paid entitlement changes only after verified Stripe webhook events.`
         });
       } catch (error) {
         logFailure("stripe_checkout_handler_failed", error);
@@ -3566,7 +3578,7 @@ QUALITY RULES:
         try {
           await finishAIBotOperation(env, { operationId, userId: user.id, profileId: body.profileId, reservationId: admission.reservationId, status: provider.ok ? "succeeded" : "failed", failureCode: provider.ok ? null : provider.reason });
         } catch { return Response.json({ status: "failed", providerAttempted: true, financialGuardStatus: "reserved", reason: "operation-finalization-failed" }, { status: 503 }); }
-        return Response.json({ status: provider.ok ? "succeeded" : "failed", providerAttempted: true, financialGuardStatus: provider.ok ? "finalized" : "released", ...(failureReason ? { reason: failureReason } : {}) }, { status: provider.ok ? 200 : 503 });
+        return Response.json({ status: provider.ok ? "succeeded" : "failed", providerAttempted: true, financialGuardStatus: provider.ok ? "finalized" : "released", ...(provider.ok && provider.metrics ? { metrics: provider.metrics } : {}), ...(failureReason ? { reason: failureReason } : {}) }, { status: provider.ok ? 200 : 503 });
       } catch {
         if (authorizationHash) await revokeUnusedCanaryAuthorization(env, authorizationHash);
         return canaryReply(authorizationHash ? "authorization-reservation-failed" : "internal-unavailable", 503);
@@ -3594,19 +3606,26 @@ QUALITY RULES:
         const prompt = typeof body?.prompt === "string" ? body.prompt.slice(0, CANARY_BOUNDS.maxInputTokens) : "";
         const projection = buildWorkersAiProjection({ operation: "ai-bot", locale: typeof body?.locale === "string" ? body.locale : "en", prompt });
         if (!projection) return Response.json({ error: "The AI Bot request could not be validated." }, { status: 400 });
-        const runtime = globalThis.__hegevaAiBotRuntime || (globalThis.__hegevaAiBotRuntime = { inFlight: new Set(), daily: new Map() });
-        if (runtime.inFlight.has(user.id)) return Response.json({ error: "An AI Bot operation is already running." }, { status: 429 });
-        runtime.inFlight.add(user.id);
-        try {
-          const period = getCurrentPeriod();
+        const period = getCurrentPeriod();
           const reservation = await admitAIBotCanary(env, request, { userId: user.id, operationId, profileId, approvedAt: profile.approvedAt, approvalExpiresAt: profile.approvalExpiresAt, approvalVersion: profile.approvalVersion, approvedByActorHash: profile.approvedByActorHash, globalDailyCeiling: providerConfig.dailyRequestCeiling, userDailyCeiling: providerConfig.perUserCeiling, workspaceDailyCeiling: providerConfig.perWorkspaceCeiling, neuronDailyCeiling: providerConfig.dailyNeuronCeiling });
           if (!reservation.ok) return Response.json({ error: "AI Bot allowance is unavailable." }, { status: reservation.reason === "authorization-consumed" ? 409 : 429 });
           const provider = await invokeWorkersAiText(env, projection);
           await finishAIBotOperation(env, { operationId, userId: user.id, profileId, reservationId: reservation.reservationId, status: provider.ok ? "succeeded" : "failed", failureCode: provider.ok ? null : provider.reason });
           if (!provider.ok) return Response.json({ error: "AI Bot execution is temporarily unavailable." }, { status: provider.reason === "timeout" ? 504 : 503 });
           return Response.json({ schemaVersion: "0.1", status: "ready-for-review", provider: "workers-ai", executionState: "not-started", response: provider.response }, { status: 200 });
-        } finally { runtime.inFlight.delete(user.id); }
       } catch { return Response.json({ error: "AI Bot execution is temporarily unavailable." }, { status: 503 }); }
+    }
+
+    if (url.pathname === "/api/x30/capability") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+        if (!user) return Response.json({ authenticated: false, canaryEligible: false, generationEnabled: false }, { status: 200 });
+        const canaryEligible = isX30CanaryOwner(user, env);
+        return Response.json({ authenticated: true, canaryEligible, generationEnabled: canaryEligible && x30ProviderEnabled(env) }, { status: 200 });
+      } catch {
+        return Response.json({ authenticated: false, canaryEligible: false, generationEnabled: false }, { status: 503 });
+      }
     }
 
     if (url.pathname === "/api/x30/generate") {

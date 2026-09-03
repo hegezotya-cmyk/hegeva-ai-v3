@@ -5,6 +5,24 @@ import { useSession } from "@/lib/auth-client"
 
 export type WorkspaceSyncState = "checking" | "cloud" | "local" | "saving" | "error"
 
+const MAX_CONCURRENT_WORKSPACE_LOADS = 2
+let activeWorkspaceLoads = 0
+const workspaceLoadWaiters: Array<() => void> = []
+
+async function withWorkspaceLoadSlot<T>(task: () => Promise<T>): Promise<T> {
+  if (activeWorkspaceLoads >= MAX_CONCURRENT_WORKSPACE_LOADS) {
+    await new Promise<void>((resolve) => workspaceLoadWaiters.push(resolve))
+  }
+
+  activeWorkspaceLoads += 1
+  try {
+    return await task()
+  } finally {
+    activeWorkspaceLoads -= 1
+    workspaceLoadWaiters.shift()?.()
+  }
+}
+
 function localKey(type: string, ownerKey: string) {
   return `hegeva:v0:${ownerKey}:${type}`
 }
@@ -42,6 +60,7 @@ export function useWorkspaceData<T>(type: string): {
 
   useEffect(() => {
     let cancelled = false
+    let loadController: AbortController | null = null
     readyToSave.current = false
     skipNextSave.current = false
     setSyncError("")
@@ -64,15 +83,16 @@ export function useWorkspaceData<T>(type: string): {
 
       setSyncState("checking")
       const controller = new AbortController()
+      loadController = controller
       const timeout = window.setTimeout(() => controller.abort(), 8000)
 
       try {
-        const response = await fetch(`/api/workspace/${encodeURIComponent(type)}`, {
+        const response = await withWorkspaceLoadSlot(() => fetch(`/api/workspace/${encodeURIComponent(type)}`, {
           credentials: "include",
           cache: "no-store",
           signal: controller.signal,
           headers: { Accept: "application/json" },
-        })
+        }))
         const payload = await response.json().catch(() => null)
 
         if (!response.ok) {
@@ -103,6 +123,7 @@ export function useWorkspaceData<T>(type: string): {
     void load()
     return () => {
       cancelled = true
+      loadController?.abort()
     }
   }, [isPending, type, userId, ownerKey])
 

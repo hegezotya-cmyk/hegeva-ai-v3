@@ -39,9 +39,9 @@ export function getWorkersAiCanaryConfig(env = {}) {
   const timeout = strictPositiveInt(env.AI_TIMEOUT_MS, 20_000)
   if (env.AI_PROVIDER_MODEL !== WORKERS_AI_MODEL) return { ok: false, reason: "model-invalid" }
   if (!allocation) return { ok: false, reason: "allocation-invalid" }
-  if (!requestCeiling || requestCeiling !== 1) return { ok: false, reason: "request-ceiling-invalid" }
-  if (!userCeiling || userCeiling !== 1) return { ok: false, reason: "user-ceiling-invalid" }
-  if (!workspaceCeiling || workspaceCeiling !== 1) return { ok: false, reason: "workspace-ceiling-invalid" }
+  if (!requestCeiling || requestCeiling > CANARY_BOUNDS.maxRequests) return { ok: false, reason: "request-ceiling-invalid" }
+  if (!userCeiling || userCeiling > CANARY_BOUNDS.maxRequests) return { ok: false, reason: "user-ceiling-invalid" }
+  if (!workspaceCeiling || workspaceCeiling > CANARY_BOUNDS.maxRequests) return { ok: false, reason: "workspace-ceiling-invalid" }
   if (!neuronCeiling || neuronCeiling > Math.floor(allocation * 0.7)) return { ok: false, reason: "neuron-ceiling-invalid" }
   if (!concurrency || concurrency !== 1) return { ok: false, reason: "concurrency-invalid" }
   if (!maxInput || maxInput > CANARY_BOUNDS.maxInputTokens) return { ok: false, reason: "internal-unavailable" }
@@ -126,6 +126,7 @@ export async function invokeWorkersAiText(env, projection, { signal } = {}) {
   if (!config.enabled || config.globalKillSwitch || !env?.AI || typeof env.AI.run !== "function") return { ok: false, reason: "provider-disabled" }
   if (!projection) return { ok: false, reason: "invalid-projection" }
   const controller = new AbortController()
+  const startedAt = Date.now()
   let timeoutId
   const timeoutError = new DOMException("Workers AI request timed out", "AbortError")
   const timeoutPromise = new Promise((_, reject) => {
@@ -142,7 +143,20 @@ export async function invokeWorkersAiText(env, projection, { signal } = {}) {
       stream: false,
     }, { signal: signal || controller.signal })
     const response = await Promise.race([providerPromise, timeoutPromise])
-    return response && typeof response.response === "string" ? { ok: true, response: response.response.slice(0, 12_000) } : { ok: false, reason: "missing-response" }
+    if (!response || typeof response.response !== "string") return { ok: false, reason: "missing-response" }
+    const rawUsage = response.usage && typeof response.usage === "object" ? response.usage : {}
+    const integer = (...values) => {
+      const value = values.find((candidate) => Number.isSafeInteger(Number(candidate)) && Number(candidate) >= 0)
+      return value === undefined ? null : Number(value)
+    }
+    const inputTokens = integer(rawUsage.prompt_tokens, rawUsage.input_tokens)
+    const outputTokens = integer(rawUsage.completion_tokens, rawUsage.output_tokens)
+    const totalTokens = integer(rawUsage.total_tokens, inputTokens !== null && outputTokens !== null ? inputTokens + outputTokens : undefined)
+    return {
+      ok: true,
+      response: response.response.slice(0, 12_000),
+      metrics: { inputTokens, outputTokens, totalTokens, durationMs: Math.max(0, Date.now() - startedAt) },
+    }
   } catch (error) {
     return { ok: false, reason: error?.name === "AbortError" ? "timeout" : "provider-failure" }
   } finally { clearTimeout(timeoutId) }

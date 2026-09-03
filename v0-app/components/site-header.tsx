@@ -83,7 +83,7 @@ export function SiteHeader() {
 
   const navLink = (href: string, label: string) => {
     const active = pathname === href
-    return <Link href={href} aria-current={active ? "page" : undefined} className={cn("relative rounded-lg px-3 py-2 text-sm font-medium transition-colors", active ? "bg-secondary/70 text-foreground after:absolute after:inset-x-3 after:-bottom-[13px] after:h-px after:bg-primary" : "text-muted-foreground hover:bg-secondary/40 hover:text-foreground")}>{label}</Link>
+    return <Link prefetch={false} href={href} aria-current={active ? "page" : undefined} className={cn("relative rounded-lg px-3 py-2 text-sm font-medium transition-colors", active ? "bg-secondary/70 text-foreground after:absolute after:inset-x-3 after:-bottom-[13px] after:h-px after:bg-primary" : "text-muted-foreground hover:bg-secondary/40 hover:text-foreground")}>{label}</Link>
   }
 
   return (
@@ -91,7 +91,7 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
           <span className="xl:hidden"><HegevaLogo priority /></span>
-          <nav className="hidden items-center gap-0.5 lg:flex xl:hidden" aria-label={aria.primary}>
+          <nav className="hidden items-center gap-0.5 min-[1180px]:flex xl:hidden" aria-label={aria.primary}>
             {navLink("/", t.nav.home)}
             {navLink("/command-center", t.nav.commandCenter)}
             <div ref={studioRef} className="relative">
@@ -101,7 +101,7 @@ export function SiteHeader() {
                   {studioItems.map((item) => {
                     const Icon = studioIcons[item.key]
                     return (
-                      <Link key={item.key} href={item.href} role="menuitem" className={cn("flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-secondary", item.pro && "border border-gold/20 bg-gold/5")}>
+                      <Link prefetch={false} key={item.key} href={item.href} role="menuitem" className={cn("flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-secondary", item.pro && "border border-gold/20 bg-gold/5")}>
                         <span className={cn("mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border", item.pro ? "border-gold/30 bg-gold/10" : "border-primary/25 bg-primary/10")}><Icon className={cn("size-4", item.pro ? "text-gold" : "text-primary")} aria-hidden /></span>
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-2"><span className="text-sm font-semibold text-foreground">{item.title}</span>{item.pro ? <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] font-bold text-gold">PRO</span> : null}</span>
@@ -125,21 +125,21 @@ export function SiteHeader() {
           <LanguageSwitcher className="hidden sm:block" />
           {authHydrated && !sessionPending && (session?.user ? (
             <div className="hidden items-center gap-1 sm:flex">
-              <Link href="/account" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "gap-2")}><UserRound className="size-4" aria-hidden />{t.nav.account}</Link>
+              <Link prefetch={false} href="/account" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "gap-2")}><UserRound className="size-4" aria-hidden />{t.nav.account}</Link>
               <button type="button" disabled={loggingOut} onClick={() => void logout()} className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "gap-2 text-muted-foreground disabled:opacity-60")}><LogOut className="size-4" aria-hidden />{t.nav.logout}</button>
             </div>
-          ) : <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "hidden sm:inline-flex")}>{t.nav.login}</Link>)}
-          <Link href={authHydrated && session?.user ? "/command-center" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "hidden bg-gold text-gold-foreground hover:bg-gold/90 sm:inline-flex")}>{authHydrated && session?.user ? t.nav.openWorkspace : t.nav.getStarted}</Link>
-          <button type="button" onClick={() => setMobileOpen((v) => !v)} aria-label={aria.menu} aria-expanded={mobileOpen} className="inline-flex size-11 items-center justify-center rounded-xl border border-border bg-secondary/60 text-foreground shadow-sm transition-colors hover:border-primary/30 hover:bg-secondary lg:hidden">{mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}</button>
+          ) : <Link prefetch={false} href="/login" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "hidden sm:inline-flex")}>{t.nav.login}</Link>)}
+          <Link prefetch={false} href={authHydrated && session?.user ? "/command-center" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "hidden bg-gold text-gold-foreground hover:bg-gold/90 sm:inline-flex")}>{authHydrated && session?.user ? t.nav.openWorkspace : t.nav.getStarted}</Link>
+          <button type="button" onClick={() => setMobileOpen((v) => !v)} aria-label={aria.menu} aria-expanded={mobileOpen} className="inline-flex size-11 items-center justify-center rounded-xl border border-border bg-secondary/60 text-foreground shadow-sm transition-colors hover:border-primary/30 hover:bg-secondary min-[1180px]:hidden xl:hidden">{mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}</button>
         </div>
       </div>
       {mobileOpen && (
-        <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
+        <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl min-[1180px]:hidden xl:hidden">
           <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4 sm:px-6" aria-label={aria.mobile}>
-            <Link href="/" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.home}</Link>
-            <Link href="/command-center" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.commandCenter}</Link>
+            <Link prefetch={false} href="/" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.home}</Link>
+            <Link prefetch={false} href="/command-center" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.commandCenter}</Link>
             <div className="mt-1 px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.nav.appStudio}</div>
-            {studioItems.map((item) => { const Icon = studioIcons[item.key]; return <Link key={item.key} href={item.href} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-secondary", item.pro && "border border-gold/20 bg-gold/5")}><Icon className={cn("size-4", item.pro ? "text-gold" : "text-primary")} aria-hidden /><span className="flex-1 text-sm font-medium text-foreground">{item.title}</span>{item.pro ? <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] font-bold text-gold">PRO</span> : null}</Link> })}
+            {studioItems.map((item) => { const Icon = studioIcons[item.key]; return <Link prefetch={false} key={item.key} href={item.href} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-secondary", item.pro && "border border-gold/20 bg-gold/5")}><Icon className={cn("size-4", item.pro ? "text-gold" : "text-primary")} aria-hidden /><span className="flex-1 text-sm font-medium text-foreground">{item.title}</span>{item.pro ? <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] font-bold text-gold">PRO</span> : null}</Link> })}
             <Link href="/business" className="mt-1 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.business}</Link>
             <Link href="/business/financial-guard" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.financialGuard}</Link>
             <Link href="/app-studio/ai-bots" className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-secondary">{t.nav.bots}</Link>

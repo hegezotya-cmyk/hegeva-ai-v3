@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from "node:fs"
 import { readFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { pathToFileURL } from "node:url"
+import { fileURLToPath, pathToFileURL } from "node:url"
 
 const dir = mkdtempSync(join(tmpdir(), "hegeva-app-studio-"))
 const bundle = join(dir, "app-studio-ai.mjs")
@@ -13,7 +13,7 @@ try {
   assert(!/for\s*\(\s*let\s+attempt/.test(x10Source), "X10 must not loop over provider attempts")
   assert.equal((x10Source.match(/runStudioAI\(/g) || []).length, 1, "X10 must have one provider helper call")
   assert(/assistantOperationId:\s*crypto\.randomUUID\(\)/.test(x10Source), "X10 must create its operation before the request")
-  buildSync({ entryPoints: ["lib/app-studio-ai.ts"], bundle: true, format: "esm", platform: "browser", outfile: bundle, logLevel: "silent" })
+  buildSync({ entryPoints: [fileURLToPath(new URL("../lib/app-studio-ai.ts", import.meta.url))], bundle: true, format: "esm", platform: "browser", outfile: bundle, logLevel: "silent" })
   globalThis.window = { setTimeout, clearTimeout }
   const requests = []
   let mode = "success"

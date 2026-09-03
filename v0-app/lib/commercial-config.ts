@@ -6,21 +6,40 @@
  * changing workflow code.  A disabled capability must remain disabled until
  * its external authority and approval gate are configured.
  */
-export const COMMERCIAL_CONFIG_VERSION = "0.1" as const
+export const COMMERCIAL_CONFIG_VERSION = "1.0" as const
 
 export const COMMERCIAL_PLANS = {
-  free: { monthlyMinor: 0, annualMinor: 0, includedCredits: 0 },
-  provisionalPro: { monthlyMinor: 0, annualMinor: 0, includedCredits: 0 },
-  provisionalEnterprise: { monthlyMinor: 0, annualMinor: 0, includedCredits: 0 },
+  free: { monthlyMinor: 0, annualMinor: 0, includedCredits: 50 },
+  premium: { monthlyMinor: 1499, annualMinor: 14990, includedCredits: 300 },
+  pro: { monthlyMinor: 2999, annualMinor: 29990, includedCredits: 1000 },
+  studio: { monthlyMinor: 5999, annualMinor: 59990, includedCredits: 2500 },
+  enterprise: { monthlyMinor: 14900, annualMinor: 0, includedCredits: 0 },
 } as const
 
 export const COMMERCIAL_CONFIG = {
   billing: { currency: "GBP", mode: "sandbox" as const, liveEnabled: false },
   plans: COMMERCIAL_PLANS,
-  prices: { currency: "GBP", monthly: { free: 0, provisionalPro: 0, provisionalEnterprise: 0 }, annual: { free: 0, provisionalPro: 0, provisionalEnterprise: 0 } },
-  monthlyIncluded: { free: 0, provisionalPro: 0, provisionalEnterprise: 0 },
+  prices: { currency: "GBP", monthly: { free: 0, premium: 1499, pro: 2999, studio: 5999, enterprise: 14900 }, annual: { free: 0, premium: 14990, pro: 29990, studio: 59990, enterprise: 0 } },
+  monthlyIncluded: { free: 50, premium: 300, pro: 1000, studio: 2500, enterprise: 0 },
+  overage: { enabled: false, behavior: "hard-stop" as const },
   trial: { enabled: false, days: 0, credits: 0 },
   credits: { featureCosts: { assistantMessage: 1, x30Generation: 1, advertisementGeneration: 1, videoGeneration: 1 } },
+  unitEconomics: {
+    // Conservative launch guard: the calculation intentionally ignores the
+    // daily free allocation and treats USD provider cost as GBP cost.
+    pricingVerifiedOn: "2026-09-03",
+    pricingSource: "https://developers.cloudflare.com/workers-ai/platform/pricing/",
+    maxInputTokensPerOperation: 4000,
+    maxOutputTokensPerOperation: 1200,
+    usdPerMillionInputTokens: 0.282,
+    usdPerMillionOutputTokens: 0.827,
+    stripeWorstCaseCardAndFxPct: 5.15,
+    stripeBillingPct: 0.7,
+    stripeFixedFeeMinor: 20,
+    vatStressTestPct: 20,
+    minimumPaidPlanGrossMarginPctBeforePaymentFeesAndTax: 80,
+    minimumPaidPlanContributionMarginPctAfterStressCosts: 80,
+  },
   quotas: { x30GenerationsPerDay: 3, x30GenerationsPerBillingPeriod: 20, x30OwnerWorkspacePerBillingPeriod: 50, tradingSimulationsPerDay: 100, perDay: 3, perBillingPeriod: 20 },
   enterprise: { maxSeats: 1, maxWorkspaces: 1, invitationsEnabled: false, commercialCeiling: { maxSeats: 100, maxWorkspaces: 24 } },
   tradingRisk: { maxRiskLimitPct: 25, maxStopLossPct: 20, maxTakeProfitPct: 100, maxPositionSizingPct: 25 },
@@ -35,9 +54,8 @@ export const COMMERCIAL_CONFIG = {
   featureFlags: { x30Generation: false, liveBilling: false, paidAi: false, paidVideo: false, liveTrading: false, enterpriseSso: false },
 } as const
 
-// The unpriced Sandbox state is intentionally retained as the commercial
-// default; this marker keeps older contract audits explicit about that rule.
-// mode: "sandbox-unpriced"
+// Published catalogue values are fixed, while payment execution remains
+// sandbox-only and fail-closed until the separately approved live payment setup.
 
 export type CommercialPlan = keyof typeof COMMERCIAL_PLANS
 

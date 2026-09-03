@@ -11,5 +11,5 @@ export function MobileActionDock(){
  const pathname=usePathname()
  const {locale}=useI18n()
  const items=[{href:"/",label:labels[locale].items[0],icon:Home},{href:"/command-center",label:labels[locale].items[1],icon:Command},{href:"/assistant",label:labels[locale].items[2],icon:Bot},{href:"/app-studio",label:labels[locale].items[3],icon:Blocks},{href:"/business",label:labels[locale].items[4],icon:BarChart3}]
- return <nav aria-label={labels[locale].aria} className="mobile-action-dock">{items.map(({href,label,icon:Icon})=>{const active=href==="/"?pathname===href:pathname.startsWith(href);return <Link key={href} href={href} aria-current={active?"page":undefined} className={cn(active&&"is-active")}><Icon aria-hidden/><span>{label}</span></Link>})}</nav>
+ return <nav aria-label={labels[locale].aria} className="mobile-action-dock">{items.map(({href,label,icon:Icon})=>{const active=href==="/"?pathname===href:pathname.startsWith(href);return <Link prefetch={false} key={href} href={href} aria-current={active?"page":undefined} className={cn(active&&"is-active")}><Icon aria-hidden/><span>{label}</span></Link>})}</nav>
 }
