@@ -39,6 +39,8 @@ export function watchtowerSignals(tasks:IntelligenceTask[],invoices:Intelligence
 }
 
 export function convertQuoteToInvoice(quote:IntelligenceInvoice,existing:IntelligenceInvoice[]):IntelligenceInvoice{
+ const alreadyCreated=existing.find(x=>x.type==="invoice"&&x.notes.includes(`Created from quote ${quote.number}`))
+ if(alreadyCreated)return alreadyCreated
  const year=new Date().getUTCFullYear(),count=existing.filter(x=>x.type==="invoice"&&x.number.startsWith(`INV-${year}-`)).length+1,now=new Date().toISOString()
  return {...quote,id:crypto.randomUUID(),type:"invoice",status:"draft",number:`INV-${year}-${String(count).padStart(3,"0")}`,issueDate:now.slice(0,10),dueDate:new Date(Date.now()+14*86400000).toISOString().slice(0,10),notes:`Created from quote ${quote.number}${quote.notes?`\n${quote.notes}`:""}`,createdAt:now,updatedAt:now}
 }
