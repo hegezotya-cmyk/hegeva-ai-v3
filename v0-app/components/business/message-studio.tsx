@@ -1,7 +1,7 @@
 "use client"
 
 import { FormEvent, useState } from "react"
-import { Cloud, CloudOff, Copy, Pencil, Plus, Trash2, X } from "lucide-react"
+import { CalendarClock, CheckCircle2, Cloud, CloudOff, Copy, Pencil, Plus, ShieldCheck, Trash2, X } from "lucide-react"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { useI18n } from "@/lib/i18n/provider"
 import { getBusinessModulesCopy } from "@/lib/i18n/business-modules-copy"
@@ -14,6 +14,10 @@ type Draft = {
   subject?: string
   body: string
   createdAt: string
+  followUpAt?: string
+  workflowStatus?: "draft" | "approved" | "completed"
+  approvedAt?: string
+  completedAt?: string
 }
 
 export function MessageStudio() {
@@ -25,15 +29,17 @@ export function MessageStudio() {
   const [recipient, setRecipient] = useState("")
   const [subject, setSubject] = useState("")
   const [body, setBody] = useState("")
+  const [followUpAt, setFollowUpAt] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const editCopy = {
-    en:{edit:"Edit draft",update:"Update draft",cancel:"Cancel"},hu:{edit:"Vázlat szerkesztése",update:"Vázlat frissítése",cancel:"Mégse"},de:{edit:"Entwurf bearbeiten",update:"Entwurf aktualisieren",cancel:"Abbrechen"},fr:{edit:"Modifier le brouillon",update:"Mettre à jour",cancel:"Annuler"},es:{edit:"Editar borrador",update:"Actualizar borrador",cancel:"Cancelar"},
+    en:{edit:"Edit draft",update:"Update draft",cancel:"Cancel",follow:"Follow-up date",draft:"Draft",approve:"Approve",approved:"Approved",complete:"Complete",completed:"Completed",due:"Follow-up due"},hu:{edit:"Vázlat szerkesztése",update:"Vázlat frissítése",cancel:"Mégse",follow:"Utánkövetés dátuma",draft:"Vázlat",approve:"Jóváhagyás",approved:"Jóváhagyva",complete:"Lezárás",completed:"Lezárva",due:"Utánkövetés esedékes"},de:{edit:"Entwurf bearbeiten",update:"Entwurf aktualisieren",cancel:"Abbrechen",follow:"Nachfassdatum",draft:"Entwurf",approve:"Freigeben",approved:"Freigegeben",complete:"Abschließen",completed:"Abgeschlossen",due:"Nachfassung fällig"},fr:{edit:"Modifier le brouillon",update:"Mettre à jour",cancel:"Annuler",follow:"Date de suivi",draft:"Brouillon",approve:"Approuver",approved:"Approuvé",complete:"Terminer",completed:"Terminé",due:"Suivi dû"},es:{edit:"Editar borrador",update:"Actualizar borrador",cancel:"Cancelar",follow:"Fecha de seguimiento",draft:"Borrador",approve:"Aprobar",approved:"Aprobado",complete:"Completar",completed:"Completado",due:"Seguimiento pendiente"},
   }[locale]
 
   function resetForm() {
     setRecipient("")
     setSubject("")
     setBody("")
+    setFollowUpAt("")
     setEditingId(null)
   }
 
@@ -44,6 +50,7 @@ export function MessageStudio() {
     setRecipient(draft.recipient || "")
     setSubject(draft.subject || "")
     setBody(draft.body)
+    setFollowUpAt(draft.followUpAt || "")
   }
 
   function saveDraft(e: FormEvent) {
@@ -60,6 +67,10 @@ export function MessageStudio() {
         subject: subject.trim() || undefined,
         body: clean,
         createdAt: existing?.createdAt || new Date().toISOString(),
+        followUpAt: followUpAt || undefined,
+        workflowStatus: "draft",
+        approvedAt: undefined,
+        completedAt: undefined,
       }
       return existing ? current.map((draft) => draft.id === existing.id ? next : draft) : [next, ...current]
     })
@@ -88,6 +99,7 @@ export function MessageStudio() {
           <input value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder={c.recipient} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
           <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={c.subject} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
           <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder={c.body} rows={8} className="w-full resize-y rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
+          <label className="block text-xs font-medium text-muted-foreground">{editCopy.follow}<input type="date" value={followUpAt} onChange={(e) => setFollowUpAt(e.target.value)} className="mt-2 w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground" /></label>
           <div className="flex gap-2"><button type="submit" className="flex-1 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">{editingId ? editCopy.update : c.save}</button>{editingId && <button type="button" onClick={resetForm} className="inline-flex items-center gap-1 rounded-xl border border-border px-3 py-2.5 text-sm"><X className="size-4" /> {editCopy.cancel}</button>}</div>
         </div>
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{c.honesty}</p>
@@ -108,6 +120,7 @@ export function MessageStudio() {
                     <div className="flex flex-wrap gap-2 text-xs text-muted-foreground"><span>{draft.type}</span><span>·</span><span>{draft.tone}</span></div>
                     {draft.subject && <h2 className="mt-2 font-semibold text-foreground">{draft.subject}</h2>}
                     {draft.recipient && <p className="mt-1 text-xs text-muted-foreground">{c.to}: {draft.recipient}</p>}
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs"><span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1">{draft.workflowStatus === "completed" ? <CheckCircle2 className="size-3 text-primary" /> : <ShieldCheck className="size-3" />}{draft.workflowStatus === "completed" ? editCopy.completed : draft.workflowStatus === "approved" ? editCopy.approved : editCopy.draft}</span>{draft.followUpAt && <span className={`inline-flex items-center gap-1 ${draft.workflowStatus !== "completed" && draft.followUpAt <= new Date().toISOString().slice(0,10) ? "text-amber-500" : "text-muted-foreground"}`}><CalendarClock className="size-3" />{draft.followUpAt}{draft.workflowStatus !== "completed" && draft.followUpAt <= new Date().toISOString().slice(0,10) ? ` · ${editCopy.due}` : ""}</span>}</div>
                   </div>
                   <div className="flex gap-2">
                     <button type="button" onClick={() => navigator.clipboard?.writeText(draft.body)} className="rounded-lg border border-border p-2 text-muted-foreground hover:text-foreground" aria-label={c.copy}><Copy className="size-4" /></button>
@@ -116,6 +129,7 @@ export function MessageStudio() {
                   </div>
                 </div>
                 <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{draft.body}</p>
+                <div className="mt-4 flex flex-wrap gap-2">{draft.workflowStatus !== "approved" && draft.workflowStatus !== "completed" && <button type="button" onClick={() => setDrafts(all => all.map(x => x.id === draft.id ? {...x, workflowStatus:"approved", approvedAt:new Date().toISOString()} : x))} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary">{editCopy.approve}</button>}{draft.workflowStatus === "approved" && <button type="button" onClick={() => setDrafts(all => all.map(x => x.id === draft.id ? {...x, workflowStatus:"completed", completedAt:new Date().toISOString()} : x))} className="min-h-10 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground">{editCopy.complete}</button>}</div>
                 <p className="mt-4 text-[11px] text-muted-foreground">{c.saved} {new Date(draft.createdAt).toLocaleString(locale)}</p>
               </article>
             ))}
