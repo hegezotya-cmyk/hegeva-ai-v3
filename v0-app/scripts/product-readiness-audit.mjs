@@ -11,6 +11,7 @@ const x30Page = fs.readFileSync(new URL("../app/app-studio/x30-alpha/page.tsx", 
 const loginPage = fs.readFileSync(new URL("../app/login/page.tsx", import.meta.url), "utf8")
 const homePage = fs.readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8")
 const outcomeLauncher = fs.readFileSync(new URL("../components/outcome-launcher.tsx", import.meta.url), "utf8")
+const goalMode = fs.readFileSync(new URL("../components/command-center/goal-mode.tsx", import.meta.url), "utf8")
 
 assert(/editingId/.test(workspace), "Workspace records must track the record being edited")
 assert(/function editItem/.test(workspace), "Workspace records must expose an edit workflow")
@@ -41,5 +42,7 @@ assert(/value\?\.startsWith\("\/"\) && !value\.startsWith\("\/\/"\)/.test(loginP
 assert(homePage.includes("<OutcomeLauncher />") && operatingCenter.includes("onboardingSteps"), "Homepage outcomes and real-data onboarding must both be present")
 for(const href of ["/business/intelligence","/business/invoices","/business/messages","/business/financial-guard","/app-studio/advertising"])assert(outcomeLauncher.includes(href),`Outcome launcher destination missing: ${href}`)
 assert(outcomeLauncher.includes("no module knowledge required") && outcomeLauncher.includes("nem kell ismerned a modulokat"), "Outcome launcher must explain the result-first experience")
+assert(goalMode.includes('useWorkspaceData<Goal>("goal_mode")') && goalMode.includes('useWorkspaceData<Task>("planner")'), "Goal Mode must persist goals and approved planner steps")
+assert(/current\.state!=="approved"/.test(goalMode) && /tasks\.some\(task=>task\.goalId===current\.id\)/.test(goalMode), "Goal Mode execution must require approval and remain idempotent")
 
 console.log("Product readiness audit passed: editable business records, real invoice reporting, invoice updates, planner completion, and message persistence")
