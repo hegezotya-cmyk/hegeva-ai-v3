@@ -1,12 +1,22 @@
 "use client"
 
+import { useEffect } from "react"
 import { AppShell } from "@/components/app-shell"
 import { AuthPanel } from "@/components/auth/auth-panel"
+import { authClient } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
 import { AUTH_COPY } from "@/lib/i18n/auth-copy"
+import { useRouter } from "next/navigation"
+
+function safeCallbackURL() {
+  const value = new URLSearchParams(window.location.search).get("callbackURL")
+  return value?.startsWith("/") && !value.startsWith("//") ? value : "/command-center"
+}
 
 export default function LoginPage() {
+  const router = useRouter()
   const { locale } = useI18n()
+  const { data: session, isPending } = authClient.useSession()
   const c = AUTH_COPY[locale]
   const features = {
     en:["Better Auth session security","Cloudflare D1 account data","Protected AI endpoints","Password recovery checks live email availability"],
@@ -15,6 +25,13 @@ export default function LoginPage() {
     fr:["Sessions Better Auth sécurisées","Données de compte Cloudflare D1","Points d’accès IA protégés","La récupération du mot de passe vérifie la disponibilité réelle des e-mails"],
     es:["Sesiones seguras con Better Auth","Datos de cuenta en Cloudflare D1","Puntos de acceso de IA protegidos","La recuperación de contraseña comprueba la disponibilidad real del correo"],
   }[locale]
+
+  useEffect(() => {
+    if (!isPending && session?.user) {
+      router.replace(safeCallbackURL())
+    }
+  }, [isPending, router, session?.user])
+
   return (
     <AppShell>
       <main className="mx-auto grid min-h-[70vh] max-w-5xl gap-10 px-6 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">

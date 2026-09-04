@@ -8,6 +8,7 @@ const planner = fs.readFileSync(new URL("../components/business/planner.tsx", im
 const messages = fs.readFileSync(new URL("../components/business/message-studio.tsx", import.meta.url), "utf8")
 const operatingCenter = fs.readFileSync(new URL("../components/command-center/operating-center.tsx", import.meta.url), "utf8")
 const x30Page = fs.readFileSync(new URL("../app/app-studio/x30-alpha/page.tsx", import.meta.url), "utf8")
+const loginPage = fs.readFileSync(new URL("../app/login/page.tsx", import.meta.url), "utf8")
 
 assert(/editingId/.test(workspace), "Workspace records must track the record being edited")
 assert(/function editItem/.test(workspace), "Workspace records must expose an edit workflow")
@@ -31,5 +32,7 @@ assert(/href=\"\/assistant\"/.test(operatingCenter) && /href=\"\/app-studio\/bui
 assert(/cloudEnabled/.test(operatingCenter) && /not cloud-synced/.test(operatingCenter), "Operating Center must distinguish cloud and local state")
 assert(/useWorkspaceData/.test(x30Page) && /No workspace data available/.test(x30Page) && /PawFlow/.test(x30Page), "X30 must be workspace-aware with explicit empty and demo states")
 assert(x30Page.includes('fetch("/api/x30/generate"') && !/reserveAIUsage|startX20Action|setItems\(/.test(x30Page), "X30 page must use only the explicit preview request without quota or mutation calls")
+assert(/session\?\.user/.test(loginPage) && /router\.replace\(safeCallbackURL\(\)\)/.test(loginPage), "Authenticated users must leave the login page for their requested workspace")
+assert(/value\?\.startsWith\("\/"\) && !value\.startsWith\("\/\/"\)/.test(loginPage), "Login redirects must remain restricted to internal paths")
 
 console.log("Product readiness audit passed: editable business records, real invoice reporting, invoice updates, planner completion, and message persistence")
