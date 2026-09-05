@@ -12,6 +12,7 @@ type Task = {
   due?: string
   priority: "low" | "medium" | "high"
   done: boolean
+  sourceId?: string
 }
 
 export function LocalPlanner() {
@@ -46,7 +47,7 @@ export function LocalPlanner() {
     if (!clean) return
     setTasks((current) => {
       const existing = editingId ? current.find((task) => task.id === editingId) : undefined
-      const next = { id: existing?.id || crypto.randomUUID(), title: clean, due: due || undefined, priority, done: existing?.done || false }
+      const next = { id: existing?.id || crypto.randomUUID(), title: clean, due: due || undefined, priority, done: existing?.done || false, sourceId: existing?.sourceId }
       return existing ? current.map((task) => task.id === existing.id ? next : task) : [next, ...current]
     })
     resetForm()

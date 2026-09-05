@@ -8,10 +8,13 @@ import { AICore } from "@/components/visual-engine"
 import { cn } from "@/lib/utils"
 import { createWorkspaceMissionProjection } from "@/lib/foundation/brain-runtime"
 import { createWorkspacePulseProjection } from "@/lib/foundation/roadmap-foundations"
+import { rankHegevaCorePriorities, selectHegevaCorePriority, type HegevaCorePriority } from "@/lib/hegeva-core"
+import { growthSignalCopy, overdueTaskCopy } from "@/lib/hegeva-core-copy"
 
-type RecordItem={id:string;amount?:number}
+type RecordItem={id:string;amount?:number;customerStatus?:"lead"|"active"|"paused";followUp?:string}
 type Task={id:string;due?:string;done:boolean;title?:string}
 type Invoice={id:string;type:"invoice"|"quote";status?:"draft"|"sent"|"paid";dueDate?:string;currency?:string;vatRate?:number;items?:{quantity?:number;unitPrice?:number}[]}
+type Message={id:string;sourceId?:string;workflowStatus?:"draft"|"approved"|"completed"}
 
 const copy={
  en:{eyebrow:"Operating picture",title:"Your work, in one line of sight",sub:"HEGEVA reads the real records in this workspace. Nothing below is simulated.",mission:"Workspace readiness mission",goal:"Turn scattered work into an operating workspace",understand:"Understand",plan:"Plan",work:"Execute",check:"Check",result:"Result",current:"Current work",empty:"No open tasks yet",openPlanner:"Open planner",inventory:"Workspace inventory",customers:"Customers",documents:"Documents",expenses:"Expenses",invoices:"Invoices",messages:"Messages",assistant:"Assistant",appStudio:"App Studio",available:"Available",attention:"Needs attention",clear:"No overdue tasks or invoices",sync:"Workspace data",cloud:"Authenticated cloud workspace",local:"Local workspace · not cloud-synced"},
@@ -41,6 +44,13 @@ const pulseCopy={
  fr:{pulse:"HEGEVA Pulse",todaySummary:"Votre entreprise aujourd’hui",tasksToday:"Tâches dues aujourd’hui",openInvoices:"Factures ouvertes",expectedRevenue:"Revenu GBP attendu",draftMessages:"Brouillons de messages",quickActions:"Actions rapides",newInvoice:"Créer une facture",newMessage:"Écrire un message",newTask:"Ajouter une tâche",newCustomer:"Ajouter un client"},
  es:{pulse:"HEGEVA Pulse",todaySummary:"Tu negocio hoy",tasksToday:"Tareas para hoy",openInvoices:"Facturas abiertas",expectedRevenue:"Ingresos GBP previstos",draftMessages:"Borradores de mensajes",quickActions:"Acciones rápidas",newInvoice:"Crear factura",newMessage:"Escribir mensaje",newTask:"Añadir tarea",newCustomer:"Añadir cliente"},
 } as const
+const coreInsightCopy={
+ en:{label:"HEGEVA Core priority",review:(count:number)=>`${count} customer follow-up${count===1?" is":"s are"} ready for your approval.`,finish:(count:number)=>`${count} approved follow-up${count===1?" is":"s are"} ready to complete.`,overdue:(count:number,value:string)=>`${count} overdue invoice${count===1?"":"s"} worth ${value} need your attention.`,tasks:(count:number)=>`${count} task${count===1?" is":"s are"} due today.`,clear:"No urgent payment or task risk detected in your current records.",start:"Add your first customer, task or invoice and HEGEVA will build your operating picture.",reviewAction:"Review drafts",finishAction:"Complete follow-ups",invoices:"Prepare follow-ups",planner:"Open today’s tasks",customers:"Add real business data"},
+ hu:{label:"A HEGEVA Core prioritása",review:(count:number)=>`${count} ügyfél-utánkövetés vár jóváhagyásra.`,finish:(count:number)=>`${count} jóváhagyott utánkövetés lezárható.`,overdue:(count:number,value:string)=>`${count} lejárt, összesen ${value} értékű számla igényel figyelmet.`,tasks:(count:number)=>`${count} feladat esedékes ma.`,clear:"A jelenlegi adatokban nincs sürgős fizetési vagy feladatkockázat.",start:"Add hozzá az első ügyfelet, feladatot vagy számlát, és a HEGEVA felépíti a működési képet.",reviewAction:"Vázlatok áttekintése",finishAction:"Utánkövetések lezárása",invoices:"Utánkövetések előkészítése",planner:"Mai feladatok megnyitása",customers:"Valós üzleti adatok hozzáadása"},
+ de:{label:"HEGEVA Core Priorität",review:(count:number)=>`${count} Kundennachfassung${count===1?" wartet":"en warten"} auf Freigabe.`,finish:(count:number)=>`${count} freigegebene Nachfassung${count===1?" kann":"en können"} abgeschlossen werden.`,overdue:(count:number,value:string)=>`${count} überfällige Rechnung${count===1?"":"en"} im Wert von ${value} erfordern Aufmerksamkeit.`,tasks:(count:number)=>`${count} Aufgabe${count===1?" ist":"n sind"} heute fällig.`,clear:"Keine dringenden Zahlungs- oder Aufgabenrisiken in den aktuellen Daten.",start:"Fügen Sie Kunden, Aufgaben oder Rechnungen hinzu, damit HEGEVA Ihr Betriebsbild erstellt.",reviewAction:"Entwürfe prüfen",finishAction:"Nachfassungen abschließen",invoices:"Nachfassaktionen vorbereiten",planner:"Heutige Aufgaben öffnen",customers:"Echte Geschäftsdaten hinzufügen"},
+ fr:{label:"Priorité HEGEVA Core",review:(count:number)=>`${count} suivi${count===1?" client attend":"s clients attendent"} votre approbation.`,finish:(count:number)=>`${count} suivi${count===1?" approuvé est":"s approuvés sont"} prêt à terminer.`,overdue:(count:number,value:string)=>`${count} facture${count===1?"":"s"} en retard d’une valeur de ${value} nécessite${count===1?"":"nt"} votre attention.`,tasks:(count:number)=>`${count} tâche${count===1?" est":"s sont"} due aujourd’hui.`,clear:"Aucun risque urgent de paiement ou de tâche dans les données actuelles.",start:"Ajoutez un client, une tâche ou une facture pour créer votre vue opérationnelle.",reviewAction:"Examiner les brouillons",finishAction:"Terminer les suivis",invoices:"Préparer les relances",planner:"Ouvrir les tâches du jour",customers:"Ajouter des données réelles"},
+ es:{label:"Prioridad de HEGEVA Core",review:(count:number)=>`${count} seguimiento${count===1?" está":"s están"} listo para tu aprobación.`,finish:(count:number)=>`${count} seguimiento${count===1?" aprobado está":"s aprobados están"} listo para completar.`,overdue:(count:number,value:string)=>`${count} factura${count===1?"":"s"} vencida${count===1?"":"s"} por ${value} requiere${count===1?"":"n"} atención.`,tasks:(count:number)=>`${count} tarea${count===1?" vence":"s vencen"} hoy.`,clear:"No se detectaron riesgos urgentes de pagos o tareas.",start:"Añade un cliente, una tarea o una factura para crear tu vista operativa.",reviewAction:"Revisar borradores",finishAction:"Completar seguimientos",invoices:"Preparar seguimientos",planner:"Abrir tareas de hoy",customers:"Añadir datos reales"},
+} as const
 const onboardingCopy={
  en:{title:"Launch your workspace",sub:"Complete these real first steps. Progress is calculated from saved workspace data.",progress:"complete",customer:"Add your first customer",task:"Plan your first task",invoice:"Create your first quote or invoice",assistant:"Ask HEGEVA your first question"},
  hu:{title:"Indítsd el a munkaterületed",sub:"Végezd el ezeket a valódi első lépéseket. A haladás a mentett munkaterületi adatokból számolódik.",progress:"kész",customer:"Add hozzá az első ügyfeledet",task:"Tervezd meg az első feladatodat",invoice:"Készítsd el az első ajánlatodat vagy számládat",assistant:"Tedd fel az első kérdésedet a HEGEVA-nak"},
@@ -48,11 +58,13 @@ const onboardingCopy={
  fr:{title:"Lancez votre espace",sub:"Suivez ces premières étapes réelles. La progression repose sur les données enregistrées.",progress:"terminé",customer:"Ajouter votre premier client",task:"Planifier votre première tâche",invoice:"Créer votre premier devis ou facture",assistant:"Poser votre première question à HEGEVA"},
  es:{title:"Pon en marcha tu espacio",sub:"Completa estos primeros pasos reales. El progreso se calcula con los datos guardados.",progress:"completado",customer:"Añade tu primer cliente",task:"Planifica tu primera tarea",invoice:"Crea tu primer presupuesto o factura",assistant:"Haz tu primera pregunta a HEGEVA"},
 } as const
-
 export function OperatingCenter(){
  const {locale}=useI18n();const c=copy[locale]
  const pc=pulseCopy[locale]
+ const ic=coreInsightCopy[locale]
+ const gc=growthSignalCopy[locale]
  const oc=onboardingCopy[locale]
+ const otc=overdueTaskCopy[locale]
  const ux=missionUx[locale]
  const projection=projectionCopy[locale]
  const {items:customers,syncState,cloudEnabled}=useWorkspaceData<RecordItem>("customers")
@@ -60,15 +72,22 @@ export function OperatingCenter(){
  const {items:expenses}=useWorkspaceData<RecordItem>("expenses")
  const {items:tasks}=useWorkspaceData<Task>("planner")
  const {items:invoices}=useWorkspaceData<Invoice>("invoice_documents")
- const {items:messages}=useWorkspaceData<RecordItem>("messages")
+ const {items:messages}=useWorkspaceData<Message>("messages")
  const {items:assistantHistory}=useWorkspaceData<RecordItem>("assistant_history")
  const today=new Date().toISOString().slice(0,10)
  const open=tasks.filter(item=>!item.done)
  const overdueTasks=open.filter(item=>item.due&&item.due<today).length
- const overdueInvoices=invoices.filter(item=>item.type==="invoice"&&item.status!=="paid"&&item.dueDate&&item.dueDate<today).length
+ const overdueInvoiceRecords=invoices.filter(item=>item.type==="invoice"&&item.status!=="paid"&&item.dueDate&&item.dueDate<today)
+ const overdueInvoices=overdueInvoiceRecords.length
  const tasksToday=open.filter(item=>item.due===today).length
+ const customerFollowUpsDue=customers.filter(item=>item.followUp&&item.followUp<=today&&item.customerStatus!=="paused").length
+ const staleQuotes=invoices.filter(item=>item.type==="quote"&&item.status!=="paid"&&item.dueDate&&item.dueDate<today).length
+ const draftInvoices=invoices.filter(item=>item.type==="invoice"&&item.status==="draft").length
  const openInvoices=invoices.filter(item=>item.type==="invoice"&&item.status!=="paid")
  const expectedRevenue=openInvoices.filter(item=>(item.currency||"GBP")==="GBP").reduce((sum,item)=>{const subtotal=(item.items||[]).reduce((value,line)=>value+(Number(line.quantity)||0)*(Number(line.unitPrice)||0),0);return sum+subtotal*(1+(Number(item.vatRate)||0)/100)},0)
+ const overdueRevenue=overdueInvoiceRecords.filter(item=>(item.currency||"GBP")==="GBP").reduce((sum,item)=>{const subtotal=(item.items||[]).reduce((value,line)=>value+(Number(line.quantity)||0)*(Number(line.unitPrice)||0),0);return sum+subtotal*(1+(Number(item.vatRate)||0)/100)},0)
+ const followUpsAwaitingApproval=messages.filter(item=>item.sourceId&&(!item.workflowStatus||item.workflowStatus==="draft")).length
+ const approvedFollowUps=messages.filter(item=>item.sourceId&&item.workflowStatus==="approved").length
  const hasRecords=customers.length+documents.length+expenses.length+invoices.length>0
  const missionProjection=createWorkspaceMissionProjection({scope:cloudEnabled?"authenticated-cloud":"local-browser",hasRecords,openTasks:open.length,overdueItems:overdueTasks+overdueInvoices})
  const pulse=createWorkspacePulseProjection({scope:cloudEnabled?"authenticated-cloud":"local-browser",hasRecords,openTasks:open.length,missionState:"awaiting-approval"})
@@ -84,6 +103,12 @@ export function OperatingCenter(){
  const quickActions:Array<[typeof CalendarDays,string,string]>=[[FilePlus2,pc.newInvoice,"/business/invoices"],[MessageSquarePlus,pc.newMessage,"/business/messages"],[CalendarDays,pc.newTask,"/business/planner"],[UserPlus,pc.newCustomer,"/business/customers"]]
  const onboardingSteps:Array<[typeof UserPlus,string,string,boolean]>=[[UserPlus,oc.customer,"/business/customers",customers.length>0],[CalendarDays,oc.task,"/business/planner",tasks.length>0],[Receipt,oc.invoice,"/business/invoices",invoices.length>0],[Bot,oc.assistant,"/assistant",assistantHistory.length>0]]
  const onboardingComplete=onboardingSteps.filter(([, , ,done])=>done).length
+ const coreSignals={approvedFollowUps,followUpsAwaitingApproval,overdueInvoices,customerFollowUpsDue,staleQuotes,overdueTasks,tasksToday,draftInvoices,hasRecords}
+ const coreRanked=rankHegevaCorePriorities(coreSignals)
+ const coreDecision=selectHegevaCorePriority(coreSignals)
+ const explainPriority=(decision:HegevaCorePriority)=>decision.kind==="complete-followups"?{text:ic.finish(decision.count),href:decision.href,action:ic.finishAction}:decision.kind==="review-followups"?{text:ic.review(decision.count),href:decision.href,action:ic.reviewAction}:decision.kind==="overdue-invoices"?{text:ic.overdue(decision.count,overdueRevenue.toLocaleString(locale,{style:"currency",currency:"GBP"})),href:decision.href,action:ic.invoices}:decision.kind==="customer-followups"?{text:gc.customer(decision.count),href:decision.href,action:gc.customerAction}:decision.kind==="stale-quotes"?{text:gc.quote(decision.count),href:decision.href,action:gc.quoteAction}:decision.kind==="overdue-tasks"?{text:otc.text(decision.count),href:decision.href,action:otc.action}:decision.kind==="today-tasks"?{text:ic.tasks(decision.count),href:decision.href,action:ic.planner}:decision.kind==="draft-invoices"?{text:gc.draft(decision.count),href:decision.href,action:gc.draftAction}:decision.kind==="clear"?{text:ic.clear,href:decision.href,action:c.inventory}:{text:ic.start,href:decision.href,action:ic.customers}
+ const corePriority=explainPriority(coreDecision)
+ const secondaryCorePriorities=coreRanked.slice(1,3).map(explainPriority)
  return <section className="mt-8 overflow-hidden border-y border-border bg-background/35">
   <div className="control-room-head"><div><p className="ve-eyebrow">{c.eyebrow}</p><h2>{c.title}</h2><p>{c.sub}</p></div><div className="flex items-center gap-3"><AICore state={syncState==="saving"?"working":syncState==="error"?"warning":"ready"}/><div><strong className="block text-sm">{c.sync}</strong><span className="text-xs capitalize text-muted-foreground">{syncState}</span></div></div></div>
   <div className="border-t border-border bg-primary/[0.035] px-4 py-6 sm:px-6">
@@ -91,6 +116,7 @@ export function OperatingCenter(){
    <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
     {pulseMetrics.map(([Icon,label,value])=><article key={label} className="rounded-2xl border border-border bg-background/55 p-4"><Icon aria-hidden className="size-4 text-primary"/><p className="mt-3 text-xs text-muted-foreground">{label}</p><strong className="mt-1 block text-2xl">{value}</strong></article>)}
    </div>
+   <article className="mt-4 rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-400/[.09] to-emerald-400/[.05] p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center"><AICore state={coreDecision.severity==="attention"?"warning":"ready"}/><div className="min-w-0 flex-1"><p className="text-[.65rem] font-semibold uppercase tracking-[.16em] text-amber-300">{ic.label}</p><p className="mt-1 text-sm leading-6 text-foreground">{corePriority.text}</p></div><Link href={corePriority.href} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-amber-300/35 bg-amber-300/10 px-4 py-2 text-sm font-semibold text-amber-200 transition-colors hover:bg-amber-300/15">{corePriority.action}<ArrowUpRight aria-hidden className="size-4"/></Link></div>{secondaryCorePriorities.length>0&&<div className="mt-4 border-t border-amber-300/15 pt-3"><p className="text-[.6rem] font-semibold uppercase tracking-[.14em] text-muted-foreground">{gc.also}</p><div className="mt-2 flex flex-wrap gap-2">{secondaryCorePriorities.map(item=><Link key={`${item.href}-${item.text}`} href={item.href} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/35 px-3 py-2 text-xs text-muted-foreground hover:text-foreground">{item.text}<ArrowUpRight aria-hidden className="size-3"/></Link>)}</div></div>}</article>
    <div className="mt-5"><p className="text-xs font-semibold uppercase tracking-[.14em] text-muted-foreground">{pc.quickActions}</p><div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{quickActions.map(([Icon,label,href])=><Link key={label} href={href} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-primary/25 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/15"><Icon aria-hidden className="size-4"/>{label}<ArrowUpRight aria-hidden className="ml-auto size-3.5"/></Link>)}</div></div>
   </div>
   <div className="border-t border-border px-4 py-6 sm:px-6"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="ve-eyebrow">First steps</p><h3 className="mt-1 font-display text-2xl font-semibold">{oc.title}</h3><p className="mt-2 max-w-2xl text-sm text-muted-foreground">{oc.sub}</p></div><strong className="rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm text-primary">{onboardingComplete}/{onboardingSteps.length} {oc.progress}</strong></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-muted" aria-label={`${onboardingComplete}/${onboardingSteps.length} ${oc.progress}`}><div className="h-full rounded-full bg-primary transition-all" style={{width:`${onboardingComplete/onboardingSteps.length*100}%`}}/></div><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{onboardingSteps.map(([Icon,label,href,done])=><Link key={label} href={href} className={cn("flex min-h-16 items-center gap-3 rounded-2xl border p-4 text-sm font-semibold transition-colors",done?"border-primary/25 bg-primary/5":"border-border bg-background/45 hover:border-primary/35")}><span className={cn("grid size-9 shrink-0 place-items-center rounded-full",done?"bg-primary text-primary-foreground":"bg-muted text-muted-foreground")}>{done?<Check className="size-4" aria-hidden/>:<Icon className="size-4" aria-hidden/>}</span><span>{label}</span>{!done&&<ArrowUpRight className="ml-auto size-4 text-primary" aria-hidden/>}</Link>)}</div></div>

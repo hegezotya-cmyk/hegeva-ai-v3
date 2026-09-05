@@ -1,4 +1,4 @@
-export type IntelligenceTask={id:string;title:string;due?:string;priority:"low"|"medium"|"high";done:boolean}
+export type IntelligenceTask={id:string;title:string;due?:string;priority:"low"|"medium"|"high";done:boolean;sourceId?:string}
 export type IntelligenceInvoice={id:string;type:"invoice"|"quote";status?:"draft"|"sent"|"paid";number:string;issueDate:string;dueDate:string;currency:string;vatRate:number;businessName:string;businessDetails:string;clientName:string;clientDetails:string;items:{id:string;description:string;quantity:number;unitPrice:number}[];notes:string;createdAt:string;updatedAt:string}
 
 export const invoiceTotal=(doc:IntelligenceInvoice)=>doc.items.reduce((sum,item)=>sum+(Number(item.quantity)||0)*(Number(item.unitPrice)||0),0)*(1+(Number(doc.vatRate)||0)/100)

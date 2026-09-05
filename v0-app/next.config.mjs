@@ -1,4 +1,8 @@
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare"
+import { dirname } from "node:path"
+import { fileURLToPath } from "node:url"
+
+const appRoot = dirname(fileURLToPath(import.meta.url))
 
 if (process.env.NODE_ENV === "development") {
   initOpenNextCloudflareForDev()
@@ -7,6 +11,9 @@ if (process.env.NODE_ENV === "development") {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+  turbopack: {
+    root: appRoot,
+  },
   images: {
     unoptimized: true,
   },

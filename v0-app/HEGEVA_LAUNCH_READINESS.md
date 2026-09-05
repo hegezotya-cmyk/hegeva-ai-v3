@@ -1,7 +1,8 @@
 # HEGEVA Launch Readiness
 
-Status: development complete for this roadmap pass; public launch remains blocked
-pending the owner-controlled live billing gates below.
+Status: the current product baseline is deployed. Live monthly Premium and Pro
+billing is configured; annual billing and provider-backed AI/media capabilities
+remain separately gated.
 
 ## Completed in this pass
 
@@ -16,9 +17,9 @@ pending the owner-controlled live billing gates below.
 - The assistant composer stacks safely on narrow screens.
 - Global viewport overflow and mobile text scaling safeguards are active.
 - Pricing checks authenticated backend billing readiness and fails closed when
-  Stripe Sandbox configuration is incomplete.
-- Billing remains test-only, webhook-authoritative, signature-verified, idempotent,
-  and protected against out-of-order lifecycle events.
+  the required Stripe configuration is incomplete.
+- Live monthly billing remains webhook-authoritative, signature-verified,
+  idempotent, and protected against out-of-order lifecycle events.
 - Verified Stripe events now persist a unique customer/subscription mapping, and
   later checkouts reuse the existing Stripe customer.
 - Paid Sandbox accounts can create a short-lived, authenticated Stripe Customer
@@ -32,48 +33,58 @@ pending the owner-controlled live billing gates below.
   initiate provider work.
 - The release preflight now includes the complete product, mobile, billing, and X20
   roadmap audit suite, including dedicated Roadmap 3 and Roadmap 4 gates.
+- The primary roadmap gate now also covers the X20 identity/accounting lifecycle,
+  X30 domain and presentation contracts, App Studio security boundaries,
+  advertising and video studios, enterprise workflows, AI Bot approval UI,
+  Financial Guard, paper trading, preview sandboxing, public-beta readiness, and
+  visual polish. These existing checks can no longer silently drift outside the
+  release path.
+- The gate additionally exercises X30's disabled-provider canary and workspace
+  accounting, the Foundation/Brain/memory runtime contracts, and the complete WOW
+  and cinematic presentation checks.
 
-## Locally verified safeguards
+## Verified billing safeguards
 
-- Checkout is authenticated, explicitly test-mode, and disabled when billing
-  readiness is incomplete.
-- Live Stripe keys, live prices and live webhook events are rejected by the
-  committed source contracts.
+- Checkout is authenticated and disabled when billing readiness is incomplete.
+- Monthly Premium and Pro prices use the configured live Stripe Price objects.
 - Webhook bodies are bounded before signature verification.
 - Verified webhook handling is signature-checked, idempotent and protected against
   stale event ordering.
 - Entitlements are changed only by verified webhook lifecycle events; browser
   confirmation cannot grant access.
 - Customer and subscription mappings have durable uniqueness constraints.
-- These checks are local source/audit evidence only and do not prove live billing
-  readiness.
+- Operational monitoring, refund/tax wording and rollback exercises remain
+  owner-controlled responsibilities.
 
 ## Automated gates
 
 - `npm run audit:roadmap`
 - `npm run audit:roadmap-3`
 - `npm run audit:roadmap-4`
+- `npm run audit:studios`
+- `npm run audit:platform-safety`
+- `npm run audit:enterprise`
+- `npm run audit:ai-bots`
+- `npm run audit:ai-runtime`
+- `npm run audit:quality-contracts`
+- `npm run audit:core-runtime`
+- `npm run audit:presentation`
 - `npx tsc --noEmit`
 - `npm run build`
 - `npm run cf:build`
 
-## Owner-controlled live launch blockers
+## Remaining owner-controlled commercial gates
 
-1. Billing is intentionally restricted to Stripe test mode. Live keys, live recurring
-   prices, and a live webhook endpoint must be configured and independently verified
-   before accepting money.
-2. Subscription lifecycle simulations against Stripe test clocks must cover renewal, payment failure, plan
-   change, cancel-at-period-end, terminal cancellation, duplicate webhooks, and
-   out-of-order webhooks before live mode.
-3. Premium and Pro displayed prices must be reconciled against the exact live Stripe
-   recurring Price objects before removing Sandbox messaging.
-4. Production smoke testing happens only after a separately approved deployment.
-5. The owner must independently verify live keys, recurring prices, webhook
-   delivery, lifecycle behavior and payment-provider account readiness before
-   accepting money. Sandbox evidence cannot satisfy this gate.
+1. Complete the end-to-end money test: registration, first value, checkout,
+   verified entitlement, sign-out and return.
+2. Keep operational monitoring and rollback procedures current.
+3. Complete the owner review of refund, tax, support, privacy and legal wording.
+4. Annual billing, trials and final credit policy require separate approval.
+5. AI, advertising and video providers require independent cost, quota, canary and
+   rollback approval before activation.
 
 ## Deployment policy
 
-No production launch is authorized by this roadmap pass. Ask for explicit owner
-approval only after the local gates pass and every live blocker is independently
-verified or formally accepted.
+Production deployment requires a successful `release:check`, explicit owner
+authorization, a recorded Cloudflare version and a live smoke test. Payment,
+provider and Stripe configuration changes remain separate owner-controlled work.

@@ -18,12 +18,16 @@ type Draft = {
   workflowStatus?: "draft" | "approved" | "completed"
   approvedAt?: string
   completedAt?: string
+  sourceId?: string
 }
+
+type LinkedTask = { id: string; title: string; due?: string; priority: "low" | "medium" | "high"; done: boolean; sourceId?: string }
 
 export function MessageStudio() {
   const { locale } = useI18n()
   const c = getBusinessModulesCopy(locale).messages
   const { items: drafts, setItems: setDrafts, syncState, syncError, cloudEnabled } = useWorkspaceData<Draft>("messages")
+  const { items: tasks, setItems: setTasks } = useWorkspaceData<LinkedTask>("planner")
   const [type, setType] = useState("Customer reply")
   const [tone, setTone] = useState("Professional")
   const [recipient, setRecipient] = useState("")
@@ -32,7 +36,7 @@ export function MessageStudio() {
   const [followUpAt, setFollowUpAt] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const editCopy = {
-    en:{edit:"Edit draft",update:"Update draft",cancel:"Cancel",follow:"Follow-up date",draft:"Draft",approve:"Approve",approved:"Approved",complete:"Complete",completed:"Completed",due:"Follow-up due"},hu:{edit:"Vázlat szerkesztése",update:"Vázlat frissítése",cancel:"Mégse",follow:"Utánkövetés dátuma",draft:"Vázlat",approve:"Jóváhagyás",approved:"Jóváhagyva",complete:"Lezárás",completed:"Lezárva",due:"Utánkövetés esedékes"},de:{edit:"Entwurf bearbeiten",update:"Entwurf aktualisieren",cancel:"Abbrechen",follow:"Nachfassdatum",draft:"Entwurf",approve:"Freigeben",approved:"Freigegeben",complete:"Abschließen",completed:"Abgeschlossen",due:"Nachfassung fällig"},fr:{edit:"Modifier le brouillon",update:"Mettre à jour",cancel:"Annuler",follow:"Date de suivi",draft:"Brouillon",approve:"Approuver",approved:"Approuvé",complete:"Terminer",completed:"Terminé",due:"Suivi dû"},es:{edit:"Editar borrador",update:"Actualizar borrador",cancel:"Cancelar",follow:"Fecha de seguimiento",draft:"Borrador",approve:"Aprobar",approved:"Aprobado",complete:"Completar",completed:"Completado",due:"Seguimiento pendiente"},
+    en:{edit:"Edit draft",update:"Update draft",cancel:"Cancel",follow:"Follow-up date",draft:"Draft",approve:"Approve",approved:"Approved",complete:"Complete follow-up",completed:"Completed",due:"Follow-up due",linked:"Linked planner task"},hu:{edit:"Vázlat szerkesztése",update:"Vázlat frissítése",cancel:"Mégse",follow:"Utánkövetés dátuma",draft:"Vázlat",approve:"Jóváhagyás",approved:"Jóváhagyva",complete:"Utánkövetés lezárása",completed:"Lezárva",due:"Utánkövetés esedékes",linked:"Kapcsolódó tervezőfeladat"},de:{edit:"Entwurf bearbeiten",update:"Entwurf aktualisieren",cancel:"Abbrechen",follow:"Nachfassdatum",draft:"Entwurf",approve:"Freigeben",approved:"Freigegeben",complete:"Nachfassung abschließen",completed:"Abgeschlossen",due:"Nachfassung fällig",linked:"Verknüpfte Planeraufgabe"},fr:{edit:"Modifier le brouillon",update:"Mettre à jour",cancel:"Annuler",follow:"Date de suivi",draft:"Brouillon",approve:"Approuver",approved:"Approuvé",complete:"Terminer le suivi",completed:"Terminé",due:"Suivi dû",linked:"Tâche liée au planificateur"},es:{edit:"Editar borrador",update:"Actualizar borrador",cancel:"Cancelar",follow:"Fecha de seguimiento",draft:"Borrador",approve:"Aprobar",approved:"Aprobado",complete:"Completar seguimiento",completed:"Completado",due:"Seguimiento pendiente",linked:"Tarea vinculada del planificador"},
   }[locale]
 
   function resetForm() {
@@ -57,6 +61,7 @@ export function MessageStudio() {
     e.preventDefault()
     const clean = body.trim()
     if (!clean) return
+    const linkedSourceId = editingId ? drafts.find((draft) => draft.id === editingId)?.sourceId : undefined
     setDrafts((current) => {
       const existing = editingId ? current.find((draft) => draft.id === editingId) : undefined
       const next: Draft = {
@@ -71,9 +76,11 @@ export function MessageStudio() {
         workflowStatus: "draft",
         approvedAt: undefined,
         completedAt: undefined,
+        sourceId: existing?.sourceId,
       }
       return existing ? current.map((draft) => draft.id === existing.id ? next : draft) : [next, ...current]
     })
+    if (linkedSourceId) setTasks((current) => current.map((task) => task.sourceId === linkedSourceId ? { ...task, done: false } : task))
     resetForm()
   }
 
@@ -121,6 +128,7 @@ export function MessageStudio() {
                     {draft.subject && <h2 className="mt-2 font-semibold text-foreground">{draft.subject}</h2>}
                     {draft.recipient && <p className="mt-1 text-xs text-muted-foreground">{c.to}: {draft.recipient}</p>}
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs"><span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1">{draft.workflowStatus === "completed" ? <CheckCircle2 className="size-3 text-primary" /> : <ShieldCheck className="size-3" />}{draft.workflowStatus === "completed" ? editCopy.completed : draft.workflowStatus === "approved" ? editCopy.approved : editCopy.draft}</span>{draft.followUpAt && <span className={`inline-flex items-center gap-1 ${draft.workflowStatus !== "completed" && draft.followUpAt <= new Date().toISOString().slice(0,10) ? "text-amber-500" : "text-muted-foreground"}`}><CalendarClock className="size-3" />{draft.followUpAt}{draft.workflowStatus !== "completed" && draft.followUpAt <= new Date().toISOString().slice(0,10) ? ` · ${editCopy.due}` : ""}</span>}</div>
+                    {draft.sourceId && tasks.find(task => task.sourceId === draft.sourceId) && <p className="mt-2 text-xs text-primary">{editCopy.linked}: {tasks.find(task => task.sourceId === draft.sourceId)?.title}</p>}
                   </div>
                   <div className="flex gap-2">
                     <button type="button" onClick={() => navigator.clipboard?.writeText(draft.body)} className="rounded-lg border border-border p-2 text-muted-foreground hover:text-foreground" aria-label={c.copy}><Copy className="size-4" /></button>
@@ -129,7 +137,7 @@ export function MessageStudio() {
                   </div>
                 </div>
                 <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{draft.body}</p>
-                <div className="mt-4 flex flex-wrap gap-2">{draft.workflowStatus !== "approved" && draft.workflowStatus !== "completed" && <button type="button" onClick={() => setDrafts(all => all.map(x => x.id === draft.id ? {...x, workflowStatus:"approved", approvedAt:new Date().toISOString()} : x))} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary">{editCopy.approve}</button>}{draft.workflowStatus === "approved" && <button type="button" onClick={() => setDrafts(all => all.map(x => x.id === draft.id ? {...x, workflowStatus:"completed", completedAt:new Date().toISOString()} : x))} className="min-h-10 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground">{editCopy.complete}</button>}</div>
+                <div className="mt-4 flex flex-wrap gap-2">{draft.workflowStatus !== "approved" && draft.workflowStatus !== "completed" && <button type="button" onClick={() => setDrafts(all => all.map(x => x.id === draft.id ? {...x, workflowStatus:"approved", approvedAt:new Date().toISOString()} : x))} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary">{editCopy.approve}</button>}{draft.workflowStatus === "approved" && <button type="button" onClick={() => {const completedAt=new Date().toISOString();setDrafts(all => all.map(x => x.id === draft.id ? {...x, workflowStatus:"completed", completedAt} : x));if(draft.sourceId)setTasks(all => all.map(task => task.sourceId === draft.sourceId ? {...task,done:true} : task))}} className="min-h-10 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground">{editCopy.complete}</button>}</div>
                 <p className="mt-4 text-[11px] text-muted-foreground">{c.saved} {new Date(draft.createdAt).toLocaleString(locale)}</p>
               </article>
             ))}

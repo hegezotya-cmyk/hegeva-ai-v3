@@ -29,6 +29,7 @@ import { COMMAND_OVERVIEW_COPY } from "@/lib/i18n/command-overview-copy"
 import { AICore, SectionHeading } from "@/components/visual-engine"
 import { OutcomeLauncher } from "@/components/outcome-launcher"
 import { GoalMode } from "@/components/command-center/goal-mode"
+import { IntelligenceAutopilot } from "@/components/command-center/intelligence-autopilot"
 
 type ModuleDef = {
   icon: LucideIcon
@@ -76,6 +77,7 @@ export function CommandCenterView() {
       <OutcomeLauncher compact />
       <GoalMode />
       <OperatingCenter />
+      <IntelligenceAutopilot />
 
       <SectionHeading className="mt-12" eyebrow={layers.intelligence} title={copy.aiModules} description={layers.description} />
       <div className="module-ledger mt-4">

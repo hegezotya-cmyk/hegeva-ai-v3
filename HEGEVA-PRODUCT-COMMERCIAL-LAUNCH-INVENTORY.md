@@ -47,7 +47,9 @@ External boundaries are Workers AI, Stripe, Resend/email, market data, broker ad
 
 - Native Windows Next.js/OpenNext verification remains required; Linux is blocked by the unavailable SWC binary/read-only `.next` filesystem.
 - Several existing temporary-database audits require writable temporary directories; Durable Object audit requires the native Windows workerd binary.
-- Advertising channel labels and some legacy App Studio labels still need a final localization cleanup; this is a non-payment-blocking polish item.
+- Advertising channel/language selectors and Video Ad Studio navigation, brief guidance and destructive-action confirmation are localized across EN/HU/DE/FR/ES. Broader manual copy review remains a non-payment-blocking polish item.
+- Homepage product proof now separates an explicitly labelled five-locale SAMPLE DATA view for signed-out visitors from an authenticated LIVE WORKSPACE view calculated from scoped customer, planner and invoice records. Unconnected campaign performance remains unavailable rather than simulated.
+- The global route loading fallback no longer renders a second application shell; local production SSR verification records one Operating Environment and zero Preparing/Loading placeholders in crawler HTML.
 - Live Stripe products, monthly prices, webhook secret and entitlement mapping are configured; operational monitoring and rollback remain owner-controlled.
 - AI, video, X30 and broker execution require explicit provider configuration, quota review and approval.
 - SSO/SAML requires external identity-provider configuration.

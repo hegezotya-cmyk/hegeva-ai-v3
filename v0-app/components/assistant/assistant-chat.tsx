@@ -2,7 +2,7 @@
 
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { ArrowUp, Check, Copy, FileText, ListChecks, Sparkles, Trash2, Users } from "lucide-react"
+import { ArrowUp, ArrowUpRight, Check, Copy, FileText, ListChecks, Receipt, Sparkles, Trash2, Users } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { authClient } from "@/lib/auth-client"
@@ -10,6 +10,7 @@ import { useI18n } from "@/lib/i18n/provider"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { AICore, IntelligenceCard, SkeletonSurface } from "@/components/visual-engine"
 import { createCompanionProjection, createWorkspacePulseProjection } from "@/lib/foundation/roadmap-foundations"
+import { selectHegevaCorePriority } from "@/lib/hegeva-core"
 
 type ChatMessage = {
   role: "user" | "assistant"
@@ -89,11 +90,18 @@ function safeRetryAfterSeconds(response: Response) {
   return Number.isSafeInteger(seconds) ? Math.min(300, Math.max(1, seconds)) : undefined
 }
 const partnerCopy={
- en:{context:"Working context",continuity:"Continuity",continuityText:"HEGEVA keeps this conversation with your workspace.",customers:"Customers",tasks:"Open tasks",documents:"Documents",start:"Start with an outcome",empty:"Describe what you want to decide, create or improve. HEGEVA will use the workspace context shown here when it is relevant.",suggestions:["Summarise my current priorities","Draft a customer follow-up","Help me plan the next three actions"],you:"You",hegeva:"HEGEVA"},
- hu:{context:"Munkakörnyezet",continuity:"Folytonosság",continuityText:"A HEGEVA ezt a beszélgetést a munkaterületeddel együtt őrzi.",customers:"Ügyfelek",tasks:"Nyitott feladatok",documents:"Dokumentumok",start:"Kezdd az eredménnyel",empty:"Írd le, mit szeretnél eldönteni, létrehozni vagy javítani. A HEGEVA szükség esetén használja az itt látható munkakörnyezetet.",suggestions:["Foglald össze a prioritásaimat","Írj ügyfélkövető üzenetet","Tervezd meg a következő három lépést"],you:"Te",hegeva:"HEGEVA"},
- de:{context:"Arbeitskontext",continuity:"Kontinuität",continuityText:"HEGEVA bewahrt dieses Gespräch zusammen mit Ihrem Workspace auf.",customers:"Kunden",tasks:"Offene Aufgaben",documents:"Dokumente",start:"Mit dem Ergebnis beginnen",empty:"Beschreiben Sie, was Sie entscheiden, erstellen oder verbessern möchten. HEGEVA nutzt bei Bedarf den sichtbaren Workspace-Kontext.",suggestions:["Meine Prioritäten zusammenfassen","Kunden-Follow-up entwerfen","Die nächsten drei Schritte planen"],you:"Sie",hegeva:"HEGEVA"},
- fr:{context:"Contexte de travail",continuity:"Continuité",continuityText:"HEGEVA conserve cette conversation avec votre espace de travail.",customers:"Clients",tasks:"Tâches ouvertes",documents:"Documents",start:"Commencer par le résultat",empty:"Décrivez ce que vous souhaitez décider, créer ou améliorer. HEGEVA utilisera le contexte visible lorsqu’il est pertinent.",suggestions:["Résumer mes priorités","Rédiger un suivi client","Planifier les trois prochaines actions"],you:"Vous",hegeva:"HEGEVA"},
- es:{context:"Contexto de trabajo",continuity:"Continuidad",continuityText:"HEGEVA conserva esta conversación junto a tu espacio de trabajo.",customers:"Clientes",tasks:"Tareas abiertas",documents:"Documentos",start:"Empieza por el resultado",empty:"Describe qué quieres decidir, crear o mejorar. HEGEVA usará el contexto visible cuando sea relevante.",suggestions:["Resumir mis prioridades","Redactar seguimiento a un cliente","Planificar las próximas tres acciones"],you:"Tú",hegeva:"HEGEVA"},
+ en:{context:"Working context",continuity:"Continuity",continuityText:"HEGEVA keeps this conversation with your workspace.",customers:"Customers",tasks:"Open tasks",documents:"Documents",overdue:"Overdue invoices",followups:"Active follow-ups",next:"Recommended next action",prepare:"Prepare invoice follow-ups",review:"Review active follow-ups",planOverdue:"Resolve overdue tasks",planToday:"Open today’s tasks",start:"Start with an outcome",empty:"Describe what you want to decide, create or improve. HEGEVA will use the workspace context shown here when it is relevant.",suggestions:["Summarise my current priorities","Draft a customer follow-up","Help me plan the next three actions"],you:"You",hegeva:"HEGEVA"},
+ hu:{context:"Munkakörnyezet",continuity:"Folytonosság",continuityText:"A HEGEVA ezt a beszélgetést a munkaterületeddel együtt őrzi.",customers:"Ügyfelek",tasks:"Nyitott feladatok",documents:"Dokumentumok",overdue:"Lejárt számlák",followups:"Aktív utánkövetések",next:"Javasolt következő művelet",prepare:"Számla-utánkövetések előkészítése",review:"Aktív utánkövetések áttekintése",planOverdue:"Lejárt feladatok rendezése",planToday:"Mai feladatok megnyitása",start:"Kezdd az eredménnyel",empty:"Írd le, mit szeretnél eldönteni, létrehozni vagy javítani. A HEGEVA szükség esetén használja az itt látható munkakörnyezetet.",suggestions:["Foglald össze a prioritásaimat","Írj ügyfélkövető üzenetet","Tervezd meg a következő három lépést"],you:"Te",hegeva:"HEGEVA"},
+ de:{context:"Arbeitskontext",continuity:"Kontinuität",continuityText:"HEGEVA bewahrt dieses Gespräch zusammen mit Ihrem Workspace auf.",customers:"Kunden",tasks:"Offene Aufgaben",documents:"Dokumente",overdue:"Überfällige Rechnungen",followups:"Aktive Nachfassungen",next:"Empfohlene nächste Aktion",prepare:"Rechnungsnachfassungen vorbereiten",review:"Aktive Nachfassungen prüfen",planOverdue:"Überfällige Aufgaben klären",planToday:"Heutige Aufgaben öffnen",start:"Mit dem Ergebnis beginnen",empty:"Beschreiben Sie, was Sie entscheiden, erstellen oder verbessern möchten. HEGEVA nutzt bei Bedarf den sichtbaren Workspace-Kontext.",suggestions:["Meine Prioritäten zusammenfassen","Kunden-Follow-up entwerfen","Die nächsten drei Schritte planen"],you:"Sie",hegeva:"HEGEVA"},
+ fr:{context:"Contexte de travail",continuity:"Continuité",continuityText:"HEGEVA conserve cette conversation avec votre espace de travail.",customers:"Clients",tasks:"Tâches ouvertes",documents:"Documents",overdue:"Factures en retard",followups:"Suivis actifs",next:"Prochaine action recommandée",prepare:"Préparer les suivis de factures",review:"Examiner les suivis actifs",planOverdue:"Traiter les tâches en retard",planToday:"Ouvrir les tâches du jour",start:"Commencer par le résultat",empty:"Décrivez ce que vous souhaitez décider, créer ou améliorer. HEGEVA utilisera le contexte visible lorsqu’il est pertinent.",suggestions:["Résumer mes priorités","Rédiger un suivi client","Planifier les trois prochaines actions"],you:"Vous",hegeva:"HEGEVA"},
+ es:{context:"Contexto de trabajo",continuity:"Continuidad",continuityText:"HEGEVA conserva esta conversación junto a tu espacio de trabajo.",customers:"Clientes",tasks:"Tareas abiertas",documents:"Documentos",overdue:"Facturas vencidas",followups:"Seguimientos activos",next:"Siguiente acción recomendada",prepare:"Preparar seguimientos de facturas",review:"Revisar seguimientos activos",planOverdue:"Resolver tareas vencidas",planToday:"Abrir tareas de hoy",start:"Empieza por el resultado",empty:"Describe qué quieres decidir, crear o mejorar. HEGEVA usará el contexto visible cuando sea relevante.",suggestions:["Resumir mis prioridades","Redactar seguimiento a un cliente","Planificar las próximas tres acciones"],you:"Tú",hegeva:"HEGEVA"},
+} as const
+const priorityPromptCopy={
+ en:{followups:(count:number)=>`Help me review ${count} active customer follow-up${count===1?"":"s"}`,invoices:(count:number)=>`Help me prioritise ${count} overdue invoice${count===1?"":"s"}`,overdueTasks:(count:number)=>`Help me resolve ${count} overdue task${count===1?"":"s"}`,today:(count:number)=>`Plan my ${count} task${count===1?"":"s"} due today`},
+ hu:{followups:(count:number)=>`Segíts áttekinteni ${count} aktív ügyfél-utánkövetést`,invoices:(count:number)=>`Segíts rangsorolni ${count} lejárt számlát`,overdueTasks:(count:number)=>`Segíts rendezni ${count} lejárt feladatot`,today:(count:number)=>`Tervezd meg a mai ${count} feladatomat`},
+ de:{followups:(count:number)=>`Hilf mir, ${count} aktive Kundennachfassung${count===1?"":"en"} zu prüfen`,invoices:(count:number)=>`Hilf mir, ${count} überfällige Rechnung${count===1?"":"en"} zu priorisieren`,overdueTasks:(count:number)=>`Hilf mir, ${count} überfällige Aufgabe${count===1?"":"n"} zu klären`,today:(count:number)=>`Plane meine ${count} heute fällige${count===1?" Aufgabe":"n Aufgaben"}`},
+ fr:{followups:(count:number)=>`Aidez-moi à examiner ${count} suivi${count===1?"":"s"} client actif${count===1?"":"s"}`,invoices:(count:number)=>`Aidez-moi à prioriser ${count} facture${count===1?"":"s"} en retard`,overdueTasks:(count:number)=>`Aidez-moi à traiter ${count} tâche${count===1?"":"s"} en retard`,today:(count:number)=>`Planifiez mes ${count} tâche${count===1?"":"s"} du jour`},
+ es:{followups:(count:number)=>`Ayúdame a revisar ${count} seguimiento${count===1?"":"s"} activo${count===1?"":"s"}`,invoices:(count:number)=>`Ayúdame a priorizar ${count} factura${count===1?"":"s"} vencida${count===1?"":"s"}`,overdueTasks:(count:number)=>`Ayúdame a resolver ${count} tarea${count===1?"":"s"} vencida${count===1?"":"s"}`,today:(count:number)=>`Planifica mis ${count} tarea${count===1?"":"s"} de hoy`},
 } as const
 
 function detectMessageLanguage(message: string, fallback: SupportedLanguage): SupportedLanguage {
@@ -113,9 +121,11 @@ export function AssistantChat() {
   const p=partnerCopy[locale]
   const { data: session, isPending } = authClient.useSession()
   const { items: messages, setItems: setMessages, syncState, cloudEnabled } = useWorkspaceData<ChatMessage>("assistant_history")
-  const {items:customers}=useWorkspaceData<{id:string}>("customers")
-  const {items:tasks}=useWorkspaceData<{id:string;done:boolean}>("planner")
+  const {items:customers}=useWorkspaceData<{id:string;customerStatus?:"lead"|"active"|"paused";followUp?:string}>("customers")
+  const {items:tasks}=useWorkspaceData<{id:string;done:boolean;due?:string}>("planner")
   const {items:documents}=useWorkspaceData<{id:string}>("documents")
+  const {items:invoices}=useWorkspaceData<{id:string;type?:string;status?:string;dueDate?:string}>("invoice_documents")
+  const {items:drafts}=useWorkspaceData<{id:string;sourceId?:string;workflowStatus?:string}>("messages")
   const [message, setMessage] = useState("")
   const [sending, setSending] = useState(false)
   const [error, setError] = useState("")
@@ -129,8 +139,23 @@ export function AssistantChat() {
     [messages]
   )
   const workspaceHasRecords = customers.length + tasks.length + documents.length > 0
+  const today = new Date().toISOString().slice(0,10)
+  const overdueInvoices = invoices.filter(item=>item.type==="invoice"&&item.status!=="paid"&&item.dueDate&&item.dueDate<today).length
+  const customerFollowUpsDue = customers.filter(item=>item.followUp&&item.followUp<=today&&item.customerStatus!=="paused").length
+  const staleQuotes = invoices.filter(item=>item.type==="quote"&&item.status!=="paid"&&item.dueDate&&item.dueDate<today).length
+  const draftInvoices = invoices.filter(item=>item.type==="invoice"&&item.status==="draft").length
+  const activeFollowUps = drafts.filter(item=>item.sourceId&&item.workflowStatus!=="completed").length
+  const approvedFollowUps = drafts.filter(item=>item.sourceId&&item.workflowStatus==="approved").length
+  const followUpsAwaitingApproval = drafts.filter(item=>item.sourceId&&(!item.workflowStatus||item.workflowStatus==="draft")).length
+  const overdueTasks = tasks.filter(item=>!item.done&&item.due&&item.due<today).length
+  const tasksToday = tasks.filter(item=>!item.done&&item.due===today).length
+  const promptCopy=priorityPromptCopy[locale]
+  const priorityPrompt=activeFollowUps?promptCopy.followups(activeFollowUps):overdueInvoices?promptCopy.invoices(overdueInvoices):overdueTasks?promptCopy.overdueTasks(overdueTasks):tasksToday?promptCopy.today(tasksToday):null
+  const smartSuggestions=priorityPrompt?[priorityPrompt,...p.suggestions.filter(suggestion=>suggestion!==p.suggestions[0])]:p.suggestions
   const pulse = createWorkspacePulseProjection({ scope: cloudEnabled ? "authenticated-cloud" : "local-browser", hasRecords: workspaceHasRecords, openTasks: tasks.filter((item) => !item.done).length, missionState: "awaiting-approval" })
-  const companion = createCompanionProjection({ pulse, scope: cloudEnabled ? "authenticated-cloud" : "local-browser", customers: customers.length, openTasks: tasks.filter((item) => !item.done).length, documents: documents.length, suggestions: p.suggestions })
+  const companion = createCompanionProjection({ pulse, scope: cloudEnabled ? "authenticated-cloud" : "local-browser", customers: customers.length, openTasks: tasks.filter((item) => !item.done).length, documents: documents.length, suggestions: smartSuggestions })
+  const coreDecision=selectHegevaCorePriority({approvedFollowUps,followUpsAwaitingApproval,overdueInvoices,customerFollowUpsDue,staleQuotes,overdueTasks,tasksToday,draftInvoices,hasRecords:workspaceHasRecords||invoices.length>0||drafts.length>0})
+  const recommendedAction=coreDecision.kind==="complete-followups"||coreDecision.kind==="review-followups"||coreDecision.kind==="customer-followups"?{href:coreDecision.href,label:p.review}:coreDecision.kind==="overdue-invoices"||coreDecision.kind==="stale-quotes"||coreDecision.kind==="draft-invoices"?{href:coreDecision.href,label:p.prepare}:coreDecision.kind==="overdue-tasks"?{href:coreDecision.href,label:p.planOverdue}:coreDecision.kind==="today-tasks"?{href:coreDecision.href,label:p.planToday}:null
 
   const loadUsage = useCallback(async () => {
     try {
@@ -313,7 +338,8 @@ export function AssistantChat() {
     <div className="partner-workspace">
       <aside className="partner-context">
         <div><p className="ve-eyebrow">{p.context}</p><h2>{p.continuity}</h2><p>{p.continuityText}</p><small className="text-xs text-muted-foreground">{companion.context.slice(0, 2).join(" · ")}</small></div>
-        <dl><div><dt><Users aria-hidden/>{p.customers}</dt><dd>{customers.length}</dd></div><div><dt><ListChecks aria-hidden/>{p.tasks}</dt><dd>{tasks.filter(item=>!item.done).length}</dd></div><div><dt><FileText aria-hidden/>{p.documents}</dt><dd>{documents.length}</dd></div></dl>
+        <dl><div><dt><Users aria-hidden/>{p.customers}</dt><dd>{customers.length}</dd></div><div><dt><ListChecks aria-hidden/>{p.tasks}</dt><dd>{tasks.filter(item=>!item.done).length}</dd></div><div><dt><FileText aria-hidden/>{p.documents}</dt><dd>{documents.length}</dd></div><div><dt><Receipt aria-hidden/>{p.overdue}</dt><dd>{overdueInvoices}</dd></div><div><dt><Check aria-hidden/>{p.followups}</dt><dd>{activeFollowUps}</dd></div></dl>
+        {recommendedAction&&<div className="rounded-xl border border-primary/25 bg-primary/[.07] p-3"><p className="text-[.65rem] font-semibold uppercase tracking-[.14em] text-primary">{p.next}</p><Link href={recommendedAction.href} className="mt-2 flex min-h-11 items-center gap-2 text-sm font-semibold text-foreground">{recommendedAction.label}<ArrowUpRight aria-hidden className="ml-auto size-4 text-primary"/></Link></div>}
         <div className="partner-state"><span/><div><strong>{syncState==="cloud"?t.assistant.synced:syncState==="saving"?t.assistant.saving:t.assistant.loading}</strong><small>{usage?`${usage.plan} · ${usage.aiMessages}/${usage.aiLimit}`:"HEGEVA workspace"}</small></div></div>
       </aside>
       <section className="partner-conversation">

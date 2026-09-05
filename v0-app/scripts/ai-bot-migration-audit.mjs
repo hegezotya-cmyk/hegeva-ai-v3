@@ -19,7 +19,7 @@ for (const name of migrations) {
 }
 const secondPass = migrations.filter((name) => !db.prepare("SELECT 1 FROM _audit_migrations WHERE name=?").get(name))
 const assert = (value, message) => { if (!value) throw new Error(message) }
-assert(migrations.at(-1) === "0014_ai_canary_financial_guard.sql" && migrations.at(-2) === "0013_ai_bot_execution.sql", "0014 ordering missing")
+assert(migrations.includes("0013_ai_bot_execution.sql") && migrations.includes("0014_ai_canary_financial_guard.sql") && migrations.indexOf("0014_ai_canary_financial_guard.sql") === migrations.indexOf("0013_ai_bot_execution.sql") + 1, "AI Bot and canary migration ordering missing")
 assert(secondPass.length === 0, "second migration pass has pending work")
 const now = "2026-09-01T12:00:00.000Z"; const expiry = "2026-09-30T12:00:00.000Z"
 db.prepare("INSERT INTO ai_canary_authorizations(authorizationHash,actorHash,workspaceHash,operationType,createdAt,expiresAt,status) VALUES(?,?,?,?,?,?,?)").run("a".repeat(64), "b".repeat(32), "b".repeat(32), "ai-bot", now, expiry, "active")

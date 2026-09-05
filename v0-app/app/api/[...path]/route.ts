@@ -112,12 +112,13 @@ async function readWorkspaceItems(
 
 async function buildWorkspaceContext(binding: ServiceBinding, request: Request) {
   try {
-    const [customers, documents, expenses, tasks, invoices] = await Promise.all([
+    const [customers, documents, expenses, tasks, invoices, messages] = await Promise.all([
       readWorkspaceItems(binding, request, "customers"),
       readWorkspaceItems(binding, request, "documents"),
       readWorkspaceItems(binding, request, "expenses"),
       readWorkspaceItems(binding, request, "planner"),
       readWorkspaceItems(binding, request, "invoice_documents"),
+      readWorkspaceItems(binding, request, "messages"),
     ])
 
     const expenseTotal = expenses.reduce((sum, item) => {
@@ -126,9 +127,28 @@ async function buildWorkspaceContext(binding: ServiceBinding, request: Request) 
     }, 0)
 
     const openTasks = tasks.filter((item) => item.done !== true).length
+    const today = new Date().toISOString().slice(0, 10)
+    const tasksDueToday = tasks.filter((item) => item.done !== true && item.due === today).length
+    const overdueTasks = tasks.filter((item) => item.done !== true && typeof item.due === "string" && item.due < today).length
     const paidInvoices = invoices.filter(
       (item) => item.type === "invoice" && item.status === "paid",
     ).length
+    const openInvoices = invoices.filter((item) => item.type === "invoice" && item.status !== "paid")
+    const overdueInvoices = openInvoices.filter((item) => typeof item.dueDate === "string" && item.dueDate < today)
+    const invoiceTotal = (item: WorkspaceItem) => {
+      const subtotal = Array.isArray(item.items) ? item.items.reduce((sum: number, line: unknown) => {
+        if (!line || typeof line !== "object") return sum
+        const record = line as WorkspaceItem
+        const quantity = Number(record.quantity)
+        const unitPrice = Number(record.unitPrice)
+        return sum + (Number.isFinite(quantity) && Number.isFinite(unitPrice) ? quantity * unitPrice : 0)
+      }, 0) : 0
+      const vatRate = Number(item.vatRate)
+      return subtotal * (1 + (Number.isFinite(vatRate) ? vatRate : 0) / 100)
+    }
+    const outstandingGbp = openInvoices.filter((item) => !item.currency || item.currency === "GBP").reduce((sum, item) => sum + invoiceTotal(item), 0)
+    const followUpsAwaitingApproval = messages.filter((item) => typeof item.sourceId === "string" && (!item.workflowStatus || item.workflowStatus === "draft")).length
+    const approvedFollowUps = messages.filter((item) => typeof item.sourceId === "string" && item.workflowStatus === "approved").length
 
     return [
       "Authenticated HEGEVA workspace facts (source of truth; never replace these with estimates):",
@@ -137,10 +157,17 @@ async function buildWorkspaceContext(binding: ServiceBinding, request: Request) 
       `expense_records=${expenses.length}`,
       `expenses_total_GBP=${expenseTotal.toFixed(2)}`,
       `open_tasks=${openTasks}`,
+      `tasks_due_today=${tasksDueToday}`,
+      `overdue_tasks=${overdueTasks}`,
       `invoice_and_quote_records=${invoices.length}`,
       `paid_invoices=${paidInvoices}`,
+      `open_invoices=${openInvoices.length}`,
+      `overdue_invoices=${overdueInvoices.length}`,
+      `outstanding_GBP=${outstandingGbp.toFixed(2)}`,
+      `followups_awaiting_approval=${followUpsAwaitingApproval}`,
+      `approved_followups_ready_to_complete=${approvedFollowUps}`,
       "When the user asks about their current saved business data, answer from these facts and clearly say when a requested fact is not present.",
-    ].join("; ").slice(0, 500)
+    ].join("; ").slice(0, 900)
   } catch {
     return ""
   }
