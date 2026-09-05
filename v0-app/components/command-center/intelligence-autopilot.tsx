@@ -23,6 +23,8 @@ import { useI18n } from "@/lib/i18n/provider";
 import { useWorkspaceData } from "@/lib/use-workspace-data";
 import {
   analyseAutopilotWorkspace,
+  canPrepareAutopilot,
+  DEFAULT_AUTOPILOT_POLICY,
   taskForAutopilotAction,
   transitionAutopilotAction,
   type AutopilotAction,
@@ -31,6 +33,7 @@ import {
   type AutopilotInvoice,
   type AutopilotSignal,
   type AutopilotTask,
+  type AutopilotPolicy,
 } from "@/lib/autopilot-v1";
 
 const COPY = {
@@ -271,6 +274,8 @@ export function IntelligenceAutopilot() {
     } = useWorkspaceData<AutopilotAction>("autopilot_actions"),
     { items: audit, setItems: setAudit } =
       useWorkspaceData<AutopilotAuditEvent>("autopilot_audit");
+  const { items: policies } = useWorkspaceData<AutopilotPolicy>("autopilot_policy");
+  const policy = policies[0] || DEFAULT_AUTOPILOT_POLICY;
   const [asked, setAsked] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
   const signals = useMemo(
@@ -293,15 +298,7 @@ export function IntelligenceAutopilot() {
       ].slice(0, 100),
     );
   const prepare = (signal: AutopilotSignal) => {
-    if (
-      signal.kind === "clear" ||
-      actions.some(
-        (item) =>
-          item.signalId === signal.id &&
-          (item.status === "prepared" || item.status === "approved"),
-      )
-    )
-      return;
+    if (!canPrepareAutopilot(signal, actions, policy, today)) return;
     const now = new Date().toISOString();
     const action: AutopilotAction = {
       id: crypto.randomUUID(),

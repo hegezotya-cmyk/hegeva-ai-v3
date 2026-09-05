@@ -6,6 +6,9 @@ export type AutopilotSignal={id:string;kind:AutopilotSignalKind;severity:"critic
 export type AutopilotActionStatus="prepared"|"approved"|"completed"|"cancelled"
 export type AutopilotAction={id:string;signalId:string;kind:AutopilotSignalKind;status:AutopilotActionStatus;title:string;sourceIds:string[];createdAt:string;approvedAt?:string;completedAt?:string}
 export type AutopilotAuditEvent={id:string;actionId:string;event:"prepared"|"approved"|"completed"|"cancelled";occurredAt:string;summary:string}
+export type AutopilotPolicy={id:"workspace-policy";mode:"suggest"|"prepare"|"ask-execute";dailyLimit:number;allowedKinds:AutopilotSignalKind[];ownerApprovalRequired:true;updatedAt:string}
+export const DEFAULT_AUTOPILOT_POLICY:AutopilotPolicy={id:"workspace-policy",mode:"suggest",dailyLimit:3,allowedKinds:["overdue-invoice","neglected-lead","stale-quote","overdue-task","invoice-draft"],ownerApprovalRequired:true,updatedAt:""}
+export function canPrepareAutopilot(signal:AutopilotSignal,actions:AutopilotAction[],policy:AutopilotPolicy,today:string){if(signal.kind==="clear"||!policy.allowedKinds.includes(signal.kind))return false;const used=actions.filter(x=>x.createdAt.slice(0,10)===today).length;return used<Math.min(10,Math.max(1,policy.dailyLimit))&&!actions.some(x=>x.signalId===signal.id&&(x.status==="prepared"||x.status==="approved"))}
 
 const total=(doc:AutopilotInvoice)=>(doc.items||[]).reduce((sum,item)=>sum+(Number(item.quantity)||0)*(Number(item.unitPrice)||0),0)*(1+(Number(doc.vatRate)||0)/100)
 
