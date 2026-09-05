@@ -184,8 +184,8 @@ export default function AccountPage() {
   const used = plan?.aiMessages || 0
   const limit = plan?.aiLimit || 0
   const percentage = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0
-  const subscriptionStatus = billing?.subscriptionStatus || "active"
-  const statusLabel = billingCopy[subscriptionStatus as keyof typeof billingCopy] || subscriptionStatus.replaceAll("_", " ")
+  const subscriptionStatus = billing?.subscriptionStatus || null
+  const statusLabel = subscriptionStatus ? billingCopy[subscriptionStatus as keyof typeof billingCopy] || subscriptionStatus.replaceAll("_", " ") : billingCopy.unavailable
   const periodEnd = billing?.currentPeriodEnd ? new Date(billing.currentPeriodEnd) : null
   const periodEndLabel = periodEnd && !Number.isNaN(periodEnd.getTime()) ? new Intl.DateTimeFormat(locale, { dateStyle:"long" }).format(periodEnd) : "—"
 
@@ -220,7 +220,7 @@ export default function AccountPage() {
           <Link href="/command-center" className="rounded-xl bg-primary px-5 py-3 text-center text-sm font-semibold text-primary-foreground">{c.workspace}</Link>
           <Link href="/assistant" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.assistant}</Link>
           <Link href="/pricing" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.pricing}</Link>
-          {plan && PAID_PLANS.has(plan.plan) && <button type="button" disabled={openingBilling || billingLoading || billing?.customerPortalReady === false} onClick={() => void openBillingPortal()} className="min-h-11 rounded-xl border border-primary/30 bg-primary/10 px-5 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-60">{openingBilling ? c.checking : billingCopy.manage}</button>}
+          {plan && PAID_PLANS.has(plan.plan) && <button type="button" disabled={openingBilling || billingLoading || billing?.customerPortalReady !== true} onClick={() => void openBillingPortal()} className="min-h-11 rounded-xl border border-primary/30 bg-primary/10 px-5 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-60">{openingBilling ? c.checking : billingCopy.manage}</button>}
           {billingPortalError && <p role="alert" className="rounded-xl border border-gold/30 bg-gold/10 p-3 text-sm text-muted-foreground">{c.unavailable}</p>}
           {isOwner && <Link href="/admin/contact-leads" className="rounded-xl border border-primary/30 bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary transition-colors hover:bg-primary/15">{leadsCopy.inbox}</Link>}
           <Link href="/contact" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.support}</Link>

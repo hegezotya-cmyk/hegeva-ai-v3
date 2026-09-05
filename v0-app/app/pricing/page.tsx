@@ -157,7 +157,7 @@ export default function PricingPage() {
         body: JSON.stringify({ plan, mode: billingMode }),
       }, 15000)
       const data = await response.json().catch(() => null)
-      if (!response.ok || typeof data?.url !== "string") throw new Error("checkout")
+      if (!response.ok || typeof data?.url !== "string" || !data.url.startsWith("https://checkout.stripe.com/")) throw new Error("checkout")
       window.location.assign(data.url)
     } catch {
       setError(c.unavailable)
