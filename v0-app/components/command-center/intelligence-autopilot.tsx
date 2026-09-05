@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -36,6 +36,13 @@ import {
   type AutopilotPolicy,
 } from "@/lib/autopilot-v1";
 
+type IntegrationProvider = {
+  provider: "google" | "microsoft";
+  configured: boolean;
+  connected: boolean;
+  access: "read-only";
+};
+
 const COPY = {
   en: {
     eyebrow: "HEGEVA INTELLIGENCE & AUTOPILOT · PHASE 1",
@@ -57,8 +64,13 @@ const COPY = {
     noAudit: "No Autopilot action has been prepared.",
     integrations: "Integration readiness",
     notConnected: "Not connected",
+    connected: "Connected · read-only",
+    checking: "Checking…",
+    google: "Google Workspace",
+    microsoft: "Microsoft 365",
+    crm: "CRM / Commerce",
     integrationNote:
-      "No external account or action is claimed until a real owner-authorised connection exists.",
+      "Connected accounts are available as secure read-only sources. HEGEVA does not send messages, change events or execute external actions automatically.",
     suggest: "Suggest",
     prepareMode: "Prepare",
     executeMode: "Ask & Execute",
@@ -101,8 +113,13 @@ const COPY = {
     noAudit: "Még nincs előkészített Autopilot-művelet.",
     integrations: "Integrációs készenlét",
     notConnected: "Nincs csatlakoztatva",
+    connected: "Csatlakoztatva · csak olvasás",
+    checking: "Ellenőrzés…",
+    google: "Google Workspace",
+    microsoft: "Microsoft 365",
+    crm: "CRM / Commerce",
     integrationNote:
-      "Valódi, tulajdonos által engedélyezett kapcsolat nélkül a HEGEVA nem állít külső hozzáférést vagy végrehajtást.",
+      "A csatlakoztatott fiókok biztonságos, csak olvasási forrásként érhetők el. A HEGEVA nem küld üzenetet, nem módosít eseményt és nem hajt végre automatikus külső műveletet.",
     suggest: "Javaslat",
     prepareMode: "Előkészítés",
     executeMode: "Kérdezés és végrehajtás",
@@ -145,8 +162,13 @@ const COPY = {
     noAudit: "Noch keine Autopilot-Aktion vorbereitet.",
     integrations: "Integrationsbereitschaft",
     notConnected: "Nicht verbunden",
+    connected: "Verbunden · nur Lesen",
+    checking: "Wird geprüft…",
+    google: "Google Workspace",
+    microsoft: "Microsoft 365",
+    crm: "CRM / Commerce",
     integrationNote:
-      "Ohne echte, vom Eigentümer autorisierte Verbindung wird kein externer Zugriff behauptet.",
+      "Verbundene Konten stehen als sichere, schreibgeschützte Quellen bereit. HEGEVA sendet keine Nachrichten, ändert keine Termine und führt keine externen Aktionen automatisch aus.",
     suggest: "Vorschlagen",
     prepareMode: "Vorbereiten",
     executeMode: "Fragen & Ausführen",
@@ -189,8 +211,13 @@ const COPY = {
     noAudit: "Aucune action Autopilot préparée.",
     integrations: "État des intégrations",
     notConnected: "Non connecté",
+    connected: "Connecté · lecture seule",
+    checking: "Vérification…",
+    google: "Google Workspace",
+    microsoft: "Microsoft 365",
+    crm: "CRM / Commerce",
     integrationNote:
-      "Aucun accès externe n’est annoncé sans connexion réelle autorisée par le propriétaire.",
+      "Les comptes connectés sont disponibles comme sources sécurisées en lecture seule. HEGEVA n’envoie aucun message, ne modifie aucun événement et n’exécute aucune action externe automatiquement.",
     suggest: "Suggérer",
     prepareMode: "Préparer",
     executeMode: "Demander et exécuter",
@@ -233,8 +260,13 @@ const COPY = {
     noAudit: "Aún no se ha preparado ninguna acción Autopilot.",
     integrations: "Estado de integraciones",
     notConnected: "Sin conectar",
+    connected: "Conectado · solo lectura",
+    checking: "Comprobando…",
+    google: "Google Workspace",
+    microsoft: "Microsoft 365",
+    crm: "CRM / Commerce",
     integrationNote:
-      "No se afirma acceso externo sin una conexión real autorizada por el propietario.",
+      "Las cuentas conectadas están disponibles como fuentes seguras de solo lectura. HEGEVA no envía mensajes, cambia eventos ni ejecuta acciones externas automáticamente.",
     suggest: "Sugerir",
     prepareMode: "Preparar",
     executeMode: "Preguntar y ejecutar",
@@ -277,6 +309,27 @@ export function IntelligenceAutopilot() {
   const { items: policies } = useWorkspaceData<AutopilotPolicy>("autopilot_policy");
   const policy = policies[0] || DEFAULT_AUTOPILOT_POLICY;
   const [asked, setAsked] = useState(false);
+  const [integrations, setIntegrations] = useState<IntegrationProvider[] | null>(null);
+  useEffect(() => {
+    let active = true;
+    void fetch("/api/integrations", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const payload = (await response.json()) as {
+          providers?: IntegrationProvider[];
+        };
+        return Array.isArray(payload.providers) ? payload.providers : null;
+      })
+      .then((providers) => {
+        if (active) setIntegrations(providers);
+      })
+      .catch(() => {
+        if (active) setIntegrations([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
   const today = new Date().toISOString().slice(0, 10);
   const signals = useMemo(
     () => analyseAutopilotWorkspace({ customers, tasks, invoices, today }),
@@ -522,16 +575,39 @@ export function IntelligenceAutopilot() {
             <h3 className="font-semibold">{c.integrations}</h3>
           </div>
           <div className="mt-4 grid gap-2 sm:grid-cols-3">
-            {["Gmail / Outlook", "Google Calendar", "CRM / Commerce"].map(
-              (name) => (
-                <div key={name} className="rounded-xl border border-border p-3">
-                  <strong className="text-sm">{name}</strong>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {c.notConnected}
-                  </p>
-                </div>
-              ),
-            )}
+            {[
+              {
+                key: "google",
+                name: c.google,
+                connected: integrations?.some(
+                  (item) => item.provider === "google" && item.connected,
+                ),
+              },
+              {
+                key: "microsoft",
+                name: c.microsoft,
+                connected: integrations?.some(
+                  (item) => item.provider === "microsoft" && item.connected,
+                ),
+              },
+              { key: "crm", name: c.crm, connected: false },
+            ].map((item) => (
+              <div
+                key={item.key}
+                className="rounded-xl border border-border p-3"
+              >
+                <strong className="text-sm">{item.name}</strong>
+                <p
+                  className={`mt-2 text-xs ${item.connected ? "text-emerald-300" : "text-muted-foreground"}`}
+                >
+                  {integrations === null && item.key !== "crm"
+                    ? c.checking
+                    : item.connected
+                      ? c.connected
+                      : c.notConnected}
+                </p>
+              </div>
+            ))}
           </div>
           <p className="mt-3 text-xs leading-5 text-muted-foreground">
             {c.integrationNote}
