@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Copy, Megaphone, Pencil, Save, Trash2 } from "lucide-react";
+import { Copy, Loader2, Megaphone, Pencil, Save, Sparkles, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { useI18n } from "@/lib/i18n/provider";
@@ -16,6 +16,7 @@ import {
   type AdvertisingChannel,
   type AdvertisingLanguage,
 } from "@/lib/advertising-workflows";
+import { generateAdvertisingCampaign } from "@/lib/advertising-ai";
 
 type Mode = "improve" | "create";
 type Saved = AdvertisingBrief & {
@@ -23,13 +24,14 @@ type Saved = AdvertisingBrief & {
   createdAt: string;
   updatedAt: string;
   mode: Mode;
+  generatedOutput?: string;
 };
 const copy = {
   en: {
     eyebrow: "HEGEVA / ADVERTISING STUDIO",
     title: "Advertising Studio",
     subtitle:
-      "Prepare clear, channel-ready campaign briefs. Provider execution remains safely gated until separately approved.",
+      "Analyse advertising, strengthen the offer and CTA, then create channel-ready campaign variations with HEGEVA AI.",
     improve: "Improve an advertisement",
     create: "Create an advertisement",
     source: "Advertisement text",
@@ -51,9 +53,9 @@ const copy = {
     duplicate: "Duplicate",
     remove: "Delete",
     empty: "No advertising drafts yet.",
-    provider: "Provider approval required",
+    provider: "AI generation with owner control",
     providerBody:
-      "Your structured brief is ready for review. No generated result is shown until an authorized provider is available.",
+      "Generation uses your authenticated HEGEVA allowance. Results remain editable drafts and are never published automatically.",
     invalid:
       "Please complete the required fields and correct the highlighted values.",
     signIn:
@@ -62,12 +64,13 @@ const copy = {
     deleteConfirm: "Delete this draft?",
     newDraft: "New draft",
     back: "Back to App Studio",
+    generate: "Generate campaign", generating: "HEGEVA is creating…", result: "Campaign result", copyResult: "Copy result", copied: "Copied", aiError: "The campaign could not be generated. Check your account and try again.", aiSignIn: "Sign in to use live HEGEVA AI generation.",
   },
   hu: {
     eyebrow: "HEGEVA / HIRDETÉSI STÚDIÓ",
     title: "Hirdetési Stúdió",
     subtitle:
-      "Készíts világos kampányvázlatokat. A szolgáltatói végrehajtás külön jóváhagyásig le van tiltva.",
+      "Elemezd a reklámot, erősítsd az ajánlatot és a CTA-t, majd készíts csatornára szabott kampányváltozatokat HEGEVA AI-jal.",
     improve: "Hirdetés javítása",
     create: "Hirdetés létrehozása",
     source: "Hirdetés szövege",
@@ -89,9 +92,9 @@ const copy = {
     duplicate: "Duplikálás",
     remove: "Törlés",
     empty: "Még nincs hirdetési vázlat.",
-    provider: "Szolgáltatói jóváhagyás szükséges",
+    provider: "AI-generálás tulajdonosi kontrollal",
     providerBody:
-      "A strukturált vázlat készen áll az ellenőrzésre. Jóváhagyott szolgáltató nélkül nem jelenik meg generált eredmény.",
+      "A generálás a hitelesített HEGEVA-keretedet használja. Az eredmények szerkeszthető vázlatok, automatikus közzététel nincs.",
     invalid: "Töltsd ki a kötelező mezőket és javítsd a jelzett értékeket.",
     signIn:
       "Jelentkezz be a vázlatok szinkronizálásához. Vendégként helyben is dolgozhatsz.",
@@ -99,12 +102,13 @@ const copy = {
     deleteConfirm: "Törlöd ezt a vázlatot?",
     newDraft: "Új vázlat",
     back: "Vissza az App Stúdióba",
+    generate: "Kampány létrehozása", generating: "A HEGEVA dolgozik…", result: "Kampányeredmény", copyResult: "Eredmény másolása", copied: "Másolva", aiError: "A kampány nem hozható létre. Ellenőrizd a fiókodat, majd próbáld újra.", aiSignIn: "Jelentkezz be az élő HEGEVA AI-generáláshoz.",
   },
   de: {
     eyebrow: "HEGEVA / WERBESTUDIO",
     title: "Werbestudio",
     subtitle:
-      "Erstelle klare Kampagnenbriefings. Die Anbieterausführung bleibt bis zur gesonderten Freigabe deaktiviert.",
+      "Analysieren Sie Werbung, stärken Sie Angebot und CTA und erstellen Sie kanalgerechte Varianten mit HEGEVA AI.",
     improve: "Werbung verbessern",
     create: "Werbung erstellen",
     source: "Werbetext",
@@ -126,21 +130,22 @@ const copy = {
     duplicate: "Duplizieren",
     remove: "Löschen",
     empty: "Noch keine Werbeentwürfe.",
-    provider: "Anbieterfreigabe erforderlich",
+    provider: "KI-Generierung mit Eigentümerkontrolle",
     providerBody:
-      "Ihr Briefing ist zur Prüfung bereit. Ohne autorisierten Anbieter wird kein Ergebnis angezeigt.",
+      "Die Generierung nutzt Ihr HEGEVA-Kontingent. Ergebnisse bleiben bearbeitbare Entwürfe und werden nie automatisch veröffentlicht.",
     invalid: "Bitte Pflichtfelder ausfüllen und Werte korrigieren.",
     signIn: "Anmelden, um Entwürfe zu synchronisieren.",
     preview: "Strukturierte Briefing-Vorschau",
     deleteConfirm: "Diesen Entwurf löschen?",
     newDraft: "Neuer Entwurf",
     back: "Zurück zu App Studio",
+    generate: "Kampagne erstellen", generating: "HEGEVA erstellt…", result: "Kampagnenergebnis", copyResult: "Ergebnis kopieren", copied: "Kopiert", aiError: "Die Kampagne konnte nicht erstellt werden. Konto prüfen und erneut versuchen.", aiSignIn: "Anmelden, um die echte HEGEVA-KI zu verwenden.",
   },
   fr: {
     eyebrow: "HEGEVA / STUDIO PUBLICITAIRE",
     title: "Studio publicitaire",
     subtitle:
-      "Préparez un brief de campagne clair. L’exécution fournisseur reste désactivée jusqu’à autorisation.",
+      "Analysez la publicité, renforcez l’offre et le CTA, puis créez des variantes adaptées avec HEGEVA AI.",
     improve: "Améliorer une publicité",
     create: "Créer une publicité",
     source: "Texte publicitaire",
@@ -162,21 +167,22 @@ const copy = {
     duplicate: "Dupliquer",
     remove: "Supprimer",
     empty: "Aucun brouillon publicitaire.",
-    provider: "Autorisation fournisseur requise",
+    provider: "Génération IA sous votre contrôle",
     providerBody:
-      "Votre brief est prêt à vérifier. Aucun résultat sans fournisseur autorisé.",
+      "La génération utilise votre quota HEGEVA authentifié. Les résultats restent des brouillons modifiables et ne sont jamais publiés automatiquement.",
     invalid: "Remplissez les champs obligatoires et corrigez les valeurs.",
     signIn: "Connectez-vous pour synchroniser les brouillons.",
     preview: "Aperçu du brief structuré",
     deleteConfirm: "Supprimer ce brouillon ?",
     newDraft: "Nouveau brouillon",
     back: "Retour à App Studio",
+    generate: "Créer la campagne", generating: "HEGEVA crée…", result: "Résultat de campagne", copyResult: "Copier le résultat", copied: "Copié", aiError: "La campagne n’a pas pu être créée. Vérifiez votre compte et réessayez.", aiSignIn: "Connectez-vous pour utiliser la génération HEGEVA AI réelle.",
   },
   es: {
     eyebrow: "HEGEVA / ESTUDIO PUBLICITARIO",
     title: "Estudio publicitario",
     subtitle:
-      "Prepara un briefing claro. La ejecución del proveedor permanece desactivada hasta autorización.",
+      "Analiza el anuncio, mejora la oferta y el CTA y crea variantes por canal con HEGEVA AI.",
     improve: "Mejorar un anuncio",
     create: "Crear un anuncio",
     source: "Texto del anuncio",
@@ -198,15 +204,16 @@ const copy = {
     duplicate: "Duplicar",
     remove: "Eliminar",
     empty: "Aún no hay borradores publicitarios.",
-    provider: "Se requiere aprobación del proveedor",
+    provider: "Generación con IA bajo tu control",
     providerBody:
-      "Tu briefing está listo para revisión. No hay resultado sin proveedor autorizado.",
+      "La generación usa tu cuota HEGEVA autenticada. Los resultados siguen siendo borradores editables y nunca se publican automáticamente.",
     invalid: "Completa los campos obligatorios y corrige los valores.",
     signIn: "Inicia sesión para sincronizar borradores.",
     preview: "Vista previa del briefing",
     deleteConfirm: "¿Eliminar este borrador?",
     newDraft: "Nuevo borrador",
     back: "Volver a App Studio",
+    generate: "Crear campaña", generating: "HEGEVA está creando…", result: "Resultado de campaña", copyResult: "Copiar resultado", copied: "Copiado", aiError: "No se pudo crear la campaña. Revisa tu cuenta e inténtalo de nuevo.", aiSignIn: "Inicia sesión para usar la generación real de HEGEVA AI.",
   },
 } as const;
 const channelLabels: Record<
@@ -323,6 +330,8 @@ export function AdvertisingStudio() {
   const [editing, setEditing] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [generatedOutput, setGeneratedOutput] = useState("");
+  const [generating, setGenerating] = useState(false);
   const update = (key: string, value: string) =>
     setBrief((v) => ({ ...v, [key]: value }));
   const save = () => {
@@ -340,6 +349,7 @@ export function AdvertisingStudio() {
         mode,
         createdAt: items.find((x) => x.id === editing)?.createdAt || now,
         updatedAt: now,
+        ...(generatedOutput ? { generatedOutput } : {}),
       };
       setItems((xs) =>
         [item, ...xs.filter((x) => x.id !== item.id)].slice(0, 100),
@@ -350,6 +360,23 @@ export function AdvertisingStudio() {
     } catch {
       setError(t.invalid);
     }
+  };
+  const generate = async () => {
+    if (generating) return;
+    setError(""); setNotice("");
+    try {
+      const clean = validateAdvertisingBrief({ ...brief, keyBenefits: brief.keyBenefits || [], restrictions: brief.restrictions || [] });
+      if (!cloudEnabled) throw new Error("sign-in");
+      setGenerating(true);
+      const result = await generateAdvertisingCampaign(clean);
+      setGeneratedOutput(result);
+      const now = new Date().toISOString(), id = editing || crypto.randomUUID();
+      const item: Saved = { ...clean, id, mode, generatedOutput: result, createdAt: items.find((x) => x.id === id)?.createdAt || now, updatedAt: now };
+      setItems((all) => [item, ...all.filter((x) => x.id !== id)].slice(0, 100));
+      setEditing(id); setBrief(clean);
+    } catch (cause) {
+      setError(cause instanceof Error && cause.message === "sign-in" ? t.aiSignIn : t.aiError);
+    } finally { setGenerating(false); }
   };
   const prepared = (() => {
     try {
@@ -393,6 +420,7 @@ export function AdvertisingStudio() {
               setMode("improve");
               setBrief(blank("improve", locale));
               setEditing(null);
+              setGeneratedOutput("");
             }}
             className={`min-h-11 rounded-xl border px-4 text-sm font-semibold ${mode === "improve" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
           >
@@ -404,6 +432,7 @@ export function AdvertisingStudio() {
               setMode("create");
               setBrief(blank("create", locale));
               setEditing(null);
+              setGeneratedOutput("");
             }}
             className={`min-h-11 rounded-xl border px-4 text-sm font-semibold ${mode === "create" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}
           >
@@ -491,12 +520,22 @@ export function AdvertisingStudio() {
                 <Save className="size-4" aria-hidden />
                 {t.save}
               </button>
+              <button
+                type="button"
+                disabled={generating || !prepared}
+                onClick={() => void generate()}
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-5 text-sm font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {generating ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Sparkles className="size-4" aria-hidden />}
+                {generating ? t.generating : t.generate}
+              </button>
               {editing && (
                 <button
                   type="button"
                   onClick={() => {
                     setEditing(null);
                     setBrief(blank(mode, locale));
+                    setGeneratedOutput("");
                   }}
                   className="hegeva-secondary min-h-11 px-4 text-sm"
                 >
@@ -504,6 +543,17 @@ export function AdvertisingStudio() {
                 </button>
               )}
             </div>
+            {generatedOutput && (
+              <section className="mt-7 rounded-2xl border border-primary/30 bg-primary/[.06] p-5" aria-live="polite">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h2 className="flex-1 font-display text-xl font-semibold">{t.result}</h2>
+                  <button type="button" onClick={() => void navigator.clipboard.writeText(generatedOutput).then(() => setNotice(t.copied))} className="hegeva-secondary inline-flex min-h-10 items-center gap-2 px-3 text-xs">
+                    <Copy className="size-3" aria-hidden />{t.copyResult}
+                  </button>
+                </div>
+                <div className="mt-4 whitespace-pre-wrap text-sm leading-7 text-foreground">{generatedOutput}</div>
+              </section>
+            )}
             {error && (
               <p role="alert" className="mt-4 text-sm text-destructive">
                 {error}
@@ -583,6 +633,7 @@ export function AdvertisingStudio() {
                           setMode(item.mode);
                           setEditing(item.id);
                           setBrief(item);
+                          setGeneratedOutput(item.generatedOutput || "");
                         }}
                         className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-border px-3 text-xs"
                       >
