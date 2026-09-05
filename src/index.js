@@ -11,6 +11,7 @@ import { isX30OperationId, startX30Generation, finishX30Generation, X30_MONTHLY_
 import { validateX30ProviderBrief, x30ProviderEnabled, isX30CanaryOwner } from "./x30-generation.js";
 import { invokeX30Provider } from "./x30-provider.js";
 import { buildWorkersAiProjection, getWorkersAiConfig, getWorkersAiCanaryConfig, invokeWorkersAiText, parseProviderFlags, CANARY_BOUNDS } from "./cloudflare-ai-provider.js";
+import { createPortalShare, readPortalShare, revokePortalShare } from "./client-portal.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -1321,6 +1322,19 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
     const limitedRequest = await enforceRequestBodyLimit(request, url.pathname);
     if (limitedRequest instanceof Response) return limitedRequest;
     request = limitedRequest;
+
+    if (url.pathname === "/api/client-portal/share" && request.method === "POST") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      let body;try{body=await request.json()}catch{return Response.json({error:"Invalid JSON body."},{status:400})}
+      const result=await createPortalShare(env.DB,user.id,body);return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store"}});
+    }
+    if (url.pathname.startsWith("/api/client-portal/share/") && request.method === "DELETE") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      const result=await revokePortalShare(env.DB,user.id,url.pathname.split("/").pop()||"");return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store"}});
+    }
+    if (url.pathname.startsWith("/api/client-portal/public/") && request.method === "GET") {
+      const result=await readPortalShare(env.DB,url.pathname.split("/").pop()||"");return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow"}});
+    }
 
     // =========================================
     // BETTER AUTH
