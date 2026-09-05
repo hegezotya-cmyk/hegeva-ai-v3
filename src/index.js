@@ -12,6 +12,7 @@ import { validateX30ProviderBrief, x30ProviderEnabled, isX30CanaryOwner } from "
 import { invokeX30Provider } from "./x30-provider.js";
 import { buildWorkersAiProjection, getWorkersAiConfig, getWorkersAiCanaryConfig, invokeWorkersAiText, parseProviderFlags, CANARY_BOUNDS } from "./cloudflare-ai-provider.js";
 import { createPortalShare, readPortalShare, revokePortalShare } from "./client-portal.js";
+import { completeOAuth, disconnectIntegration, listConnections, startOAuth } from "./integrations.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -1334,6 +1335,23 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
     }
     if (url.pathname.startsWith("/api/client-portal/public/") && request.method === "GET") {
       const result=await readPortalShare(env.DB,url.pathname.split("/").pop()||"");return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow"}});
+    }
+    if (url.pathname === "/api/integrations" && request.method === "GET") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      return Response.json({providers:await listConnections(env.DB,env,user.id)},{headers:{"Cache-Control":"no-store"}});
+    }
+    if (url.pathname === "/api/integrations/oauth/start" && request.method === "GET") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      const result=await startOAuth(env.DB,env,user.id,url.searchParams.get("provider")||"");return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store"}});
+    }
+    if (url.pathname === "/api/integrations/oauth/callback" && request.method === "GET") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.redirect(`${env.PUBLIC_APP_URL}/login?next=/business/integrations`,302);
+      const result=await completeOAuth(env.DB,env,user.id,{state:url.searchParams.get("state"),code:url.searchParams.get("code")});
+      return Response.redirect(`${env.PUBLIC_APP_URL}/business/integrations?oauth=${result.status===200?"connected":"failed"}`,302);
+    }
+    if (url.pathname.startsWith("/api/integrations/") && request.method === "DELETE") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      const result=await disconnectIntegration(env.DB,user.id,url.pathname.split("/").pop()||"");return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store"}});
     }
 
     // =========================================
