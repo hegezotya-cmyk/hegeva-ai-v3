@@ -4,7 +4,7 @@ import Link from "next/link"
 import { AppShell } from "@/components/app-shell"
 import { PageHeader } from "@/components/page-header"
 import { StatusBadge } from "@/components/status-badge"
-import { Users, FileText, ReceiptText, ArrowRight, CalendarCheck2, BarChart3, MessageSquareText, Wrench, FolderLock, FileSpreadsheet, ShieldCheck, Sparkles, FlaskConical, SearchCheck, Rocket, Store, BadgePoundSterling, Network, Share2, Bot } from "lucide-react"
+import { Users, FileText, ReceiptText, ArrowRight, CalendarCheck2, BarChart3, MessageSquareText, Wrench, FolderLock, FileSpreadsheet, ShieldCheck, Sparkles, FlaskConical, SearchCheck, Rocket, Store, BadgePoundSterling, Network, Share2, Bot, PlugZap } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { TOOLS_COPY } from "@/lib/i18n/tools-copy"
 import { VAULT_COPY } from "@/lib/i18n/vault-copy"
@@ -23,6 +23,7 @@ export default function BusinessPage() {
     { href: "/business/network", title: "Business Network", text: locale === "hu" ? "A valódi ügyfél-, ajánlói és partnerkapcsolatok privát munkaterületi térképe." : locale === "de" ? "Private Karte echter Kunden-, Empfehlungs- und Partnerbeziehungen." : locale === "fr" ? "Carte privée des relations clients, recommandations et partenaires." : locale === "es" ? "Mapa privado de relaciones reales con clientes y socios." : "A private workspace map of real customer, referral and partner relationships.", icon: Network },
     { href: "/business/client-portal", title: "Client Portal", text: locale === "hu" ? "Kiválasztott ügyfélrekordok lejáró, visszavonható, csak olvasható megosztása." : "Share selected customer records through an expiring, revocable, read-only portal.", icon: Share2 },
     { href: "/business/autopilot", title: "Advanced Autopilot", text: locale === "hu" ? "Napi plafonnal, engedélyezett műveletekkel és kötelező jóváhagyással működő Autopilot." : "Workspace Autopilot with daily caps, permitted actions and mandatory approval.", icon: Bot },
+    { href: "/business/integrations", title: locale === "hu" ? "Integrációk" : locale === "de" ? "Integrationen" : locale === "fr" ? "Intégrations" : locale === "es" ? "Integraciones" : "Integrations", text: locale === "hu" ? "Gmail, Outlook és naptárkapcsolatok biztonságos, engedélyköteles alapja." : "A safe, approval-gated foundation for email and calendar connections.", icon: PlugZap },
     { href: "/business/customers", title: t.business.customers, text: t.business.customersDesc, icon: Users },
     { href: "/business/documents", title: t.business.documents, text: t.business.documentsDesc, icon: FileText },
     { href: "/business/expenses", title: t.business.expenses, text: t.business.expensesDesc, icon: ReceiptText },

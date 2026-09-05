@@ -1,0 +1,5 @@
+import fs from "node:fs";
+const read=p=>fs.readFileSync(new URL(`../${p}`,import.meta.url),"utf8");
+const ui=read("components/business/integration-center.tsx"),hub=read("app/business/page.tsx"),route=read("app/business/integrations/page.tsx");
+for(const[ok,name]of [[ui.includes("No account is connected")&&ui.includes("nincs csatlakoztatott fiók"),"truthful disconnected state"],[ui.includes("without a separate owner approval")&&ui.includes("jóváhagyás nélkül"),"approval boundary"],[ui.includes("disabled")&&ui.includes('aria-disabled="true"'),"fail-closed controls"],[ui.includes("en:")&&ui.includes("hu:")&&ui.includes("de:")&&ui.includes("fr:")&&ui.includes("es:"),"five locales"],[hub.includes('/business/integrations'),"hub entry"],[route.includes("IntegrationCenter"),"route"]])if(!ok)throw new Error(`Integrations foundation audit failed: ${name}`);
+console.log("Integrations V1 foundation audit passed: truthful disconnected state, fail-closed controls, approval boundary and five locales")
