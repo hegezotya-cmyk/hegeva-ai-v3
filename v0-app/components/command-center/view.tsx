@@ -32,6 +32,7 @@ import { GoalMode } from "@/components/command-center/goal-mode"
 import { GoalAdaptCycle } from "@/components/command-center/goal-adapt-cycle"
 import { OpportunityExecutiveV2 } from "@/components/command-center/opportunity-executive-v2"
 import { IntelligenceAutopilot } from "@/components/command-center/intelligence-autopilot"
+import { ExternalIntelligenceLayer } from "@/components/command-center/external-intelligence-layer"
 import { LiveCorePriority } from "@/components/command-center/live-core-priority"
 
 type ModuleDef = {
@@ -81,6 +82,7 @@ export function CommandCenterView() {
       <GoalMode />
       <GoalAdaptCycle />
       <OpportunityExecutiveV2 />
+      <ExternalIntelligenceLayer />
       <LiveCorePriority />
       <OperatingCenter />
       <IntelligenceAutopilot />

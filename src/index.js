@@ -12,7 +12,7 @@ import { validateX30ProviderBrief, x30ProviderEnabled, isX30CanaryOwner } from "
 import { invokeX30Provider } from "./x30-provider.js";
 import { buildWorkersAiProjection, getWorkersAiConfig, getWorkersAiCanaryConfig, invokeWorkersAiText, parseProviderFlags, CANARY_BOUNDS } from "./cloudflare-ai-provider.js";
 import { createPortalShare, readPortalShare, revokePortalShare } from "./client-portal.js";
-import { completeOAuth, disconnectIntegration, listConnections, readIntegrationSignals, startOAuth } from "./integrations.js";
+import { completeOAuth, disconnectIntegration, listConnections, readIntegrationIntelligence, readIntegrationSignals, startOAuth } from "./integrations.js";
 import { creativeProviderCapability, invokeCreativeProvider, isCreativeCanaryOwner, readCreativeCredits, reserveCreativeCredits, settleCreativeCredits, validateCreativeGeneration } from "./creative-provider.js";
 
 // =========================================
@@ -1344,6 +1344,10 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
     if (url.pathname === "/api/integrations/signals" && request.method === "GET") {
       const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
       return Response.json(await readIntegrationSignals(env.DB,env,user.id),{headers:{"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});
+    }
+    if (url.pathname === "/api/integrations/intelligence" && request.method === "GET") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401,headers:{"Cache-Control":"private, no-store"}});
+      const data=await readIntegrationIntelligence(env.DB,env,user.id);return Response.json(data,{headers:{"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});
     }
     if (url.pathname === "/api/integrations/oauth/start" && request.method === "GET") {
       const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});

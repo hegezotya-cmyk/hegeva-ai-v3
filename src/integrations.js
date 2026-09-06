@@ -97,3 +97,51 @@ export async function readIntegrationSignals(db,env,userId){
   const now=new Date(),signals=await Promise.all((rows.results||[]).map(row=>providerSignal(db,env,userId,row,now)));
   return{signals:signals.filter(Boolean),window:{calendarDays:7,mail:"unread inbox from the last 7 days"},contentStored:false,externalActions:false};
 }
+
+const cleanEmail=value=>{const match=String(value||"").toLowerCase().match(/[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}/);return match?match[0]:""}
+const safeArray=value=>Array.isArray(value)?value:[]
+const parseWorkspace=row=>{try{const value=JSON.parse(row?.data||"[]");return safeArray(value)}catch{return[]}}
+async function workspaceEvidence(db,userId){
+  const rows=await db.prepare("SELECT dataType,data FROM workspace_data WHERE userId=?1 AND dataType IN ('customers','invoice_documents','goal_mode')").bind(userId).all(),byType=new Map((rows.results||[]).map(row=>[row.dataType,parseWorkspace(row)]));
+  return{customers:byType.get("customers")||[],documents:byType.get("invoice_documents")||[],goals:byType.get("goal_mode")||[]};
+}
+function customerIndex(customers,documents){
+  const index=new Map();
+  for(const customer of customers){
+    const emails=new Set([cleanEmail(customer.email),cleanEmail(customer.meta),cleanEmail(customer.notes)].filter(Boolean));
+    const names=new Set([customer.title,customer.name,customer.company].map(x=>String(x||"").trim().toLowerCase()).filter(x=>x.length>=3));
+    const entry={id:String(customer.id||""),name:String(customer.title||customer.name||customer.company||"Customer").slice(0,100),emails,names,status:String(customer.customerStatus||"")};
+    for(const email of emails)index.set(`email:${email}`,entry);for(const name of names)index.set(`name:${name}`,entry);
+  }
+  for(const document of documents){
+    const email=cleanEmail(document.clientDetails),name=String(document.clientName||"").trim().toLowerCase();
+    let entry=email?index.get(`email:${email}`):null;if(!entry&&name)entry=index.get(`name:${name}`);
+    if(!entry&&(email||name)){entry={id:`document-customer:${String(document.id||name||email)}`,name:String(document.clientName||email||"Customer").slice(0,100),emails:new Set(email?[email]:[]),names:new Set(name?[name]:[]),status:""};if(email)index.set(`email:${email}`,entry);if(name)index.set(`name:${name}`,entry)}
+  }
+  return index;
+}
+function matchCustomer(index,email){return email?index.get(`email:${cleanEmail(email)}`)||null:null}
+async function googleActivity(p,token,now,end){
+  const headers={Authorization:`Bearer ${token}`,Accept:"application/json"},mailList=await fetch(`${p.mail}?maxResults=10&q=${encodeURIComponent("is:unread in:inbox newer_than:7d")}&fields=messages(id,threadId)`,{headers,signal:AbortSignal.timeout(8000)}),calendarResponse=await fetch(`${p.calendar}?timeMin=${encodeURIComponent(now.toISOString())}&timeMax=${encodeURIComponent(end.toISOString())}&singleEvents=true&maxResults=20&orderBy=startTime&fields=items(id,start,organizer(email),attendees(email))`,{headers,signal:AbortSignal.timeout(8000)});
+  if(!mailList.ok||!calendarResponse.ok)throw new Error("provider-intelligence-failed");const listed=await mailList.json(),calendar=await calendarResponse.json();
+  const messages=await Promise.all(safeArray(listed.messages).slice(0,10).map(async item=>{const response=await fetch(`${p.mail}/${encodeURIComponent(item.id)}?format=metadata&metadataHeaders=From&fields=id,threadId,internalDate,payload(headers)`,{headers,signal:AbortSignal.timeout(8000)});if(!response.ok)return null;const data=await response.json(),from=safeArray(data.payload?.headers).find(x=>String(x.name).toLowerCase()==="from")?.value;return{id:String(data.id||item.id),threadId:String(data.threadId||item.threadId||""),email:cleanEmail(from),at:data.internalDate?new Date(Number(data.internalDate)).toISOString():null}}));
+  return{messages:messages.filter(Boolean),events:safeArray(calendar.items).map(item=>({id:String(item.id||""),at:item.start?.dateTime||item.start?.date||null,emails:[item.organizer?.email,...safeArray(item.attendees).map(x=>x.email)].map(cleanEmail).filter(Boolean)}))};
+}
+async function microsoftActivity(p,token,now,end){
+  const headers={Authorization:`Bearer ${token}`,Accept:"application/json"},mailResponse=await fetch(`https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$filter=isRead eq false&$top=20&$select=id,conversationId,receivedDateTime,from`,{headers,signal:AbortSignal.timeout(8000)}),calendarResponse=await fetch(`${p.calendar}?startDateTime=${encodeURIComponent(now.toISOString())}&endDateTime=${encodeURIComponent(end.toISOString())}&$top=20&$select=id,start,organizer,attendees`,{headers,signal:AbortSignal.timeout(8000)});
+  if(!mailResponse.ok||!calendarResponse.ok)throw new Error("provider-intelligence-failed");const mail=await mailResponse.json(),calendar=await calendarResponse.json();return{messages:safeArray(mail.value).map(item=>({id:String(item.id||""),threadId:String(item.conversationId||""),email:cleanEmail(item.from?.emailAddress?.address),at:item.receivedDateTime||null})),events:safeArray(calendar.value).map(item=>({id:String(item.id||""),at:item.start?.dateTime||null,emails:[item.organizer?.emailAddress?.address,...safeArray(item.attendees).map(x=>x.emailAddress?.address)].map(cleanEmail).filter(Boolean)}))};
+}
+function buildIntelligence(provider,activity,evidence,index,today){
+  const overdue=evidence.documents.filter(x=>x.type==="invoice"&&x.status!=="paid"&&/^\d{4}-\d{2}-\d{2}/.test(String(x.dueDate||""))&&String(x.dueDate).slice(0,10)<today),quotes=evidence.documents.filter(x=>x.type==="quote"&&x.status!=="paid"),byCustomerName=(doc,customer)=>String(doc.clientName||"").trim().toLowerCase()===String(customer.name||"").trim().toLowerCase()||cleanEmail(doc.clientDetails)&&customer.emails.has(cleanEmail(doc.clientDetails));
+  const matchedMessages=activity.messages.map(message=>({message,customer:matchCustomer(index,message.email)})).filter(x=>x.customer),matchedEvents=activity.events.flatMap(event=>event.emails.map(email=>({event,customer:matchCustomer(index,email)}))).filter(x=>x.customer),unique=(items,key)=>[...new Map(items.map(x=>[key(x),x])).values()],findings=[];
+  const customerMail=unique(matchedMessages,x=>x.customer.id);if(customerMail.length)findings.push({id:`${provider}-customer-email`,kind:"customer-email-attention",provider,count:customerMail.length,confidence:"high",customerIds:customerMail.map(x=>x.customer.id),customerNames:customerMail.map(x=>x.customer.name),externalEvidenceIds:customerMail.map(x=>x.message.id),href:"/business/messages"});
+  const overdueMail=unique(matchedMessages.filter(x=>overdue.some(doc=>byCustomerName(doc,x.customer))),x=>x.customer.id);if(overdueMail.length)findings.push({id:`${provider}-overdue-contact`,kind:"overdue-customer-contact",provider,count:overdueMail.length,confidence:"high",customerIds:overdueMail.map(x=>x.customer.id),customerNames:overdueMail.map(x=>x.customer.name),workspaceEvidenceIds:overdue.filter(doc=>overdueMail.some(x=>byCustomerName(doc,x.customer))).map(x=>String(x.id)),externalEvidenceIds:overdueMail.map(x=>x.message.id),href:"/business/intelligence#customer-follow-up"});
+  const quoteMeetings=unique(matchedEvents.filter(x=>quotes.some(doc=>byCustomerName(doc,x.customer))),x=>`${x.customer.id}:${x.event.id}`);if(quoteMeetings.length)findings.push({id:`${provider}-meeting-quote`,kind:"meeting-quote-followup",provider,count:quoteMeetings.length,confidence:"high",customerIds:unique(quoteMeetings,x=>x.customer.id).map(x=>x.customer.id),customerNames:unique(quoteMeetings,x=>x.customer.id).map(x=>x.customer.name),workspaceEvidenceIds:quotes.filter(doc=>quoteMeetings.some(x=>byCustomerName(doc,x.customer))).map(x=>String(x.id)),externalEvidenceIds:quoteMeetings.map(x=>x.event.id),nextAt:quoteMeetings.map(x=>x.event.at).filter(Boolean).sort()[0]||null,href:"/business/intelligence#customer-follow-up"});
+  const opportunities=unique(matchedMessages.filter(x=>x.customer.status==="lead"||quotes.some(doc=>byCustomerName(doc,x.customer))),x=>x.message.threadId||x.message.id);if(opportunities.length)findings.push({id:`${provider}-opportunity-conversation`,kind:"opportunity-conversation",provider,count:opportunities.length,confidence:"high",customerIds:unique(opportunities,x=>x.customer.id).map(x=>x.customer.id),customerNames:unique(opportunities,x=>x.customer.id).map(x=>x.customer.name),externalEvidenceIds:opportunities.map(x=>x.message.threadId||x.message.id),href:"/business/customers"});return findings;
+}
+export function buildIntegrationFindings(provider,activity,evidence,today){return buildIntelligence(provider,activity,evidence,customerIndex(evidence.customers,evidence.documents),today)}
+export async function readIntegrationIntelligence(db,env,userId){
+  const rows=await db.prepare("SELECT provider,encryptedAccessToken,encryptedRefreshToken,expiresAt FROM integration_connections WHERE userId=?1 ORDER BY provider").bind(userId).all(),evidence=await workspaceEvidence(db,userId),index=customerIndex(evidence.customers,evidence.documents),now=new Date(),end=new Date(now.getTime()+7*24*60*60*1000),today=now.toISOString().slice(0,10);
+  const providers=await Promise.all((rows.results||[]).map(async row=>{const p=PROVIDERS[row.provider];try{const token=await accessToken(db,env,userId,row,p),activity=row.provider==="google"?await googleActivity(p,token,now,end):await microsoftActivity(p,token,now,end);return{provider:row.provider,available:true,findings:buildIntelligence(row.provider,activity,evidence,index,today)} }catch{return{provider:row.provider,available:false,findings:[]}}}));
+  return{providers,findings:providers.flatMap(x=>x.findings),processed:{customers:evidence.customers.length,documents:evidence.documents.length},access:"read-only",contentStored:false,externalActions:false,checkedAt:now.toISOString()};
+}
