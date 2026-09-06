@@ -40,6 +40,8 @@ assert(component.includes("integrationTaskState")&&component.includes('task?.don
 assert(component.includes("completedMove")&&component.includes('href="/business/planner"'),"completed recommendations must change guidance and retain a Planner route")
 assert(livePriority.includes('fetch("/api/integrations/signals"')&&livePriority.includes("analyseIntegrationLoad"),"the main Command Center must surface live aggregate integration signals")
 assert(livePriority.includes("integration-signal:${priority.id}:${today}")&&livePriority.includes('href="/business/autopilot"'),"the live priority must preserve linked Planner state and route to the bounded Autopilot review")
+for(const phrase of ["last 7 days","elmúlt 7 napban","letzten 7 Tagen","7 derniers jours","últimos 7 días"])assert(livePriority.includes(phrase),`Missing precise five-locale signal window: ${phrase}`)
+for(const phrase of ["Google Workspace","Microsoft 365","plannerState","Read-only aggregate","Csak összesített, olvasható adat"])assert(livePriority.includes(phrase),`Missing refined live-priority contract: ${phrase}`)
 assert(component.includes('item.provider === "google" && item.connected')&&component.includes('item.provider === "microsoft" && item.connected'),"Google and Microsoft connection status must be presented independently")
 assert(component.includes("Connected · read-only")&&component.includes("Csatlakoztatva · csak olvasás"),"connected integrations must retain the read-only boundary")
 assert(!/sendMail|sendEmail|gmail\.com|graph\.microsoft|googleapis|method:\s*["']POST["']/.test(component),"Phase 1 must not claim or invoke an external integration")
