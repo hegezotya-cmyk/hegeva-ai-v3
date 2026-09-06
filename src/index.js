@@ -3752,7 +3752,7 @@ QUALITY RULES:
       acceptsHtml &&
       url.origin !== canonicalOrigin
     ) {
-      return Response.redirect(`${canonicalOrigin}/`, 302);
+      return Response.redirect(`${canonicalOrigin}${url.pathname}${url.search}`, 308);
     }
 
     return env.ASSETS.fetch(
