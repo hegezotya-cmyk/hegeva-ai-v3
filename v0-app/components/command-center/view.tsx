@@ -30,6 +30,7 @@ import { AICore, SectionHeading } from "@/components/visual-engine"
 import { OutcomeLauncher } from "@/components/outcome-launcher"
 import { GoalMode } from "@/components/command-center/goal-mode"
 import { IntelligenceAutopilot } from "@/components/command-center/intelligence-autopilot"
+import { LiveCorePriority } from "@/components/command-center/live-core-priority"
 
 type ModuleDef = {
   icon: LucideIcon
@@ -76,6 +77,7 @@ export function CommandCenterView() {
 
       <OutcomeLauncher compact />
       <GoalMode />
+      <LiveCorePriority />
       <OperatingCenter />
       <IntelligenceAutopilot />
 
