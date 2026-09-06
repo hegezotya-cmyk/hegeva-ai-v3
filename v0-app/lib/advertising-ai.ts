@@ -27,19 +27,24 @@ export async function generateAdvertisingCampaign(brief: AdvertisingBrief) {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), 30000)
   try {
-    const response = await fetch("/api/chat", {
+    const response = await fetch("/api/creative/generate", {
       method: "POST",
       credentials: "include",
       signal: controller.signal,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: buildAdvertisingPrompt(brief).slice(0, 2500), history: [], language: brief.language, mode: "general", assistantOperationId: crypto.randomUUID() }),
+      body: JSON.stringify({operationId:crypto.randomUUID(),requestId:crypto.randomUUID(),operationType:brief.kind==="advertisement-improver-brief"?"analysis":"copy",locale:brief.language,channel:brief.channel,productOrService:brief.productOrService,targetAudience:brief.targetAudience,objective:brief.campaignObjective,currentAd:brief.advertisementText||"",sourceUrl:brief.sourceUrl||"",offer:brief.offer||"",cta:brief.callToAction||"",benefits:(brief.keyBenefits||[]).join(" | "),visualDirection:brief.mediaDescription||""}),
     })
     const data = await response.json().catch(() => null)
     if (!response.ok) throw new Error(typeof data?.error === "string" ? data.error : "unavailable")
-    const result = typeof data?.response === "string" ? data.response.trim() : ""
+    const result = typeof data?.text === "string" ? data.text.trim() : ""
     if (!result) throw new Error("empty")
-    return result.slice(0, 8000)
+    return {text:result.slice(0,8000),credits:data?.credits}
   } finally {
     window.clearTimeout(timeout)
   }
+}
+
+export async function generateAdvertisingImage(brief:AdvertisingBrief){
+ const controller=new AbortController(),timeout=window.setTimeout(()=>controller.abort(),35000)
+ try{const response=await fetch("/api/creative/generate",{method:"POST",credentials:"include",signal:controller.signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({operationId:crypto.randomUUID(),requestId:crypto.randomUUID(),operationType:"image",locale:brief.language,channel:brief.channel,productOrService:brief.productOrService,targetAudience:brief.targetAudience,objective:brief.campaignObjective,offer:brief.offer||"",cta:brief.callToAction||"",benefits:(brief.keyBenefits||[]).join(" | "),visualDirection:brief.mediaDescription||"premium commercial advertising visual"})});const data=await response.json().catch(()=>null);if(!response.ok)throw new Error(typeof data?.error==="string"?data.error:"unavailable");if(typeof data?.image!=="string"||!data.image.startsWith("data:image/"))throw new Error("invalid-image");return{image:data.image,credits:data.credits}}finally{window.clearTimeout(timeout)}
 }

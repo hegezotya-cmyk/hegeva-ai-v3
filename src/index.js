@@ -13,6 +13,7 @@ import { invokeX30Provider } from "./x30-provider.js";
 import { buildWorkersAiProjection, getWorkersAiConfig, getWorkersAiCanaryConfig, invokeWorkersAiText, parseProviderFlags, CANARY_BOUNDS } from "./cloudflare-ai-provider.js";
 import { createPortalShare, readPortalShare, revokePortalShare } from "./client-portal.js";
 import { completeOAuth, disconnectIntegration, listConnections, readIntegrationSignals, startOAuth } from "./integrations.js";
+import { creativeProviderCapability, invokeCreativeProvider, isCreativeCanaryOwner, readCreativeCredits, reserveCreativeCredits, settleCreativeCredits, validateCreativeGeneration } from "./creative-provider.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -3650,6 +3651,48 @@ QUALITY RULES:
           if (!provider.ok) return Response.json({ error: "AI Bot execution is temporarily unavailable." }, { status: provider.reason === "timeout" ? 504 : 503 });
           return Response.json({ schemaVersion: "0.1", status: "ready-for-review", provider: "workers-ai", executionState: "not-started", response: provider.response }, { status: 200 });
       } catch { return Response.json({ error: "AI Bot execution is temporarily unavailable." }, { status: 503 }); }
+    }
+
+    if (url.pathname === "/api/creative/capability") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user=await getLoggedInUser(request,env,ctx)
+        if(!user)return Response.json({authenticated:false,entitled:false,providers:{text:false,image:false,video:false}},{headers:{"Cache-Control":"private, no-store"}})
+        const planInfo=await getUserPlan(env,user.id),period=getCurrentPeriod(),credits=await readCreativeCredits(env.DB,user.id,period,planInfo.plan),capability=creativeProviderCapability(env,planInfo.plan)
+        return Response.json({authenticated:true,canaryEligible:isCreativeCanaryOwner(user,env),...capability,credits},{headers:{"Cache-Control":"private, no-store"}})
+      }catch{return Response.json({error:"Creative capability is temporarily unavailable."},{status:503,headers:{"Cache-Control":"private, no-store"}})}
+    }
+
+    if (url.pathname === "/api/creative/generate") {
+      if(request.method!=="POST")return Response.json({error:"Method not allowed."},{status:405})
+      let lease=null,user=null,reservation=null
+      try{
+        user=await getLoggedInUser(request,env,ctx)
+        if(!user)return Response.json({error:"Authentication required."},{status:401})
+        if(!isCreativeCanaryOwner(user,env))return Response.json({error:"Creative generation is currently limited to the approved canary."},{status:403})
+        const planInfo=await getUserPlan(env,user.id),capability=creativeProviderCapability(env,planInfo.plan)
+        if(!capability.entitled)return Response.json({error:"Premium or Pro is required for Creative AI generation."},{status:403})
+        const body=await request.json(),validated=validateCreativeGeneration(body)
+        if(!validated.ok)return Response.json({error:"The creative brief could not be validated."},{status:400})
+        const providerKey=validated.brief.operationType==="image"?"image":"text"
+        if(!capability.providers[providerKey])return Response.json({error:"The approved creative provider is unavailable."},{status:503})
+        const limiter=env.RATE_LIMITER?.getByName(`creative-rate-limit:${user.id}`)
+        lease=limiter?await limiter.admit():null
+        if(limiter&&!lease?.allowed)return Response.json({error:"Creative generation rate limit reached."},{status:429})
+        const period=getCurrentPeriod(),daily=new Date().toISOString().slice(0,10)
+        const dailyCount=await env.DB.prepare("SELECT COUNT(*) AS total FROM creative_credit_operations WHERE userId=?1 AND substr(createdAt,1,10)=?2").bind(user.id,daily).first()
+        if(Number(dailyCount?.total||0)>=10)return Response.json({error:"Creative daily generation limit reached."},{status:429})
+        reservation=await reserveCreativeCredits(env.DB,{operationId:validated.brief.operationId,requestId:validated.brief.requestId,userId:user.id,period,plan:planInfo.plan,operationType:validated.brief.operationType})
+        if(!reservation.reserved){const status=reservation.reason==="duplicate-operation"?409:reservation.reason==="credits-exhausted"?429:503;return Response.json({error:status===409?"This generation request was already processed.":status===429?"Creative AI credits are exhausted.":"Creative credit reservation is unavailable."},{status})}
+        const generated=await invokeCreativeProvider(env,validated.brief)
+        await settleCreativeCredits(env.DB,{operationId:validated.brief.operationId,userId:user.id,success:generated.ok,failureCode:generated.reason,settledCredits:generated.settledCredits})
+        if(!generated.ok)return Response.json({error:"Creative generation is temporarily unavailable.",reason:generated.reason},{status:generated.reason==="provider-timeout"?504:503})
+        const credits=await readCreativeCredits(env.DB,user.id,period,planInfo.plan)
+        return Response.json({...generated,executionState:"not-published",credits},{status:200,headers:{"Cache-Control":"private, no-store"}})
+      }catch{
+        if(reservation?.reserved&&user)await settleCreativeCredits(env.DB,{operationId:reservation.operationId,userId:user.id,success:false,failureCode:"internal-failure"}).catch(()=>{})
+        return Response.json({error:"Creative generation is temporarily unavailable."},{status:503})
+      }finally{if(lease?.allowed&&lease?.token&&env.RATE_LIMITER)await env.RATE_LIMITER.getByName(`creative-rate-limit:${user?.id}`).release(lease.token).catch(()=>{})}
     }
 
     if (url.pathname === "/api/x30/capability") {

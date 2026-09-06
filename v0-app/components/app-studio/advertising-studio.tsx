@@ -16,7 +16,7 @@ import {
   type AdvertisingChannel,
   type AdvertisingLanguage,
 } from "@/lib/advertising-workflows";
-import { generateAdvertisingCampaign } from "@/lib/advertising-ai";
+import { generateAdvertisingCampaign, generateAdvertisingImage } from "@/lib/advertising-ai";
 
 type Mode = "improve" | "create";
 type Saved = AdvertisingBrief & {
@@ -216,6 +216,7 @@ const copy = {
     generate: "Crear campaña", generating: "HEGEVA está creando…", result: "Resultado de campaña", copyResult: "Copiar resultado", copied: "Copiado", aiError: "No se pudo crear la campaña. Revisa tu cuenta e inténtalo de nuevo.", aiSignIn: "Inicia sesión para usar la generación real de HEGEVA AI.",
   },
 } as const;
+const providerCopy={en:{visual:"Generate visual",download:"Export image",review:"AI draft · review before use",credits:"credits remaining"},hu:{visual:"Kép generálása",download:"Kép exportálása",review:"AI-vázlat · használat előtt ellenőrizendő",credits:"felhasználható kredit"},de:{visual:"Visual generieren",download:"Bild exportieren",review:"KI-Entwurf · vor Nutzung prüfen",credits:"Credits verfügbar"},fr:{visual:"Générer le visuel",download:"Exporter l’image",review:"Brouillon IA · à vérifier avant usage",credits:"crédits disponibles"},es:{visual:"Generar visual",download:"Exportar imagen",review:"Borrador de IA · revisar antes de usar",credits:"créditos disponibles"}} as const;
 const channelLabels: Record<
   keyof typeof copy,
   Record<AdvertisingChannel, string>
@@ -332,6 +333,8 @@ export function AdvertisingStudio() {
   const [notice, setNotice] = useState("");
   const [generatedOutput, setGeneratedOutput] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [generatedImage,setGeneratedImage]=useState("");
+  const [creditsRemaining,setCreditsRemaining]=useState<number|null>(null);
   const update = (key: string, value: string) =>
     setBrief((v) => ({ ...v, [key]: value }));
   const save = () => {
@@ -369,15 +372,16 @@ export function AdvertisingStudio() {
       if (!cloudEnabled) throw new Error("sign-in");
       setGenerating(true);
       const result = await generateAdvertisingCampaign(clean);
-      setGeneratedOutput(result);
+      setGeneratedOutput(result.text); setCreditsRemaining(Number.isFinite(result.credits?.remaining)?result.credits.remaining:null);
       const now = new Date().toISOString(), id = editing || crypto.randomUUID();
-      const item: Saved = { ...clean, id, mode, generatedOutput: result, createdAt: items.find((x) => x.id === id)?.createdAt || now, updatedAt: now };
+      const item: Saved = { ...clean, id, mode, generatedOutput: result.text, createdAt: items.find((x) => x.id === id)?.createdAt || now, updatedAt: now };
       setItems((all) => [item, ...all.filter((x) => x.id !== id)].slice(0, 100));
       setEditing(id); setBrief(clean);
     } catch (cause) {
       setError(cause instanceof Error && cause.message === "sign-in" ? t.aiSignIn : t.aiError);
     } finally { setGenerating(false); }
   };
+  const generateVisual=async()=>{if(generating)return;setError("");setNotice("");try{const clean=validateAdvertisingBrief({...brief,keyBenefits:brief.keyBenefits||[],restrictions:brief.restrictions||[]});if(!cloudEnabled)throw new Error("sign-in");setGenerating(true);const result=await generateAdvertisingImage(clean);setGeneratedImage(result.image);setCreditsRemaining(Number.isFinite(result.credits?.remaining)?result.credits.remaining:null)}catch(cause){setError(cause instanceof Error&&cause.message==="sign-in"?t.aiSignIn:t.aiError)}finally{setGenerating(false)}};
   const prepared = (() => {
     try {
       return prepareAdvertisingWorkflow(validateAdvertisingBrief(brief));
@@ -520,6 +524,7 @@ export function AdvertisingStudio() {
                 <Save className="size-4" aria-hidden />
                 {t.save}
               </button>
+              <button type="button" disabled={generating||!prepared} onClick={()=>void generateVisual()} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-gold/40 bg-gold/10 px-5 text-sm font-semibold text-gold disabled:opacity-50"><Sparkles className="size-4" aria-hidden/>{providerCopy[locale].visual}</button>
               <button
                 type="button"
                 disabled={generating || !prepared}
@@ -554,6 +559,8 @@ export function AdvertisingStudio() {
                 <div className="mt-4 whitespace-pre-wrap text-sm leading-7 text-foreground">{generatedOutput}</div>
               </section>
             )}
+            {generatedImage&&<section className="mt-7 rounded-2xl border border-gold/30 bg-gold/[.05] p-5" aria-live="polite"><p className="mb-3 text-xs font-semibold text-gold">{providerCopy[locale].review}</p><img src={generatedImage} alt={brief.mediaDescription||brief.productOrService} className="w-full rounded-xl border border-border"/><a href={generatedImage} download="hegeva-ad-visual.jpg" className="hegeva-secondary mt-4 inline-flex min-h-11 items-center px-4 text-sm">{providerCopy[locale].download}</a></section>}
+            {creditsRemaining!==null&&<p role="status" className="mt-3 text-xs text-muted-foreground">{creditsRemaining} {providerCopy[locale].credits}</p>}
             {error && (
               <p role="alert" className="mt-4 text-sm text-destructive">
                 {error}
