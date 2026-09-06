@@ -28,7 +28,7 @@
     "audit:business-intelligence": "node scripts/business-intelligence-audit.mjs",
     "audit:autopilot-phase1": "node scripts/autopilot-phase1-audit.mjs",
     "audit:money-journey": "node scripts/money-test-audit.mjs",
-    "audit:goal-v4": "node scripts/goal-mode-v4-audit.mjs",
+    "audit:goal-v4": "node scripts/goal-mode-v4-audit.mjs && node scripts/opportunity-radar-v2-audit.mjs",
     "audit:business-twin": "node scripts/business-twin-audit.mjs",
     "audit:fix-business": "node scripts/fix-my-business-audit.mjs",
     "audit:one-click-business": "node scripts/one-click-business-audit.mjs",

@@ -30,6 +30,7 @@ import { AICore, SectionHeading } from "@/components/visual-engine"
 import { OutcomeLauncher } from "@/components/outcome-launcher"
 import { GoalMode } from "@/components/command-center/goal-mode"
 import { GoalAdaptCycle } from "@/components/command-center/goal-adapt-cycle"
+import { OpportunityExecutiveV2 } from "@/components/command-center/opportunity-executive-v2"
 import { IntelligenceAutopilot } from "@/components/command-center/intelligence-autopilot"
 import { LiveCorePriority } from "@/components/command-center/live-core-priority"
 
@@ -79,6 +80,7 @@ export function CommandCenterView() {
       <OutcomeLauncher compact />
       <GoalMode />
       <GoalAdaptCycle />
+      <OpportunityExecutiveV2 />
       <LiveCorePriority />
       <OperatingCenter />
       <IntelligenceAutopilot />
