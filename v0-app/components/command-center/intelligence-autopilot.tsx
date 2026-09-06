@@ -6,11 +6,13 @@ import {
   AlertTriangle,
   ArrowUpRight,
   Bot,
+  CalendarDays,
   CheckCircle2,
   Clock3,
   CloudOff,
   FileCheck2,
   History,
+  Mail,
   Play,
   Search,
   ShieldCheck,
@@ -42,6 +44,15 @@ type IntegrationProvider = {
   connected: boolean;
   access: "read-only";
 };
+type IntegrationSignal = {
+  provider: "google" | "microsoft";
+  available: boolean;
+  access: "read-only";
+  unreadInbox: number | null;
+  upcomingSevenDays: number | null;
+  upcomingCapped: boolean;
+  checkedAt: string;
+};
 
 const COPY = {
   en: {
@@ -69,6 +80,10 @@ const COPY = {
     google: "Google Workspace",
     microsoft: "Microsoft 365",
     crm: "CRM / Commerce",
+    externalSignals: "Live read-only signals",
+    unread: "Unread inbox · last 7 days",
+    upcoming: "Calendar · next 7 days",
+    signalUnavailable: "Signal temporarily unavailable",
     integrationNote:
       "Connected accounts are available as secure read-only sources. HEGEVA does not send messages, change events or execute external actions automatically.",
     suggest: "Suggest",
@@ -118,6 +133,10 @@ const COPY = {
     google: "Google Workspace",
     microsoft: "Microsoft 365",
     crm: "CRM / Commerce",
+    externalSignals: "Élő, csak olvasási jelzések",
+    unread: "Olvasatlan beérkezők · elmúlt 7 nap",
+    upcoming: "Naptár · következő 7 nap",
+    signalUnavailable: "A jelzés átmenetileg nem érhető el",
     integrationNote:
       "A csatlakoztatott fiókok biztonságos, csak olvasási forrásként érhetők el. A HEGEVA nem küld üzenetet, nem módosít eseményt és nem hajt végre automatikus külső műveletet.",
     suggest: "Javaslat",
@@ -167,6 +186,10 @@ const COPY = {
     google: "Google Workspace",
     microsoft: "Microsoft 365",
     crm: "CRM / Commerce",
+    externalSignals: "Live-Signale · nur Lesen",
+    unread: "Ungelesener Posteingang · 7 Tage",
+    upcoming: "Kalender · nächste 7 Tage",
+    signalUnavailable: "Signal vorübergehend nicht verfügbar",
     integrationNote:
       "Verbundene Konten stehen als sichere, schreibgeschützte Quellen bereit. HEGEVA sendet keine Nachrichten, ändert keine Termine und führt keine externen Aktionen automatisch aus.",
     suggest: "Vorschlagen",
@@ -216,6 +239,10 @@ const COPY = {
     google: "Google Workspace",
     microsoft: "Microsoft 365",
     crm: "CRM / Commerce",
+    externalSignals: "Signaux live · lecture seule",
+    unread: "Boîte de réception non lue · 7 jours",
+    upcoming: "Calendrier · 7 prochains jours",
+    signalUnavailable: "Signal temporairement indisponible",
     integrationNote:
       "Les comptes connectés sont disponibles comme sources sécurisées en lecture seule. HEGEVA n’envoie aucun message, ne modifie aucun événement et n’exécute aucune action externe automatiquement.",
     suggest: "Suggérer",
@@ -265,6 +292,10 @@ const COPY = {
     google: "Google Workspace",
     microsoft: "Microsoft 365",
     crm: "CRM / Commerce",
+    externalSignals: "Señales en vivo · solo lectura",
+    unread: "Bandeja no leída · últimos 7 días",
+    upcoming: "Calendario · próximos 7 días",
+    signalUnavailable: "Señal temporalmente no disponible",
     integrationNote:
       "Las cuentas conectadas están disponibles como fuentes seguras de solo lectura. HEGEVA no envía mensajes, cambia eventos ni ejecuta acciones externas automáticamente.",
     suggest: "Sugerir",
@@ -310,6 +341,7 @@ export function IntelligenceAutopilot() {
   const policy = policies[0] || DEFAULT_AUTOPILOT_POLICY;
   const [asked, setAsked] = useState(false);
   const [integrations, setIntegrations] = useState<IntegrationProvider[] | null>(null);
+  const [integrationSignals, setIntegrationSignals] = useState<IntegrationSignal[] | null>(null);
   useEffect(() => {
     let active = true;
     void fetch("/api/integrations", { cache: "no-store" })
@@ -325,6 +357,26 @@ export function IntelligenceAutopilot() {
       })
       .catch(() => {
         if (active) setIntegrations([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  useEffect(() => {
+    let active = true;
+    void fetch("/api/integrations/signals", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const payload = (await response.json()) as {
+          signals?: IntegrationSignal[];
+        };
+        return Array.isArray(payload.signals) ? payload.signals : null;
+      })
+      .then((signals) => {
+        if (active) setIntegrationSignals(signals);
+      })
+      .catch(() => {
+        if (active) setIntegrationSignals([]);
       });
     return () => {
       active = false;
@@ -609,6 +661,36 @@ export function IntelligenceAutopilot() {
               </div>
             ))}
           </div>
+          {integrationSignals && integrationSignals.length > 0 && (
+            <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/[.04] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[.14em] text-primary">
+                {c.externalSignals}
+              </p>
+              <div className="mt-3 space-y-3">
+                {integrationSignals.map((signal) => (
+                  <div key={signal.provider} className="rounded-xl border border-border bg-background/35 p-3">
+                    <strong className="text-sm">
+                      {signal.provider === "google" ? c.google : c.microsoft}
+                    </strong>
+                    {signal.available ? (
+                      <div className="mt-2 grid gap-2 text-xs sm:grid-cols-2">
+                        <span className="flex items-center gap-2 text-muted-foreground">
+                          <Mail className="size-4 text-primary" />
+                          {c.unread}: <b className="text-foreground">{signal.unreadInbox ?? 0}</b>
+                        </span>
+                        <span className="flex items-center gap-2 text-muted-foreground">
+                          <CalendarDays className="size-4 text-primary" />
+                          {c.upcoming}: <b className="text-foreground">{signal.upcomingSevenDays ?? 0}{signal.upcomingCapped ? "+" : ""}</b>
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-xs text-amber-300">{c.signalUnavailable}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <p className="mt-3 text-xs leading-5 text-muted-foreground">
             {c.integrationNote}
           </p>

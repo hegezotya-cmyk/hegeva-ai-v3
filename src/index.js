@@ -12,7 +12,7 @@ import { validateX30ProviderBrief, x30ProviderEnabled, isX30CanaryOwner } from "
 import { invokeX30Provider } from "./x30-provider.js";
 import { buildWorkersAiProjection, getWorkersAiConfig, getWorkersAiCanaryConfig, invokeWorkersAiText, parseProviderFlags, CANARY_BOUNDS } from "./cloudflare-ai-provider.js";
 import { createPortalShare, readPortalShare, revokePortalShare } from "./client-portal.js";
-import { completeOAuth, disconnectIntegration, listConnections, startOAuth } from "./integrations.js";
+import { completeOAuth, disconnectIntegration, listConnections, readIntegrationSignals, startOAuth } from "./integrations.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -1339,6 +1339,10 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
     if (url.pathname === "/api/integrations" && request.method === "GET") {
       const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
       return Response.json({providers:await listConnections(env.DB,env,user.id)},{headers:{"Cache-Control":"no-store"}});
+    }
+    if (url.pathname === "/api/integrations/signals" && request.method === "GET") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      return Response.json(await readIntegrationSignals(env.DB,env,user.id),{headers:{"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});
     }
     if (url.pathname === "/api/integrations/oauth/start" && request.method === "GET") {
       const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});

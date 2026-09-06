@@ -22,6 +22,8 @@ assert(component.includes('log(action.id, "prepared"')&&component.includes('log(
 assert(component.includes('active.status === "prepared"')&&component.includes('active.status === "approved"'),"approval must precede execution")
 assert(component.includes('all.some((task) => task.sourceId === `autopilot:${action.id}`)'),"executed local work must be duplicate-safe")
 assert(component.includes('fetch("/api/integrations", { cache: "no-store" })'),"integration readiness must use the authenticated live server state")
+assert(component.includes('fetch("/api/integrations/signals", { cache: "no-store" })'),"Core must request live aggregate read-only signals")
+assert(component.includes("unreadInbox")&&component.includes("upcomingSevenDays")&&component.includes("signalUnavailable"),"live signals must render aggregate counts with an honest unavailable state")
 assert(component.includes('item.provider === "google" && item.connected')&&component.includes('item.provider === "microsoft" && item.connected'),"Google and Microsoft connection status must be presented independently")
 assert(component.includes("Connected · read-only")&&component.includes("Csatlakoztatva · csak olvasás"),"connected integrations must retain the read-only boundary")
 assert(!/sendMail|sendEmail|gmail\.com|graph\.microsoft|googleapis|method:\s*["']POST["']/.test(component),"Phase 1 must not claim or invoke an external integration")

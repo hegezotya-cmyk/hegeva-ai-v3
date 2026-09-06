@@ -2,12 +2,16 @@ const PROVIDERS = Object.freeze({
   google: {
     auth: "https://accounts.google.com/o/oauth2/v2/auth",
     token: "https://oauth2.googleapis.com/token",
+    mail: "https://gmail.googleapis.com/gmail/v1/users/me/messages",
+    calendar: "https://www.googleapis.com/calendar/v3/calendars/primary/events",
     scopes: ["openid", "email", "https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/calendar.readonly"],
     clientId: "GOOGLE_OAUTH_CLIENT_ID", clientSecret: "GOOGLE_OAUTH_CLIENT_SECRET"
   },
   microsoft: {
     auth: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
     token: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+    mail: "https://graph.microsoft.com/v1.0/me/mailFolders/inbox",
+    calendar: "https://graph.microsoft.com/v1.0/me/calendarView",
     scopes: ["openid", "email", "offline_access", "Mail.Read", "Calendars.Read"],
     clientId: "MICROSOFT_OAUTH_CLIENT_ID", clientSecret: "MICROSOFT_OAUTH_CLIENT_SECRET"
   }
@@ -57,3 +61,39 @@ export async function completeOAuth(db,env,userId,{state,code}){
   return{status:200,data:{connected:true,provider:row.provider}};
 }
 export async function disconnectIntegration(db,userId,provider){if(!PROVIDERS[provider])return{status:400,error:"Unsupported integration provider."};const result=await db.prepare("DELETE FROM integration_connections WHERE userId=?1 AND provider=?2").bind(userId,provider).run();return{status:200,data:{disconnected:Number(result.meta?.changes||0)>0}}}
+
+async function refreshAccessToken(db,env,userId,row,p){
+  if(!row.encryptedRefreshToken)throw new Error("oauth-refresh-unavailable");
+  const body=new URLSearchParams({client_id:String(env[p.clientId]),client_secret:String(env[p.clientSecret]),refresh_token:await open(env,row.encryptedRefreshToken),grant_type:"refresh_token"});
+  const response=await fetch(p.token,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded","Accept":"application/json"},body,signal:AbortSignal.timeout(8000)});
+  if(!response.ok)throw new Error("oauth-refresh-failed");
+  const token=await response.json();if(typeof token.access_token!=="string")throw new Error("oauth-refresh-invalid");
+  const now=new Date().toISOString(),expiresAt=Number(token.expires_in)>0?new Date(Date.now()+Number(token.expires_in)*1000).toISOString():null;
+  await db.prepare("UPDATE integration_connections SET encryptedAccessToken=?1,encryptedRefreshToken=COALESCE(?2,encryptedRefreshToken),expiresAt=?3,updatedAt=?4 WHERE userId=?5 AND provider=?6").bind(await seal(env,token.access_token),typeof token.refresh_token==="string"?await seal(env,token.refresh_token):null,expiresAt,now,userId,row.provider).run();
+  return token.access_token;
+}
+async function accessToken(db,env,userId,row,p){
+  if(row.expiresAt&&Date.parse(row.expiresAt)<=Date.now()+60_000)return refreshAccessToken(db,env,userId,row,p);
+  return open(env,row.encryptedAccessToken);
+}
+async function providerSignal(db,env,userId,row,now){
+  const p=PROVIDERS[row.provider];if(!p)return null;
+  try{
+    const token=await accessToken(db,env,userId,row,p),end=new Date(now.getTime()+7*24*60*60*1000);
+    const mailUrl=row.provider==="google"?`${p.mail}?maxResults=1&q=${encodeURIComponent("is:unread in:inbox newer_than:7d")}`:`${p.mail}?$select=unreadItemCount`;
+    const calendarUrl=row.provider==="google"?`${p.calendar}?timeMin=${encodeURIComponent(now.toISOString())}&timeMax=${encodeURIComponent(end.toISOString())}&singleEvents=true&maxResults=10&orderBy=startTime&fields=items(id),nextPageToken`:`${p.calendar}?startDateTime=${encodeURIComponent(now.toISOString())}&endDateTime=${encodeURIComponent(end.toISOString())}&$top=10&$select=id`;
+    const headers={Authorization:`Bearer ${token}`,Accept:"application/json"};
+    const[mailResponse,calendarResponse]=await Promise.all([fetch(mailUrl,{headers,signal:AbortSignal.timeout(8000)}),fetch(calendarUrl,{headers,signal:AbortSignal.timeout(8000)})]);
+    if(!mailResponse.ok||!calendarResponse.ok)throw new Error("provider-signal-failed");
+    const[mail,calendar]=await Promise.all([mailResponse.json(),calendarResponse.json()]);
+    const unread=row.provider==="google"?Math.max(0,Number(mail.resultSizeEstimate)||0):Math.max(0,Number(mail.unreadItemCount)||0);
+    const events=row.provider==="google"?(Array.isArray(calendar.items)?calendar.items:[]):(Array.isArray(calendar.value)?calendar.value:[]);
+    const capped=events.length>=10&&Boolean(row.provider==="google"?calendar.nextPageToken:calendar["@odata.nextLink"]);
+    return{provider:row.provider,available:true,access:"read-only",unreadInbox:unread,upcomingSevenDays:events.length,upcomingCapped:capped,checkedAt:now.toISOString()};
+  }catch{return{provider:row.provider,available:false,access:"read-only",unreadInbox:null,upcomingSevenDays:null,upcomingCapped:false,checkedAt:now.toISOString()}}
+}
+export async function readIntegrationSignals(db,env,userId){
+  const rows=await db.prepare("SELECT provider,encryptedAccessToken,encryptedRefreshToken,expiresAt FROM integration_connections WHERE userId=?1 ORDER BY provider").bind(userId).all();
+  const now=new Date(),signals=await Promise.all((rows.results||[]).map(row=>providerSignal(db,env,userId,row,now)));
+  return{signals:signals.filter(Boolean),window:{calendarDays:7,mail:"unread inbox from the last 7 days"},contentStored:false,externalActions:false};
+}
