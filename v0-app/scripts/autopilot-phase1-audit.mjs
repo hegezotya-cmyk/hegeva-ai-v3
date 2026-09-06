@@ -35,6 +35,8 @@ assert(component.includes("unreadInbox")&&component.includes("upcomingSevenDays"
 assert(component.includes("analyseIntegrationLoad")&&component.includes("coreInterpretation")&&component.includes("integrationMove"),"Core must interpret aggregate workload and recommend a bounded owner action")
 assert(component.includes("taskForIntegrationLoad")&&component.includes("integrationTaskExists")&&component.includes("addIntegrationTask"),"an owner must be able to add an interpreted signal to Planner")
 assert(component.includes("all.some((item) => item.sourceId === task.sourceId)")&&component.includes('event.actionId === task.id && event.event === "completed"'),"integration Planner actions must be duplicate-safe and auditable")
+assert(component.includes("integrationTaskState")&&component.includes('task?.done ? "completed" : task ? "planned" : "new"'),"Core must distinguish new, planned and completed linked Planner work")
+assert(component.includes("completedMove")&&component.includes('href="/business/planner"'),"completed recommendations must change guidance and retain a Planner route")
 assert(component.includes('item.provider === "google" && item.connected')&&component.includes('item.provider === "microsoft" && item.connected'),"Google and Microsoft connection status must be presented independently")
 assert(component.includes("Connected · read-only")&&component.includes("Csatlakoztatva · csak olvasás"),"connected integrations must retain the read-only boundary")
 assert(!/sendMail|sendEmail|gmail\.com|graph\.microsoft|googleapis|method:\s*["']POST["']/.test(component),"Phase 1 must not claim or invoke an external integration")

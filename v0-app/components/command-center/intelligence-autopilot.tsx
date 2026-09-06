@@ -95,6 +95,9 @@ const COPY = {
     externalClear: "Connected channels show no elevated workload signal in this seven-day window.",
     addPlanner: "Add to Planner",
     addedPlanner: "Added to Planner",
+    openPlanner: "Open Planner",
+    completedToday: "Completed today",
+    completedMove: "Today’s review is complete. Keep monitoring the remaining aggregate load; HEGEVA will not act automatically.",
     integrationNote:
       "Connected accounts are available as secure read-only sources. HEGEVA does not send messages, change events or execute external actions automatically.",
     suggest: "Suggest",
@@ -156,6 +159,9 @@ const COPY = {
     externalClear: "A csatlakoztatott csatornákon nincs emelkedett munkaterhelési jelzés ebben a hétnapos időablakban.",
     addPlanner: "Hozzáadás a Tervezőhöz",
     addedPlanner: "Hozzáadva a Tervezőhöz",
+    openPlanner: "Tervező megnyitása",
+    completedToday: "Ma teljesítve",
+    completedMove: "A mai áttekintés elkészült. Figyeld tovább az összesített terhelést; a HEGEVA nem cselekszik automatikusan.",
     integrationNote:
       "A csatlakoztatott fiókok biztonságos, csak olvasási forrásként érhetők el. A HEGEVA nem küld üzenetet, nem módosít eseményt és nem hajt végre automatikus külső műveletet.",
     suggest: "Javaslat",
@@ -217,6 +223,9 @@ const COPY = {
     externalClear: "Die verbundenen Kanäle zeigen in diesem Sieben-Tage-Fenster keine erhöhte Arbeitslast.",
     addPlanner: "Zum Planer hinzufügen",
     addedPlanner: "Zum Planer hinzugefügt",
+    openPlanner: "Planer öffnen",
+    completedToday: "Heute abgeschlossen",
+    completedMove: "Die heutige Prüfung ist abgeschlossen. Die verbleibende Gesamtlast weiter beobachten; HEGEVA handelt nicht automatisch.",
     integrationNote:
       "Verbundene Konten stehen als sichere, schreibgeschützte Quellen bereit. HEGEVA sendet keine Nachrichten, ändert keine Termine und führt keine externen Aktionen automatisch aus.",
     suggest: "Vorschlagen",
@@ -278,6 +287,9 @@ const COPY = {
     externalClear: "Les canaux connectés ne montrent aucune charge élevée dans cette fenêtre de sept jours.",
     addPlanner: "Ajouter au Planificateur",
     addedPlanner: "Ajouté au Planificateur",
+    openPlanner: "Ouvrir le Planificateur",
+    completedToday: "Terminé aujourd’hui",
+    completedMove: "La vérification du jour est terminée. Continuez à surveiller la charge agrégée; HEGEVA n’agit pas automatiquement.",
     integrationNote:
       "Les comptes connectés sont disponibles comme sources sécurisées en lecture seule. HEGEVA n’envoie aucun message, ne modifie aucun événement et n’exécute aucune action externe automatiquement.",
     suggest: "Suggérer",
@@ -339,6 +351,9 @@ const COPY = {
     externalClear: "Los canales conectados no muestran una carga elevada en esta ventana de siete días.",
     addPlanner: "Añadir al Planificador",
     addedPlanner: "Añadido al Planificador",
+    openPlanner: "Abrir el Planificador",
+    completedToday: "Completado hoy",
+    completedMove: "La revisión de hoy está completa. Sigue observando la carga agregada; HEGEVA no actúa automáticamente.",
     integrationNote:
       "Las cuentas conectadas están disponibles como fuentes seguras de solo lectura. HEGEVA no envía mensajes, cambia eventos ni ejecuta acciones externas automáticamente.",
     suggest: "Sugerir",
@@ -455,8 +470,18 @@ export function IntelligenceAutopilot() {
     );
   const integrationTaskSource = (signal: IntegrationLoadSignal) =>
     `integration-signal:${signal.id}:${today}`;
+  const integrationTaskState = (signal: IntegrationLoadSignal) => {
+    const task = tasks.find(
+      (item) => item.sourceId === integrationTaskSource(signal),
+    );
+    return task?.done ? "completed" : task ? "planned" : "new";
+  };
   const integrationTaskExists = (signal: IntegrationLoadSignal) =>
-    tasks.some((task) => task.sourceId === integrationTaskSource(signal));
+    integrationTaskState(signal) !== "new";
+  const integrationStatusMove = (signal: IntegrationLoadSignal) =>
+    integrationTaskState(signal) === "completed"
+      ? c.completedMove
+      : integrationMove(signal);
   const addIntegrationTask = (signal: IntegrationLoadSignal) => {
     if (integrationTaskExists(signal)) return;
     const now = new Date().toISOString();
@@ -588,7 +613,7 @@ export function IntelligenceAutopilot() {
               <small className="text-muted-foreground">{c.recommend}</small>
               <strong className="mt-2 block text-sm text-gold">
                 {primary.kind === "clear" && integrationLoad[0]
-                  ? integrationMove(integrationLoad[0])
+                  ? integrationStatusMove(integrationLoad[0])
                   : actionTitle(primary)}
               </strong>
             </div>
@@ -608,18 +633,28 @@ export function IntelligenceAutopilot() {
                           {integrationLabel(signal)} · {signal.count}{signal.capped ? "+" : ""}
                         </strong>
                         <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                          {integrationMove(signal)}
+                          {integrationStatusMove(signal)}
                         </p>
                         <button
                           type="button"
-                          disabled={integrationTaskExists(signal)}
+                          disabled={integrationTaskState(signal) !== "new"}
                           onClick={() => addIntegrationTask(signal)}
                           className="mt-3 min-h-11 rounded-xl border border-cyan-300/35 px-4 text-xs font-semibold text-cyan-200 disabled:cursor-default disabled:border-emerald-400/20 disabled:text-emerald-300"
                         >
-                          {integrationTaskExists(signal)
-                            ? c.addedPlanner
-                            : c.addPlanner}
+                          {integrationTaskState(signal) === "completed"
+                            ? c.completedToday
+                            : integrationTaskState(signal) === "planned"
+                              ? c.addedPlanner
+                              : c.addPlanner}
                         </button>
+                        {integrationTaskState(signal) !== "new" && (
+                          <Link
+                            href="/business/planner"
+                            className="ml-3 inline-flex min-h-11 items-center text-xs font-semibold text-primary"
+                          >
+                            {c.openPlanner}
+                          </Link>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -648,7 +683,7 @@ export function IntelligenceAutopilot() {
                 <small className="text-cyan-300">HEGEVA CORE</small>
                 <p className="mt-1 text-sm font-semibold">
                   {primary.kind === "clear" && integrationLoad[0]
-                    ? integrationMove(integrationLoad[0])
+                    ? integrationStatusMove(integrationLoad[0])
                     : actionTitle(primary)}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
