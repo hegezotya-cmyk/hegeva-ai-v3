@@ -29,6 +29,7 @@ import { COMMAND_OVERVIEW_COPY } from "@/lib/i18n/command-overview-copy"
 import { AICore, SectionHeading } from "@/components/visual-engine"
 import { OutcomeLauncher } from "@/components/outcome-launcher"
 import { GoalMode } from "@/components/command-center/goal-mode"
+import { GoalAdaptCycle } from "@/components/command-center/goal-adapt-cycle"
 import { IntelligenceAutopilot } from "@/components/command-center/intelligence-autopilot"
 import { LiveCorePriority } from "@/components/command-center/live-core-priority"
 
@@ -77,6 +78,7 @@ export function CommandCenterView() {
 
       <OutcomeLauncher compact />
       <GoalMode />
+      <GoalAdaptCycle />
       <LiveCorePriority />
       <OperatingCenter />
       <IntelligenceAutopilot />
