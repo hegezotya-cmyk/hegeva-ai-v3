@@ -41,7 +41,7 @@ export async function invokeCreativeProvider(env,brief){
  try{
   if(brief.operationType==="image"){
    if(!capability.providers.image)return{ok:false,reason:"provider-disabled"}
-   const result=await Promise.race([env.AI.run(CREATIVE_IMAGE_MODEL,{prompt:imagePrompt(brief),seed:Math.floor(Math.random()*2147483647)},{signal:controller.signal}),timeout])
+   const result=await Promise.race([env.AI.run(CREATIVE_IMAGE_MODEL,{prompt:imagePrompt(brief)}),timeout])
    if(!result||typeof result.image!=="string"||result.image.length<100||result.image.length>8_000_000)return{ok:false,reason:"invalid-provider-response"}
    return{ok:true,kind:"image",state:"ready-for-review",provider:"workers-ai",model:CREATIVE_IMAGE_MODEL,image:`data:image/jpeg;base64,${result.image}`,settledCredits:CREATIVE_CREDIT_COST.image}
   }
