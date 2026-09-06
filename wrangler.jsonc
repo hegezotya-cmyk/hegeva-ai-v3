@@ -41,7 +41,7 @@
     "AI_BOT_CANARY_EMAIL": "hegezotya@gmx.com",
     "FINANCIAL_GUARD_ENABLED": "enabled"
     ,"CREATIVE_CANARY_ENABLED": "enabled"
-    ,"CREATIVE_CANARY_EMAIL": "hegezotya@gmx.com"
+    ,"CREATIVE_CANARY_EMAIL": "hegezotya+stripe-test@gmx.com"
     ,"CREATIVE_TEXT_PROVIDER_ENABLED": "enabled"
     ,"CREATIVE_IMAGE_PROVIDER_ENABLED": "enabled"
     ,"CREATIVE_VIDEO_PROVIDER_ENABLED": "disabled"
