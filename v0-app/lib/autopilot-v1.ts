@@ -53,3 +53,7 @@ export function analyseIntegrationLoad(items:IntegrationLoadInput[]):Integration
  }
  return signals.sort((a,b)=>a.severity===b.severity?b.count-a.count:a.severity==="critical"?-1:1)
 }
+
+export function taskForIntegrationLoad(signal:IntegrationLoadSignal,title:string,today:string):AutopilotTask{
+ return{id:`integration-task-${signal.id}-${today}`,sourceId:`integration-signal:${signal.id}:${today}`,title,due:today,priority:signal.severity==="critical"?"high":"medium",done:false}
+}

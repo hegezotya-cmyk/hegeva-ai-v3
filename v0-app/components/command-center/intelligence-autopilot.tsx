@@ -29,6 +29,7 @@ import {
   canPrepareAutopilot,
   DEFAULT_AUTOPILOT_POLICY,
   taskForAutopilotAction,
+  taskForIntegrationLoad,
   transitionAutopilotAction,
   type AutopilotAction,
   type AutopilotAuditEvent,
@@ -92,6 +93,8 @@ const COPY = {
     inboxMove: "Reserve a focused inbox review block today. HEGEVA will not send or change anything automatically.",
     calendarMove: "Protect preparation time and review schedule conflicts. HEGEVA will not change calendar events.",
     externalClear: "Connected channels show no elevated workload signal in this seven-day window.",
+    addPlanner: "Add to Planner",
+    addedPlanner: "Added to Planner",
     integrationNote:
       "Connected accounts are available as secure read-only sources. HEGEVA does not send messages, change events or execute external actions automatically.",
     suggest: "Suggest",
@@ -151,6 +154,8 @@ const COPY = {
     inboxMove: "Foglalj ma egy koncentrált beérkező-áttekintési idősávot. A HEGEVA semmit nem küld el és nem módosít automatikusan.",
     calendarMove: "Védj le felkészülési időt és ellenőrizd az ütközéseket. A HEGEVA nem módosít naptári eseményt.",
     externalClear: "A csatlakoztatott csatornákon nincs emelkedett munkaterhelési jelzés ebben a hétnapos időablakban.",
+    addPlanner: "Hozzáadás a Tervezőhöz",
+    addedPlanner: "Hozzáadva a Tervezőhöz",
     integrationNote:
       "A csatlakoztatott fiókok biztonságos, csak olvasási forrásként érhetők el. A HEGEVA nem küld üzenetet, nem módosít eseményt és nem hajt végre automatikus külső műveletet.",
     suggest: "Javaslat",
@@ -210,6 +215,8 @@ const COPY = {
     inboxMove: "Heute einen fokussierten Posteingangsblock reservieren. HEGEVA sendet oder ändert nichts automatisch.",
     calendarMove: "Vorbereitungszeit schützen und Terminkonflikte prüfen. HEGEVA ändert keine Kalenderereignisse.",
     externalClear: "Die verbundenen Kanäle zeigen in diesem Sieben-Tage-Fenster keine erhöhte Arbeitslast.",
+    addPlanner: "Zum Planer hinzufügen",
+    addedPlanner: "Zum Planer hinzugefügt",
     integrationNote:
       "Verbundene Konten stehen als sichere, schreibgeschützte Quellen bereit. HEGEVA sendet keine Nachrichten, ändert keine Termine und führt keine externen Aktionen automatisch aus.",
     suggest: "Vorschlagen",
@@ -269,6 +276,8 @@ const COPY = {
     inboxMove: "Réservez aujourd’hui un créneau dédié à la boîte de réception. HEGEVA n’envoie et ne modifie rien automatiquement.",
     calendarMove: "Protégez le temps de préparation et vérifiez les conflits. HEGEVA ne modifie aucun événement.",
     externalClear: "Les canaux connectés ne montrent aucune charge élevée dans cette fenêtre de sept jours.",
+    addPlanner: "Ajouter au Planificateur",
+    addedPlanner: "Ajouté au Planificateur",
     integrationNote:
       "Les comptes connectés sont disponibles comme sources sécurisées en lecture seule. HEGEVA n’envoie aucun message, ne modifie aucun événement et n’exécute aucune action externe automatiquement.",
     suggest: "Suggérer",
@@ -328,6 +337,8 @@ const COPY = {
     inboxMove: "Reserva hoy un bloque para revisar la bandeja de entrada. HEGEVA no envía ni cambia nada automáticamente.",
     calendarMove: "Protege tiempo de preparación y revisa conflictos. HEGEVA no modifica eventos.",
     externalClear: "Los canales conectados no muestran una carga elevada en esta ventana de siete días.",
+    addPlanner: "Añadir al Planificador",
+    addedPlanner: "Añadido al Planificador",
     integrationNote:
       "Las cuentas conectadas están disponibles como fuentes seguras de solo lectura. HEGEVA no envía mensajes, cambia eventos ni ejecuta acciones externas automáticamente.",
     suggest: "Sugerir",
@@ -442,6 +453,35 @@ export function IntelligenceAutopilot() {
         ...all,
       ].slice(0, 100),
     );
+  const integrationTaskSource = (signal: IntegrationLoadSignal) =>
+    `integration-signal:${signal.id}:${today}`;
+  const integrationTaskExists = (signal: IntegrationLoadSignal) =>
+    tasks.some((task) => task.sourceId === integrationTaskSource(signal));
+  const addIntegrationTask = (signal: IntegrationLoadSignal) => {
+    if (integrationTaskExists(signal)) return;
+    const now = new Date().toISOString();
+    const title = `${integrationLabel(signal)} — ${integrationMove(signal)}`;
+    const task = taskForIntegrationLoad(signal, title, today);
+    setTasks((all) =>
+      all.some((item) => item.sourceId === task.sourceId)
+        ? all
+        : [task, ...all],
+    );
+    setAudit((all) =>
+      all.some((event) => event.actionId === task.id && event.event === "completed")
+        ? all
+        : [
+            {
+              id: crypto.randomUUID(),
+              actionId: task.id,
+              event: "completed" as const,
+              summary: title,
+              occurredAt: now,
+            },
+            ...all,
+          ].slice(0, 100),
+    );
+  };
   const prepare = (signal: AutopilotSignal) => {
     if (!canPrepareAutopilot(signal, actions, policy, today)) return;
     const now = new Date().toISOString();
@@ -570,6 +610,16 @@ export function IntelligenceAutopilot() {
                         <p className="mt-1 text-xs leading-5 text-muted-foreground">
                           {integrationMove(signal)}
                         </p>
+                        <button
+                          type="button"
+                          disabled={integrationTaskExists(signal)}
+                          onClick={() => addIntegrationTask(signal)}
+                          className="mt-3 min-h-11 rounded-xl border border-cyan-300/35 px-4 text-xs font-semibold text-cyan-200 disabled:cursor-default disabled:border-emerald-400/20 disabled:text-emerald-300"
+                        >
+                          {integrationTaskExists(signal)
+                            ? c.addedPlanner
+                            : c.addPlanner}
+                        </button>
                       </div>
                     </div>
                   ))}
