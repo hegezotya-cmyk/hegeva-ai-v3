@@ -25,6 +25,7 @@ import { useI18n } from "@/lib/i18n/provider";
 import { useWorkspaceData } from "@/lib/use-workspace-data";
 import {
   analyseAutopilotWorkspace,
+  analyseIntegrationLoad,
   canPrepareAutopilot,
   DEFAULT_AUTOPILOT_POLICY,
   taskForAutopilotAction,
@@ -36,6 +37,7 @@ import {
   type AutopilotSignal,
   type AutopilotTask,
   type AutopilotPolicy,
+  type IntegrationLoadSignal,
 } from "@/lib/autopilot-v1";
 
 type IntegrationProvider = {
@@ -84,6 +86,12 @@ const COPY = {
     unread: "Unread inbox · last 7 days",
     upcoming: "Calendar · next 7 days",
     signalUnavailable: "Signal temporarily unavailable",
+    coreInterpretation: "Core interpretation",
+    inboxLoad: "High unread inbox load",
+    calendarLoad: "Busy seven-day calendar",
+    inboxMove: "Reserve a focused inbox review block today. HEGEVA will not send or change anything automatically.",
+    calendarMove: "Protect preparation time and review schedule conflicts. HEGEVA will not change calendar events.",
+    externalClear: "Connected channels show no elevated workload signal in this seven-day window.",
     integrationNote:
       "Connected accounts are available as secure read-only sources. HEGEVA does not send messages, change events or execute external actions automatically.",
     suggest: "Suggest",
@@ -137,6 +145,12 @@ const COPY = {
     unread: "Olvasatlan beérkezők · elmúlt 7 nap",
     upcoming: "Naptár · következő 7 nap",
     signalUnavailable: "A jelzés átmenetileg nem érhető el",
+    coreInterpretation: "Core-értelmezés",
+    inboxLoad: "Magas olvasatlan beérkező terhelés",
+    calendarLoad: "Sűrű hétnapos naptár",
+    inboxMove: "Foglalj ma egy koncentrált beérkező-áttekintési idősávot. A HEGEVA semmit nem küld el és nem módosít automatikusan.",
+    calendarMove: "Védj le felkészülési időt és ellenőrizd az ütközéseket. A HEGEVA nem módosít naptári eseményt.",
+    externalClear: "A csatlakoztatott csatornákon nincs emelkedett munkaterhelési jelzés ebben a hétnapos időablakban.",
     integrationNote:
       "A csatlakoztatott fiókok biztonságos, csak olvasási forrásként érhetők el. A HEGEVA nem küld üzenetet, nem módosít eseményt és nem hajt végre automatikus külső műveletet.",
     suggest: "Javaslat",
@@ -190,6 +204,12 @@ const COPY = {
     unread: "Ungelesener Posteingang · 7 Tage",
     upcoming: "Kalender · nächste 7 Tage",
     signalUnavailable: "Signal vorübergehend nicht verfügbar",
+    coreInterpretation: "Core-Interpretation",
+    inboxLoad: "Hohe ungelesene Posteingangslast",
+    calendarLoad: "Dichter Sieben-Tage-Kalender",
+    inboxMove: "Heute einen fokussierten Posteingangsblock reservieren. HEGEVA sendet oder ändert nichts automatisch.",
+    calendarMove: "Vorbereitungszeit schützen und Terminkonflikte prüfen. HEGEVA ändert keine Kalenderereignisse.",
+    externalClear: "Die verbundenen Kanäle zeigen in diesem Sieben-Tage-Fenster keine erhöhte Arbeitslast.",
     integrationNote:
       "Verbundene Konten stehen als sichere, schreibgeschützte Quellen bereit. HEGEVA sendet keine Nachrichten, ändert keine Termine und führt keine externen Aktionen automatisch aus.",
     suggest: "Vorschlagen",
@@ -243,6 +263,12 @@ const COPY = {
     unread: "Boîte de réception non lue · 7 jours",
     upcoming: "Calendrier · 7 prochains jours",
     signalUnavailable: "Signal temporairement indisponible",
+    coreInterpretation: "Interprétation Core",
+    inboxLoad: "Charge élevée de messages non lus",
+    calendarLoad: "Calendrier chargé sur sept jours",
+    inboxMove: "Réservez aujourd’hui un créneau dédié à la boîte de réception. HEGEVA n’envoie et ne modifie rien automatiquement.",
+    calendarMove: "Protégez le temps de préparation et vérifiez les conflits. HEGEVA ne modifie aucun événement.",
+    externalClear: "Les canaux connectés ne montrent aucune charge élevée dans cette fenêtre de sept jours.",
     integrationNote:
       "Les comptes connectés sont disponibles comme sources sécurisées en lecture seule. HEGEVA n’envoie aucun message, ne modifie aucun événement et n’exécute aucune action externe automatiquement.",
     suggest: "Suggérer",
@@ -296,6 +322,12 @@ const COPY = {
     unread: "Bandeja no leída · últimos 7 días",
     upcoming: "Calendario · próximos 7 días",
     signalUnavailable: "Señal temporalmente no disponible",
+    coreInterpretation: "Interpretación de Core",
+    inboxLoad: "Carga alta de mensajes no leídos",
+    calendarLoad: "Calendario intenso de siete días",
+    inboxMove: "Reserva hoy un bloque para revisar la bandeja de entrada. HEGEVA no envía ni cambia nada automáticamente.",
+    calendarMove: "Protege tiempo de preparación y revisa conflictos. HEGEVA no modifica eventos.",
+    externalClear: "Los canales conectados no muestran una carga elevada en esta ventana de siete días.",
     integrationNote:
       "Las cuentas conectadas están disponibles como fuentes seguras de solo lectura. HEGEVA no envía mensajes, cambia eventos ni ejecuta acciones externas automáticamente.",
     suggest: "Sugerir",
@@ -387,9 +419,17 @@ export function IntelligenceAutopilot() {
     () => analyseAutopilotWorkspace({ customers, tasks, invoices, today }),
     [customers, tasks, invoices, today],
   );
+  const integrationLoad = useMemo(
+    () => analyseIntegrationLoad(integrationSignals || []),
+    [integrationSignals],
+  );
   const primary = signals[0];
   const label = (signal: AutopilotSignal) => c.signals[signal.kind];
   const actionTitle = (signal: AutopilotSignal) => c.actions[signal.kind];
+  const integrationLabel = (signal: IntegrationLoadSignal) =>
+    signal.kind === "inbox-load" ? c.inboxLoad : c.calendarLoad;
+  const integrationMove = (signal: IntegrationLoadSignal) =>
+    signal.kind === "inbox-load" ? c.inboxMove : c.calendarMove;
   const log = (
     actionId: string,
     event: AutopilotAuditEvent["event"],
@@ -493,20 +533,54 @@ export function IntelligenceAutopilot() {
             <div className="rounded-2xl border border-border p-4">
               <small className="text-muted-foreground">{c.happened}</small>
               <strong className="mt-2 block text-2xl">
-                {signals.reduce((sum, item) => sum + item.count, 0)}
+                {signals.reduce((sum, item) => sum + item.count, 0) + integrationLoad.length}
               </strong>
             </div>
             <div className="rounded-2xl border border-border p-4">
               <small className="text-muted-foreground">{c.important}</small>
-              <strong className="mt-2 block text-sm">{label(primary)}</strong>
+              <strong className="mt-2 block text-sm">
+                {primary.kind === "clear" && integrationLoad[0]
+                  ? integrationLabel(integrationLoad[0])
+                  : label(primary)}
+              </strong>
             </div>
             <div className="rounded-2xl border border-gold/35 bg-gold/5 p-4">
               <small className="text-muted-foreground">{c.recommend}</small>
               <strong className="mt-2 block text-sm text-gold">
-                {actionTitle(primary)}
+                {primary.kind === "clear" && integrationLoad[0]
+                  ? integrationMove(integrationLoad[0])
+                  : actionTitle(primary)}
               </strong>
             </div>
           </div>
+          {integrationSignals !== null && (
+            <div className="mt-4 rounded-2xl border border-cyan-300/25 bg-cyan-300/[.04] p-4">
+              <small className="font-semibold uppercase tracking-[.14em] text-cyan-300">
+                {c.coreInterpretation}
+              </small>
+              {integrationLoad.length ? (
+                <div className="mt-3 space-y-3">
+                  {integrationLoad.slice(0, 2).map((signal) => (
+                    <div key={signal.id} className="flex gap-3">
+                      <AlertTriangle className={`mt-0.5 size-4 shrink-0 ${signal.severity === "critical" ? "text-red-300" : "text-gold"}`} />
+                      <div>
+                        <strong className="text-sm">
+                          {integrationLabel(signal)} · {signal.count}{signal.capped ? "+" : ""}
+                        </strong>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                          {integrationMove(signal)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                  {c.externalClear}
+                </p>
+              )}
+            </div>
+          )}
           <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:flex-row sm:items-center">
             <Search className="size-5 text-primary" />
             <p className="flex-1 text-sm">{c.ask}</p>
@@ -523,10 +597,14 @@ export function IntelligenceAutopilot() {
               <div className="flex-1">
                 <small className="text-cyan-300">HEGEVA CORE</small>
                 <p className="mt-1 text-sm font-semibold">
-                  {actionTitle(primary)}
+                  {primary.kind === "clear" && integrationLoad[0]
+                    ? integrationMove(integrationLoad[0])
+                    : actionTitle(primary)}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {primary.count} · {label(primary)}
+                  {primary.kind === "clear" && integrationLoad[0]
+                    ? `${integrationLoad[0].count} · ${integrationLabel(integrationLoad[0])}`
+                    : `${primary.count} · ${label(primary)}`}
                 </p>
               </div>
               {primary.kind !== "clear" && (
@@ -547,7 +625,7 @@ export function IntelligenceAutopilot() {
             <h3 className="text-xl font-semibold">{c.radar}</h3>
           </div>
           <div className="mt-4 space-y-2">
-            {signals.map((signal) => (
+            {signals.filter((signal) => !(signal.kind === "clear" && integrationLoad.length)).map((signal) => (
               <div
                 key={signal.id}
                 className="flex items-center gap-3 rounded-xl border border-border p-3"
@@ -575,6 +653,25 @@ export function IntelligenceAutopilot() {
                   </p>
                 </div>
                 <Link href={signal.href} aria-label={label(signal)}>
+                  <ArrowUpRight className="size-4" />
+                </Link>
+              </div>
+            ))}
+            {integrationLoad.map((signal) => (
+              <div
+                key={signal.id}
+                className="flex items-center gap-3 rounded-xl border border-cyan-300/20 bg-cyan-300/[.03] p-3"
+              >
+                <span className={`grid size-9 place-items-center rounded-full ${signal.severity === "critical" ? "bg-red-400/10 text-red-300" : "bg-gold/10 text-gold"}`}>
+                  {signal.kind === "inbox-load" ? <Mail className="size-4" /> : <CalendarDays className="size-4" />}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <strong className="text-sm">{integrationLabel(signal)}</strong>
+                  <p className="text-xs text-muted-foreground">
+                    {signal.provider === "google" ? c.google : c.microsoft} · {signal.count}{signal.capped ? "+" : ""}
+                  </p>
+                </div>
+                <Link href={signal.href} aria-label={integrationLabel(signal)}>
                   <ArrowUpRight className="size-4" />
                 </Link>
               </div>
