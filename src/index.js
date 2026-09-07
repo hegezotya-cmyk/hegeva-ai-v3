@@ -280,12 +280,48 @@ function getStripePriceId(
   return "";
 }
 
-function isStripeTestSecret(
-  value
+function getPaymentMode(
+  env
 ) {
   return (
-    typeof value === "string" &&
-    value.startsWith("sk_test_")
+    typeof env.PAYMENT_MODE ===
+      "string"
+      ? env.PAYMENT_MODE
+          .trim()
+          .toLowerCase()
+      : "test"
+  );
+}
+
+function isStripeModeLive(
+  env
+) {
+  return (
+    getPaymentMode(env) === "live"
+  );
+}
+
+function isStripeSecret(
+  env
+) {
+  const key =
+    typeof env.STRIPE_SECRET_KEY ===
+      "string"
+      ? env.STRIPE_SECRET_KEY.trim()
+      : "";
+
+  return (
+    isStripeModeLive(env)
+      ? key.startsWith("sk_live_")
+      : key.startsWith("sk_test_")
+  );
+}
+
+function isStripeTestMode(
+  env
+) {
+  return (
+    !isStripeModeLive(env)
   );
 }
 
@@ -875,15 +911,13 @@ async function createStripeCheckoutSession(
       : "";
 
   if (
-    !isStripeTestSecret(
-      secretKey
-    )
+    !isStripeSecret(env)
   ) {
     return {
       ok: false,
       status: 503,
       error:
-        "Stripe test secret is not configured."
+        "Stripe secret is not configured."
     };
   }
 
@@ -1069,8 +1103,8 @@ async function createStripePortalSession(request, env, user) {
       ? env.STRIPE_SECRET_KEY.trim()
       : "";
 
-  if (!isStripeTestSecret(secretKey)) {
-    return { ok: false, status: 503, error: "Stripe test billing is not configured." };
+  if (!isStripeSecret(env)) {
+    return { ok: false, status: 503, error: "Stripe billing is not configured." };
   }
 
   const customer = await env.DB
@@ -1864,12 +1898,28 @@ export default {
       }
 
       if (
+        isStripeTestMode(env) &&
         event.livemode === true
       ) {
         return Response.json(
           {
             error:
               "Live Stripe events are not accepted by this test build."
+          },
+          {
+            status: 400
+          }
+        );
+      }
+
+      if (
+        isStripeModeLive(env) &&
+        event.livemode === false
+      ) {
+        return Response.json(
+          {
+            error:
+              "Test Stripe events are not accepted by this live build."
           },
           {
             status: 400
@@ -2113,25 +2163,16 @@ export default {
             : "";
 
         const paymentMode =
-          typeof env.PAYMENT_MODE ===
-            "string"
-            ? env.PAYMENT_MODE
-                .trim()
-                .toLowerCase()
-            : "";
+          getPaymentMode(env);
 
         const providerSelected =
           provider === "stripe";
 
-        const testMode =
-          paymentMode === "test";
+        const liveMode =
+          paymentMode === "live";
 
         const secretReady =
-          isStripeTestSecret(
-            typeof env.STRIPE_SECRET_KEY === "string"
-              ? env.STRIPE_SECRET_KEY.trim()
-              : ""
-          );
+          isStripeSecret(env);
 
         const premiumPriceReady =
           Boolean(
@@ -2151,7 +2192,6 @@ export default {
 
         const connected =
           providerSelected &&
-          testMode &&
           secretReady;
 
         const checkoutEnabled =
@@ -2188,7 +2228,9 @@ export default {
               : null,
 
           mode:
-            "test",
+            liveMode
+              ? "live"
+              : "test",
 
           checkoutEnabled,
 
@@ -2228,9 +2270,9 @@ export default {
           managedPaymentsEnabled:
             false,
 
-          testConfiguration: {
+          stripeConfiguration: {
             providerSelected,
-            testMode,
+            liveMode,
             secretReady,
             premiumPriceReady,
             proPriceReady
@@ -2238,8 +2280,8 @@ export default {
 
           message:
             checkoutEnabled
-              ? "Stripe test checkout is configured. Managed Payments is disabled for the HEGEVA Sandbox checkout. Verified Stripe webhooks control paid entitlement."
-              : "Billing API is available, but Stripe test checkout setup is incomplete."
+              ? `${liveMode ? "Stripe live checkout" : "Stripe test checkout"} is configured. Managed Payments is disabled for the HEGEVA checkout. Verified Stripe webhooks control paid entitlement.`
+              : "Billing API is available, but Stripe checkout setup is incomplete."
         });
       } catch (error) {
         console.error(
@@ -2275,10 +2317,10 @@ export default {
         }
 
         const provider = String(env.PAYMENT_PROVIDER || "").trim().toLowerCase();
-        const mode = String(env.PAYMENT_MODE || "").trim().toLowerCase();
-        if (provider !== "stripe" || mode !== "test") {
+        const mode = getPaymentMode(env);
+        if (provider !== "stripe") {
           return Response.json(
-            { error: "Only Stripe test billing is available in this build." },
+            { error: "Only Stripe billing is available in this build." },
             { status: 503 }
           );
         }
@@ -2286,8 +2328,8 @@ export default {
         const portal = await createStripePortalSession(request, env, user);
         return Response.json(
           portal.ok
-            ? { ok: true, mode: "test", url: portal.url }
-            : { ok: false, mode: "test", error: portal.error },
+            ? { ok: true, mode, url: portal.url }
+            : { ok: false, mode, error: portal.error },
           { status: portal.status }
         );
       } catch (error) {
@@ -2359,22 +2401,33 @@ export default {
             ? env.STRIPE_SECRET_KEY.trim()
             : "";
 
+        const liveMode =
+          isStripeModeLive(env);
+
+        const expectsTestSession =
+          !liveMode;
+
+        const expectedSessionPrefix =
+          expectsTestSession
+            ? "cs_test_"
+            : "cs_live_";
+
         if (
           !sessionId.startsWith(
-            "cs_test_"
+            expectedSessionPrefix
           ) ||
-          !isStripeTestSecret(
-            secretKey
-          )
+          !isStripeSecret(env)
         ) {
           return Response.json(
             {
               error:
-                "Invalid Sandbox checkout confirmation.",
+                "Invalid checkout confirmation.",
               code:
-                !sessionId.startsWith("cs_test_")
+                !sessionId.startsWith(expectedSessionPrefix)
                   ? "invalid_session_id"
-                  : "stripe_test_secret_unavailable"
+                  : liveMode
+                      ? "stripe_live_secret_unavailable"
+                      : "stripe_test_secret_unavailable"
             },
             {
               status: 400
@@ -2405,7 +2458,7 @@ export default {
           return Response.json(
             {
               error:
-                "Stripe Sandbox checkout could not be verified.",
+                "Stripe checkout could not be verified.",
               code:
                 "stripe_session_lookup_failed",
               stripeStatus:
@@ -2444,7 +2497,7 @@ export default {
           );
 
         if (
-          stripeSession.livemode === true ||
+          stripeSession.livemode !== (liveMode === true) ||
           stripeSession.mode !==
             "subscription" ||
           !paid ||
@@ -2455,12 +2508,14 @@ export default {
           return Response.json(
             {
               error:
-                "This Sandbox checkout does not belong to the authenticated account or is not paid.",
+                "This checkout does not belong to the authenticated account or is not paid.",
               code:
                 "stripe_session_validation_failed",
               checks: {
-                testMode:
-                  stripeSession.livemode !== true,
+                modeMatch:
+                  stripeSession.livemode === (liveMode === true),
+                expectedLive:
+                  liveMode,
                 subscriptionMode:
                   stripeSession.mode === "subscription",
                 paid,
@@ -2500,7 +2555,7 @@ export default {
         return Response.json(
           {
             error:
-              "Stripe Sandbox checkout confirmation is temporarily unavailable.",
+              "Stripe checkout confirmation is temporarily unavailable.",
             code:
               "stripe_confirmation_internal_error"
           },
@@ -2598,14 +2653,18 @@ export default {
           );
         }
 
+        const expectedMode =
+          isStripeModeLive(env)
+            ? "live"
+            : "test";
+
         if (
-          body?.mode !==
-          "test"
+          body?.mode !== expectedMode
         ) {
           return Response.json(
             {
               error:
-                "Only test checkout is allowed in this build."
+                `Only ${expectedMode} checkout is allowed in this build.`
             },
             {
               status: 400
@@ -2622,16 +2681,11 @@ export default {
             : "";
 
         const paymentMode =
-          typeof env.PAYMENT_MODE ===
-            "string"
-            ? env.PAYMENT_MODE
-                .trim()
-                .toLowerCase()
-            : "";
+          getPaymentMode(env);
 
         if (
           provider !== "stripe" ||
-          paymentMode !== "test"
+          paymentMode !== getPaymentMode(env)
         ) {
           return Response.json(
             {
@@ -2642,7 +2696,7 @@ export default {
                 null,
 
               mode:
-                "test",
+                expectedMode,
 
               plan:
                 requestedPlan,
@@ -2657,7 +2711,7 @@ export default {
                 false,
 
               message:
-                "Stripe test mode is not configured."
+                `Stripe ${expectedMode} mode is not configured.`
             },
             {
               status: 503
@@ -2683,7 +2737,7 @@ export default {
                 "Stripe",
 
               mode:
-                "test",
+                expectedMode,
 
               plan:
                 requestedPlan,
@@ -2715,7 +2769,7 @@ export default {
             "Stripe",
 
           mode:
-            "test",
+            expectedMode,
 
           plan:
             requestedPlan,
@@ -2742,7 +2796,7 @@ export default {
             false,
 
           message:
-            "Stripe test checkout session created. Managed Payments is disabled. Paid entitlement changes only after verified Stripe webhook events."
+            `Stripe ${expectedMode} checkout session created. Managed Payments is disabled. Paid entitlement changes only after verified Stripe webhook events.`
         });
       } catch (error) {
         console.error(
@@ -3456,9 +3510,15 @@ QUALITY RULES:
           let result;
 
           try {
+            const aiModel =
+            typeof env.AI_MODEL === "string" &&
+            env.AI_MODEL.trim()
+              ? env.AI_MODEL.trim()
+              : "@cf/qwen/qwen3-30b-a3b-fp8";
+
             const aiPromise =
               env.AI.run(
-                "@cf/meta/llama-3.1-8b-instruct-fast",
+                aiModel,
                 {
                   messages: [
                     {
@@ -3591,8 +3651,10 @@ QUALITY RULES:
     // STATIC HEGEVA WEBSITE
     // =========================================
 
-    return env.ASSETS.fetch(
-      request
-    );
+    if (env.ASSETS) {
+      return env.ASSETS.fetch(request);
+    }
+
+    return new Response("Not found", { status: 404 });
   }
 };

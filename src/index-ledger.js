@@ -382,9 +382,18 @@ async function handleStripeWebhook(request, env, ctx) {
     );
   }
 
-  if (event?.livemode === true) {
+  const liveMode = String(env.PAYMENT_MODE || "").trim().toLowerCase() === "live";
+
+  if (event?.livemode === true && !liveMode) {
     return Response.json(
       { error: "Live Stripe events are not accepted by this test build." },
+      { status: 400 },
+    );
+  }
+
+  if (event?.livemode === false && liveMode) {
+    return Response.json(
+      { error: "Test Stripe events are not accepted by this live build." },
       { status: 400 },
     );
   }

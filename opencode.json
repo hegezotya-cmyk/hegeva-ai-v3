@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "bash": {
+      "*": "allow",
+      "wrangler deploy*": "ask",
+      "npm run deploy:*": "ask",
+      "npm run release:*": "ask",
+      "npm run db:migrate:remote": "ask"
+    }
+  }
+}

@@ -37,14 +37,5 @@
       "database_id": "1aa89d03-3f5c-4505-814a-5c379148f22d",
       "migrations_dir": "./migrations"
     }
-  ],
-
-  "assets": {
-    "directory": "./public",
-    "binding": "ASSETS",
-    "run_worker_first": [
-      "/api/*"
-    ],
-    "not_found_handling": "single-page-application"
-  }
+  ]
 }
