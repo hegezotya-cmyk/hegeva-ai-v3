@@ -124,6 +124,13 @@ export async function handleAiChatAdmission({
         return Response.json({ error }, { status })
       }
       const used = await readUsage(user.id, period)
+      if (input.actionKind !== "x20") {
+        console.error("HEGEVA_MONITOR", {
+          scope: "ai_quota",
+          outcome: "monthly_ai_limit",
+          reason: typeof reservation.reason === "string" ? reservation.reason : "quota_unavailable",
+        })
+      }
       return Response.json(
         { error: "Monthly AI message limit reached.", plan: planInfo.plan, limit: planInfo.limit, used },
         { status: 429 },

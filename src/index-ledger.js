@@ -1,4 +1,4 @@
-import hegevaWorker from "./index.js";
+import hegevaWorker, { emitMonitor } from "./index.js";
 export { UserRateLimiter } from "./user-rate-limiter-do.js";
 
 const STRIPE_WEBHOOK_BODY_LIMIT = 512 * 1024;
@@ -420,6 +420,7 @@ async function handleStripeWebhook(request, env, ctx) {
     );
 
     if (!signatureValid) {
+      emitMonitor("stripe_webhook", "signature_invalid");
       return Response.json(
         { error: "Invalid Stripe webhook signature." },
         { status: 400 },
@@ -440,6 +441,7 @@ async function handleStripeWebhook(request, env, ctx) {
     (paymentMode === "test" && event?.livemode === false);
 
   if (!eventMatchesMode) {
+    emitMonitor("stripe_webhook", "mode_mismatch");
     return Response.json(
       { error: "Stripe event mode does not match the active payment mode." },
       { status: 400 },

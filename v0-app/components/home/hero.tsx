@@ -7,6 +7,9 @@ import { useI18n } from "@/lib/i18n/provider"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
+const heroArtworkSource = "/hegeva-homepage-clean-master-aaa-v2.png"
+const heroArtworkUrl = heroArtworkSource.replace(/\.png$/, ".webp")
+
 const liveHeroCopy = {
   en: { motto:"YOUR BUSINESS. ONE INTELLIGENT SYSTEM.", title:["Imagine it.","Build it.","Run it."], subtitle:"A trusted AI partner for creating, operating and growing your business.", primary:"Start your journey", secondary:"See how it works", signal:"Connected systems" },
   hu: { motto:"A TE ÜZLETED. EGY INTELLIGENS RENDSZER.", title:["Képzeld el.","Építsd fel.","Futtasd."] , subtitle:"Megbízható AI-partner vállalkozásod létrehozásához, működtetéséhez és növeléséhez.", primary:"Kezdd el az utad", secondary:"Nézd meg, hogyan működik", signal:"Kapcsolt rendszerek" },
@@ -22,7 +25,7 @@ export function Hero() {
   return (
     <section className="cinematic-hero relative isolate overflow-hidden">
       <div className="hero-artwork-layer" aria-hidden>
-        <Image src="/hegeva-homepage-clean-master-aaa-v2.png" alt="" fill priority sizes="100vw" className="hero-environment" />
+        <Image src={heroArtworkUrl} alt="" fill priority sizes="100vw" className="hero-environment" />
       </div>
       <div className="hero-spectrum" aria-hidden />
       <div className="hero-energy-trail trail-one" aria-hidden />

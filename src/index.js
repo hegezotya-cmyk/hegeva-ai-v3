@@ -4,6 +4,7 @@ import {
   sendResendEmail
 } from "./auth.js";
 import { reserveAIUsage } from "./ai-quota-reservation.js";
+import { createAuthRateLimiter, clientIpKey } from "./auth-rate-limiter.js";
 import { handleAiChatAdmission } from "./ai-chat-admission.js";
 import { isX20RequestId, registerX20Attempt, startX20Action, finishX20Attempt } from "./x20-ledger.js";
 import { readAssistantUsage, startAssistantOperation, finishAssistantOperation } from "./assistant-quota.js";
@@ -92,9 +93,21 @@ function safeErrorName(error) {
     : "UnknownError";
 }
 
+function emitMonitor(scope, outcome, metadata = {}) {
+  console.error("HEGEVA_MONITOR", {
+    scope,
+    outcome,
+    ...metadata,
+  });
+}
+
 function logFailure(reason, error, metadata = {}) {
   console.error("HEGEVA_REQUEST_FAILURE", {
     reason,
+    errorName: safeErrorName(error),
+    ...metadata,
+  });
+  emitMonitor(reason, "failure", {
     errorName: safeErrorName(error),
     ...metadata,
   });
@@ -1420,6 +1433,43 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         "/api/auth/"
       )
     ) {
+      const authRouteKey =
+        url.pathname.slice(
+          "/api/auth/".length
+        );
+      const authLimiter =
+        globalThis.__hegevaAuthRateLimiter ||
+        (globalThis.__hegevaAuthRateLimiter =
+          createAuthRateLimiter());
+      const authAdmission =
+        request.method === "POST"
+          ? authLimiter.admit(
+              authRouteKey,
+              clientIpKey(request)
+            )
+          : { allowed: true };
+
+      if (!authAdmission.allowed) {
+        emitMonitor("auth", "rate_limited", {
+          route: authRouteKey
+        });
+
+        return Response.json(
+          {
+            error:
+              "Too many requests. Please try again shortly."
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(
+                authAdmission.retryAfterSeconds
+              )
+            }
+          }
+        );
+      }
+
       try {
         const auth =
           createAuth(
@@ -2045,6 +2095,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
       }
 
       if (!signatureValid) {
+        emitMonitor("stripe_webhook", "signature_invalid");
         return Response.json(
           {
             error:
@@ -2070,6 +2121,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
             bodyText
           );
       } catch {
+        emitMonitor("stripe_webhook", "payload_invalid");
         return Response.json(
           {
             error:
@@ -2086,6 +2138,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         event.object !== "event" ||
         typeof event.type !== "string"
       ) {
+        emitMonitor("stripe_webhook", "event_invalid");
         return Response.json(
           {
             error:
@@ -2103,6 +2156,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         (paymentMode === "test" && event.livemode === false);
 
       if (!eventMatchesMode) {
+        emitMonitor("stripe_webhook", "mode_mismatch");
         return Response.json(
           {
             error:
@@ -3634,7 +3688,7 @@ QUALITY RULES:
         const result = await env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='ai-bot-profiles' AND updatedAt=?4").bind(JSON.stringify(records), approvedAt, user.id, stored.row.updatedAt).run();
         if (Number(result?.meta?.changes || 0) !== 1) return Response.json({ error: "The profile changed; reload and try again." }, { status: 409 });
         return Response.json({ status: "owner-approved", approvalExpiresAt, approvalVersion }, { status: 200 });
-      } catch { return Response.json({ error: "Owner approval is temporarily unavailable." }, { status: 503 }); }
+      } catch { emitMonitor("ai_bot_create", "approval_failed"); return Response.json({ error: "Owner approval is temporarily unavailable." }, { status: 503 }); }
     }
 
     if (url.pathname === "/api/ai-bot/canary-readiness") {
@@ -3687,6 +3741,7 @@ QUALITY RULES:
         return Response.json({ status: provider.ok ? "succeeded" : "failed", providerAttempted: true, financialGuardStatus: provider.ok ? "finalized" : "released", ...(provider.ok && provider.metrics ? { metrics: provider.metrics } : {}), ...(failureReason ? { reason: failureReason } : {}) }, { status: provider.ok ? 200 : 503 });
       } catch {
         if (authorizationHash) await revokeUnusedCanaryAuthorization(env, authorizationHash);
+        emitMonitor("ai_bot_canary", "preflight_failed");
         return canaryReply(authorizationHash ? "authorization-reservation-failed" : "internal-unavailable", 503);
       }
     }
@@ -3719,7 +3774,7 @@ QUALITY RULES:
           await finishAIBotOperation(env, { operationId, userId: user.id, profileId, reservationId: reservation.reservationId, status: provider.ok ? "succeeded" : "failed", failureCode: provider.ok ? null : provider.reason });
           if (!provider.ok) return Response.json({ error: "AI Bot execution is temporarily unavailable." }, { status: provider.reason === "timeout" ? 504 : 503 });
           return Response.json({ schemaVersion: "0.1", status: "ready-for-review", provider: "workers-ai", executionState: "not-started", response: provider.response }, { status: 200 });
-      } catch { return Response.json({ error: "AI Bot execution is temporarily unavailable." }, { status: 503 }); }
+      } catch { emitMonitor("ai_bot_execute", "handler_failed"); return Response.json({ error: "AI Bot execution is temporarily unavailable." }, { status: 503 }); }
     }
 
     if (url.pathname === "/api/ai/status") {
@@ -3818,7 +3873,7 @@ QUALITY RULES:
         if(!generated.ok)return Response.json({error:"Creative generation is temporarily unavailable.",reason:generated.reason},{status:generated.reason==="provider-timeout"?504:503})
         const credits=await readCreativeCredits(env.DB,user.id,period,planInfo.plan)
         return Response.json({...generated,executionState:"not-published",credits},{status:200,headers:{"Cache-Control":"private, no-store"}})
-      }catch{
+      }catch{emitMonitor("creative_generate","handler_failed")
         if(reservation?.reserved&&user)await settleCreativeCredits(env.DB,{operationId:reservation.operationId,userId:user.id,success:false,failureCode:"internal-failure"}).catch(()=>{})
         return Response.json({error:"Creative generation is temporarily unavailable."},{status:503})
       }finally{if(lease?.allowed&&lease?.token&&env.RATE_LIMITER)await env.RATE_LIMITER.getByName(`creative-rate-limit:${user?.id}`).release(lease.token).catch(()=>{})}
@@ -3858,7 +3913,7 @@ QUALITY RULES:
         await finishX30Generation(env, { operationId, userId: user.id, status: provider.ok ? "ready-for-review" : "rejected" });
         if (!provider.ok) return Response.json({ error: "X30 generation is temporarily unavailable." }, { status: provider.reason === "provider_timeout" ? 504 : 502 });
         return Response.json(provider.result, { status: 200 });
-      } catch {
+      } catch { emitMonitor("x30_generate", "handler_failed");
         return Response.json({ error: "X30 generation is not currently available." }, { status: 503 });
       }
     }

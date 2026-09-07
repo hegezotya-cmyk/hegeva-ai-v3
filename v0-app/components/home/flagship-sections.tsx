@@ -23,6 +23,11 @@ import { useI18n } from "@/lib/i18n/provider";
 import { useSession } from "@/lib/auth-client";
 import { useWorkspaceData } from "@/lib/use-workspace-data";
 import { cn } from "@/lib/utils";
+import {
+  SAMPLE_OPERATING_PICTURE,
+  SAMPLE_JOURNEY_COUNTS,
+  SAMPLE_JOURNEY_START_INDEX,
+} from "@/lib/sample-data/sample-workspace-config";
 
 const copy = {
   en: {
@@ -259,12 +264,7 @@ export function FlagshipSections() {
   const picture = isLive
     ? livePicture
     : {
-        customers: "3",
-        overdue: "£1,420",
-        dueToday: "5",
-        opportunities: "£2,270",
-        campaign: "+18%",
-        attention: 8,
+        ...SAMPLE_OPERATING_PICTURE,
         insight: oc.demoInsight,
       };
   const jc = journeyCopy[locale as Locale];
@@ -275,8 +275,8 @@ export function FlagshipSections() {
     const followUps = messages.filter((message) => Boolean(message.sourceId));
     const invoiceDocs = invoices.filter((document) => document.type === "invoice");
     const payments = invoiceDocs.filter((document) => document.status === "paid");
-    const counts = isLive ? [leads, activeCustomers, quotes.length, followUps.length, invoiceDocs.length, payments.length] : [3, 2, 2, 1, 1, 1];
-    const nextIndex = isLive ? counts.findIndex((count) => count === 0) : 3;
+    const counts = isLive ? [leads, activeCustomers, quotes.length, followUps.length, invoiceDocs.length, payments.length] : [...SAMPLE_JOURNEY_COUNTS];
+    const nextIndex = isLive ? counts.findIndex((count) => count === 0) : SAMPLE_JOURNEY_START_INDEX;
     const resolvedIndex = nextIndex === -1 ? 5 : nextIndex;
     const hrefs = ["/business/customers", "/business/customers", "/business/invoices", "/business/intelligence#customer-follow-up", "/business/invoices", "/command-center"];
     return { counts, nextIndex: resolvedIndex, href: hrefs[resolvedIndex] };
