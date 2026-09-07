@@ -11,6 +11,8 @@ import {
   type StudioLocale,
 } from "@/lib/app-studio-ai"
 import { blockingFindings, verifyGeneratedHtml } from "@/lib/app-studio-boundary"
+import { useAiAvailability } from "@/lib/ai-availability"
+import { ComingSoonBanner } from "@/components/coming-soon-state"
 
 const LAST_BUILD_KEY = "hegeva:app-studio:last-built-html"
 
@@ -256,8 +258,11 @@ export function ProjectExport() {
     return { ...baseFiles, "VERIFY.md": report }
   }, [allPassed, baseFiles, checks])
 
+  const aiAvailability = useAiAvailability()
+  const aiRepairAvailable = aiAvailability.status.x10Enabled
+
   async function autoRepairProject() {
-    if (!html || allPassed || repairing) return
+    if (!html || allPassed || repairing || !aiRepairAvailable) return
     setRepairing(true)
     setRepairMessage("")
     const failed = checks.filter(([, ok]) => !ok).map(([label]) => `- ${label}`).join("\n")
@@ -315,7 +320,11 @@ export function ProjectExport() {
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               {checks.map(([label, ok]) => <div key={label} className="flex items-center gap-2 text-sm">{ok ? <CheckCircle2 className="size-4 text-primary" aria-hidden /> : <XCircle className="size-4 text-destructive" aria-hidden />}<span>{label}</span></div>)}
             </div>
-            {!allPassed && <button type="button" disabled={repairing} onClick={() => void autoRepairProject()} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"><Sparkles className="size-4" aria-hidden />{repairing ? c.repairing : c.repair}</button>}
+            {!allPassed && (aiRepairAvailable ? (
+              <button type="button" disabled={repairing} onClick={() => void autoRepairProject()} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"><Sparkles className="size-4" aria-hidden />{repairing ? c.repairing : c.repair}</button>
+            ) : (
+              <ComingSoonBanner feature="fix" className="mt-4" />
+            ))}
             {repairMessage && <p className="mt-3 text-sm text-muted-foreground">{repairMessage}</p>}
           </div>
 

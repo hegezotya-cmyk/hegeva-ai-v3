@@ -2,6 +2,8 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import { useAiAvailability } from "@/lib/ai-availability"
+import { ComingSoonCard } from "@/components/coming-soon-state"
 import {
   Accessibility,
   AlertTriangle,
@@ -151,6 +153,11 @@ export function FixMyApp() {
       if (lastBuild?.trim()) setSourceCode(lastBuild)
     } catch {}
   }, [])
+
+  const aiAvailability = useAiAvailability()
+  if (!aiAvailability.status.x10Enabled) {
+    return <ComingSoonCard feature="fix" className="mx-auto mt-12 max-w-xl" />
+  }
 
   function createDiagnosis() {
     const value = problem.trim()

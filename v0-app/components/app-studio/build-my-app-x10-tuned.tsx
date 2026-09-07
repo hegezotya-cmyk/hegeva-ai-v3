@@ -6,6 +6,8 @@ import { useI18n } from "@/lib/i18n/provider"
 import { downloadTextFile, looksLikeHtmlDocument, runStudioAI, stripCodeFence, type AssistantOperationContext, type StudioLocale } from "@/lib/app-studio-ai"
 import { auditStudioSpecMatch } from "@/lib/app-studio-spec-match"
 import { preparePreviewHtml, verifyGeneratedHtml } from "@/lib/app-studio-boundary"
+import { useAiAvailability } from "@/lib/ai-availability"
+import { ComingSoonCard } from "@/components/coming-soon-state"
 
 type ViewMode = "preview" | "code"
 type DeviceMode = "desktop" | "tablet" | "mobile"
@@ -56,8 +58,12 @@ export function BuildMyAppX10Tuned() {
   const [error, setError] = useState("")
   const [view, setView] = useState<ViewMode>("preview")
   const [device, setDevice] = useState<DeviceMode>("desktop")
-  const result = useMemo(() => audit(html, idea), [html, idea])
   const width = device === "mobile" ? "390px" : device === "tablet" ? "820px" : "100%"
+  const result = useMemo(() => audit(html, idea), [html, idea])
+  const aiAvailability = useAiAvailability()
+  if (!aiAvailability.status.x10Enabled) {
+    return <ComingSoonCard feature="x10" className="mx-auto mt-12 max-w-xl" />
+  }
 
   async function build() {
     const request = idea.trim()

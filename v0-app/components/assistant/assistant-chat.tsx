@@ -11,6 +11,8 @@ import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { AICore, IntelligenceCard, SkeletonSurface } from "@/components/visual-engine"
 import { createCompanionProjection, createWorkspacePulseProjection } from "@/lib/foundation/roadmap-foundations"
 import { selectHegevaCorePriority } from "@/lib/hegeva-core"
+import { useAiAvailability } from "@/lib/ai-availability"
+import { ComingSoonCard } from "@/components/coming-soon-state"
 
 type ChatMessage = {
   role: "user" | "assistant"
@@ -133,6 +135,7 @@ export function AssistantChat() {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const pendingOperationRef = useRef<{ message: string; operationId: string } | null>(null)
+  const aiAvailability = useAiAvailability()
 
   const recentHistory = useMemo(
     () => messages.slice(-10),
@@ -332,6 +335,11 @@ export function AssistantChat() {
         </Link>
       </IntelligenceCard>
     )
+  }
+
+  const aiAvailabilityGate = aiAvailability.status.assistantEnabled
+  if (!aiAvailabilityGate) {
+    return <ComingSoonCard feature="assistant" className="mx-auto mt-12 max-w-xl" />
   }
 
   return (

@@ -17,6 +17,8 @@ import {
   type AdvertisingLanguage,
 } from "@/lib/advertising-workflows";
 import { generateAdvertisingCampaign, generateAdvertisingImage } from "@/lib/advertising-ai";
+import { useAiAvailability } from "@/lib/ai-availability";
+import { ComingSoonBanner } from "@/components/coming-soon-state";
 
 type Mode = "improve" | "create";
 type Saved = AdvertisingBrief & {
@@ -335,6 +337,7 @@ export function AdvertisingStudio() {
   const [generating, setGenerating] = useState(false);
   const [generatedImage,setGeneratedImage]=useState("");
   const [creditsRemaining,setCreditsRemaining]=useState<number|null>(null);
+  const aiAvailability = useAiAvailability();
   const update = (key: string, value: string) =>
     setBrief((v) => ({ ...v, [key]: value }));
   const save = () => {
@@ -365,7 +368,7 @@ export function AdvertisingStudio() {
     }
   };
   const generate = async () => {
-    if (generating) return;
+    if (generating || !aiAvailability.status.assistantEnabled) return;
     setError(""); setNotice("");
     try {
       const clean = validateAdvertisingBrief({ ...brief, keyBenefits: brief.keyBenefits || [], restrictions: brief.restrictions || [] });
@@ -381,7 +384,7 @@ export function AdvertisingStudio() {
       setError(cause instanceof Error && cause.message === "sign-in" ? t.aiSignIn : t.aiError);
     } finally { setGenerating(false); }
   };
-  const generateVisual=async()=>{if(generating)return;setError("");setNotice("");try{const clean=validateAdvertisingBrief({...brief,keyBenefits:brief.keyBenefits||[],restrictions:brief.restrictions||[]});if(!cloudEnabled)throw new Error("sign-in");setGenerating(true);const result=await generateAdvertisingImage(clean);setGeneratedImage(result.image);setCreditsRemaining(Number.isFinite(result.credits?.remaining)?result.credits.remaining:null)}catch(cause){setError(cause instanceof Error&&cause.message==="sign-in"?t.aiSignIn:t.aiError)}finally{setGenerating(false)}};
+  const generateVisual=async()=>{if(generating||!aiAvailability.status.assistantEnabled)return;setError("");setNotice("");try{const clean=validateAdvertisingBrief({...brief,keyBenefits:brief.keyBenefits||[],restrictions:brief.restrictions||[]});if(!cloudEnabled)throw new Error("sign-in");setGenerating(true);const result=await generateAdvertisingImage(clean);setGeneratedImage(result.image);setCreditsRemaining(Number.isFinite(result.credits?.remaining)?result.credits.remaining:null)}catch(cause){setError(cause instanceof Error&&cause.message==="sign-in"?t.aiSignIn:t.aiError)}finally{setGenerating(false)}};
   const prepared = (() => {
     try {
       return prepareAdvertisingWorkflow(validateAdvertisingBrief(brief));
@@ -534,6 +537,7 @@ export function AdvertisingStudio() {
                 {generating ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Sparkles className="size-4" aria-hidden />}
                 {generating ? t.generating : t.generate}
               </button>
+              {!aiAvailability.status.assistantEnabled && <ComingSoonBanner feature="advertising" className="w-full" />}
               {editing && (
                 <button
                   type="button"

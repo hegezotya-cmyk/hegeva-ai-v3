@@ -26,6 +26,19 @@ const PLAN_LIMITS = {
   pro: 1000
 };
 
+// =========================================
+// PAYMENT-FAILURE GRACE POLICY (P0-4)
+// -----------------------------------------
+// Non-destructive policy: a failed invoice NEVER breaks a live workspace.
+// Stripe owns the dunning/retry cycle; that retry window is treated as the
+// protected grace period during which the workspace keeps working fully.
+// Servicing visible via the billing API: paymentState "payment-failed" and
+// paymentGraceUntil (lastEventCreatedAt + GRACE_DAYS). Only when Stripe
+// definitively settles "unpaid" / cancels the subscription does the ledger
+// terminal downgrade apply (downgradeTerminalSubscription in index-ledger.js).
+// Stripe webhooks remain the source of truth; the front end never downgrades.
+const GRACE_DAYS = 7;
+
 // These limits leave room for legitimate payloads while bounding buffering
 // before parsing, persistence, provider calls, or AI execution. Workspace is
 // 768 KiB because the application checks JSON.stringify(data).length in UTF-16
@@ -974,7 +987,9 @@ async function getStripeWebhookStatus(
       configured,
       verified: false,
       lastEventType: null,
-      lastEventCreatedAt: null
+      lastEventCreatedAt: null,
+      paymentState: "current",
+      paymentGraceUntil: null
     };
   }
 
@@ -1000,7 +1015,9 @@ async function getStripeWebhookStatus(
       configured,
       verified: false,
       lastEventType: null,
-      lastEventCreatedAt: null
+      lastEventCreatedAt: null,
+      paymentState: "current",
+      paymentGraceUntil: null
     };
   }
 
@@ -1010,24 +1027,55 @@ async function getStripeWebhookStatus(
         row.data
       );
 
+    const PAYMENT_FAILED_EVENT =
+      "invoice.payment_failed";
+    let paymentState =
+      "current";
+    let paymentGraceUntil =
+      null;
+    if (
+      lastEventType ===
+        PAYMENT_FAILED_EVENT &&
+      typeof lastEventCreatedAt ===
+        "string"
+    ) {
+      const failedAt =
+        new Date(lastEventCreatedAt).getTime();
+      if (Number.isInteger(failedAt)) {
+        paymentState =
+          "payment-failed";
+        paymentGraceUntil =
+          new Date(
+            failedAt +
+              GRACE_DAYS *
+                24 *
+                60 *
+                60 *
+                1000
+          ).toISOString();
+      }
+    }
+
     return {
       configured,
       verified:
         parsed?.verified ===
         true,
       lastEventType:
-        parsed?.lastEventType ||
-        null,
+        lastEventType,
       lastEventCreatedAt:
-        parsed?.lastEventCreatedAt ||
-        null
+        lastEventCreatedAt,
+      paymentState,
+      paymentGraceUntil
     };
   } catch {
     return {
       configured,
       verified: false,
       lastEventType: null,
-      lastEventCreatedAt: null
+      lastEventCreatedAt: null,
+      paymentState: "current",
+      paymentGraceUntil: null
     };
   }
 }
@@ -2170,6 +2218,17 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           event.type ===
           "invoice.payment_failed"
         ) {
+          logFailure(
+            "stripe_invoice_payment_failed",
+            new Error(
+              "Stripe invoice payment failed."
+            ),
+            {
+              userId: userId || null,
+              eventId: event?.id || null
+            }
+          );
+
           ignored =
             true;
         }
@@ -2402,6 +2461,12 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
 
           lastWebhookEventCreatedAt:
             webhookStatus.lastEventCreatedAt,
+
+          paymentState:
+            webhookStatus.paymentState,
+
+          paymentGraceUntil:
+            webhookStatus.paymentGraceUntil,
 
           entitlementSource:
             "backend",
@@ -3655,6 +3720,66 @@ QUALITY RULES:
           if (!provider.ok) return Response.json({ error: "AI Bot execution is temporarily unavailable." }, { status: provider.reason === "timeout" ? 504 : 503 });
           return Response.json({ schemaVersion: "0.1", status: "ready-for-review", provider: "workers-ai", executionState: "not-started", response: provider.response }, { status: 200 });
       } catch { return Response.json({ error: "AI Bot execution is temporarily unavailable." }, { status: 503 }); }
+    }
+
+    if (url.pathname === "/api/ai/status") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const flags = parseProviderFlags(env);
+        const providerEnabled = flags.providerEnabled === true;
+        const globalKillSwitch = flags.killSwitchActive === true;
+        const canaryMode = flags.canaryEnabled === true;
+        const nonX20ProviderActive = providerEnabled && !globalKillSwitch;
+        return Response.json({
+          providerEnabled,
+          globalKillSwitch,
+          x20Enabled: true,
+          assistantEnabled: nonX20ProviderActive,
+          x10Enabled: nonX20ProviderActive,
+          aiBotsEnabled: canaryMode && nonX20ProviderActive,
+          x30Enabled: x30ProviderEnabled(env),
+          videoEnabled:
+            env?.CREATIVE_VIDEO_PROVIDER_ENABLED === "enabled",
+        }, { headers: { "Cache-Control": "no-store, max-age=0" } });
+      } catch {
+        return Response.json({ error: "AI status is temporarily unavailable." }, { status: 503, headers: { "Cache-Control": "no-store, max-age=0" } });
+      }
+    }
+
+    if (url.pathname === "/api/billing/public-status") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const provider =
+          typeof env.PAYMENT_PROVIDER === "string"
+            ? env.PAYMENT_PROVIDER.trim().toLowerCase()
+            : "";
+        const paymentMode =
+          typeof env.PAYMENT_MODE === "string"
+            ? env.PAYMENT_MODE.trim().toLowerCase()
+            : "";
+        const providerSelected = provider === "stripe";
+        const validMode = paymentMode === "test" || paymentMode === "live";
+        const secretReady = isStripeSecretForMode(
+          typeof env.STRIPE_SECRET_KEY === "string" ? env.STRIPE_SECRET_KEY.trim() : "",
+          paymentMode
+        );
+        const premiumPriceReady = Boolean(getStripePriceId(env, "premium"));
+        const proPriceReady = Boolean(getStripePriceId(env, "pro"));
+        const connected = providerSelected && validMode && secretReady;
+        const checkoutEnabled = connected && premiumPriceReady && proPriceReady;
+        return Response.json({
+          provider: providerSelected ? "stripe" : null,
+          mode: validMode ? paymentMode : null,
+          connected,
+          checkoutEnabled,
+          webhookConfigured: isStripeWebhookSecret(
+            typeof env.STRIPE_WEBHOOK_SECRET === "string" ? env.STRIPE_WEBHOOK_SECRET.trim() : ""
+          ),
+          managedPaymentsEnabled: false,
+        }, { headers: { "Cache-Control": "no-store, max-age=0" } });
+      } catch {
+        return Response.json({ error: "Billing status is temporarily unavailable." }, { status: 503, headers: { "Cache-Control": "no-store, max-age=0" } });
+      }
     }
 
     if (url.pathname === "/api/creative/capability") {

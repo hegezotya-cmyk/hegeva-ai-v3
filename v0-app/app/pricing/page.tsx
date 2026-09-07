@@ -38,11 +38,11 @@ const LIVE_BILLING_COPY = {
 } as const
 
 const EXPANSION_COPY = {
-  en: { studio:"Studio", enterprise:"Enterprise", from:"From", soon:"Coming soon", contact:"Contact sales", annual:"per year · planned", annualSaving:"Planned annual billing includes two months free. Monthly checkout is the only test option currently available.", protection:"No usage overage charges. When an included AI limit is reached, AI requests pause instead of creating an extra bill. Prices are shown in GBP; applicable taxes are calculated before payment.", studioFeatures:["2,500 AI messages or operations each month","Build My App X20 and X30 Studio workflows","Advertising and video campaign studios","Priority build capacity and commercial workspace tools"], enterpriseFeatures:["AI and workspace limits agreed in writing","Teams, roles and compliance audit","Enterprise SSO/SAML when available","Onboarding, priority support and a tailored agreement"] },
-  hu: { studio:"Studio", enterprise:"Enterprise", from:"Ettől", soon:"Hamarosan", contact:"Kapcsolatfelvétel", annual:"évente · tervezett", annualSaving:"A tervezett éves fizetés két hónap kedvezményt tartalmaz. Jelenleg csak a havi tesztfizetés érhető el.", protection:"Nincs túlhasználati díj. A csomagban foglalt AI-limit elérésekor az AI-kérések szünetelnek, nem keletkezik extra számla. Az árak GBP-ben értendők; az esetleges adók a fizetés előtt jelennek meg.", studioFeatures:["2 500 AI-üzenet vagy művelet havonta","Build My App X20 és X30 Studio munkafolyamatok","Reklám- és videókampány-stúdiók","Elsőbbségi buildkapacitás és kereskedelmi eszközök"], enterpriseFeatures:["Írásban rögzített AI- és munkaterület-limitek","Csapatok, szerepkörök és megfelelőségi audit","Enterprise SSO/SAML, amikor elérhető","Bevezetés, kiemelt támogatás és egyedi szerződés"] },
-  de: { studio:"Studio", enterprise:"Enterprise", from:"Ab", soon:"Demnächst", contact:"Vertrieb kontaktieren", annual:"pro Jahr · geplant", annualSaving:"Die geplante Jahresabrechnung enthält zwei Gratismonate. Derzeit ist nur der monatliche Test-Checkout verfügbar.", protection:"Keine Mehrverbrauchsgebühren. Am enthaltenen KI-Limit pausieren KI-Anfragen, statt eine Zusatzrechnung zu erzeugen. Preise in GBP; anwendbare Steuern werden vor der Zahlung angezeigt.", studioFeatures:["2.500 KI-Nachrichten oder Vorgänge pro Monat","Build My App X20- und X30-Studio-Workflows","Werbe- und Videokampagnen-Studios","Priorisierte Build-Kapazität und kommerzielle Werkzeuge"], enterpriseFeatures:["Schriftlich vereinbarte KI- und Workspace-Limits","Teams, Rollen und Compliance-Audit","Enterprise SSO/SAML, sobald verfügbar","Onboarding, Prioritätssupport und individueller Vertrag"] },
-  fr: { studio:"Studio", enterprise:"Enterprise", from:"À partir de", soon:"Bientôt", contact:"Contacter les ventes", annual:"par an · prévu", annualSaving:"La facturation annuelle prévue inclut deux mois offerts. Seul le paiement test mensuel est actuellement disponible.", protection:"Aucun frais de dépassement. À la limite IA incluse, les requêtes sont suspendues au lieu de créer une facture supplémentaire. Prix en GBP; les taxes applicables sont affichées avant paiement.", studioFeatures:["2 500 messages ou opérations IA par mois","Flux Studio Build My App X20 et X30","Studios de campagnes publicitaires et vidéo","Capacité prioritaire et outils commerciaux"], enterpriseFeatures:["Limites IA et espace convenues par écrit","Équipes, rôles et audit de conformité","SSO/SAML Enterprise dès disponibilité","Intégration, support prioritaire et accord sur mesure"] },
-  es: { studio:"Studio", enterprise:"Enterprise", from:"Desde", soon:"Próximamente", contact:"Contactar ventas", annual:"al año · previsto", annualSaving:"La facturación anual prevista incluye dos meses gratis. Actualmente solo está disponible el pago de prueba mensual.", protection:"Sin cargos por exceso de uso. Al alcanzar el límite de IA incluido, las solicitudes se pausan en vez de generar una factura adicional. Precios en GBP; los impuestos aplicables se muestran antes del pago.", studioFeatures:["2.500 mensajes u operaciones de IA al mes","Flujos Studio Build My App X20 y X30","Estudios de campañas publicitarias y vídeo","Capacidad prioritaria y herramientas comerciales"], enterpriseFeatures:["Límites de IA y espacio acordados por escrito","Equipos, roles y auditoría de cumplimiento","SSO/SAML Enterprise cuando esté disponible","Incorporación, soporte prioritario y acuerdo a medida"] },
+  en: { studio:"Studio", enterprise:"Enterprise", from:"From", soon:"Coming soon", contact:"Contact sales", annual:"per year · planned", annualSaving:"Planned annual billing includes two months free. Monthly checkout is currently available.", protection:"No usage overage charges. When an included AI limit is reached, AI requests pause instead of creating an extra bill. Prices are shown in GBP; applicable taxes are calculated before payment.", studioFeatures:["Higher included AI capacity with priority build capacity","Build My App X20 and future X30 Studio workflows","Advertising and video campaign studios are being prepared for release","Commercial workspace tools and priority support"], enterpriseFeatures:["AI and workspace limits agreed in writing","Teams, roles and compliance audit","Enterprise SSO/SAML when available","Onboarding, priority support and a tailored agreement"] },
+  hu: { studio:"Studio", enterprise:"Enterprise", from:"Ettől", soon:"Hamarosan", contact:"Kapcsolatfelvétel", annual:"évente · tervezett", annualSaving:"A tervezett éves fizetés két hónap kedvezményt tartalmaz. Jelenleg a havi fizetés érhető el.", protection:"Nincs túlhasználati díj. A csomagban foglalt AI-limit elérésekor az AI-kérések szünetelnek, nem keletkezik extra számla. Az árak GBP-ben értendők; az esetleges adók a fizetés előtt jelennek meg.", studioFeatures:["Magasabb befoglalt AI-kapacitás és elsőbbségi buildkapacitás","Build My App X20 és a jövőbeni X30 Studio-munkafolyamatok","A reklám- és videókampány-stúdiók kiadásra készülnek","Kereskedelmi eszközök és kiemelt támogatás"], enterpriseFeatures:["Írásban rögzített AI- és munkaterület-limitek","Csapatok, szerepkörök és megfelelőségi audit","Enterprise SSO/SAML, amikor elérhető","Bevezetés, kiemelt támogatás és egyedi szerződés"] },
+  de: { studio:"Studio", enterprise:"Enterprise", from:"Ab", soon:"Demnächst", contact:"Vertrieb kontaktieren", annual:"pro Jahr · geplant", annualSaving:"Die geplante Jahresabrechnung enthält zwei Gratismonate. Der monatliche Checkout ist derzeit verfügbar.", protection:"Keine Mehrverbrauchsgebühren. Am enthaltenen KI-Limit pausieren KI-Anfragen, statt eine Zusatzrechnung zu erzeugen. Preise in GBP; anwendbare Steuern werden vor der Zahlung angezeigt.", studioFeatures:["Höhere enthaltene KI-Kapazität mit priorisierter Build-Kapazität","Build My App X20- und zukünftige X30-Studio-Workflows","Werbe- und Videokampagnen-Studios werden auf Veröffentlichung vorbereitet","Kommerzielle Werkzeuge und Prioritätssupport"], enterpriseFeatures:["Schriftlich vereinbarte KI- und Workspace-Limits","Teams, Rollen und Compliance-Audit","Enterprise SSO/SAML, sobald verfügbar","Onboarding, Prioritätssupport und individueller Vertrag"] },
+  fr: { studio:"Studio", enterprise:"Enterprise", from:"À partir de", soon:"Bientôt", contact:"Contacter les ventes", annual:"par an · prévu", annualSaving:"La facturation annuelle prévue inclut deux mois offerts. Le paiement mensuel est actuellement disponible.", protection:"Aucun frais de dépassement. À la limite IA incluse, les requêtes sont suspendues au lieu de créer une facture supplémentaire. Prix en GBP; les taxes applicables sont affichées avant paiement.", studioFeatures:["Capacité IA incluse supérieure avec création prioritaire","Flux Studio Build My App X20 et futurs X30","Les studios publicitaires et vidéo sont en préparation pour la sortie","Outils commerciaux et support prioritaire"], enterpriseFeatures:["Limites IA et espace convenues par écrit","Équipes, rôles et audit de conformité","SSO/SAML Enterprise dès disponibilité","Intégration, support prioritaire et accord sur mesure"] },
+  es: { studio:"Studio", enterprise:"Enterprise", from:"Desde", soon:"Próximamente", contact:"Contactar ventas", annual:"al año · previsto", annualSaving:"La facturación anual prevista incluye dos meses gratis. Actualmente está disponible el pago mensual.", protection:"Sin cargos por exceso de uso. Al alcanzar el límite de IA incluido, las solicitudes se pausan en vez de generar una factura adicional. Precios en GBP; los impuestos aplicables se muestran antes del pago.", studioFeatures:["Mayor capacidad de IA incluida con capacidad prioritaria","Flujos Studio Build My App X20 y futuros X30","Los estudios publicitarios y de vídeo se están preparando para su lanzamiento","Herramientas comerciales y soporte prioritario"], enterpriseFeatures:["Límites de IA y espacio acordados por escrito","Equipos, roles y auditoría de cumplimiento","SSO/SAML Enterprise cuando esté disponible","Incorporación, soporte prioritario y acuerdo a medida"] },
 } as const
 
 async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 10000) {
@@ -68,6 +68,28 @@ export default function PricingPage() {
   const [billingCancelled, setBillingCancelled] = useState(false)
   const [billingStatus, setBillingStatus] = useState<BillingStatus | null>(null)
   const [billingStatusLoading, setBillingStatusLoading] = useState(false)
+  const [publicBillingStatus, setPublicBillingStatus] = useState<BillingStatus | null>(null)
+
+  const effectiveMode = billingStatus?.mode ?? publicBillingStatus?.mode ?? "live"
+
+  useEffect(() => {
+    let active = true
+    void fetchWithTimeout("/api/billing/public-status", {
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    })
+      .then(async (response) => {
+        const data = await response.json().catch(() => null)
+        if (!response.ok || !data) throw new Error("public-billing")
+        if (active) setPublicBillingStatus(data)
+      })
+      .catch(() => {
+        if (active) setPublicBillingStatus(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -174,7 +196,7 @@ export default function PricingPage() {
   ] as const
 
   const hasPaidPlan = currentPlan === "premium" || currentPlan === "pro"
-  const liveBilling = billingStatus?.mode === "live"
+  const liveBilling = effectiveMode === "live"
   const billingReady = (billingStatus?.mode === "test" || billingStatus?.mode === "live") && billingStatus.checkoutEnabled === true && billingStatus.webhookConfigured === true
 
   return <AppShell><main className="pricing-wow relative isolate mx-auto max-w-7xl overflow-hidden px-4 py-12 sm:px-6 lg:px-8">
