@@ -15,6 +15,8 @@ import { buildWorkersAiProjection, getWorkersAiConfig, getWorkersAiCanaryConfig,
 import { createPortalShare, readPortalShare, revokePortalShare } from "./client-portal.js";
 import { completeOAuth, disconnectIntegration, listConnections, readIntegrationIntelligence, readIntegrationSignals, startOAuth } from "./integrations.js";
 import { creativeProviderCapability, invokeCreativeProvider, isCreativeCanaryOwner, readCreativeCredits, reserveCreativeCredits, settleCreativeCredits, validateCreativeGeneration } from "./creative-provider.js";
+import { createDurableMemoryD1Adapter } from "./durable-memory-d1-adapter.js";
+import { runCoreV1Decision } from "./core-v1-decision.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -93,7 +95,7 @@ function safeErrorName(error) {
     : "UnknownError";
 }
 
-function emitMonitor(scope, outcome, metadata = {}) {
+export function emitMonitor(scope, outcome, metadata = {}) {
   console.error("HEGEVA_MONITOR", {
     scope,
     outcome,
@@ -3188,6 +3190,108 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           {
             status: 500
           }
+        );
+      }
+    }
+
+    // =========================================
+    // HEGEVA CORE V1 DECIDE
+    // =========================================
+
+    if (
+      url.pathname ===
+      "/api/core/decide"
+    ) {
+      if (request.method !== "POST") {
+        return Response.json(
+          { error: "Method not allowed." },
+          { status: 405 }
+        );
+      }
+
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+
+        if (!user) {
+          return Response.json(
+            { error: "Authentication required." },
+            { status: 401 }
+          );
+        }
+
+        const userId = user.id;
+        const period = getCurrentPeriod();
+
+        // Reuse AI quota admission for Core V1 (separate from X20)
+        const planInfo = await getUserPlan(env, userId);
+        const limit = PLAN_LIMITS[planInfo.plan] || PLAN_LIMITS.basic;
+        const reservation = await reserveAIUsage(env, userId, period, limit);
+
+        if (!reservation.reserved) {
+          emitMonitor("core_v1", "quota_exhausted", { plan: planInfo.plan, limit });
+          return Response.json(
+            { error: "Monthly AI message limit reached. Core V1 decision requires quota." },
+            { status: 429 }
+          );
+        }
+
+        // Load workspace data for signal computation
+        const workspaceTypes = [
+          "customers",
+          "invoice_documents",
+          "planner",
+          "messages",
+          "documents",
+          "expenses",
+        ];
+
+        const workspaceData = {};
+        for (const type of workspaceTypes) {
+          try {
+            const row = await env.DB.prepare(`
+              SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1
+            `).bind(userId, type).first();
+            workspaceData[type.replace("_", "-")] = row?.data ? JSON.parse(row.data) : [];
+          } catch {
+            workspaceData[type.replace("_", "-")] = [];
+          }
+        }
+
+        // Load goals if available
+        try {
+          const goalRow = await env.DB.prepare(`
+            SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = 'goals' LIMIT 1
+          `).bind(userId).first();
+          workspaceData.goals = goalRow?.data ? JSON.parse(goalRow.data) : [];
+        } catch {
+          workspaceData.goals = [];
+        }
+
+        const cloudEnabled = true; // authenticated user
+        const locale = "en"; // TODO: extract from user preferences
+
+        const result = runCoreV1Decision(workspaceData, cloudEnabled, locale);
+
+        // Record successful Core V1 decision
+        emitMonitor("core_v1", "decision_completed", {
+          priorityCount: result.priorities.length,
+          actionCount: result.preparedActions.length,
+          topPriority: result.coreDecision?.kind,
+        });
+
+        return Response.json(result, {
+          headers: {
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+          }
+        });
+      } catch (error) {
+        logFailure("core_v1_decide_failed", error);
+        emitMonitor("core_v1", "handler_failed");
+
+        return Response.json(
+          { error: "Core V1 decision is temporarily unavailable." },
+          { status: 503 }
         );
       }
     }
