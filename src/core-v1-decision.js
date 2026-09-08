@@ -470,7 +470,7 @@ export function computeCoreDecision(workspaceData, cloudEnabled) {
   const pulse = createWorkspacePulseProjection({
     scope: cloudEnabled ? "authenticated-cloud" : "local-browser",
     hasRecords: coreSignals.hasRecords,
-    openTasks: openTasks.length,
+    openTasks: coreSignals._context.openTasks,
     missionState: "awaiting-approval",
   });
 
@@ -478,7 +478,7 @@ export function computeCoreDecision(workspaceData, cloudEnabled) {
     pulse,
     scope: cloudEnabled ? "authenticated-cloud" : "local-browser",
     customers: workspaceData.customers.length,
-    openTasks: openTasks.length,
+    openTasks: coreSignals._context.openTasks,
     documents: workspaceData.documents.length,
     suggestions: corePriorities.slice(0, 3).map(p => `${p.kind}: ${p.count}`),
   });

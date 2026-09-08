@@ -3237,23 +3237,23 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
 
         // Load workspace data for signal computation
         const workspaceTypes = [
-          "customers",
-          "invoice_documents",
-          "planner",
-          "messages",
-          "documents",
-          "expenses",
+          ["customers", "customers"],
+          ["invoice_documents", "invoices"],
+          ["planner", "tasks"],
+          ["messages", "messages"],
+          ["documents", "documents"],
+          ["expenses", "expenses"],
         ];
 
         const workspaceData = {};
-        for (const type of workspaceTypes) {
+        for (const [dataType, coreKey] of workspaceTypes) {
           try {
             const row = await env.DB.prepare(`
               SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1
-            `).bind(userId, type).first();
-            workspaceData[type.replace("_", "-")] = row?.data ? JSON.parse(row.data) : [];
+            `).bind(userId, dataType).first();
+            workspaceData[coreKey] = row?.data ? JSON.parse(row.data) : [];
           } catch {
-            workspaceData[type.replace("_", "-")] = [];
+            workspaceData[coreKey] = [];
           }
         }
 
