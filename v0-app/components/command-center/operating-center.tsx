@@ -11,6 +11,7 @@ import { createWorkspacePulseProjection } from "@/lib/foundation/roadmap-foundat
 import { useCoreDecision, type CorePriority } from "@/lib/use-core-decision"
 import { growthSignalCopy, overdueTaskCopy } from "@/lib/hegeva-core-copy"
 import { CoreDecisionSurface, getCoreStatusSummary } from "@/components/command-center/core-decision-surface"
+import { selectHegevaCorePriority } from "@/lib/hegeva-core"
 
 type RecordItem={id:string;amount?:number;customerStatus?:"lead"|"active"|"paused";followUp?:string}
 type Task={id:string;due?:string;done:boolean;title?:string}
@@ -107,13 +108,15 @@ export function OperatingCenter(){
 
   // Use real Core V1 response
   const coreSignals = coreResponse.coreSignals
-  const coreDecision = coreResponse.coreDecision
+  const localCorePriority = selectHegevaCorePriority(coreSignals)
+  const coreDecision = coreResponse.coreDecision || localCorePriority
+  const secondaryCorePriorities = coreResponse.corePriorities || coreResponse.priorities
 
   const explainPriority=(decision:CorePriority)=>decision.kind==="complete-followups"?{text:ic.finish(decision.count),href:decision.href,action:ic.finishAction}:decision.kind==="review-followups"?{text:ic.review(decision.count),href:decision.href,action:ic.reviewAction}:decision.kind==="overdue-invoices"?{text:ic.overdue(decision.count,overdueRevenue.toLocaleString(locale,{style:"currency",currency:"GBP"})),href:decision.href,action:ic.invoices}:decision.kind==="customer-followups"?{text:gc.customer(decision.count),href:decision.href,action:gc.customerAction}:decision.kind==="stale-quotes"?{text:gc.quote(decision.count),href:decision.href,action:gc.quoteAction}:decision.kind==="overdue-tasks"?{text:otc.text(decision.count),href:decision.href,action:otc.action}:decision.kind==="today-tasks"?{text:ic.tasks(decision.count),href:decision.href,action:ic.planner}:decision.kind==="draft-invoices"?{text:gc.draft(decision.count),href:decision.href,action:gc.draftAction}:decision.kind==="clear"?{text:ic.clear,href:decision.href,action:c.inventory}:{text:ic.start,href:decision.href,action:ic.customers}
   const corePriority=explainPriority(coreDecision)
 
   // Determine if we have sufficient data for meaningful signals
-  const hasEnoughData = coreSignals.hasRecords || coreSignals.overdueInvoices > 0 || coreSignals.overdueTasks > 0 || coreSignals.tasksToday > 0 || coreSignals.draftInvoices > 0
+  const hasEnoughData = coreSignals.hasRecords || secondaryCorePriorities.length > 0 || coreSignals.overdueInvoices > 0 || coreSignals.overdueTasks > 0 || coreSignals.tasksToday > 0 || coreSignals.draftInvoices > 0
 
   return <section className="mt-8 overflow-hidden border-y border-border bg-background/35">
   <div className="control-room-head"><div><p className="ve-eyebrow">{c.eyebrow}</p><h2>{c.title}</h2><p>{c.sub}</p></div><div className="flex items-center gap-3"><AICore state={syncState==="saving"?"working":syncState==="error"?"warning":"ready"}/><div><strong className="block text-sm">{c.sync}</strong><span className="text-xs capitalize text-muted-foreground">{syncState}</span></div></div></div>
