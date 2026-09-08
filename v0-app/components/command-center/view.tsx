@@ -17,6 +17,8 @@ import {
   Blocks,
   Hammer,
   Sparkles,
+  Cpu,
+  Video,
   type LucideIcon,
 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
@@ -34,6 +36,7 @@ import { OpportunityExecutiveV2 } from "@/components/command-center/opportunity-
 import { IntelligenceAutopilot } from "@/components/command-center/intelligence-autopilot"
 import { ExternalIntelligenceLayer } from "@/components/command-center/external-intelligence-layer"
 import { LiveCorePriority } from "@/components/command-center/live-core-priority"
+import { useAiAvailability } from "@/lib/ai-availability"
 
 type ModuleDef = {
   icon: LucideIcon
@@ -51,10 +54,17 @@ export function CommandCenterView() {
     en: { intelligence: "Intelligence layer", description: "Move from a question to a verified result with the right HEGEVA workspace.", operations: "Operations layer", pricing: "Pricing" },
     hu: { intelligence: "Intelligenciaréteg", description: "A kérdéstől a hitelesített eredményig a megfelelő HEGEVA-munkaterülettel.", operations: "Működési réteg", pricing: "Csomagok" },
     de: { intelligence: "Intelligenzebene", description: "Von der Frage zum geprüften Ergebnis mit dem passenden HEGEVA-Arbeitsbereich.", operations: "Betriebsebene", pricing: "Preise" },
-    fr: { intelligence: "Couche d’intelligence", description: "Passez d’une question à un résultat vérifié avec l’espace HEGEVA adapté.", operations: "Couche opérationnelle", pricing: "Tarifs" },
+    fr: { intelligence: "Couche d'intelligence", description: "Passez d'une question à un résultat vérifié avec l'espace HEGEVA adapté.", operations: "Couche opérationnelle", pricing: "Tarifs" },
     es: { intelligence: "Capa de inteligencia", description: "Pasa de una pregunta a un resultado verificado con el espacio HEGEVA adecuado.", operations: "Capa operativa", pricing: "Precios" },
   }[locale]
   const { data: session, isPending } = authClient.useSession()
+
+  // Real AI availability from runtime
+  const aiAvailability = useAiAvailability()
+  const flags = aiAvailability.status
+
+  const mapStatus = (enabled: boolean, fallback: FeatureStatus = "coming"): FeatureStatus =>
+    enabled ? "working" : fallback
 
   const modules: ModuleDef[] = [
     { icon: Users, title: t.capabilities.crm.title, desc: t.capabilities.crm.desc, status: "working", href: "/business/customers", tone: "emerald" },
@@ -68,10 +78,15 @@ export function CommandCenterView() {
     { icon: Wrench, title: t.commandCenter.tools, desc: t.commandCenter.toolsDesc, status: "working", href: "/business/tools", tone: "violet" },
   ]
   const aiModules: ModuleDef[] = [
-    {icon:Bot,title:copy.assistantTitle,desc:copy.assistantDesc,status:"working",href:"/assistant"},
-    {icon:Sparkles,title:copy.promptTitle,desc:copy.promptDesc,status:"working",href:"/app-studio/prompt-my-app"},
-    {icon:Hammer,title:copy.buildTitle,desc:copy.buildDesc,status:"working",href:"/app-studio/build-my-app"},
-    {icon:Blocks,title:copy.fixTitle,desc:copy.fixDesc,status:"working",href:"/app-studio/fix-my-app"},
+    { icon: Cpu, title: t.capabilities.core.title, desc: t.capabilities.core.desc, status: "working", href: "/command-center" },
+    { icon: Bot, title: copy.assistantTitle, desc: copy.assistantDesc, status: mapStatus(flags.assistantEnabled), href: "/assistant" },
+    { icon: Sparkles, title: copy.promptTitle, desc: copy.promptDesc, status: mapStatus(flags.x10Enabled), href: "/app-studio/prompt-my-app" },
+    { icon: Hammer, title: copy.buildTitle, desc: copy.buildDesc, status: mapStatus(flags.x10Enabled), href: "/app-studio/build-my-app" },
+    { icon: Blocks, title: copy.fixTitle, desc: copy.fixDesc, status: mapStatus(flags.x10Enabled), href: "/app-studio/fix-my-app" },
+    { icon: Sparkles, title: copy.creativeTitle, desc: copy.creativeDesc, status: mapStatus(flags.x10Enabled, "planned"), href: "/app-studio/creative" },
+    { icon: Bot, title: copy.aiBotsTitle, desc: copy.aiBotsDesc, status: mapStatus(flags.aiBotsEnabled), href: "/app-studio/ai-bots" },
+    { icon: Cpu, title: copy.x30Title, desc: copy.x30Desc, status: mapStatus(flags.x30Enabled), href: "/app-studio/x30-alpha" },
+    { icon: Video, title: copy.videoTitle, desc: copy.videoDesc, status: mapStatus(flags.videoEnabled, "planned"), href: "/app-studio/video-ad-studio" },
   ]
 
   return (

@@ -320,6 +320,14 @@ export function AssistantChat() {
     return <SkeletonSurface lines={4} className="min-h-52" />
   }
 
+  if (aiAvailability.loading) {
+    return <SkeletonSurface lines={4} className="min-h-52" />
+  }
+
+  if (!aiAvailability.status.assistantEnabled) {
+    return <ComingSoonCard feature="assistant" className="mx-auto mt-12 max-w-xl" />
+  }
+
   if (!session?.user) {
     return (
       <IntelligenceCard tone="violet" className="p-8">
@@ -335,11 +343,6 @@ export function AssistantChat() {
         </Link>
       </IntelligenceCard>
     )
-  }
-
-  const aiAvailabilityGate = aiAvailability.status.assistantEnabled
-  if (!aiAvailabilityGate) {
-    return <ComingSoonCard feature="assistant" className="mx-auto mt-12 max-w-xl" />
   }
 
   return (

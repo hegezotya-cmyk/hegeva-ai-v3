@@ -1,15 +1,16 @@
 "use client"
 
 import Link from "next/link"
-import { AlertTriangle, ArrowUpRight, Bot, Blocks, CalendarDays, Check, Circle, Cloud, FilePlus2, FileText, ListChecks, MessageSquarePlus, MessageSquareText, PoundSterling, Receipt, UserPlus, Users } from "lucide-react"
+import { AlertTriangle, ArrowUpRight, Bot, Blocks, CalendarDays, Check, Circle, Cloud, FileText, ListChecks, MessageSquareText, PoundSterling, Receipt, UserPlus, Users } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { AICore } from "@/components/visual-engine"
 import { cn } from "@/lib/utils"
 import { createWorkspaceMissionProjection } from "@/lib/foundation/brain-runtime"
 import { createWorkspacePulseProjection } from "@/lib/foundation/roadmap-foundations"
-import { rankHegevaCorePriorities, selectHegevaCorePriority, type HegevaCorePriority } from "@/lib/hegeva-core"
+import { useCoreDecision, type CorePriority } from "@/lib/use-core-decision"
 import { growthSignalCopy, overdueTaskCopy } from "@/lib/hegeva-core-copy"
+import { CoreDecisionSurface, getCoreStatusSummary } from "@/components/command-center/core-decision-surface"
 
 type RecordItem={id:string;amount?:number;customerStatus?:"lead"|"active"|"paused";followUp?:string}
 type Task={id:string;due?:string;done:boolean;title?:string}
@@ -59,66 +60,71 @@ const onboardingCopy={
  es:{title:"Pon en marcha tu espacio",sub:"Completa estos primeros pasos reales. El progreso se calcula con los datos guardados.",progress:"completado",customer:"Añade tu primer cliente",task:"Planifica tu primera tarea",invoice:"Crea tu primer presupuesto o factura",assistant:"Haz tu primera pregunta a HEGEVA"},
 } as const
 export function OperatingCenter(){
- const {locale}=useI18n();const c=copy[locale]
- const pc=pulseCopy[locale]
- const ic=coreInsightCopy[locale]
- const gc=growthSignalCopy[locale]
- const oc=onboardingCopy[locale]
- const otc=overdueTaskCopy[locale]
- const ux=missionUx[locale]
- const projection=projectionCopy[locale]
- const {items:customers,syncState,cloudEnabled}=useWorkspaceData<RecordItem>("customers")
- const {items:documents}=useWorkspaceData<RecordItem>("documents")
- const {items:expenses}=useWorkspaceData<RecordItem>("expenses")
- const {items:tasks}=useWorkspaceData<Task>("planner")
- const {items:invoices}=useWorkspaceData<Invoice>("invoice_documents")
- const {items:messages}=useWorkspaceData<Message>("messages")
- const {items:assistantHistory}=useWorkspaceData<RecordItem>("assistant_history")
- const today=new Date().toISOString().slice(0,10)
- const open=tasks.filter(item=>!item.done)
- const overdueTasks=open.filter(item=>item.due&&item.due<today).length
- const overdueInvoiceRecords=invoices.filter(item=>item.type==="invoice"&&item.status!=="paid"&&item.dueDate&&item.dueDate<today)
- const overdueInvoices=overdueInvoiceRecords.length
- const tasksToday=open.filter(item=>item.due===today).length
- const customerFollowUpsDue=customers.filter(item=>item.followUp&&item.followUp<=today&&item.customerStatus!=="paused").length
- const staleQuotes=invoices.filter(item=>item.type==="quote"&&item.status!=="paid"&&item.dueDate&&item.dueDate<today).length
- const draftInvoices=invoices.filter(item=>item.type==="invoice"&&item.status==="draft").length
- const openInvoices=invoices.filter(item=>item.type==="invoice"&&item.status!=="paid")
- const expectedRevenue=openInvoices.filter(item=>(item.currency||"GBP")==="GBP").reduce((sum,item)=>{const subtotal=(item.items||[]).reduce((value,line)=>value+(Number(line.quantity)||0)*(Number(line.unitPrice)||0),0);return sum+subtotal*(1+(Number(item.vatRate)||0)/100)},0)
- const overdueRevenue=overdueInvoiceRecords.filter(item=>(item.currency||"GBP")==="GBP").reduce((sum,item)=>{const subtotal=(item.items||[]).reduce((value,line)=>value+(Number(line.quantity)||0)*(Number(line.unitPrice)||0),0);return sum+subtotal*(1+(Number(item.vatRate)||0)/100)},0)
- const followUpsAwaitingApproval=messages.filter(item=>item.sourceId&&(!item.workflowStatus||item.workflowStatus==="draft")).length
- const approvedFollowUps=messages.filter(item=>item.sourceId&&item.workflowStatus==="approved").length
- const hasRecords=customers.length+documents.length+expenses.length+invoices.length>0
- const missionProjection=createWorkspaceMissionProjection({scope:cloudEnabled?"authenticated-cloud":"local-browser",hasRecords,openTasks:open.length,overdueItems:overdueTasks+overdueInvoices})
- const pulse=createWorkspacePulseProjection({scope:cloudEnabled?"authenticated-cloud":"local-browser",hasRecords,openTasks:open.length,missionState:"awaiting-approval"})
- const missionStage=missionProjection.stage
- const stageIndex={request:0,understand:1,spec:1,plan:2,permission:2,model:3,"tool-or-job":3,evaluate:4,result:5}[missionStage]
- const stages=[{label:c.understand,done:stageIndex>=1,active:stageIndex===0},{label:c.plan,done:stageIndex>=2,active:missionStage==="permission"||stageIndex===2},{label:c.work,done:stageIndex>=3,active:missionStage==="model"||missionStage==="tool-or-job"},{label:c.check,done:stageIndex>=4,active:missionStage==="evaluate"},{label:c.result,done:stageIndex>=5,active:missionStage==="result"}]
- const completedStages=stages.filter(stage=>stage.done).length
- const currentStage=missionProjection.stage==="permission"?c.plan:stages.find(stage=>stage.active)?.label||stages.find(stage=>!stage.done)?.label||c.result
- const missionSummary=missionProjection.safeSummary.includes("No workspace")?projection.empty:missionProjection.safeSummary.includes("Workspace records")?projection.records:missionProjection.safeSummary.includes("Local preview")?projection.localApproval:missionProjection.safeSummary.includes("Awaiting")?projection.approval:missionProjection.safeSummary
- const continuitySummary=pulse.understood.includes("No workspace")?projection.empty:projection.continuity
- const inventory=[[Users,c.customers,customers.length,"/business/customers"],[FileText,c.documents,documents.length,"/business/documents"],[Receipt,c.expenses,expenses.length,"/business/expenses"],[ListChecks,c.invoices,invoices.length,"/business/invoices"],[MessageSquareText,c.messages,messages.length,"/business/messages"]] as const
- const pulseMetrics:Array<[typeof CalendarDays,string,string|number]>=[[CalendarDays,pc.tasksToday,tasksToday],[ListChecks,pc.openInvoices,openInvoices.length],[PoundSterling,pc.expectedRevenue,expectedRevenue.toLocaleString(locale,{style:"currency",currency:"GBP"})],[MessageSquareText,pc.draftMessages,messages.length]]
- const quickActions:Array<[typeof CalendarDays,string,string]>=[[FilePlus2,pc.newInvoice,"/business/invoices"],[MessageSquarePlus,pc.newMessage,"/business/messages"],[CalendarDays,pc.newTask,"/business/planner"],[UserPlus,pc.newCustomer,"/business/customers"]]
- const onboardingSteps:Array<[typeof UserPlus,string,string,boolean]>=[[UserPlus,oc.customer,"/business/customers",customers.length>0],[CalendarDays,oc.task,"/business/planner",tasks.length>0],[Receipt,oc.invoice,"/business/invoices",invoices.length>0],[Bot,oc.assistant,"/assistant",assistantHistory.length>0]]
- const onboardingComplete=onboardingSteps.filter(([, , ,done])=>done).length
- const coreSignals={approvedFollowUps,followUpsAwaitingApproval,overdueInvoices,customerFollowUpsDue,staleQuotes,overdueTasks,tasksToday,draftInvoices,hasRecords}
- const coreRanked=rankHegevaCorePriorities(coreSignals)
- const coreDecision=selectHegevaCorePriority(coreSignals)
- const explainPriority=(decision:HegevaCorePriority)=>decision.kind==="complete-followups"?{text:ic.finish(decision.count),href:decision.href,action:ic.finishAction}:decision.kind==="review-followups"?{text:ic.review(decision.count),href:decision.href,action:ic.reviewAction}:decision.kind==="overdue-invoices"?{text:ic.overdue(decision.count,overdueRevenue.toLocaleString(locale,{style:"currency",currency:"GBP"})),href:decision.href,action:ic.invoices}:decision.kind==="customer-followups"?{text:gc.customer(decision.count),href:decision.href,action:gc.customerAction}:decision.kind==="stale-quotes"?{text:gc.quote(decision.count),href:decision.href,action:gc.quoteAction}:decision.kind==="overdue-tasks"?{text:otc.text(decision.count),href:decision.href,action:otc.action}:decision.kind==="today-tasks"?{text:ic.tasks(decision.count),href:decision.href,action:ic.planner}:decision.kind==="draft-invoices"?{text:gc.draft(decision.count),href:decision.href,action:gc.draftAction}:decision.kind==="clear"?{text:ic.clear,href:decision.href,action:c.inventory}:{text:ic.start,href:decision.href,action:ic.customers}
- const corePriority=explainPriority(coreDecision)
- const secondaryCorePriorities=coreRanked.slice(1,3).map(explainPriority)
- return <section className="mt-8 overflow-hidden border-y border-border bg-background/35">
+  const {locale}=useI18n();const c=copy[locale]
+  const pc=pulseCopy[locale]
+  const ic=coreInsightCopy[locale]
+  const gc=growthSignalCopy[locale]
+  const oc=onboardingCopy[locale]
+  const otc=overdueTaskCopy[locale]
+  const ux=missionUx[locale]
+  const projection=projectionCopy[locale]
+  const {items:customers,syncState,cloudEnabled}=useWorkspaceData<RecordItem>("customers")
+  const {data: coreResponse, status: coreStatus} = useCoreDecision()
+  const {items:documents}=useWorkspaceData<RecordItem>("documents")
+  const {items:expenses}=useWorkspaceData<RecordItem>("expenses")
+  const {items:tasks}=useWorkspaceData<Task>("planner")
+  const {items:invoices}=useWorkspaceData<Invoice>("invoice_documents")
+  const {items:messages}=useWorkspaceData<Message>("messages")
+  const {items:assistantHistory}=useWorkspaceData<RecordItem>("assistant_history")
+  const today=new Date().toISOString().slice(0,10)
+  const open=tasks.filter(item=>!item.done)
+  const overdueTasks=open.filter(item=>item.due&&item.due<today).length
+  const overdueInvoiceRecords=invoices.filter(item=>item.type==="invoice"&&item.status!=="paid"&&item.dueDate&&item.dueDate<today)
+  const overdueInvoices=overdueInvoiceRecords.length
+  const tasksToday=open.filter(item=>item.due===today).length
+  const customerFollowUpsDue=customers.filter(item=>item.followUp&&item.followUp<=today&&item.customerStatus!=="paused").length
+  const staleQuotes=invoices.filter(item=>item.type==="quote"&&item.status!=="paid"&&item.dueDate&&item.dueDate<today).length
+  const draftInvoices=invoices.filter(item=>item.type==="invoice"&&item.status==="draft").length
+  const openInvoices=invoices.filter(item=>item.type==="invoice"&&item.status!=="paid")
+  const expectedRevenue=openInvoices.filter(item=>(item.currency||"GBP")==="GBP").reduce((sum,item)=>{const subtotal=(item.items||[]).reduce((value,line)=>value+(Number(line.quantity)||0)*(Number(line.unitPrice)||0),0);return sum+subtotal*(1+(Number(item.vatRate)||0)/100)},0)
+  const overdueRevenue=overdueInvoiceRecords.filter(item=>(item.currency||"GBP")==="GBP").reduce((sum,item)=>{const subtotal=(item.items||[]).reduce((value,line)=>value+(Number(line.quantity)||0)*(Number(line.unitPrice)||0),0);return sum+subtotal*(1+(Number(item.vatRate)||0)/100)},0)
+  const followUpsAwaitingApproval=messages.filter(item=>item.sourceId&&(!item.workflowStatus||item.workflowStatus==="draft")).length
+  const approvedFollowUps=messages.filter(item=>item.sourceId&&item.workflowStatus==="approved").length
+  const hasRecords=customers.length+documents.length+expenses.length+invoices.length>0
+  const missionProjection=createWorkspaceMissionProjection({scope:cloudEnabled?"authenticated-cloud":"local-browser",hasRecords,openTasks:open.length,overdueItems:overdueTasks+overdueInvoices})
+  const pulse=createWorkspacePulseProjection({scope:cloudEnabled?"authenticated-cloud":"local-browser",hasRecords,openTasks:open.length,missionState:"awaiting-approval"})
+  const missionStage=missionProjection.stage
+  const stageIndex={request:0,understand:1,spec:1,plan:2,permission:2,model:3,"tool-or-job":3,evaluate:4,result:5}[missionStage]
+  const stages=[{label:c.understand,done:stageIndex>=1,active:stageIndex===0},{label:c.plan,done:stageIndex>=2,active:missionStage==="permission"||stageIndex===2},{label:c.work,done:stageIndex>=3,active:missionStage==="model"||stageIndex===3}, {label:c.check,done:stageIndex>=4,active:missionStage==="evaluate"},{label:c.result,done:stageIndex>=5,active:missionStage==="result"}]
+  const completedStages=stages.filter(stage=>stage.done).length
+  const currentStage=missionProjection.stage==="permission"?c.plan:stages.find(stage=>stage.active)?.label||stages.find(stage=>!stage.done)?.label||c.result
+  const missionSummary=missionProjection.safeSummary.includes("No workspace")?projection.empty:missionProjection.safeSummary.includes("Workspace records")?projection.records:missionProjection.safeSummary.includes("Local preview")?projection.localApproval:missionProjection.safeSummary.includes("Awaiting")?projection.approval:missionProjection.safeSummary
+  const continuitySummary=coreStatus === "ready" ? (coreResponse.pulse.understood || projection.empty) : getCoreStatusSummary(locale, coreStatus)
+  const inventory=[[Users,c.customers,customers.length,"/business/customers"],[FileText,c.documents,documents.length,"/business/documents"],[Receipt,c.expenses,expenses.length,"/business/expenses"],[ListChecks,c.invoices,invoices.length,"/business/invoices"],[MessageSquareText,c.messages,messages.length,"/business/messages"]] as const
+  const pulseMetrics:Array<[typeof CalendarDays,string,string|number]>=[[CalendarDays,pc.tasksToday,tasksToday],[ListChecks,pc.openInvoices,openInvoices.length],[PoundSterling,pc.expectedRevenue,expectedRevenue.toLocaleString(locale,{style:"currency",currency:"GBP"})],[MessageSquareText,pc.draftMessages,messages.length]]
+  const onboardingSteps:Array<[typeof UserPlus,string,string,boolean]>=[[UserPlus,oc.customer,"/business/customers",customers.length>0],[CalendarDays,oc.task,"/business/planner",tasks.length>0],[Receipt,oc.invoice,"/business/invoices",invoices.length>0],[Bot,oc.assistant,"/assistant",assistantHistory.length>0]]
+  const onboardingComplete=onboardingSteps.filter(([, , ,done])=>done).length
+
+  // Use real Core V1 response
+  const coreSignals = coreResponse.coreSignals
+  const coreDecision = coreResponse.coreDecision
+
+  const explainPriority=(decision:CorePriority)=>decision.kind==="complete-followups"?{text:ic.finish(decision.count),href:decision.href,action:ic.finishAction}:decision.kind==="review-followups"?{text:ic.review(decision.count),href:decision.href,action:ic.reviewAction}:decision.kind==="overdue-invoices"?{text:ic.overdue(decision.count,overdueRevenue.toLocaleString(locale,{style:"currency",currency:"GBP"})),href:decision.href,action:ic.invoices}:decision.kind==="customer-followups"?{text:gc.customer(decision.count),href:decision.href,action:gc.customerAction}:decision.kind==="stale-quotes"?{text:gc.quote(decision.count),href:decision.href,action:gc.quoteAction}:decision.kind==="overdue-tasks"?{text:otc.text(decision.count),href:decision.href,action:otc.action}:decision.kind==="today-tasks"?{text:ic.tasks(decision.count),href:decision.href,action:ic.planner}:decision.kind==="draft-invoices"?{text:gc.draft(decision.count),href:decision.href,action:gc.draftAction}:decision.kind==="clear"?{text:ic.clear,href:decision.href,action:c.inventory}:{text:ic.start,href:decision.href,action:ic.customers}
+  const corePriority=explainPriority(coreDecision)
+
+  // Determine if we have sufficient data for meaningful signals
+  const hasEnoughData = coreSignals.hasRecords || coreSignals.overdueInvoices > 0 || coreSignals.overdueTasks > 0 || coreSignals.tasksToday > 0 || coreSignals.draftInvoices > 0
+
+  return <section className="mt-8 overflow-hidden border-y border-border bg-background/35">
   <div className="control-room-head"><div><p className="ve-eyebrow">{c.eyebrow}</p><h2>{c.title}</h2><p>{c.sub}</p></div><div className="flex items-center gap-3"><AICore state={syncState==="saving"?"working":syncState==="error"?"warning":"ready"}/><div><strong className="block text-sm">{c.sync}</strong><span className="text-xs capitalize text-muted-foreground">{syncState}</span></div></div></div>
   <div className="border-t border-border bg-primary/[0.035] px-4 py-6 sm:px-6">
    <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="ve-eyebrow">{pc.pulse}</p><h3 className="mt-1 font-display text-2xl font-semibold">{pc.todaySummary}</h3></div><p className="text-xs text-muted-foreground">{new Intl.DateTimeFormat(locale,{dateStyle:"full"}).format(new Date())}</p></div>
-   <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-    {pulseMetrics.map(([Icon,label,value])=><article key={label} className="rounded-2xl border border-border bg-background/55 p-4"><Icon aria-hidden className="size-4 text-primary"/><p className="mt-3 text-xs text-muted-foreground">{label}</p><strong className="mt-1 block text-2xl">{value}</strong></article>)}
-   </div>
-   <article className="mt-4 rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-400/[.09] to-emerald-400/[.05] p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center"><AICore state={coreDecision.severity==="attention"?"warning":"ready"}/><div className="min-w-0 flex-1"><p className="text-[.65rem] font-semibold uppercase tracking-[.16em] text-amber-300">{ic.label}</p><p className="mt-1 text-sm leading-6 text-foreground">{corePriority.text}</p></div><Link href={corePriority.href} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-amber-300/35 bg-amber-300/10 px-4 py-2 text-sm font-semibold text-amber-200 transition-colors hover:bg-amber-300/15">{corePriority.action}<ArrowUpRight aria-hidden className="size-4"/></Link></div>{secondaryCorePriorities.length>0&&<div className="mt-4 border-t border-amber-300/15 pt-3"><p className="text-[.6rem] font-semibold uppercase tracking-[.14em] text-muted-foreground">{gc.also}</p><div className="mt-2 flex flex-wrap gap-2">{secondaryCorePriorities.map(item=><Link key={`${item.href}-${item.text}`} href={item.href} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/35 px-3 py-2 text-xs text-muted-foreground hover:text-foreground">{item.text}<ArrowUpRight aria-hidden className="size-3"/></Link>)}</div></div>}</article>
-   <div className="mt-5"><p className="text-xs font-semibold uppercase tracking-[.14em] text-muted-foreground">{pc.quickActions}</p><div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{quickActions.map(([Icon,label,href])=><Link key={label} href={href} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-primary/25 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/15"><Icon aria-hidden className="size-4"/>{label}<ArrowUpRight aria-hidden className="ml-auto size-3.5"/></Link>)}</div></div>
+<div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+     {pulseMetrics.map(([Icon,label,value])=><article key={label} className="rounded-2xl border border-border bg-background/55 p-4"><Icon aria-hidden className="size-4 text-primary"/><p className="mt-3 text-xs text-muted-foreground">{label}</p><strong className="mt-1 block text-2xl">{value}</strong></article>)}
+    </div>
   </div>
+
+    <CoreDecisionSurface locale={locale} status={coreStatus} response={coreResponse} priority={corePriority} hasEnoughData={hasEnoughData} />
   <div className="border-t border-border px-4 py-6 sm:px-6"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="ve-eyebrow">First steps</p><h3 className="mt-1 font-display text-2xl font-semibold">{oc.title}</h3><p className="mt-2 max-w-2xl text-sm text-muted-foreground">{oc.sub}</p></div><strong className="rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm text-primary">{onboardingComplete}/{onboardingSteps.length} {oc.progress}</strong></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-muted" aria-label={`${onboardingComplete}/${onboardingSteps.length} ${oc.progress}`}><div className="h-full rounded-full bg-primary transition-all" style={{width:`${onboardingComplete/onboardingSteps.length*100}%`}}/></div><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{onboardingSteps.map(([Icon,label,href,done])=><Link key={label} href={href} className={cn("flex min-h-16 items-center gap-3 rounded-2xl border p-4 text-sm font-semibold transition-colors",done?"border-primary/25 bg-primary/5":"border-border bg-background/45 hover:border-primary/35")}><span className={cn("grid size-9 shrink-0 place-items-center rounded-full",done?"bg-primary text-primary-foreground":"bg-muted text-muted-foreground")}>{done?<Check className="size-4" aria-hidden/>:<Icon className="size-4" aria-hidden/>}</span><span>{label}</span>{!done&&<ArrowUpRight className="ml-auto size-4 text-primary" aria-hidden/>}</Link>)}</div></div>
   <div className="control-room-grid">
    <article className="mission-surface"><header><div><p>{c.mission}</p><h3>{c.goal}</h3><small className="mt-2 block text-xs text-muted-foreground">{missionSummary}</small><small className="block text-xs text-muted-foreground">{ux.prepared} · {ux.approval} · {ux.notStarted}{missionProjection.needsUser ? ` · ${projection.next}` : ""}</small></div><span>01</span></header><div className="mission-body"><div className="mission-core-visual" style={{background:`conic-gradient(var(--gold) ${completedStages*72}deg,oklch(.82 .13 85/.07) 0)`}}><div><AICore state={completedStages===stages.length?"completed":open.length?"working":"ready"}/><small>{currentStage}</small><strong>{completedStages}/{stages.length}</strong></div></div><ol>{stages.map((stage,index)=><li key={stage.label} className={cn(stage.done&&"is-done",stage.active&&"is-active")}><span>{stage.done?<Check aria-hidden/>:stage.active?<span className="mission-current"/>:<Circle aria-hidden/>}</span><div><b>{stage.label}</b><small>{index+1} / {stages.length}</small></div></li>)}</ol></div></article>
