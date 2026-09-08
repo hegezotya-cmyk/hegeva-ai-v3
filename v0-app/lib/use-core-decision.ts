@@ -121,11 +121,41 @@ const FALLBACK: CoreDecisionResponse = {
   metadata: { version: "core-v1", generatedAt: new Date().toISOString(), locale: "en", scope: "authenticated-cloud" },
 }
 
-let inflight: Promise<{ data: CoreDecisionResponse; status: Exclude<CoreDecisionStatus, "loading"> }> | null = null
+type CoreDecisionResult = { data: CoreDecisionResponse; status: Exclude<CoreDecisionStatus, "loading"> }
 
-function fetchCoreDecision(): Promise<{ data: CoreDecisionResponse; status: Exclude<CoreDecisionStatus, "loading"> }> {
+type SharedCoreDecisionRequest = {
+  inflight: Promise<CoreDecisionResult> | null
+  cached: { result: CoreDecisionResult; expiresAt: number } | null
+}
+
+const CORE_DECISION_CACHE_MS = 15_000
+const CORE_DECISION_REQUEST_KEY = "__hegevaCoreDecisionRequest__"
+
+function getSharedCoreDecisionRequest(): SharedCoreDecisionRequest | null {
+  if (typeof window === "undefined") return null
+
+  const browserWindow = window as Window & {
+    [CORE_DECISION_REQUEST_KEY]?: SharedCoreDecisionRequest
+  }
+
+  if (!browserWindow[CORE_DECISION_REQUEST_KEY]) {
+    browserWindow[CORE_DECISION_REQUEST_KEY] = { inflight: null, cached: null }
+  }
+
+  return browserWindow[CORE_DECISION_REQUEST_KEY]!
+}
+
+let inflight: Promise<CoreDecisionResult> | null = null
+
+function fetchCoreDecision(): Promise<CoreDecisionResult> {
+  const shared = getSharedCoreDecisionRequest()
+  const now = Date.now()
+
+  if (shared?.cached && shared.cached.expiresAt > now) return Promise.resolve(shared.cached.result)
+  if (shared?.inflight) return shared.inflight
   if (inflight) return inflight
-  inflight = (async () => {
+
+  const request = (async (): Promise<CoreDecisionResult> => {
     try {
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 8000)
@@ -150,8 +180,18 @@ function fetchCoreDecision(): Promise<{ data: CoreDecisionResponse; status: Excl
       return { data: FALLBACK, status: "unavailable" }
     }
   })()
-  void inflight.finally(() => { inflight = null })
-  return inflight
+
+  if (shared) shared.inflight = request
+  else inflight = request
+
+  void request.then((result) => {
+    if (shared) shared.cached = { result, expiresAt: Date.now() + CORE_DECISION_CACHE_MS }
+  }).finally(() => {
+    if (shared?.inflight === request) shared.inflight = null
+    if (inflight === request) inflight = null
+  })
+
+  return request
 }
 
 const GLOBAL_CORE_STATE: { data: CoreDecisionResponse; loading: boolean; status: CoreDecisionStatus } = { data: FALLBACK, loading: true, status: "loading" }
