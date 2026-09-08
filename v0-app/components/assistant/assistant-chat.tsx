@@ -133,9 +133,14 @@ export function AssistantChat() {
   const [error, setError] = useState("")
   const [usage, setUsage] = useState<PlanStatus | null>(null)
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const [hydrated, setHydrated] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const pendingOperationRef = useRef<{ message: string; operationId: string } | null>(null)
   const aiAvailability = useAiAvailability()
+
+  useEffect(() => {
+    setHydrated(true)
+  }, [])
 
   const recentHistory = useMemo(
     () => messages.slice(-10),
@@ -316,7 +321,7 @@ export function AssistantChat() {
     }
   }
 
-  if (isPending) {
+  if (!hydrated || isPending) {
     return <SkeletonSurface lines={4} className="min-h-52" />
   }
 
