@@ -17,7 +17,9 @@ import {
   Sparkles,
   Target,
   Users,
-  Wrench,
+  Database,
+  ShieldCheck,
+  UserRoundCheck,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/provider";
 import { useSession } from "@/lib/auth-client";
@@ -187,6 +189,14 @@ type Module = {
   status: string;
 };
 
+const conversionCopy = {
+  en: { coreTitle:"Turn daily business activity into a clear next move.", pricingDesc:"Choose the workspace that fits the way you run your business today.", trustEyebrow:"BUILT FOR BUSINESS CONFIDENCE", trustTitle:"Clear data. Clear control. Clear next steps.", trust:["Your workspace, your records|Guest demonstrations are clearly labelled. Signed-in workspaces use the records you add.","You stay in control|HEGEVA can prepare supported work, but important customer actions stay with you for review.","Payments handled by Stripe|HEGEVA does not store your card details."] },
+  hu: { coreTitle:"A napi üzleti tevékenységből világos következő lépés.", pricingDesc:"Válaszd azt a munkaterületet, ami ahhoz illik, ahogyan ma vezeted a vállalkozásodat.", trustEyebrow:"ÜZLETI BIZALOMRA ÉPÍTVE", trustTitle:"Tiszta adatok. Tiszta kontroll. Világos következő lépések.", trust:["A te munkaterületed, a te rekordjaid|A vendégbemutatók világosan jelöltek. A bejelentkezett munkaterület a saját hozzáadott rekordjaidat használja.","Nálad marad az irányítás|A HEGEVA előkészíthet támogatott munkát, de a fontos ügyfélműveleteket te nézed át.","A fizetést a Stripe kezeli|A HEGEVA nem tárol bankkártyaadatokat."] },
+  de: { coreTitle:"Machen Sie aus täglicher Geschäftsarbeit den klaren nächsten Schritt.", pricingDesc:"Wählen Sie den Workspace, der zu Ihrer heutigen Arbeitsweise passt.", trustEyebrow:"FÜR VERTRAUEN IM GESCHÄFT", trustTitle:"Klare Daten. Klare Kontrolle. Klare nächste Schritte.", trust:["Ihr Workspace, Ihre Datensätze|Gastdemos sind klar gekennzeichnet. Angemeldete Workspaces verwenden die von Ihnen hinzugefügten Daten.","Sie behalten die Kontrolle|HEGEVA kann unterstützte Arbeit vorbereiten; wichtige Kundenaktionen bleiben zur Prüfung bei Ihnen.","Zahlungen über Stripe|HEGEVA speichert keine Kartendaten."] },
+  fr: { coreTitle:"Transformez l’activité quotidienne en prochaine action claire.", pricingDesc:"Choisissez l’espace qui correspond à la façon dont vous pilotez votre entreprise aujourd’hui.", trustEyebrow:"CONÇU POUR LA CONFIANCE", trustTitle:"Données claires. Contrôle clair. Prochaines étapes claires.", trust:["Votre espace, vos données|Les démonstrations invité sont clairement identifiées. Les espaces connectés utilisent les données que vous ajoutez.","Vous gardez le contrôle|HEGEVA peut préparer un travail pris en charge, mais vous validez les actions importantes envers les clients.","Paiements gérés par Stripe|HEGEVA ne stocke pas vos données de carte."] },
+  es: { coreTitle:"Convierte la actividad diaria en un siguiente paso claro.", pricingDesc:"Elige el espacio que encaja con la forma en que gestionas tu negocio hoy.", trustEyebrow:"DISEÑADO PARA LA CONFIANZA", trustTitle:"Datos claros. Control claro. Próximos pasos claros.", trust:["Tu espacio, tus datos|Las demostraciones para invitados están claramente identificadas. Los espacios con sesión usan los registros que añades.","Tú mantienes el control|HEGEVA puede preparar trabajo compatible, pero las acciones importantes con clientes siguen bajo tu revisión.","Pagos gestionados por Stripe|HEGEVA no almacena los datos de tu tarjeta."] },
+} as const;
+
 const operatingCopy = {
   en: { sample:"SAMPLE DATA", live:"LIVE WORKSPACE", sampleNote:"Illustrative demo — not your business data.", liveNote:"Calculated only from records in your authenticated workspace.", customers:"Customers", unavailable:"Not connected", demoInsight:"Three customer opportunities are worth your attention today. Following them up could represent approximately £2,270 in potential revenue.", liveInsight:(attention:number, overdue:string)=>attention || overdue !== "£0.00" ? `${attention} items need attention. Overdue invoices total ${overdue}.` : "No urgent payment or task risk is visible in your current records.", action:"Prepare actions", liveAction:"Open Command Center" },
   hu: { sample:"MINTAADAT", live:"ÉLŐ MUNKATÉR", sampleNote:"Szemléltető demó — nem a vállalkozásod adatai.", liveNote:"Kizárólag a hitelesített munkaterületed rekordjaiból számítva.", customers:"Ügyfelek", unavailable:"Nincs kapcsolat", demoInsight:"Három ügyféllehetőség érdemel figyelmet ma. Az utánkövetésük körülbelül £2 270 lehetséges bevételt jelenthet.", liveInsight:(attention:number, overdue:string)=>attention || overdue !== "0,00 £" ? `${attention} tétel igényel figyelmet. A lejárt számlák összege ${overdue}.` : "A jelenlegi rekordokban nem látható sürgős fizetési vagy feladatkockázat.", action:"Műveletek előkészítése", liveAction:"Vezérlőközpont megnyitása" },
@@ -215,6 +225,7 @@ export function FlagshipSections() {
   const { t, locale } = useI18n();
   const c = copy[locale as Locale];
   const oc = operatingCopy[locale as Locale];
+  const cc = conversionCopy[locale as Locale];
   const { data: session, isPending } = useSession();
   const { items: customers } = useWorkspaceData<WorkspaceRecord>("customers");
   const { items: tasks } = useWorkspaceData<WorkspaceTask>("planner");
@@ -349,23 +360,17 @@ export function FlagshipSections() {
     },
     {
       title: c.pricing,
-      desc: c.pricingDesc,
+      desc: cc.pricingDesc,
       href: "/pricing",
       icon: Sparkles,
       tone: "gold",
       status: c.viewPlans,
     },
-    {
-      title: "Creative Studio",
-      desc: c.coming,
-      icon: Wrench,
-      tone: "violet",
-      status: c.coming,
-    },
   ];
   return (
     <>
       <section
+        id="operating-picture"
         className="home-operating-picture mx-auto max-w-[94rem] px-4 sm:px-6 lg:px-10"
         aria-labelledby="operating-picture-title"
       >
@@ -428,13 +433,31 @@ export function FlagshipSections() {
           <div className="operating-picture-copy">
             <p className="section-kicker">{c.picture}</p>
             <h2 id="operating-picture-title">
-              The AI operating system for your business.
+              {cc.coreTitle}
             </h2>
             <p>{c.pictureDesc}</p>
             <div className="operating-picture-status">
               <PoundSterling aria-hidden />
               <span>{isLive ? oc.liveNote : oc.sampleNote}</span>
             </div>
+          </div>
+        </div>
+      </section>
+      <section className="mx-auto max-w-[94rem] px-4 py-8 sm:px-6 lg:px-10" aria-labelledby="home-trust-title">
+        <div className="rounded-[2rem] border border-primary/20 bg-primary/[0.035] p-6 sm:p-8">
+          <div className="max-w-2xl">
+            <p className="section-kicker">{cc.trustEyebrow}</p>
+            <h2 id="home-trust-title" className="mt-2 font-display text-3xl font-semibold tracking-tight sm:text-4xl">{cc.trustTitle}</h2>
+          </div>
+          <div className="mt-7 grid gap-4 md:grid-cols-3">
+            {[Database, UserRoundCheck, ShieldCheck].map((Icon, index) => {
+              const [title, body] = cc.trust[index].split("|");
+              return <article key={title} className="rounded-2xl border border-border bg-card/65 p-5">
+                <Icon className="size-5 text-primary" aria-hidden />
+                <h3 className="mt-4 font-semibold text-foreground">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{body}</p>
+              </article>;
+            })}
           </div>
         </div>
       </section>

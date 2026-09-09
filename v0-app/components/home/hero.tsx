@@ -11,11 +11,11 @@ const heroArtworkSource = "/hegeva-homepage-clean-master-aaa-v2.png"
 const heroArtworkUrl = heroArtworkSource.replace(/\.png$/, ".webp")
 
 const liveHeroCopy = {
-  en: { motto:"YOUR BUSINESS. ONE INTELLIGENT SYSTEM.", title:["Imagine it.","Build it.","Run it."], subtitle:"A trusted AI partner for creating, operating and growing your business.", primary:"Start your journey", secondary:"See how it works", signal:"Connected systems" },
-  hu: { motto:"A TE ÜZLETED. EGY INTELLIGENS RENDSZER.", title:["Képzeld el.","Építsd fel.","Futtasd."] , subtitle:"Megbízható AI-partner vállalkozásod létrehozásához, működtetéséhez és növeléséhez.", primary:"Kezdd el az utad", secondary:"Nézd meg, hogyan működik", signal:"Kapcsolt rendszerek" },
-  de: { motto:"DEIN UNTERNEHMEN. EIN INTELLIGENTES SYSTEM.", title:["Stell es dir vor.","Baue es.","Führe es."] , subtitle:"Ein verlässlicher KI-Partner für den Aufbau, Betrieb und das Wachstum deines Unternehmens.", primary:"Starte deine Reise", secondary:"So funktioniert es", signal:"Verbundene Systeme" },
-  fr: { motto:"VOTRE ENTREPRISE. UN SYSTÈME INTELLIGENT.", title:["Imaginez.","Construisez.","Lancez."] , subtitle:"Un partenaire IA fiable pour créer, piloter et développer votre entreprise.", primary:"Commencer votre parcours", secondary:"Voir comment ça marche", signal:"Systèmes connectés" },
-  es: { motto:"TU NEGOCIO. UN SISTEMA INTELIGENTE.", title:["Imagina.","Constrúyelo.","Ponlo en marcha."] , subtitle:"Un socio de IA de confianza para crear, operar y hacer crecer tu negocio.", primary:"Comienza tu camino", secondary:"Descubre cómo funciona", signal:"Sistemas conectados" },
+  en: { motto:"RUN THE BUSINESS. NOT THE BUSYWORK.", title:["See what matters.","Take the next step.","Grow with control."], subtitle:"Keep customers, quotes, invoices, follow-ups and today’s priorities in one clear business view.", primary:"Start free", secondary:"See your business in one view", signal:"Built for real business work", signalDetail:"CUSTOMERS · CASHFLOW · PRIORITIES" },
+  hu: { motto:"VEZESD A VÁLLALKOZÁST. NE AZ ADMINISZTRÁCIÓT.", title:["Lásd, mi számít.","Tedd meg a következő lépést.","Növekedj kézben tartva."] , subtitle:"Ügyfelek, ajánlatok, számlák, utánkövetések és a mai prioritások egy tiszta üzleti képben.", primary:"Kezdd ingyen", secondary:"Nézd meg egyben az üzleted", signal:"Valódi üzleti munkára készült", signalDetail:"ÜGYFELEK · PÉNZÜGYEK · PRIORITÁSOK" },
+  de: { motto:"FÜHREN SIE IHR UNTERNEHMEN. NICHT DEN PAPIERKRAM.", title:["Sehen Sie, was zählt.","Gehen Sie den nächsten Schritt.","Wachsen Sie mit Kontrolle."] , subtitle:"Kunden, Angebote, Rechnungen, Nachfassaktionen und heutige Prioritäten in einer klaren Geschäftsansicht.", primary:"Kostenlos starten", secondary:"Ihr Unternehmen auf einen Blick", signal:"Für echte Geschäftsarbeit entwickelt", signalDetail:"KUNDEN · LIQUIDITÄT · PRIORITÄTEN" },
+  fr: { motto:"PILOTEZ L’ENTREPRISE. PAS L’ADMINISTRATIF.", title:["Voyez l’essentiel.","Passez à l’action.","Grandissez en gardant le contrôle."] , subtitle:"Clients, devis, factures, suivis et priorités du jour réunis dans une vue claire de votre entreprise.", primary:"Commencer gratuitement", secondary:"Voir votre entreprise en un regard", signal:"Conçu pour le travail concret", signalDetail:"CLIENTS · TRÉSORERIE · PRIORITÉS" },
+  es: { motto:"DIRIGE EL NEGOCIO. NO EL PAPELEO.", title:["Ve lo importante.","Da el siguiente paso.","Crece con control."] , subtitle:"Clientes, presupuestos, facturas, seguimientos y prioridades de hoy en una visión clara de tu negocio.", primary:"Empieza gratis", secondary:"Ve tu negocio de un vistazo", signal:"Creado para el trabajo real", signalDetail:"CLIENTES · TESORERÍA · PRIORIDADES" },
 } as const
 
 export function Hero() {
@@ -46,12 +46,12 @@ export function Hero() {
           </p>
 
           <div className="hero-actions mt-8 flex flex-wrap items-center gap-3">
-            <Link href="/command-center" className={cn(buttonVariants({ size: "lg" }), "hegeva-primary group h-12 gap-2 px-6 text-sm")}>
+            <Link href="/get-started" className={cn(buttonVariants({ size: "lg" }), "hegeva-primary group h-12 gap-2 px-6 text-sm")}>
               {copy.primary}
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
             </Link>
             <Link
-              href="/assistant"
+              href="#operating-picture"
               className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-11 gap-2 px-5 text-sm")}
             >
               <MessageSquareText className="size-4 text-primary" aria-hidden />
@@ -59,7 +59,7 @@ export function Hero() {
             </Link>
           </div>
 
-          <div className="hero-truth-line"><i/><span>{copy.signal}</span><b>ASSIST · OPERATE · BUILD</b></div>
+          <div className="hero-truth-line"><i/><span>{copy.signal}</span><b>{copy.signalDetail}</b></div>
         </div>
       </div>
     </section>
