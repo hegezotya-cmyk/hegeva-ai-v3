@@ -1042,6 +1042,23 @@ async function getStripeWebhookStatus(
         row.data
       );
 
+    const lastEventType =
+      typeof parsed?.lastEventType ===
+      "string"
+        ? parsed.lastEventType
+        : null;
+
+    const lastEventCreatedAt =
+      typeof parsed?.lastEventCreatedAt ===
+        "string" &&
+      Number.isFinite(
+        new Date(
+          parsed.lastEventCreatedAt
+        ).getTime()
+      )
+        ? parsed.lastEventCreatedAt
+        : null;
+
     const PAYMENT_FAILED_EVENT =
       "invoice.payment_failed";
     let paymentState =
