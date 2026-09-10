@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { trackRegistrationCompleted } from "@/lib/conversion-tracking"
 import { useRouter } from "next/navigation"
 import { authClient, signIn, signUp, useSession } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
@@ -20,6 +21,16 @@ export function AuthPanel() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [passwordRecoveryAvailable, setPasswordRecoveryAvailable] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("mode") === "register") setMode("register")
+  }, [])
+
+  useEffect(() => {
+    if (mode === "register" && !isPending && !session?.user) {
+      window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event: "registration_start", path: "/login" } }))
+    }
+  }, [mode, isPending, session?.user])
 
   async function checkPasswordRecovery() {
     if (passwordRecoveryAvailable !== null) return passwordRecoveryAvailable
@@ -50,6 +61,7 @@ export function AuthPanel() {
     setError("")
     setSuccess("")
     setBusy(true)
+    let registeredUserId: string | undefined
 
     try {
       if (mode === "forgot") {
@@ -84,6 +96,7 @@ export function AuthPanel() {
           setError(c.authFailed)
           return
         }
+        registeredUserId = result.data?.user?.id
       } else {
         const result = await signIn.email({
           email: email.trim(),
@@ -102,6 +115,7 @@ export function AuthPanel() {
         return
       }
 
+      if (mode === "register" && registeredUserId && verifiedSession.data.user.id === registeredUserId) trackRegistrationCompleted()
       router.push(safeCallbackURL())
       router.refresh()
     } catch {
@@ -158,7 +172,7 @@ export function AuthPanel() {
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} data-registration-active={mode === "register" ? "true" : undefined} className="space-y-4">
         {mode === "register" && (
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium">{c.name}</span>

@@ -1,7 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { usePathname } from "next/navigation"
+import { analyticsPageLocation, campaignAttribution, PUBLIC_ANALYTICS_PATHS } from "@/lib/conversion-tracking"
 import { useI18n } from "@/lib/i18n/provider"
 
 const MEASUREMENT_ID = "G-TK99HP2BG7"
@@ -40,6 +42,11 @@ function enableAnalytics() {
   window.gtag?.("consent", "update", { analytics_storage: "granted" })
   window.gtag?.("js", new Date())
   window.gtag?.("config", MEASUREMENT_ID, {
+    send_page_view: false,
+    page_location: analyticsPageLocation(window.location.pathname),
+    page_title: "HEGEVA AI",
+    page_referrer: "",
+    ...campaignAttribution(),
     anonymize_ip: true,
     allow_google_signals: false,
     allow_ad_personalization_signals: false,
@@ -58,6 +65,8 @@ export function AnalyticsConsent() {
   const text = copy[locale]
   const [consent, setConsent] = useState<Consent>(null)
   const [open, setOpen] = useState(false)
+  const pathname = usePathname()
+  const sent = useRef(new Set<string>())
 
   useEffect(() => {
     queueConsentDefault()
@@ -71,24 +80,40 @@ export function AnalyticsConsent() {
     const receive = (event: Event) => {
       if (consent !== "granted" || !window.gtag) return
       const detail = (event as CustomEvent<{ event?: string; path?: string }>).detail
-      if (!detail || !["landing_page_view", "registration_start", "pricing_view"].includes(detail.event || "")) return
-      window.gtag("event", detail.event, { page_path: detail.path })
+      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "pricing_view", "primary_cta_click"].includes(detail.event || "")) return
+      if (!detail.path || !PUBLIC_ANALYTICS_PATHS.includes(detail.path)) return
+      const key = `${detail.event}:${detail.path}`
+      if (detail.event !== "primary_cta_click" && sent.current.has(key)) return
+      sent.current.add(key)
+      window.gtag("event", detail.event, { page_path: detail.path, page_location: analyticsPageLocation(detail.path), page_title: "HEGEVA AI", page_referrer: "", ...campaignAttribution() })
     }
     window.addEventListener("hegeva:analytics-event", receive)
     return () => window.removeEventListener("hegeva:analytics-event", receive)
   }, [consent])
 
   useEffect(() => {
-    if (consent !== "granted" || window.location.pathname !== "/") return
-    window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event: "landing_page_view", path: "/" } }))
-  }, [consent])
+    if (consent !== "granted") return
+    const landingPaths = ["/", "/ai-for-small-business", "/ai-business-assistant", "/quote-and-invoice-software", "/ai-for-trades", "/ai-for-electricians"]
+    const registering = pathname === "/login" && Boolean(document.querySelector('[data-registration-active="true"]'))
+    const event = landingPaths.includes(pathname) ? "landing_page_view" : pathname === "/pricing" ? "pricing_view" : registering ? "registration_start" : null
+    if (event) window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event, path: pathname } }))
+    const click = (event: MouseEvent) => {
+      const target = event.target instanceof Element ? event.target.closest("[data-acquisition-event='primary_cta_click']") : null
+      if (target) window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event: "primary_cta_click", path: pathname } }))
+    }
+    document.addEventListener("click", click)
+    return () => document.removeEventListener("click", click)
+  }, [consent, pathname])
 
   const choose = (next: Exclude<Consent, null>) => {
     localStorage.setItem(CONSENT_KEY, next)
     setConsent(next)
     setOpen(false)
     if (next === "granted") enableAnalytics()
-    else window.gtag?.("consent", "update", { analytics_storage: "denied" })
+    else {
+      sessionStorage.removeItem("hegeva:campaign:v1")
+      window.gtag?.("consent", "update", { analytics_storage: "denied" })
+    }
   }
 
   return <>

@@ -19,8 +19,15 @@ const liveHeroCopy = {
 } as const
 
 export function Hero() {
-  const { t, locale } = useI18n()
+  const { locale } = useI18n()
   const copy = liveHeroCopy[locale]
+  const conversion = {
+    en: { title: ["Less admin.", "More business."], description: "One workspace for small-business owners: customers, quotes, invoices and planning. HEGEVA Core helps you see what needs attention next.", cta: "Try HEGEVA AI" },
+    hu: { title: ["Kevesebb admin.", "Több üzlet."], description: "Egy munkatér kisvállalkozóknak: ügyfelek, ajánlatok, számlák és tervezés. A HEGEVA Core segít átlátni, mi igényel figyelmet.", cta: "Próbáld ki a HEGEVA AI-t" },
+    de: { title: ["Weniger Verwaltung.", "Mehr Geschäft."], description: "Ein Workspace für kleine Unternehmen: Kunden, Angebote, Rechnungen und Planung. HEGEVA Core zeigt, was als Nächstes Aufmerksamkeit braucht.", cta: "HEGEVA AI ausprobieren" },
+    fr: { title: ["Moins d’administratif.", "Plus d’activité."], description: "Un espace pour les petites entreprises : clients, devis, factures et planification. HEGEVA Core vous aide à voir les prochaines priorités.", cta: "Essayer HEGEVA AI" },
+    es: { title: ["Menos papeleo.", "Más negocio."], description: "Un espacio para pequeñas empresas: clientes, presupuestos, facturas y planificación. HEGEVA Core te ayuda a ver qué necesita atención.", cta: "Prueba HEGEVA AI" },
+  }[locale]
 
   return (
     <section className="cinematic-hero relative isolate overflow-hidden">
@@ -36,18 +43,17 @@ export function Hero() {
           <p className="hero-motto">{copy.motto}</p>
 
           <h1 className="hero-title mt-6 font-display text-5xl font-semibold leading-[.92] tracking-[-0.065em] text-balance sm:text-6xl lg:text-[5.5rem]">
-            <span className="block text-foreground">{copy.title[0]}</span>
-            <span className="block hero-title-energy">{copy.title[1]}</span>
-            <span className="block text-foreground">{copy.title[2]}</span>
+            <span className="block text-foreground">{conversion.title[0]}</span>
+            <span className="block hero-title-energy">{conversion.title[1]}</span>
           </h1>
 
           <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground text-pretty">
-            {copy.subtitle}
+            {conversion.description}
           </p>
 
           <div className="hero-actions mt-8 flex flex-wrap items-center gap-3">
-            <Link href="/get-started" className={cn(buttonVariants({ size: "lg" }), "hegeva-primary group h-12 gap-2 px-6 text-sm")}>
-              {copy.primary}
+            <Link href="/login?mode=register" data-acquisition-event="primary_cta_click" className={cn(buttonVariants({ size: "lg" }), "hegeva-primary group h-12 gap-2 px-6 text-sm")}>
+              {conversion.cta}
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
             </Link>
             <Link

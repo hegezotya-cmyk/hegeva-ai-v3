@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { BarChart3, Blocks, Bot, CalendarDays, Command, FileText, Home, MessageSquareText, Settings, Sparkles, Users, ShieldCheck } from "lucide-react"
 import { HegevaLogo } from "@/components/hegeva-logo"
@@ -19,7 +20,11 @@ const copy={
 } as const
 
 export function DesktopCommandRail(){
- const pathname=usePathname();const {locale}=useI18n();const c=copy[locale];const {data:session}=authClient.useSession();const {status:coreStatus}=useCoreDecision()
+ const pathname=usePathname();const {locale}=useI18n();const c=copy[locale];const {data:session}=authClient.useSession();const {status}=useCoreDecision()
+ const [mounted,setMounted]=useState(false)
+ useEffect(()=>setMounted(true),[])
+ // Keep the first client render identical to SSR even if the shared request has resolved.
+ const coreStatus=mounted?status:"loading"
  const coreLabel=coreStatus==="ready"?c.coreReady:coreStatus==="loading"?c.coreChecking:c.coreUnavailable
  const coreState=coreStatus==="ready"?"ready":coreStatus==="loading"?"checking":"warning"
  const groups=[
