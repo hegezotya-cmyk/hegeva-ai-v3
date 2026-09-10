@@ -78,6 +78,11 @@ export function AnalyticsConsent() {
     return () => window.removeEventListener("hegeva:analytics-event", receive)
   }, [consent])
 
+  useEffect(() => {
+    if (consent !== "granted" || window.location.pathname !== "/") return
+    window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event: "landing_page_view", path: "/" } }))
+  }, [consent])
+
   const choose = (next: Exclude<Consent, null>) => {
     localStorage.setItem(CONSENT_KEY, next)
     setConsent(next)
