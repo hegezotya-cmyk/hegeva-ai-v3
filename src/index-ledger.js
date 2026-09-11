@@ -250,6 +250,10 @@ async function fetchStripeSubscriptionSnapshot(
     );
 
     if (!response.ok) {
+      console.error("HEGEVA_REQUEST_FAILURE", {
+        reason: "stripe_subscription_hydration_http_failed",
+        status: response.status,
+      });
       return null;
     }
 
@@ -273,11 +277,21 @@ async function fetchStripeSubscriptionSnapshot(
       responseCustomerId !== expectedCustomerId ||
       !modeMatches
     ) {
+      console.error("HEGEVA_REQUEST_FAILURE", {
+        reason: "stripe_subscription_hydration_identity_mismatch",
+        subscriptionMatch: responseSubscriptionId === subscriptionId,
+        customerMatch: responseCustomerId === expectedCustomerId,
+        modeMatch: modeMatches,
+      });
       return null;
     }
 
     return subscription;
-  } catch {
+  } catch (error) {
+    console.error("HEGEVA_REQUEST_FAILURE", {
+      reason: "stripe_subscription_hydration_fetch_failed",
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
     return null;
   }
 }
@@ -620,6 +634,21 @@ async function handleStripeWebhook(request, env, ctx) {
   }
 
   if (!claim.claimed) {
+    const duplicateCanRefreshBillingIdentity =
+      claim.eventType === "checkout.session.completed" ||
+      claim.eventType === "invoice.paid";
+
+    if (duplicateCanRefreshBillingIdentity) {
+      try {
+        await syncStripeBillingIdentity(env, event, claim);
+      } catch (error) {
+        console.error("HEGEVA_REQUEST_FAILURE", {
+          reason: "stripe_duplicate_billing_identity_refresh_failed",
+          errorName: error instanceof Error ? error.name : "UnknownError",
+        });
+      }
+    }
+
     return Response.json({
       received: true,
       verified: true,
@@ -628,6 +657,7 @@ async function handleStripeWebhook(request, env, ctx) {
       eventType: claim.eventType,
       entitlementChanged: false,
       ignored: true,
+      billingIdentityRefreshed: duplicateCanRefreshBillingIdentity,
     });
   }
 
