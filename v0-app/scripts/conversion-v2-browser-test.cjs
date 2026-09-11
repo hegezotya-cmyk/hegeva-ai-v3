@@ -1,4 +1,4 @@
-// Local UI certification only. API and GA network are stubbed; no production writes.
+﻿// Local UI certification only. API and GA network are stubbed; no production writes.
 const assert = require('node:assert/strict')
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
 ;(async () => {
@@ -23,7 +23,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
     page.on('pageerror', error => errors.push({path: new URL(page.url()).pathname, message: error.message}))
     const base = process.env.TEST_BASE_URL || 'http://localhost:3092'
     const events = async () => [...recordedEvents]
-    await page.goto(base + '/?utm_source=facebook&utm_medium=social&utm_campaign=less_admin&utm_content=video_1&email=do-not-collect@example.com')
+    await page.goto(base + '/?utm_source=facebook&utm_medium=social&utm_campaign=less_admin&utm_content=video_1&email=do-not-collect@example.com', { waitUntil: 'domcontentloaded' })
     await page.getByRole('button', {name: 'Allow analytics', exact: true}).waitFor()
     assert.equal((await events()).length, 0)
     assert.equal(await page.locator('#hegeva-google-analytics').count(), 0)
@@ -66,7 +66,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `overflow at ${width}`)
     }
     await page.screenshot({path: 'conversion-v2-desktop.png', fullPage: true})
-    for (const [locale, headline] of [['en','Less admin.'],['hu','Kevesebb admin.'],['de','Weniger Verwaltung.'],['fr','Moins d’administratif.'],['es','Menos papeleo.']]) {
+    for (const [locale, headline] of [['en','Less admin.'],['hu','Kevesebb admin.'],['de','Weniger Verwaltung.'],['fr','Moins dâ€™administratif.'],['es','Menos papeleo.']]) {
       await page.evaluate(locale => localStorage.setItem('hegeva.locale', locale), locale)
       await page.setViewportSize({width: 390, height: 844})
       await page.reload()
@@ -111,3 +111,4 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
     console.log('PASS: consent, event deduplication, campaign persistence, PII exclusion, registration entry, pricing, revocation, mobile overflow, metadata, runtime.')
   } finally { await browser.close() }
 })().catch(error => { console.error(error); process.exitCode = 1 })
+
