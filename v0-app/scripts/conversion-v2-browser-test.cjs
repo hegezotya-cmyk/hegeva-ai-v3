@@ -5,6 +5,16 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
   const browser = await chromium.launch({channel: 'chrome', headless: true})
   try {
     const context = await browser.newContext({viewport: {width: 390, height: 844}})
+    // Keep evidence outside the document: production static navigation creates a new dataLayer.
+    const recordedEvents = []
+    await context.exposeBinding('recordConversionEvent', (_, event) => recordedEvents.push(event))
+    await context.addInitScript(() => {
+      window.dataLayer = []
+      window.dataLayer.push = function (...items) {
+        for (const item of items) if (item?.[0] === 'event') window.recordConversionEvent([item[0], item[1], JSON.parse(JSON.stringify(item[2] || {}))])
+        return Array.prototype.push.apply(this, items)
+      }
+    })
     await context.route('**/api/**', route => route.fulfill({status: route.request().url().includes('/core/decide') ? 401 : 200, contentType: 'application/json', body: 'null'}))
     await context.route('**/*googletagmanager.com/**', route => route.fulfill({status: 200, contentType: 'application/javascript', body: ''}))
     await context.route('**/*google-analytics.com/**', route => route.abort())
@@ -12,7 +22,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
     const errors = []
     page.on('pageerror', error => errors.push({path: new URL(page.url()).pathname, message: error.message}))
     const base = process.env.TEST_BASE_URL || 'http://localhost:3092'
-    const events = () => page.evaluate(() => (window.dataLayer || []).filter(x => x[0] === 'event'))
+    const events = async () => [...recordedEvents]
     await page.goto(base + '/?utm_source=facebook&utm_medium=social&utm_campaign=less_admin&utm_content=video_1&email=do-not-collect@example.com')
     await page.getByRole('button', {name: 'Allow analytics', exact: true}).waitFor()
     assert.equal((await events()).length, 0)
@@ -43,7 +53,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
     await page.goto(base + '/pricing')
     await page.waitForFunction(() => window.dataLayer?.some(x => x[1] === 'pricing_view'))
     assert.equal((await events()).filter(x => x[1] === 'pricing_view').length, 1)
-    assert.equal((await events())[0][2].campaign_source, 'facebook')
+    assert.equal((await events()).find(x => x[1] === 'pricing_view')[2].campaign_source, 'facebook')
     await page.getByRole('button', {name: 'Privacy choices', exact: true}).click()
     await page.getByRole('button', {name: 'Essential only', exact: true}).click()
     const count = (await events()).length

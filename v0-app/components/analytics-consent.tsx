@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n/provider"
 
 const MEASUREMENT_ID = "G-TK99HP2BG7"
 const CONSENT_KEY = "hegeva:analytics-consent:v1"
+const PENDING_CTA_KEY = "hegeva:pending-acquisition:v1"
 type Consent = "granted" | "denied" | null
 
 declare global {
@@ -27,7 +28,7 @@ const copy = {
 
 function queueConsentDefault() {
   window.dataLayer = window.dataLayer || []
-  window.gtag = window.gtag || function gtag(...args: unknown[]) { window.dataLayer.push(args) }
+  window.gtag = window.gtag || function gtag() { window.dataLayer.push(arguments) }
   window.gtag("consent", "default", {
     analytics_storage: "denied",
     ad_storage: "denied",
@@ -93,16 +94,36 @@ export function AnalyticsConsent() {
 
   useEffect(() => {
     if (consent !== "granted") return
+    // Native static-page navigation replaces dataLayer. Consume the consented CTA
+    // on its destination, once, rather than dispatching from an unloading document.
+    try {
+      const pending = JSON.parse(sessionStorage.getItem(PENDING_CTA_KEY) || "null")
+      if (pending && pending.destination === pathname) {
+        sessionStorage.removeItem(PENDING_CTA_KEY)
+        const age = Date.now() - pending.createdAt
+        if (PUBLIC_ANALYTICS_PATHS.includes(pending.path) && age >= 0 && age < 60000) {
+          window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event: "primary_cta_click", path: pending.path } }))
+        }
+      }
+    } catch { /* Storage must never prevent navigation or signup. */ }
     const landingPaths = ["/", "/ai-for-small-business", "/ai-business-assistant", "/quote-and-invoice-software", "/ai-for-trades", "/ai-for-electricians"]
     const registering = pathname === "/login" && Boolean(document.querySelector('[data-registration-active="true"]'))
     const event = landingPaths.includes(pathname) ? "landing_page_view" : pathname === "/pricing" ? "pricing_view" : registering ? "registration_start" : null
     if (event) window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event, path: pathname } }))
     const click = (event: MouseEvent) => {
-      const target = event.target instanceof Element ? event.target.closest("[data-acquisition-event='primary_cta_click']") : null
-      if (target) window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event: "primary_cta_click", path: pathname } }))
+      const target = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[data-acquisition-event='primary_cta_click']") : null
+      if (!target || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || target.target === "_blank" || target.hasAttribute("download")) return
+      const destination = new URL(target.href)
+      if (destination.origin !== window.location.origin || !PUBLIC_ANALYTICS_PATHS.includes(destination.pathname) || !PUBLIC_ANALYTICS_PATHS.includes(pathname)) return
+      try {
+        sessionStorage.setItem(PENDING_CTA_KEY, JSON.stringify({path:pathname,destination:destination.pathname,createdAt:Date.now()}))
+      } catch {
+        // Best-effort only when storage is blocked; never delay the customer's navigation.
+        window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event: "primary_cta_click", path: pathname } }))
+      }
     }
-    document.addEventListener("click", click)
-    return () => document.removeEventListener("click", click)
+    document.addEventListener("click", click, true)
+    return () => document.removeEventListener("click", click, true)
   }, [consent, pathname])
 
   const choose = (next: Exclude<Consent, null>) => {
@@ -112,6 +133,7 @@ export function AnalyticsConsent() {
     if (next === "granted") enableAnalytics()
     else {
       sessionStorage.removeItem("hegeva:campaign:v1")
+      sessionStorage.removeItem(PENDING_CTA_KEY)
       window.gtag?.("consent", "update", { analytics_storage: "denied" })
     }
   }
