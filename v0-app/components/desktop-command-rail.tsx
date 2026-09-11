@@ -19,13 +19,20 @@ const copy={
  es:{primary:"Tus herramientas",operations:"Gestiona tu negocio",home:"Inicio",command:"Centro de mando",assistant:"Asistente",studio:"App Studio",business:"Centro Business",customers:"Clientes",documents:"Documentos",planner:"Planificador",reports:"Informes",messages:"Mensajes",financialGuard:"Protección financiera",pricing:"Precios y planes",account:"Cuenta",ready:"HEGEVA está listo",coreReady:"HEGEVA Core está listo",coreChecking:"Preparando la vista de tu negocio",coreUnavailable:"HEGEVA Core no está disponible",workspace:"Tu espacio de trabajo"},
 } as const
 
+const coreUnauthenticatedCopy={
+  en:"Sign in to activate HEGEVA Core",
+  hu:"Jelentkezz be a HEGEVA Core aktiválásához",
+  de:"Melden Sie sich an, um HEGEVA Core zu aktivieren",
+  fr:"Connectez-vous pour activer HEGEVA Core",
+  es:"Inicia sesión para activar HEGEVA Core",
+} as const
 export function DesktopCommandRail(){
  const pathname=usePathname();const {locale}=useI18n();const c=copy[locale];const {data:session}=authClient.useSession();const {status}=useCoreDecision()
  const [mounted,setMounted]=useState(false)
  useEffect(()=>setMounted(true),[])
  // Keep the first client render identical to SSR even if the shared request has resolved.
  const coreStatus=mounted?status:"loading"
- const coreLabel=coreStatus==="ready"?c.coreReady:coreStatus==="loading"?c.coreChecking:c.coreUnavailable
+ const coreLabel=coreStatus==="ready"?c.coreReady:coreStatus==="loading"?c.coreChecking:coreStatus==="unauthenticated"?coreUnauthenticatedCopy[locale]:c.coreUnavailable
  const coreState=coreStatus==="ready"?"ready":coreStatus==="loading"?"checking":"warning"
  const groups=[
   {label:c.primary,items:[[Home,c.home,"/"],[Command,c.command,"/command-center"],[Bot,c.assistant,"/assistant"],[Blocks,c.studio,"/app-studio"]] as const},
