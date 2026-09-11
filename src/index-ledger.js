@@ -204,6 +204,84 @@ function stripeSubscriptionId(eventType, object) {
   );
 }
 
+function getLedgerPaymentMode(env) {
+  const mode = String(env.PAYMENT_MODE || "").trim().toLowerCase();
+  return mode === "test" || mode === "live" ? mode : "";
+}
+
+function isLedgerStripeSecretForMode(value, mode) {
+  return (
+    typeof value === "string" &&
+    ((mode === "test" && value.startsWith("sk_test_")) ||
+      (mode === "live" && value.startsWith("sk_live_")))
+  );
+}
+
+async function fetchStripeSubscriptionSnapshot(
+  env,
+  subscriptionId,
+  expectedCustomerId
+) {
+  const paymentMode = getLedgerPaymentMode(env);
+  const secretKey =
+    typeof env.STRIPE_SECRET_KEY === "string"
+      ? env.STRIPE_SECRET_KEY.trim()
+      : "";
+
+  if (
+    !subscriptionId ||
+    !paymentMode ||
+    !isLedgerStripeSecretForMode(secretKey, paymentMode)
+  ) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.stripe.com/v1/subscriptions/${encodeURIComponent(subscriptionId)}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          Accept: "application/json",
+        },
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const subscription = await response.json();
+
+    const responseSubscriptionId = stripeObjectId(
+      subscription?.id,
+      "sub_"
+    );
+    const responseCustomerId = stripeObjectId(
+      subscription?.customer,
+      "cus_"
+    );
+
+    const modeMatches =
+      (paymentMode === "live" && subscription?.livemode === true) ||
+      (paymentMode === "test" && subscription?.livemode === false);
+
+    if (
+      responseSubscriptionId !== subscriptionId ||
+      responseCustomerId !== expectedCustomerId ||
+      !modeMatches
+    ) {
+      return null;
+    }
+
+    return subscription;
+  } catch {
+    return null;
+  }
+}
+
 async function syncStripeBillingIdentity(env, event, claim) {
   if (!claim?.userId) return;
 
@@ -211,29 +289,99 @@ async function syncStripeBillingIdentity(env, event, claim) {
   const customerId = stripeObjectId(object?.customer, "cus_");
   if (!customerId) return;
 
-  const subscriptionId = stripeSubscriptionId(claim.eventType, object);
-  const status = claim.eventType.startsWith("customer.subscription.")
-    ? String(object?.status || "").trim().toLowerCase() || null
-    : null;
-  const cancelAtPeriodEnd = object?.cancel_at_period_end === true ? 1 : 0;
-  const periodEndSeconds = Number(object?.current_period_end);
-  const currentPeriodEnd = Number.isFinite(periodEndSeconds) && periodEndSeconds > 0
-    ? new Date(periodEndSeconds * 1000).toISOString()
-    : null;
+  const subscriptionId = stripeSubscriptionId(
+    claim.eventType,
+    object
+  );
+
+  let status =
+    claim.eventType.startsWith("customer.subscription.")
+      ? String(object?.status || "").trim().toLowerCase() || null
+      : null;
+
+  let cancelAtPeriodEnd =
+    object?.cancel_at_period_end === true ? 1 : 0;
+
+  const directPeriodEndSeconds =
+    Number(object?.current_period_end);
+
+  let currentPeriodEnd =
+    Number.isFinite(directPeriodEndSeconds) &&
+    directPeriodEndSeconds > 0
+      ? new Date(directPeriodEndSeconds * 1000).toISOString()
+      : null;
+
+  const shouldHydrateFromStripe =
+    Boolean(subscriptionId) &&
+    !status &&
+    (
+      claim.eventType === "checkout.session.completed" ||
+      claim.eventType === "invoice.paid"
+    );
+
+  if (shouldHydrateFromStripe) {
+    const subscription =
+      await fetchStripeSubscriptionSnapshot(
+        env,
+        subscriptionId,
+        customerId
+      );
+
+    if (subscription) {
+      status =
+        String(subscription.status || "")
+          .trim()
+          .toLowerCase() || null;
+
+      cancelAtPeriodEnd =
+        subscription.cancel_at_period_end === true ? 1 : 0;
+
+      const hydratedPeriodEndSeconds =
+        Number(subscription.current_period_end);
+
+      currentPeriodEnd =
+        Number.isFinite(hydratedPeriodEndSeconds) &&
+        hydratedPeriodEndSeconds > 0
+          ? new Date(
+              hydratedPeriodEndSeconds * 1000
+            ).toISOString()
+          : currentPeriodEnd;
+    }
+  }
+
   const now = new Date().toISOString();
 
   await env.DB.prepare(`
     INSERT INTO stripe_customers (
-      userId, stripeCustomerId, stripeSubscriptionId, subscriptionStatus,
-      cancelAtPeriodEnd, currentPeriodEnd, createdAt, updatedAt
+      userId,
+      stripeCustomerId,
+      stripeSubscriptionId,
+      subscriptionStatus,
+      cancelAtPeriodEnd,
+      currentPeriodEnd,
+      createdAt,
+      updatedAt
     )
     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7)
     ON CONFLICT(userId) DO UPDATE SET
       stripeCustomerId = excluded.stripeCustomerId,
-      stripeSubscriptionId = COALESCE(excluded.stripeSubscriptionId, stripe_customers.stripeSubscriptionId),
-      subscriptionStatus = COALESCE(excluded.subscriptionStatus, stripe_customers.subscriptionStatus),
-      cancelAtPeriodEnd = CASE WHEN excluded.subscriptionStatus IS NULL THEN stripe_customers.cancelAtPeriodEnd ELSE excluded.cancelAtPeriodEnd END,
-      currentPeriodEnd = COALESCE(excluded.currentPeriodEnd, stripe_customers.currentPeriodEnd),
+      stripeSubscriptionId = COALESCE(
+        excluded.stripeSubscriptionId,
+        stripe_customers.stripeSubscriptionId
+      ),
+      subscriptionStatus = COALESCE(
+        excluded.subscriptionStatus,
+        stripe_customers.subscriptionStatus
+      ),
+      cancelAtPeriodEnd = CASE
+        WHEN excluded.subscriptionStatus IS NULL
+          THEN stripe_customers.cancelAtPeriodEnd
+        ELSE excluded.cancelAtPeriodEnd
+      END,
+      currentPeriodEnd = COALESCE(
+        excluded.currentPeriodEnd,
+        stripe_customers.currentPeriodEnd
+      ),
       updatedAt = excluded.updatedAt
   `).bind(
     claim.userId,
@@ -242,7 +390,7 @@ async function syncStripeBillingIdentity(env, event, claim) {
     status,
     cancelAtPeriodEnd,
     currentPeriodEnd,
-    now,
+    now
   ).run();
 }
 
