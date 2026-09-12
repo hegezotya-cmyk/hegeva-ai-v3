@@ -383,18 +383,21 @@ const COPY = {
 export function IntelligenceAutopilot() {
   const { locale } = useI18n();
   const c = COPY[locale];
-  const { items: customers } = useWorkspaceData<AutopilotCustomer>("customers"),
-    { items: tasks, setItems: setTasks } =
-      useWorkspaceData<AutopilotTask>("planner"),
-    { items: invoices } =
-      useWorkspaceData<AutopilotInvoice>("invoice_documents"),
-    {
+const { items: customers } =
+  useWorkspaceData<AutopilotCustomer>("customers");
+
+const { items: tasks, setItems: setTasks } =
+  useWorkspaceData<AutopilotTask>("planner");
+
+const { items: invoices, setItems: setInvoices } =
+  useWorkspaceData<AutopilotInvoice>("invoice_documents");
+   const {
       items: actions,
       setItems: setActions,
       cloudEnabled,
-    } = useWorkspaceData<AutopilotAction>("autopilot_actions"),
-    { items: audit, setItems: setAudit } =
-      useWorkspaceData<AutopilotAuditEvent>("autopilot_audit");
+    } = useWorkspaceData<AutopilotAction>("autopilot_actions");
+   const { items: audit, setItems: setAudit } =
+  useWorkspaceData<AutopilotAuditEvent>("autopilot_audit");
   const { items: policies } = useWorkspaceData<AutopilotPolicy>("autopilot_policy");
   const policy = policies[0] || DEFAULT_AUTOPILOT_POLICY;
   const [asked, setAsked] = useState(false);
@@ -506,7 +509,50 @@ export function IntelligenceAutopilot() {
             ...all,
           ].slice(0, 100),
     );
-  };
+  };const leadQuoteNumber = (customer: AutopilotCustomer) =>
+  `Q-${customer.id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 12).toUpperCase()}`;
+
+const prepareNeglectedLeadQuotes = (signal: AutopilotSignal) => {
+  if (signal.kind !== "neglected-lead") return;
+
+  const leads = customers.filter(
+    (customer) =>
+      signal.sourceIds.includes(customer.id) &&
+      customer.customerStatus === "lead",
+  );
+
+  setInvoices((all) => {
+    const next = [...all];
+
+    for (const customer of leads) {
+      const number = leadQuoteNumber(customer);
+
+      if (
+        next.some(
+          (doc) => doc.type === "quote" && doc.number === number,
+        )
+      ) {
+        continue;
+      }
+
+      next.unshift({
+        id: crypto.randomUUID(),
+        type: "quote",
+        status: "draft",
+        number,
+        clientName: customer.title || "Lead",
+        dueDate: new Date(Date.now() + 7 * 86400000)
+          .toISOString()
+          .slice(0, 10),
+        currency: "GBP",
+        vatRate: 0,
+        items: [{ quantity: 1, unitPrice: 0 }],
+      });
+    }
+
+    return next;
+  });
+};
   const prepare = (signal: AutopilotSignal) => {
     if (!canPrepareAutopilot(signal, actions, policy, today)) return;
     const now = new Date().toISOString();
@@ -520,6 +566,7 @@ export function IntelligenceAutopilot() {
       createdAt: now,
     };
     setActions((all) => [action, ...all]);
+    prepareNeglectedLeadQuotes(signal);
     log(action.id, "prepared", action.title, now);
     setAsked(true);
   };
