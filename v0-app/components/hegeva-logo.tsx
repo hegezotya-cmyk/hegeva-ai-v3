@@ -16,14 +16,16 @@ export function HegevaLogo({
   priority?: boolean
 }) {
   const mark = (
-    <Image
-      src="/hegeva-winged-logo.png"
-      alt="HEGEVA AI"
-      width={1983}
-      height={793}
-      priority={priority}
-      className={cn("h-11 w-auto max-w-full shrink-0 object-contain select-none", className)}
-    />
+    <span className="hegeva-logo-reveal">
+      <Image
+        src="/hegeva-winged-logo.png"
+        alt="HEGEVA AI"
+        width={1983}
+        height={793}
+        priority={priority}
+        className={cn("h-11 w-auto max-w-full shrink-0 object-contain select-none", className)}
+      />
+    </span>
   )
 
   if (href === null) return mark

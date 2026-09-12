@@ -617,6 +617,39 @@
 .pricing-plan:hover{border-color:color-mix(in oklab,var(--plan-accent) 58%,var(--border));box-shadow:0 34px 85px -42px color-mix(in oklab,var(--plan-accent) 72%,#000),inset 0 1px 0 oklch(1 0 0/.08)}
 @media (max-width:640px){.pricing-wow{padding-bottom:7rem}.pricing-aurora i{width:18rem;height:18rem;filter:blur(58px)}.pricing-plan{backdrop-filter:none}.pricing-plan:hover{transform:none}}
 @media (prefers-reduced-motion:reduce){.pricing-plan{transition:none!important}}
+
+@keyframes hegeva-logo-reveal{
+  0%{filter:brightness(.2) saturate(.45);opacity:.18}
+  42%{filter:brightness(.72) saturate(.8);opacity:.82}
+  100%{filter:none;opacity:1}
+}
+@keyframes hegeva-logo-edge-light{
+  0%,16%{opacity:0;transform:translateX(-135%)}
+  54%{opacity:.5}
+  78%,100%{opacity:0;transform:translateX(135%)}
+}
+.hegeva-logo-reveal{
+  position:relative;
+  display:inline-flex;
+  max-width:100%;
+  overflow:hidden;
+}
+.hegeva-logo-reveal>img{animation:hegeva-logo-reveal 5.6s ease-out both}
+.hegeva-logo-reveal::after{
+  position:absolute;
+  inset:0;
+  width:30%;
+  content:"";
+  pointer-events:none;
+  background:linear-gradient(90deg,transparent,oklch(.78 .16 158/.5),transparent);
+  mix-blend-mode:screen;
+  animation:hegeva-logo-edge-light 5.6s cubic-bezier(.22,1,.36,1) both;
+}
+@media (prefers-reduced-motion:reduce){
+  .hegeva-logo-reveal>img,.hegeva-logo-reveal::after{animation:none}
+  .hegeva-logo-reveal>img{filter:none;opacity:1}
+  .hegeva-logo-reveal::after{display:none}
+}
 @media (max-width:640px){.hegeva-atmosphere{background-attachment:scroll}.hegeva-atmosphere :where(.glass-panel,.ve-panel,.bg-card){backdrop-filter:none}}
 
 /* Homepage-derived sunset spectrum across the primary product surfaces. */
