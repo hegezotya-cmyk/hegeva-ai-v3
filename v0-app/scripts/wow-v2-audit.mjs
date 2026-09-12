@@ -1,0 +1,16 @@
+import assert from "node:assert/strict"
+import fs from "node:fs"
+const read=(path)=>fs.readFileSync(new URL(`../${path}`,import.meta.url),"utf8")
+const command=read("components/command-center/view.tsx")+read("components/command-center/operating-center.tsx")
+const assistant=read("components/assistant/assistant-chat.tsx")
+const studio=read("app/app-studio/page.tsx")
+const css=read("app/globals.css")
+const shell=read("components/app-shell.tsx")
+assert(command.includes("OperatingCenter")&&command.includes("mission-surface")&&command.includes("current-work"),"Command Center must expose a real operating and mission surface")
+assert(!/grid gap-4 sm:grid-cols-2 lg:grid-cols-4/.test(command),"Command Center must not return to generic card grids")
+assert(assistant.includes("partner-workspace")&&assistant.includes("Working context")&&!assistant.includes('className="ml-auto max-w'),"Assistant must use Human Layer composition rather than chat bubbles")
+assert(studio.includes("REQUEST → SPEC → BUILD → VERIFY → RESULT")&&studio.includes("X30 structured rendering"),"App Studio must communicate the engineering flow and X30 proof")
+assert(css.includes("system-portals")&&css.includes("hero-environment")&&css.includes("hero-hand-core"),"Homepage must use authored cinematic system composition")
+assert(css.includes("mobile-action-dock")&&shell.includes("MobileActionDock"),"Mobile must have intentional quick navigation")
+assert(css.includes("prefers-reduced-motion"),"V2 motion must honor reduced motion")
+console.log("WOW V2 audit passed: authored homepage, operating center, Mission UX, Human Layer, Studio workflow, X30 proof and mobile action dock")

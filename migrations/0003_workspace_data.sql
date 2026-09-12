@@ -16,3 +16,6 @@ ON workspace_data(userId);
 
 CREATE INDEX IF NOT EXISTS idx_workspace_data_type
 ON workspace_data(dataType);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_data_user_type
+ON workspace_data(userId, dataType);

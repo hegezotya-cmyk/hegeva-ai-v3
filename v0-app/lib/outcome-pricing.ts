@@ -1,0 +1,2 @@
+export type OutcomePricingInput={verifiedBaseline:number;verifiedOutcome:number;sharePercent:number;feeCap:number}
+export function calculateOutcomePricing(input:OutcomePricingInput){const baseline=Math.max(0,Number(input.verifiedBaseline)||0),outcome=Math.max(0,Number(input.verifiedOutcome)||0),uplift=Math.max(0,outcome-baseline),rate=Math.min(50,Math.max(0,Number(input.sharePercent)||0))/100,uncapped=uplift*rate,fee=Math.min(Math.max(0,Number(input.feeCap)||0),uncapped);return{baseline,outcome,uplift,rate,uncapped,fee,customerKeeps:uplift-fee}}

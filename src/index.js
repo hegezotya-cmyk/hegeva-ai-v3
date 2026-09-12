@@ -1,9 +1,22 @@
 import {
   createAuth,
   getLoggedInUser,
-  sendResendEmail,
-  HEGEVA_EMAIL_FROM
+  sendResendEmail
 } from "./auth.js";
+import { reserveAIUsage } from "./ai-quota-reservation.js";
+import { createAuthRateLimiter, clientIpKey } from "./auth-rate-limiter.js";
+import { handleAiChatAdmission } from "./ai-chat-admission.js";
+import { isX20RequestId, registerX20Attempt, startX20Action, finishX20Attempt } from "./x20-ledger.js";
+import { readAssistantUsage, startAssistantOperation, finishAssistantOperation } from "./assistant-quota.js";
+import { isX30OperationId, startX30Generation, finishX30Generation, X30_MONTHLY_LIMIT, X30_WORKSPACE_LIMIT } from "./x30-generation-ledger.js";
+import { validateX30ProviderBrief, x30ProviderEnabled, isX30CanaryOwner } from "./x30-generation.js";
+import { invokeX30Provider } from "./x30-provider.js";
+import { buildWorkersAiProjection, getWorkersAiConfig, getWorkersAiCanaryConfig, invokeWorkersAiText, parseProviderFlags, CANARY_BOUNDS } from "./cloudflare-ai-provider.js";
+import { createPortalShare, readPortalShare, revokePortalShare } from "./client-portal.js";
+import { completeOAuth, disconnectIntegration, listConnections, readIntegrationIntelligence, readIntegrationSignals, startOAuth } from "./integrations.js";
+import { creativeProviderCapability, invokeCreativeProvider, isCreativeCanaryOwner, readCreativeCredits, reserveCreativeCredits, settleCreativeCredits, validateCreativeGeneration } from "./creative-provider.js";
+import { createDurableMemoryD1Adapter } from "./durable-memory-d1-adapter.js";
+import { runCoreV1Decision } from "./core-v1-decision.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -15,6 +28,152 @@ const PLAN_LIMITS = {
   premium: 300,
   pro: 1000
 };
+
+// =========================================
+// PAYMENT-FAILURE GRACE POLICY (P0-4)
+// -----------------------------------------
+// Non-destructive policy: a failed invoice NEVER breaks a live workspace.
+// Stripe owns the dunning/retry cycle; that retry window is treated as the
+// protected grace period during which the workspace keeps working fully.
+// Servicing visible via the billing API: paymentState "payment-failed" and
+// paymentGraceUntil (lastEventCreatedAt + GRACE_DAYS). Only when Stripe
+// definitively settles "unpaid" / cancels the subscription does the ledger
+// terminal downgrade apply (downgradeTerminalSubscription in index-ledger.js).
+// Stripe webhooks remain the source of truth; the front end never downgrades.
+const GRACE_DAYS = 7;
+
+// These limits leave room for legitimate payloads while bounding buffering
+// before parsing, persistence, provider calls, or AI execution. Workspace is
+// 768 KiB because the application checks JSON.stringify(data).length in UTF-16
+// code units (250,000 max); BMP characters can require three UTF-8 bytes each,
+// plus the small {"data":...} request wrapper.
+export const REQUEST_BODY_LIMITS = Object.freeze({
+  default: 64 * 1024,
+  auth: 32 * 1024,
+  chat: 64 * 1024,
+  contact: 16 * 1024,
+  workspace: 768 * 1024,
+  billing: 16 * 1024,
+  webhook: 512 * 1024,
+  email: 16 * 1024,
+});
+
+export function selectAiOutputTokens({ isX20Action = false, appStudioProfile } = {}) {
+  return !isX20Action && appStudioProfile === "x10" ? 1800 : 700;
+}
+
+function requestBodyLimit(pathname) {
+  if (pathname.startsWith("/api/auth/")) return REQUEST_BODY_LIMITS.auth;
+  if (pathname === "/api/chat") return REQUEST_BODY_LIMITS.chat;
+  if (pathname === "/api/contact") return REQUEST_BODY_LIMITS.contact;
+  if (pathname.startsWith("/api/workspace/")) return REQUEST_BODY_LIMITS.workspace;
+  if (pathname === "/api/billing/webhook") return REQUEST_BODY_LIMITS.webhook;
+  if (pathname.startsWith("/api/billing/")) return REQUEST_BODY_LIMITS.billing;
+  if (pathname === "/api/email/test") return REQUEST_BODY_LIMITS.email;
+  if (pathname.startsWith("/api/admin/")) return REQUEST_BODY_LIMITS.contact;
+  return pathname === "/api" || pathname.startsWith("/api/")
+    ? REQUEST_BODY_LIMITS.default
+    : null;
+}
+
+function requestTooLargeResponse() {
+  return Response.json(
+    { error: "Request body is too large." },
+    {
+      status: 413,
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+        "X-Content-Type-Options": "nosniff",
+      },
+    },
+  );
+}
+
+function safeErrorName(error) {
+  return error instanceof Error && typeof error.name === "string"
+    ? error.name
+    : "UnknownError";
+}
+
+export function emitMonitor(scope, outcome, metadata = {}) {
+  console.error("HEGEVA_MONITOR", {
+    scope,
+    outcome,
+    ...metadata,
+  });
+}
+
+function logFailure(reason, error, metadata = {}) {
+  console.error("HEGEVA_REQUEST_FAILURE", {
+    reason,
+    errorName: safeErrorName(error),
+    ...metadata,
+  });
+  emitMonitor(reason, "failure", {
+    errorName: safeErrorName(error),
+    ...metadata,
+  });
+}
+
+function logX20Lifecycle(event, metadata = {}) {
+  console.info("HEGEVA_X20_LIFECYCLE", { event, ...metadata });
+}
+
+export async function readBodyWithinLimit(request, limit) {
+  const declared = request.headers.get("content-length");
+  if (declared !== null) {
+    const declaredBytes = Number(declared);
+    if (!Number.isFinite(declaredBytes) || declaredBytes < 0 || declaredBytes > limit) {
+      return null;
+    }
+  }
+
+  if (!request.body) return new Uint8Array();
+
+  const reader = request.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > limit) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
+async function enforceRequestBodyLimit(request, pathname) {
+  if (["GET", "HEAD", "OPTIONS"].includes(request.method)) return request;
+  const limit = requestBodyLimit(pathname);
+  if (!limit) return request;
+
+  const body = await readBodyWithinLimit(request, limit);
+  if (body === null) return requestTooLargeResponse();
+
+  const headers = new Headers(request.headers);
+  headers.delete("content-length");
+  return new Request(request.url, {
+    method: request.method,
+    headers,
+    body: body.byteLength ? body : null,
+    redirect: "manual",
+  });
+}
 
 function validWorkspaceType(type) {
   return /^[a-z0-9_-]{1,40}$/i.test(type);
@@ -32,6 +191,147 @@ function getCurrentPeriod() {
     ).padStart(2, "0");
 
   return `${year}-${month}`;
+}
+
+const AI_BOT_OPERATION_ID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
+const AI_BOT_PROFILE_ID = /^bot-[A-Za-z0-9._:-]{1,95}$/;
+
+async function sha256Hex(value) {
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function consumeCanaryAuthorization(env, request, { actorHash, workspaceHash, operationType }) {
+  const raw = request.headers.get("X-HEGEVA-CANARY-TOKEN");
+  const expected = typeof env.AI_BOT_CANARY_AUTHORIZATION_HASH === "string" ? env.AI_BOT_CANARY_AUTHORIZATION_HASH.trim().toLowerCase() : "";
+  if (!raw || !expected || (await sha256Hex(raw)) !== expected) return { ok: false, reason: "authorization-required" };
+  const row = await env.DB.prepare("SELECT authorizationHash,actorHash,workspaceHash,operationType,expiresAt,status,consumedCount FROM ai_canary_authorizations WHERE authorizationHash=?1 LIMIT 1").bind(expected).first();
+  if (!row || row.status !== "active" || row.operationType !== operationType || row.actorHash !== actorHash || row.workspaceHash !== workspaceHash || row.consumedCount !== 0 || Date.parse(row.expiresAt) <= Date.now()) return { ok: false, reason: "authorization-expired" };
+  const now = new Date().toISOString();
+  const result = await env.DB.prepare("UPDATE ai_canary_authorizations SET consumedCount=1,status='consumed',consumedAt=?1 WHERE authorizationHash=?2 AND status='active' AND consumedCount=0 AND expiresAt>?1").bind(now, expected).run();
+  return Number(result?.meta?.changes || 0) === 1 ? { ok: true } : { ok: false, reason: "authorization-consumed" };
+}
+
+async function admitAIBotCanary(env, request, values) {
+  const raw = request.headers.get("X-HEGEVA-CANARY-TOKEN");
+  const expected = typeof values.authorizationHash === "string" ? values.authorizationHash : (typeof env.AI_BOT_CANARY_AUTHORIZATION_HASH === "string" ? env.AI_BOT_CANARY_AUTHORIZATION_HASH.trim().toLowerCase() : "");
+  if (!raw || !expected || (await sha256Hex(raw)) !== expected) return { ok: false, reason: "authorization-required" };
+  const now = new Date().toISOString(); const period = now.slice(0, 10); const retention = new Date(Date.now() + 90 * 86400000).toISOString();
+  const actorHash = await sha256Hex(values.userId); const workspaceHash = actorHash; const reservationId = `fg-${values.operationId}`;
+  try {
+    await env.DB.prepare("INSERT INTO ai_canary_admissions(operationId,authorizationHash,actorHash,workspaceHash,profileId,period,estimatedNeurons,globalDailyCeiling,userDailyCeiling,workspaceDailyCeiling,neuronDailyCeiling,prepaidAvailable,approvedAt,approvalExpiresAt,approvalVersion,approvedByActorHash,createdAt) VALUES (?1,?2,?3,?4,?5,?6,1,?7,?8,?9,?10,1,?11,?12,?13,?14,?11)").bind(values.operationId, expected, actorHash, workspaceHash, values.profileId, period, values.globalDailyCeiling || 1, values.userDailyCeiling || 1, values.workspaceDailyCeiling || 1, values.neuronDailyCeiling || 1, values.approvedAt, values.approvalExpiresAt, values.approvalVersion, values.approvedByActorHash).run();
+    return { ok: true, reservationId };
+  } catch { return { ok: false, reason: "admission-rejected" }; }
+}
+
+async function revokeUnusedCanaryAuthorization(env, authorizationHash) {
+  if (!authorizationHash) return;
+  try {
+    await env.DB.prepare("UPDATE ai_canary_authorizations SET status='revoked',revokedAt=?1 WHERE authorizationHash=?2 AND status='active' AND consumedCount=0").bind(new Date().toISOString(), authorizationHash).run();
+  } catch {}
+}
+
+async function loadCanonicalAIBotProfile(env, userId, profileId) {
+  const row = await env.DB.prepare("SELECT data,updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(userId).first();
+  if (!row || typeof row.data !== "string") return null;
+  let records;
+  try { records = JSON.parse(row.data); } catch { return null; }
+  if (!Array.isArray(records)) return null;
+  const profile = records.find((item) => item && item.id === profileId);
+  const now = Date.now();
+  if (!profile || profile.enabled !== true || profile.approvalState !== "owner-approved" || profile.executionState !== "not-started" || !Number.isSafeInteger(profile.approvalVersion) || profile.approvalVersion < 1 || typeof profile.approvedAt !== "string" || typeof profile.approvalExpiresAt !== "string" || typeof profile.approvedByActorHash !== "string" || profile.approvedByActorHash.length < 16 || !Number.isFinite(Date.parse(profile.approvedAt)) || !Number.isFinite(Date.parse(profile.approvalExpiresAt)) || Date.parse(profile.approvalExpiresAt) <= now) return null;
+  return profile;
+}
+
+async function loadCanaryProfile(env, userId, profileId) {
+  const row = await env.DB.prepare("SELECT data,updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(userId).first();
+  if (!row || typeof row.data !== "string") return { profile: null, reason: "profile-not-found" };
+  let records;
+  try { records = JSON.parse(row.data); } catch { return { profile: null, reason: "profile-not-found" }; }
+  if (!Array.isArray(records)) return { profile: null, reason: "profile-not-found" };
+  const profile = records.find((item) => item && item.id === profileId);
+  if (!profile) return { profile: null, reason: "profile-not-found" };
+  if (profile.enabled !== true) return { profile: null, reason: "profile-disabled" };
+  if (profile.approvalState !== "owner-approved") return { profile: null, reason: "profile-not-approved" };
+  if (!Number.isSafeInteger(profile.approvalVersion) || profile.approvalVersion < 1) return { profile: null, reason: "profile-approval-stale" };
+  if (typeof profile.approvedAt !== "string" || typeof profile.approvalExpiresAt !== "string" || !Number.isFinite(Date.parse(profile.approvedAt)) || !Number.isFinite(Date.parse(profile.approvalExpiresAt))) return { profile: null, reason: "profile-approval-stale" };
+  if (Date.parse(profile.approvalExpiresAt) <= Date.now()) return { profile: null, reason: "profile-approval-expired" };
+  if (typeof profile.approvedByActorHash !== "string" || profile.approvedByActorHash.length < 16) return { profile: null, reason: "profile-approval-stale" };
+  if (typeof profile.approvalRevision !== "string" || !profile.approvalRevision || profile.approvalRevision !== row.updatedAt) return { profile: null, reason: "profile-approval-stale" };
+  return { profile };
+}
+
+// Side-effect-free preflight shared by readiness diagnostics and the one-shot
+// route. It intentionally stops before authorization creation or any provider
+// invocation and returns only bounded reason codes.
+async function evaluateAIBotCanaryPreflight(env, request, user, profileId) {
+  const fail = (reason, status) => ({ ok: false, reason, status });
+  if (!user || typeof user.id !== "string") return fail("authentication-required", 401);
+  const configuredOwner = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
+  const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+  if (!configuredOwner || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredOwner) || !userEmail || userEmail !== configuredOwner) return fail("owner-identity-mismatch", 403);
+  const loaded = await loadCanaryProfile(env, user.id, profileId);
+  if (!loaded.profile) return fail(loaded.reason, 403);
+  const profile = loaded.profile;
+  const actorHash = await sha256Hex(user.id);
+  if (profile.approvedByActorHash !== actorHash) return fail("profile-actor-mismatch", 403);
+  const flags = parseProviderFlags(env);
+  if (!flags.providerEnabled) return fail("provider-disabled", 503);
+  if (flags.killSwitchActive) return fail("kill-switch-active", 503);
+  if (!flags.canaryEnabled) return fail("canary-disabled", 503);
+  if (env.FINANCIAL_GUARD_ENABLED !== "enabled") return fail("financial-guard-disabled", 503);
+  if (!env.AI || typeof env.AI.run !== "function") return fail("ai-binding-unavailable", 503);
+  const providerConfig = getWorkersAiCanaryConfig(env);
+  if (!providerConfig.ok) return fail(providerConfig.reason, 503);
+  const period = new Date().toISOString().slice(0, 10);
+  let usageRows;
+  try { usageRows = await env.DB.prepare("SELECT scopeHash,scopeType,requests,estimatedNeurons,prepaidReserved FROM ai_provider_usage WHERE period=?1 AND (scopeHash='global-scope-hash' OR scopeHash=?2) AND scopeType IN ('global','user','workspace')").bind(period, actorHash).all(); } catch { return fail("internal-unavailable", 503); }
+  if (!Array.isArray(usageRows?.results)) return fail("included-allowance-unavailable", 503);
+  const rows = usageRows.results;
+  const usageFor = (scopeType) => rows.find((row) => row.scopeType === scopeType && (scopeType === "global" || row.scopeHash === actorHash));
+  const global = usageFor("global") || {}; const userUsage = usageFor("user") || {}; const workspace = usageFor("workspace") || {};
+  if ((Number(global.requests) || 0) >= providerConfig.requestCeiling) return fail("global-request-ceiling", 429);
+  if ((Number(userUsage.requests) || 0) >= providerConfig.userCeiling) return fail("user-request-ceiling", 429);
+  if ((Number(workspace.requests) || 0) >= providerConfig.workspaceCeiling) return fail("workspace-request-ceiling", 429);
+  if ((Number(global.estimatedNeurons) || 0) + 1 > providerConfig.neuronCeiling || (Number(global.estimatedNeurons) || 0) + 1 > Math.floor(providerConfig.allocation * 0.7)) return fail("neuron-ceiling", 429);
+  if ((Number(global.prepaidReserved) || 0) >= providerConfig.requestCeiling || (Number(userUsage.prepaidReserved) || 0) >= providerConfig.userCeiling || (Number(workspace.prepaidReserved) || 0) >= providerConfig.workspaceCeiling) return fail("reservation-in-use", 429);
+  return { ok: true, profile, actorHash, providerConfig };
+}
+
+async function loadStoredAIBotProfile(env, userId, profileId) {
+  const row = await env.DB.prepare("SELECT data,updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(userId).first();
+  if (!row || typeof row.data !== "string") return null;
+  try {
+    const records = JSON.parse(row.data);
+    if (!Array.isArray(records)) return null;
+    const profile = records.find((item) => item && item.id === profileId);
+    return profile && typeof profile === "object" ? { row, records, profile } : null;
+  } catch { return null; }
+}
+
+async function reserveAIBotOperation(env, { operationId, userId, profileId, period, limit, approvedAt, approvalExpiresAt, approvalVersion, approvedByActorHash }) {
+  const now = new Date().toISOString();
+  try {
+    await env.DB.prepare("INSERT INTO ai_bot_operations (operationId,userId,workspaceScope,profileId,period,status,attemptNumber,approvedAt,approvalExpiresAt,approvalVersion,approvedByActorHash,usageLimit,createdAt,updatedAt) VALUES (?1,?2,?2,?3,?4,'reserved',0,?5,?6,?7,?8,?9,?10,?11,?11)").bind(operationId,userId,profileId,period,approvedAt,approvalExpiresAt,approvalVersion,approvedByActorHash,limit,now).run();
+    return { reserved: true };
+  } catch (error) {
+    try {
+      const existing = await env.DB.prepare("SELECT operationId,userId,period,status FROM ai_bot_operations WHERE operationId = ?1 LIMIT 1").bind(operationId).first();
+      if (existing) return existing.userId === userId && existing.period === period ? { reserved: false, reason: "duplicate-operation" } : { reserved: false, reason: "operation-owner-mismatch" };
+    } catch {}
+    return { reserved: false, reason: "persistence-unavailable" };
+  }
+}
+
+async function finishAIBotOperation(env, { operationId, userId, profileId, reservationId, status, failureCode = null }) {
+  const now = new Date().toISOString();
+  const retentionUntil = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+  const ledgerUserId = await sha256Hex(userId);
+  await env.DB.batch([
+    env.DB.prepare("UPDATE financial_guard_reservations SET status=?1,finalizedAt=?2,failureCode=?3 WHERE reservationId=?4 AND status='reserved'").bind(status === "succeeded" ? "finalized" : "released", now, failureCode, reservationId),
+    env.DB.prepare("UPDATE ai_bot_operations SET status=?1,attemptNumber=1,updatedAt=?2 WHERE operationId=?3 AND userId=?4 AND status='reserved'").bind(status, now, operationId, ledgerUserId),
+    env.DB.prepare("INSERT INTO ai_bot_execution_history (id,operationId,userId,workspaceScope,profileId,status,failureCode,attemptNumber,createdAt,retentionUntil) VALUES (?1,?2,?3,?3,?4,?5,?6,1,?7,?8)").bind(crypto.randomUUID(), operationId, ledgerUserId, profileId, status, failureCode, now, retentionUntil),
+  ]);
 }
 
 async function ensureUserPlan(
@@ -109,7 +409,7 @@ async function getUserPlan(
   };
 }
 
-async function getAIUsage(
+async function readAIUsage(
   env,
   userId,
   period
@@ -117,83 +417,23 @@ async function getAIUsage(
   const row =
     await env.DB
       .prepare(`
-        SELECT
-          aiMessages,
-          createdAt,
-          updatedAt
+        SELECT aiMessages
         FROM ai_usage
         WHERE userId = ?1
           AND period = ?2
         LIMIT 1
       `)
-      .bind(
-        userId,
-        period
-      )
+      .bind(userId, period)
       .first();
 
-  return {
-    aiMessages:
-      Number.isFinite(
-        Number(
-          row?.aiMessages
-        )
-      )
-        ? Number(
-            row.aiMessages
-          )
-        : 0,
-
-    createdAt:
-      row?.createdAt || null,
-
-    updatedAt:
-      row?.updatedAt || null
-  };
+  return Number.isFinite(Number(row?.aiMessages))
+    ? Number(row.aiMessages)
+    : 0;
 }
 
-async function incrementAIUsage(
-  env,
-  userId,
-  period
-) {
-  const now =
-    new Date().toISOString();
-
-  await env.DB
-    .prepare(`
-      INSERT INTO ai_usage (
-        userId,
-        period,
-        aiMessages,
-        createdAt,
-        updatedAt
-      )
-      VALUES (
-        ?1,
-        ?2,
-        1,
-        ?3,
-        ?3
-      )
-
-      ON CONFLICT(
-        userId,
-        period
-      )
-
-      DO UPDATE SET
-        aiMessages =
-          aiMessages + 1,
-        updatedAt =
-          excluded.updatedAt
-    `)
-    .bind(
-      userId,
-      period,
-      now
-    )
-    .run();
+async function readX20Usage(env, userId, period) {
+  const row = await env.DB.prepare(`SELECT x20Actions FROM x20_ai_usage WHERE userId = ?1 AND period = ?2 LIMIT 1`).bind(userId, period).first();
+  return Number.isFinite(Number(row?.x20Actions)) ? Number(row.x20Actions) : 0;
 }
 
 function getPublicAppUrl(
@@ -223,6 +463,44 @@ function getPublicAppUrl(
   ).origin;
 }
 
+function isAllowedMutationOrigin(
+  request,
+  env,
+  pathname
+) {
+  if (
+    ["GET", "HEAD", "OPTIONS"].includes(
+      request.method
+    ) ||
+    pathname === "/api/billing/webhook" ||
+    pathname.startsWith("/api/auth/")
+  ) {
+    return true;
+  }
+
+  const origin =
+    request.headers.get("Origin");
+
+  // Non-browser service calls may not send Origin. Authentication and
+  // webhook verification still protect those requests. When a browser does
+  // send Origin, require the public HEGEVA origin to prevent cross-site form
+  // and fetch requests from using an authenticated session.
+  if (!origin) {
+    return true;
+  }
+
+  const publicOrigin =
+    getPublicAppUrl(request, env);
+
+  const allowed = new Set([
+    publicOrigin,
+    "https://hegevaai.co.uk",
+    "https://www.hegevaai.co.uk"
+  ]);
+
+  return allowed.has(origin);
+}
+
 function getStripePriceId(
   env,
   plan
@@ -242,12 +520,16 @@ function getStripePriceId(
   return "";
 }
 
-function isStripeTestSecret(
-  value
-) {
+function getPaymentMode(env) {
+  const mode = String(env.PAYMENT_MODE || "").trim().toLowerCase();
+  return mode === "test" || mode === "live" ? mode : "";
+}
+
+function isStripeSecretForMode(value, mode) {
   return (
     typeof value === "string" &&
-    value.startsWith("sk_test_")
+    ((mode === "test" && value.startsWith("sk_test_")) ||
+      (mode === "live" && value.startsWith("sk_live_")))
   );
 }
 
@@ -720,7 +1002,9 @@ async function getStripeWebhookStatus(
       configured,
       verified: false,
       lastEventType: null,
-      lastEventCreatedAt: null
+      lastEventCreatedAt: null,
+      paymentState: "current",
+      paymentGraceUntil: null
     };
   }
 
@@ -746,7 +1030,9 @@ async function getStripeWebhookStatus(
       configured,
       verified: false,
       lastEventType: null,
-      lastEventCreatedAt: null
+      lastEventCreatedAt: null,
+      paymentState: "current",
+      paymentGraceUntil: null
     };
   }
 
@@ -756,24 +1042,72 @@ async function getStripeWebhookStatus(
         row.data
       );
 
+    const lastEventType =
+      typeof parsed?.lastEventType ===
+      "string"
+        ? parsed.lastEventType
+        : null;
+
+    const lastEventCreatedAt =
+      typeof parsed?.lastEventCreatedAt ===
+        "string" &&
+      Number.isFinite(
+        new Date(
+          parsed.lastEventCreatedAt
+        ).getTime()
+      )
+        ? parsed.lastEventCreatedAt
+        : null;
+
+    const PAYMENT_FAILED_EVENT =
+      "invoice.payment_failed";
+    let paymentState =
+      "current";
+    let paymentGraceUntil =
+      null;
+    if (
+      lastEventType ===
+        PAYMENT_FAILED_EVENT &&
+      typeof lastEventCreatedAt ===
+        "string"
+    ) {
+      const failedAt =
+        new Date(lastEventCreatedAt).getTime();
+      if (Number.isInteger(failedAt)) {
+        paymentState =
+          "payment-failed";
+        paymentGraceUntil =
+          new Date(
+            failedAt +
+              GRACE_DAYS *
+                24 *
+                60 *
+                60 *
+                1000
+          ).toISOString();
+      }
+    }
+
     return {
       configured,
       verified:
         parsed?.verified ===
         true,
       lastEventType:
-        parsed?.lastEventType ||
-        null,
+        lastEventType,
       lastEventCreatedAt:
-        parsed?.lastEventCreatedAt ||
-        null
+        lastEventCreatedAt,
+      paymentState,
+      paymentGraceUntil
     };
   } catch {
     return {
       configured,
       verified: false,
       lastEventType: null,
-      lastEventCreatedAt: null
+      lastEventCreatedAt: null,
+      paymentState: "current",
+      paymentGraceUntil: null
     };
   }
 }
@@ -789,16 +1123,16 @@ async function createStripeCheckoutSession(
       ? env.STRIPE_SECRET_KEY.trim()
       : "";
 
+  const paymentMode = getPaymentMode(env);
+
   if (
-    !isStripeTestSecret(
-      secretKey
-    )
+    !isStripeSecretForMode(secretKey, paymentMode)
   ) {
     return {
       ok: false,
       status: 503,
       error:
-        "Stripe test secret is not configured."
+        "Stripe secret is not configured for the active payment mode."
     };
   }
 
@@ -813,7 +1147,7 @@ async function createStripeCheckoutSession(
       ok: false,
       status: 503,
       error:
-        "Stripe test price is not configured for this plan."
+        "Stripe price is not configured for this plan."
     };
   }
 
@@ -853,7 +1187,23 @@ async function createStripeCheckoutSession(
     )
   );
 
-  if (user.email) {
+  const existingCustomer =
+    await env.DB
+      .prepare(`
+        SELECT stripeCustomerId
+        FROM stripe_customers
+        WHERE userId = ?1
+        LIMIT 1
+      `)
+      .bind(String(user.id))
+      .first();
+
+  if (existingCustomer?.stripeCustomerId) {
+    form.set(
+      "customer",
+      existingCustomer.stripeCustomerId
+    );
+  } else if (user.email) {
     form.set(
       "customer_email",
       user.email
@@ -862,12 +1212,12 @@ async function createStripeCheckoutSession(
 
   form.set(
     "success_url",
-    `${appUrl}/?billing=success&session_id={CHECKOUT_SESSION_ID}`
+    `${appUrl}/account?billing=success&session_id={CHECKOUT_SESSION_ID}`
   );
 
   form.set(
     "cancel_url",
-    `${appUrl}/?billing=cancelled`
+    `${appUrl}/pricing?billing=cancelled`
   );
 
   form.set(
@@ -922,10 +1272,13 @@ async function createStripeCheckoutSession(
   } catch {}
 
   if (!response.ok) {
-    console.error(
-      "HEGEVA Stripe checkout error:",
-      data
-    );
+    console.error("HEGEVA_PROVIDER_FAILURE", {
+      provider: "stripe",
+      operation: "checkout",
+      reason: "provider_rejected",
+      status: response.status,
+      responseType: typeof data,
+    });
 
     return {
       ok: false,
@@ -934,9 +1287,7 @@ async function createStripeCheckoutSession(
         response.status ||
         502,
 
-      error:
-        data?.error?.message ||
-        "Stripe test checkout could not be created."
+      error: "Stripe test checkout could not be created."
     };
   }
 
@@ -962,7 +1313,62 @@ async function createStripeCheckoutSession(
   };
 }
 
-export default {
+async function createStripePortalSession(request, env, user) {
+  const secretKey =
+    typeof env.STRIPE_SECRET_KEY === "string"
+      ? env.STRIPE_SECRET_KEY.trim()
+      : "";
+
+  const paymentMode = getPaymentMode(env);
+
+  if (!isStripeSecretForMode(secretKey, paymentMode)) {
+    return { ok: false, status: 503, error: "Stripe billing is not configured for the active payment mode." };
+  }
+
+  const customer = await env.DB
+    .prepare(`
+      SELECT stripeCustomerId
+      FROM stripe_customers
+      WHERE userId = ?1
+      LIMIT 1
+    `)
+    .bind(String(user.id))
+    .first();
+
+  if (!customer?.stripeCustomerId) {
+    return { ok: false, status: 409, error: "No Stripe customer is linked to this account yet." };
+  }
+
+  const form = new URLSearchParams();
+  form.set("customer", customer.stripeCustomerId);
+  form.set("return_url", `${getPublicAppUrl(request, env)}/account?billing=portal-return`);
+
+  const response = await fetch("https://api.stripe.com/v1/billing_portal/sessions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: form.toString()
+  });
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok || typeof data?.url !== "string" || !data.url.startsWith("https://billing.stripe.com/")) {
+    console.error("HEGEVA_PROVIDER_FAILURE", {
+      provider: "stripe",
+      operation: "portal",
+      reason: "provider_rejected",
+      status: response.status,
+      responseType: typeof data,
+    });
+    return { ok: false, status: response.status || 502, error: "Stripe billing portal could not be opened." };
+  }
+
+  return { ok: true, status: 200, url: data.url };
+}
+
+export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {}) {
+  return {
   async fetch(
     request,
     env,
@@ -973,6 +1379,70 @@ export default {
         request.url
       );
 
+    if (
+      !isAllowedMutationOrigin(
+        request,
+        env,
+        url.pathname
+      )
+    ) {
+      return Response.json(
+        {
+          error:
+            "Cross-site request blocked."
+        },
+        {
+          status: 403,
+          headers: {
+            "Cache-Control":
+              "no-store"
+          }
+        }
+      );
+    }
+
+    const limitedRequest = await enforceRequestBodyLimit(request, url.pathname);
+    if (limitedRequest instanceof Response) return limitedRequest;
+    request = limitedRequest;
+
+    if (url.pathname === "/api/client-portal/share" && request.method === "POST") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      let body;try{body=await request.json()}catch{return Response.json({error:"Invalid JSON body."},{status:400})}
+      const result=await createPortalShare(env.DB,user.id,body);return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store"}});
+    }
+    if (url.pathname.startsWith("/api/client-portal/share/") && request.method === "DELETE") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      const result=await revokePortalShare(env.DB,user.id,url.pathname.split("/").pop()||"");return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store"}});
+    }
+    if (url.pathname.startsWith("/api/client-portal/public/") && request.method === "GET") {
+      const result=await readPortalShare(env.DB,url.pathname.split("/").pop()||"");return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow"}});
+    }
+    if (url.pathname === "/api/integrations" && request.method === "GET") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      return Response.json({providers:await listConnections(env.DB,env,user.id)},{headers:{"Cache-Control":"no-store"}});
+    }
+    if (url.pathname === "/api/integrations/signals" && request.method === "GET") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      return Response.json(await readIntegrationSignals(env.DB,env,user.id),{headers:{"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});
+    }
+    if (url.pathname === "/api/integrations/intelligence" && request.method === "GET") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401,headers:{"Cache-Control":"private, no-store"}});
+      const data=await readIntegrationIntelligence(env.DB,env,user.id);return Response.json(data,{headers:{"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});
+    }
+    if (url.pathname === "/api/integrations/oauth/start" && request.method === "GET") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      const result=await startOAuth(env.DB,env,user.id,url.searchParams.get("provider")||"");return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store"}});
+    }
+    if (url.pathname === "/api/integrations/oauth/callback" && request.method === "GET") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.redirect(`${env.PUBLIC_APP_URL}/login?next=/business/integrations`,302);
+      const result=await completeOAuth(env.DB,env,user.id,{state:url.searchParams.get("state"),code:url.searchParams.get("code")});
+      return Response.redirect(`${env.PUBLIC_APP_URL}/business/integrations?oauth=${result.status===200?"connected":"failed"}`,302);
+    }
+    if (url.pathname.startsWith("/api/integrations/") && request.method === "DELETE") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      const result=await disconnectIntegration(env.DB,user.id,url.pathname.split("/").pop()||"");return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store"}});
+    }
+
     // =========================================
     // BETTER AUTH
     // =========================================
@@ -982,6 +1452,43 @@ export default {
         "/api/auth/"
       )
     ) {
+      const authRouteKey =
+        url.pathname.slice(
+          "/api/auth/".length
+        );
+      const authLimiter =
+        globalThis.__hegevaAuthRateLimiter ||
+        (globalThis.__hegevaAuthRateLimiter =
+          createAuthRateLimiter());
+      const authAdmission =
+        request.method === "POST"
+          ? authLimiter.admit(
+              authRouteKey,
+              clientIpKey(request)
+            )
+          : { allowed: true };
+
+      if (!authAdmission.allowed) {
+        emitMonitor("auth", "rate_limited", {
+          route: authRouteKey
+        });
+
+        return Response.json(
+          {
+            error:
+              "Too many requests. Please try again shortly."
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(
+                authAdmission.retryAfterSeconds
+              )
+            }
+          }
+        );
+      }
+
       try {
         const auth =
           createAuth(
@@ -994,10 +1501,7 @@ export default {
           request
         );
       } catch (error) {
-        console.error(
-          "HEGEVA Auth error:",
-          error
-        );
+        logFailure("auth_handler_failed", error);
 
         return Response.json(
           {
@@ -1035,29 +1539,7 @@ export default {
       }
 
       return Response.json({
-        configured:
-          Boolean(
-            env.RESEND_API_KEY
-          ),
-
-        provider:
-          env.RESEND_API_KEY
-            ? "Resend"
-            : "Not configured",
-
-        sender:
-          HEGEVA_EMAIL_FROM,
-
-        passwordRecovery:
-          Boolean(
-            env.RESEND_API_KEY
-          ),
-
-        resetLinkExpiresInSeconds:
-          3600,
-
-        revokeSessionsOnPasswordReset:
-          true
+        passwordRecovery: Boolean(env.RESEND_API_KEY)
       });
     }
 
@@ -1136,10 +1618,7 @@ export default {
             null
         });
       } catch (error) {
-        console.error(
-          "HEGEVA security test email error:",
-          error
-        );
+        logFailure("resend_security_test_failed", error);
 
         return Response.json(
           {
@@ -1149,6 +1628,300 @@ export default {
           {
             status: 502
           }
+        );
+      }
+    }
+
+    // =========================================
+    // PUBLIC CONTACT LEADS
+    // =========================================
+
+    if (
+      url.pathname ===
+      "/api/contact"
+    ) {
+      if (
+        request.method !==
+        "POST"
+      ) {
+        return Response.json(
+          { error: "Method not allowed." },
+          { status: 405 }
+        );
+      }
+
+      try {
+        const contentLength =
+          Number(
+            request.headers.get(
+              "content-length"
+            ) || 0
+          );
+
+        if (
+          Number.isFinite(contentLength) &&
+          contentLength > 16384
+        ) {
+          return Response.json(
+            { error: "Contact request is too large." },
+            { status: 413 }
+          );
+        }
+
+        const body =
+          await request.json();
+
+        const name =
+          typeof body?.name === "string"
+            ? body.name.trim().slice(0, 100)
+            : "";
+
+        const email =
+          typeof body?.email === "string"
+            ? body.email.trim().toLowerCase().slice(0, 254)
+            : "";
+
+        const company =
+          typeof body?.company === "string"
+            ? body.company.trim().slice(0, 120)
+            : "";
+
+        const message =
+          typeof body?.message === "string"
+            ? body.message.trim().slice(0, 3000)
+            : "";
+
+        const locale =
+          ["en", "hu", "de", "fr", "es"].includes(body?.locale)
+            ? body.locale
+            : "en";
+
+        const website =
+          typeof body?.website === "string"
+            ? body.website.trim()
+            : "";
+
+        const startedAt =
+          Number(body?.startedAt);
+
+        const elapsed =
+          Date.now() - startedAt;
+
+        if (website) {
+          return Response.json({ ok: true });
+        }
+
+        if (
+          !name ||
+          !email ||
+          !message ||
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+          message.length < 10 ||
+          !Number.isFinite(startedAt) ||
+          elapsed < 2000 ||
+          elapsed > 86400000
+        ) {
+          return Response.json(
+            { error: "Please check the contact form fields." },
+            { status: 400 }
+          );
+        }
+
+        const oneHourAgo =
+          new Date(
+            Date.now() - 3600000
+          ).toISOString();
+
+        const recent =
+          await env.DB
+            .prepare(`
+              SELECT COUNT(*) AS total
+              FROM contact_leads
+              WHERE email = ?1
+                AND createdAt >= ?2
+            `)
+            .bind(email, oneHourAgo)
+            .first();
+
+        if (Number(recent?.total || 0) >= 3) {
+          return Response.json(
+            { error: "Please wait before sending another message." },
+            { status: 429 }
+          );
+        }
+
+        const createdAt =
+          new Date().toISOString();
+
+        await env.DB
+          .prepare(`
+            INSERT INTO contact_leads (
+              id, name, email, company, message, locale, status, createdAt
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'new', ?7)
+          `)
+          .bind(
+            crypto.randomUUID(),
+            name,
+            email,
+            company || null,
+            message,
+            locale,
+            createdAt
+          )
+          .run();
+
+        return Response.json({
+          ok: true,
+          createdAt
+        });
+      } catch (error) {
+        logFailure("contact_handler_failed", error);
+
+        return Response.json(
+          { error: "Contact service temporarily unavailable." },
+          { status: 500 }
+        );
+      }
+    }
+
+    // =========================================
+    // OWNER CONTACT LEAD INBOX
+    // =========================================
+
+    if (
+      url.pathname ===
+      "/api/admin/contact-leads"
+    ) {
+      if (
+        request.method !== "GET" &&
+        request.method !== "PATCH"
+      ) {
+        return Response.json(
+          { error: "Method not allowed." },
+          { status: 405 }
+        );
+      }
+
+      try {
+        const user =
+          await getLoggedInUser(
+            request,
+            env,
+            ctx
+          );
+
+        const adminEmail =
+          typeof env.ADMIN_EMAIL === "string"
+            ? env.ADMIN_EMAIL.trim().toLowerCase()
+            : "";
+
+        if (
+          !user?.email ||
+          !adminEmail ||
+          user.email.trim().toLowerCase() !== adminEmail
+        ) {
+          return Response.json(
+            { error: "Owner access required." },
+            {
+              status: 403,
+              headers: {
+                "Cache-Control": "no-store"
+              }
+            }
+          );
+        }
+
+        if (request.method === "GET") {
+          const result =
+            await env.DB
+              .prepare(`
+                SELECT
+                  id,
+                  name,
+                  email,
+                  company,
+                  message,
+                  locale,
+                  status,
+                  createdAt
+                FROM contact_leads
+                ORDER BY createdAt DESC
+                LIMIT 100
+              `)
+              .all();
+
+          return Response.json(
+            {
+              ok: true,
+              leads:
+                Array.isArray(result?.results)
+                  ? result.results
+                  : []
+            },
+            {
+              headers: {
+                "Cache-Control": "no-store"
+              }
+            }
+          );
+        }
+
+        const body =
+          await request.json();
+
+        const id =
+          typeof body?.id === "string"
+            ? body.id.trim()
+            : "";
+
+        const status =
+          typeof body?.status === "string"
+            ? body.status.trim()
+            : "";
+
+        if (
+          !/^[0-9a-f-]{36}$/i.test(id) ||
+          !["new", "read", "closed"].includes(status)
+        ) {
+          return Response.json(
+            { error: "Invalid lead update." },
+            { status: 400 }
+          );
+        }
+
+        const updated =
+          await env.DB
+            .prepare(`
+              UPDATE contact_leads
+              SET status = ?1
+              WHERE id = ?2
+            `)
+            .bind(status, id)
+            .run();
+
+        if (
+          Number(updated?.meta?.changes || 0) < 1
+        ) {
+          return Response.json(
+            { error: "Lead not found." },
+            { status: 404 }
+          );
+        }
+
+        return Response.json(
+          { ok: true, id, status },
+          {
+            headers: {
+              "Cache-Control": "no-store"
+            }
+          }
+        );
+      } catch (error) {
+        logFailure("owner_lead_inbox_failed", error);
+
+        return Response.json(
+          { error: "Lead inbox temporarily unavailable." },
+          { status: 500 }
         );
       }
     }
@@ -1206,29 +1979,31 @@ export default {
           getCurrentPeriod();
 
         const usage =
-          await getAIUsage(
+          await readAssistantUsage(
             env,
             user.id,
             period
           );
+
+        const x20Actions = await readX20Usage(env, user.id, period);
 
         return Response.json({
           plan:
             planInfo.plan,
 
           aiMessages:
-            usage.aiMessages,
+            usage,
 
           aiLimit:
             planInfo.limit,
 
-          period
+          period,
+          x20Actions,
+          x20Limit: planInfo.limit,
+          x20Remaining: Math.max(0, planInfo.limit - x20Actions)
         });
       } catch (error) {
-        console.error(
-          "HEGEVA plan error:",
-          error
-        );
+        logFailure("plan_handler_failed", error);
 
         return Response.json(
           {
@@ -1335,13 +2110,11 @@ export default {
             webhookSecret
           );
       } catch (error) {
-        console.error(
-          "HEGEVA Stripe webhook signature error:",
-          error
-        );
+        logFailure("stripe_webhook_signature_failed", error);
       }
 
       if (!signatureValid) {
+        emitMonitor("stripe_webhook", "signature_invalid");
         return Response.json(
           {
             error:
@@ -1367,6 +2140,7 @@ export default {
             bodyText
           );
       } catch {
+        emitMonitor("stripe_webhook", "payload_invalid");
         return Response.json(
           {
             error:
@@ -1383,6 +2157,7 @@ export default {
         event.object !== "event" ||
         typeof event.type !== "string"
       ) {
+        emitMonitor("stripe_webhook", "event_invalid");
         return Response.json(
           {
             error:
@@ -1394,13 +2169,17 @@ export default {
         );
       }
 
-      if (
-        event.livemode === true
-      ) {
+      const paymentMode = getPaymentMode(env);
+      const eventMatchesMode =
+        (paymentMode === "live" && event.livemode === true) ||
+        (paymentMode === "test" && event.livemode === false);
+
+      if (!eventMatchesMode) {
+        emitMonitor("stripe_webhook", "mode_mismatch");
         return Response.json(
           {
             error:
-              "Live Stripe events are not accepted by this test build."
+              "Stripe event mode does not match the active payment mode."
           },
           {
             status: 400
@@ -1512,6 +2291,17 @@ export default {
           event.type ===
           "invoice.payment_failed"
         ) {
+          logFailure(
+            "stripe_invoice_payment_failed",
+            new Error(
+              "Stripe invoice payment failed."
+            ),
+            {
+              userId: userId || null,
+              eventId: event?.id || null
+            }
+          );
+
           ignored =
             true;
         }
@@ -1550,10 +2340,7 @@ export default {
           );
         }
       } catch (error) {
-        console.error(
-          "HEGEVA Stripe webhook processing error:",
-          error
-        );
+        logFailure("stripe_webhook_processing_failed", error);
 
         return Response.json(
           {
@@ -1654,14 +2441,15 @@ export default {
         const providerSelected =
           provider === "stripe";
 
-        const testMode =
-          paymentMode === "test";
+        const validMode =
+          paymentMode === "test" || paymentMode === "live";
 
         const secretReady =
-          isStripeTestSecret(
+          isStripeSecretForMode(
             typeof env.STRIPE_SECRET_KEY === "string"
               ? env.STRIPE_SECRET_KEY.trim()
-              : ""
+              : "",
+            paymentMode
           );
 
         const premiumPriceReady =
@@ -1682,7 +2470,7 @@ export default {
 
         const connected =
           providerSelected &&
-          testMode &&
+          validMode &&
           secretReady;
 
         const checkoutEnabled =
@@ -1696,6 +2484,17 @@ export default {
             user.id
           );
 
+        const billingIdentity =
+          await env.DB
+            .prepare(`
+              SELECT subscriptionStatus, cancelAtPeriodEnd, currentPeriodEnd
+              FROM stripe_customers
+              WHERE userId = ?1
+              LIMIT 1
+            `)
+            .bind(String(user.id))
+            .first();
+
         return Response.json({
           available:
             true,
@@ -1708,9 +2507,21 @@ export default {
               : null,
 
           mode:
-            "test",
+            paymentMode || null,
 
           checkoutEnabled,
+
+          customerPortalReady:
+            connected && Boolean(billingIdentity),
+
+          subscriptionStatus:
+            billingIdentity?.subscriptionStatus || null,
+
+          cancelAtPeriodEnd:
+            billingIdentity?.cancelAtPeriodEnd === 1,
+
+          currentPeriodEnd:
+            billingIdentity?.currentPeriodEnd || null,
 
           webhookConfigured:
             webhookStatus.configured,
@@ -1724,6 +2535,12 @@ export default {
           lastWebhookEventCreatedAt:
             webhookStatus.lastEventCreatedAt,
 
+          paymentState:
+            webhookStatus.paymentState,
+
+          paymentGraceUntil:
+            webhookStatus.paymentGraceUntil,
+
           entitlementSource:
             "backend",
 
@@ -1736,9 +2553,9 @@ export default {
           managedPaymentsEnabled:
             false,
 
-          testConfiguration: {
+          paymentConfiguration: {
             providerSelected,
-            testMode,
+            mode: paymentMode || null,
             secretReady,
             premiumPriceReady,
             proPriceReady
@@ -1746,14 +2563,11 @@ export default {
 
           message:
             checkoutEnabled
-              ? "Stripe test checkout is configured. Managed Payments is disabled for the HEGEVA Sandbox checkout. Verified Stripe webhooks control paid entitlement."
-              : "Billing API is available, but Stripe test checkout setup is incomplete."
+              ? `Stripe ${paymentMode} checkout is configured. Managed Payments is disabled. Verified Stripe webhooks control paid entitlement.`
+              : "Billing API is available, but Stripe checkout setup is incomplete."
         });
       } catch (error) {
-        console.error(
-          "HEGEVA billing status error:",
-          error
-        );
+        logFailure("billing_status_failed", error);
 
         return Response.json(
           {
@@ -1763,6 +2577,46 @@ export default {
           {
             status: 500
           }
+        );
+      }
+    }
+
+    // =========================================
+    // STRIPE CUSTOMER PORTAL
+    // =========================================
+
+    if (url.pathname === "/api/billing/portal") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+
+      try {
+      const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) {
+          return Response.json({ error: "Authentication required." }, { status: 401 });
+        }
+
+        const provider = String(env.PAYMENT_PROVIDER || "").trim().toLowerCase();
+        const mode = String(env.PAYMENT_MODE || "").trim().toLowerCase();
+        if (provider !== "stripe" || !["test", "live"].includes(mode)) {
+          return Response.json(
+            { error: "Stripe billing is not configured." },
+            { status: 503 }
+          );
+        }
+
+        const portal = await createStripePortalSession(request, env, user);
+        return Response.json(
+          portal.ok
+            ? { ok: true, mode, url: portal.url }
+            : { ok: false, mode, error: portal.error },
+          { status: portal.status }
+        );
+      } catch (error) {
+        logFailure("stripe_portal_handler_failed", error);
+        return Response.json(
+          { error: "Billing portal is temporarily unavailable." },
+          { status: 500 }
         );
       }
     }
@@ -1854,14 +2708,14 @@ export default {
           );
         }
 
-        if (
-          body?.mode !==
-          "test"
-        ) {
+        const requestedMode =
+          typeof body?.mode === "string" ? body.mode.trim().toLowerCase() : "";
+
+        if (!["test", "live"].includes(requestedMode)) {
           return Response.json(
             {
               error:
-                "Only test checkout is allowed in this build."
+                "Invalid payment mode."
             },
             {
               status: 400
@@ -1887,7 +2741,8 @@ export default {
 
         if (
           provider !== "stripe" ||
-          paymentMode !== "test"
+          !["test", "live"].includes(paymentMode) ||
+          requestedMode !== paymentMode
         ) {
           return Response.json(
             {
@@ -1898,7 +2753,7 @@ export default {
                 null,
 
               mode:
-                "test",
+                paymentMode || null,
 
               plan:
                 requestedPlan,
@@ -1913,7 +2768,7 @@ export default {
                 false,
 
               message:
-                "Stripe test mode is not configured."
+                "Stripe payment mode is not configured or does not match the request."
             },
             {
               status: 503
@@ -1939,7 +2794,7 @@ export default {
                 "Stripe",
 
               mode:
-                "test",
+                paymentMode,
 
               plan:
                 requestedPlan,
@@ -1971,7 +2826,7 @@ export default {
             "Stripe",
 
           mode:
-            "test",
+            paymentMode,
 
           plan:
             requestedPlan,
@@ -1998,13 +2853,10 @@ export default {
             false,
 
           message:
-            "Stripe test checkout session created. Managed Payments is disabled. Paid entitlement changes only after verified Stripe webhook events."
+            `Stripe ${paymentMode} checkout session created. Managed Payments is disabled. Paid entitlement changes only after verified Stripe webhook events.`
         });
       } catch (error) {
-        console.error(
-          "HEGEVA billing checkout error:",
-          error
-        );
+        logFailure("stripe_checkout_handler_failed", error);
 
         return Response.json(
           {
@@ -2345,10 +3197,7 @@ export default {
           }
         );
       } catch (error) {
-        console.error(
-          "HEGEVA workspace error:",
-          error
-        );
+        logFailure("workspace_handler_failed", error);
 
         return Response.json(
           {
@@ -2358,6 +3207,108 @@ export default {
           {
             status: 500
           }
+        );
+      }
+    }
+
+    // =========================================
+    // HEGEVA CORE V1 DECIDE
+    // =========================================
+
+    if (
+      url.pathname ===
+      "/api/core/decide"
+    ) {
+      if (request.method !== "POST") {
+        return Response.json(
+          { error: "Method not allowed." },
+          { status: 405 }
+        );
+      }
+
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+
+        if (!user) {
+          return Response.json(
+            { error: "Authentication required." },
+            { status: 401 }
+          );
+        }
+
+        const userId = user.id;
+        const period = getCurrentPeriod();
+
+        // Reuse AI quota admission for Core V1 (separate from X20)
+        const planInfo = await getUserPlan(env, userId);
+        const limit = PLAN_LIMITS[planInfo.plan] || PLAN_LIMITS.basic;
+        const reservation = await reserveAIUsage(env, userId, period, limit);
+
+        if (!reservation.reserved) {
+          emitMonitor("core_v1", "quota_exhausted", { plan: planInfo.plan, limit });
+          return Response.json(
+            { error: "Monthly AI message limit reached. Core V1 decision requires quota." },
+            { status: 429 }
+          );
+        }
+
+        // Load workspace data for signal computation
+        const workspaceTypes = [
+          ["customers", "customers"],
+          ["invoice_documents", "invoices"],
+          ["planner", "tasks"],
+          ["messages", "messages"],
+          ["documents", "documents"],
+          ["expenses", "expenses"],
+        ];
+
+        const workspaceData = {};
+        for (const [dataType, coreKey] of workspaceTypes) {
+          try {
+            const row = await env.DB.prepare(`
+              SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1
+            `).bind(userId, dataType).first();
+            workspaceData[coreKey] = row?.data ? JSON.parse(row.data) : [];
+          } catch {
+            workspaceData[coreKey] = [];
+          }
+        }
+
+        // Load goals if available
+        try {
+          const goalRow = await env.DB.prepare(`
+            SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = 'goals' LIMIT 1
+          `).bind(userId).first();
+          workspaceData.goals = goalRow?.data ? JSON.parse(goalRow.data) : [];
+        } catch {
+          workspaceData.goals = [];
+        }
+
+        const cloudEnabled = true; // authenticated user
+        const locale = "en"; // TODO: extract from user preferences
+
+        const result = runCoreV1Decision(workspaceData, cloudEnabled, locale);
+
+        // Record successful Core V1 decision
+        emitMonitor("core_v1", "decision_completed", {
+          priorityCount: result.priorities.length,
+          actionCount: result.preparedActions.length,
+          topPriority: result.coreDecision?.kind,
+        });
+
+        return Response.json(result, {
+          headers: {
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+          }
+        });
+      } catch (error) {
+        logFailure("core_v1_decide_failed", error);
+        emitMonitor("core_v1", "handler_failed");
+
+        return Response.json(
+          { error: "Core V1 decision is temporarily unavailable." },
+          { status: 503 }
         );
       }
     }
@@ -2413,37 +3364,6 @@ export default {
 
         const period =
           getCurrentPeriod();
-
-        const usage =
-          await getAIUsage(
-            env,
-            user.id,
-            period
-          );
-
-        if (
-          usage.aiMessages >=
-          planInfo.limit
-        ) {
-          return Response.json(
-            {
-              error:
-                "Monthly AI message limit reached.",
-
-              plan:
-                planInfo.plan,
-
-              limit:
-                planInfo.limit,
-
-              used:
-                usage.aiMessages
-            },
-            {
-              status: 429
-            }
-          );
-        }
 
         const body =
           await request.json();
@@ -2620,9 +3540,9 @@ You are HEGEVA AI, a practical and reliable business assistant.
 Answer the user's actual request directly and naturally.
 
 LANGUAGE BEHAVIOR:
-- Detect the language of the user's latest message.
-- If the latest message is clearly English, Hungarian, German, French or Spanish, answer entirely in that language.
-- If the latest message is too short or ambiguous to identify reliably, use ${languageNames[language]}.
+- The required response language is ${languageNames[language]}.
+- Answer entirely in ${languageNames[language]}, including greetings, explanations, lists and follow-up questions.
+- Do not refuse a request merely because it is written in English, Hungarian, German, French or Spanish.
 - Do not mix languages unless the user explicitly asks for translation or multilingual output.
 
 STRICT RULES:
@@ -2653,7 +3573,6 @@ QUALITY RULES:
           // =========================================
           // SAFE BASE 7 — AI RELIABILITY & COST CONTROL
           // =========================================
-          const AI_COOLDOWN_MS = 1500;
           const AI_TIMEOUT_MS = 30000;
 
           const aiRuntime =
@@ -2663,98 +3582,133 @@ QUALITY RULES:
               lastRequest: new Map()
             });
 
-          const aiUserKey = String(user.id);
+          const isX20Action = body.actionKind === "x20";
+          const isX10StudioProfile = !isX20Action && body.appStudioProfile === "x10";
+          let x20Action = null;
+          let x20Attempt = null;
+          let assistantOperationId = null;
+          let assistantOperationReserved = false;
 
-          if (aiRuntime.inFlight.has(aiUserKey)) {
-            return Response.json(
-              {
-                error:
-                  "An AI request is already running. Please wait for it to finish."
-              },
-              {
-                status: 429
-              }
-            );
-          }
-
-          const now = Date.now();
-          const lastRequest =
-            Number(aiRuntime.lastRequest.get(aiUserKey) || 0);
-
-          const retryAfterMs =
-            AI_COOLDOWN_MS - (now - lastRequest);
-
-          if (retryAfterMs > 0) {
-            return Response.json(
-              {
-                error:
-                  "Please wait a moment before sending another AI request.",
-                retryAfterMs
-              },
-              {
-                status: 429,
-                headers: {
-                  "Retry-After":
-                    String(
-                      Math.max(
-                        1,
-                        Math.ceil(retryAfterMs / 1000)
-                      )
-                    )
+          const result =
+            await handleAiChatAdmission({
+              request,
+              user,
+              planInfo,
+              period,
+              body,
+              runtime: aiRuntime,
+              distributed: env.RATE_LIMITER?.getByName(`chat-rate-limit:${user.id}`),
+              reserve: async (userId, usagePeriod, limit) => {
+                if (!isX20Action) {
+                  assistantOperationId = body.assistantOperationId || null;
+                  const operation = await startAssistantOperation(env, { operationId: assistantOperationId, userId, period: usagePeriod, planLimit: limit });
+                  if (operation.duplicate) return { reserved: false, reason: "duplicate_assistant_operation" };
+                  assistantOperationReserved = Boolean(operation.reserved);
+                  return operation;
                 }
-              }
-            );
-          }
-
-          aiRuntime.inFlight.add(aiUserKey);
-          aiRuntime.lastRequest.set(aiUserKey, now);
-
-          let result;
-
-          try {
-            const aiPromise =
-              env.AI.run(
-                "@cf/meta/llama-3.1-8b-instruct-fast",
-                {
-                  messages: [
-                    {
-                      role: "system",
-                      content: systemPrompt
-                    },
-                    ...safeHistory,
-                      {
-                      role: "user",
-                      content: message
+                logX20Lifecycle("x20_reservation_started", { startRequestId: body.startRequestId || null, actionId: body.actionId || null });
+                if (!x20Action) {
+                  try {
+                    x20Action = body.actionId
+                      ? await env.DB.prepare(`SELECT actionId, userId, period, kind, userReserved, providerCalls, status, actionExpiresAt FROM x20_request_ledger WHERE actionId = ?1 LIMIT 1`).bind(body.actionId).first()
+                      : await startX20Action(env, { startRequestId: body.startRequestId, userId, period: usagePeriod, planLimit: limit });
+                  } catch (error) {
+                    if (/monthly quota unavailable/i.test(String(error?.message || error))) {
+                      logX20Lifecycle("x20_reservation_failed", { reason: "x20_allowance_unavailable", errorName: safeErrorName(error) });
+                      return { reserved: false, reason: "x20_allowance_unavailable" };
                     }
-                  ],
-                  temperature: 0.15,
-                  max_tokens: 700
+                    logX20Lifecycle("x20_reservation_failed", { reason: "ledger_error", errorName: safeErrorName(error) });
+                    throw error;
+                  }
+                  if (!x20Action) return { reserved: false, reason: body.actionId ? "invalid_action_identity" : "x20_allowance_exhausted" };
+                  const newlyCreatedAction = !body.actionId && x20Action.created === true;
+                  if (newlyCreatedAction && !isX20RequestId(x20Action.actionId)) return { reserved: false, reason: "invalid_action_identity" };
+                  if (!newlyCreatedAction) {
+                    if (!body.actionId && x20Action.created === false) return { reserved: false, reason: "duplicate_action_start" };
+                    if (x20Action.userId && x20Action.userId !== userId) return { reserved: false, reason: "invalid_action_identity" };
+                    if (x20Action.period !== usagePeriod || x20Action.kind !== "x20") return { reserved: false, reason: "invalid_action_identity" };
+                    if (new Date(x20Action.actionExpiresAt).getTime() <= Date.now()) return { reserved: false, reason: "expired_action" };
+                  }
                 }
-              );
+                if (!body.attemptRequestId) return { reserved: false, reason: "invalid_attempt_request" };
+                x20Attempt = await registerX20Attempt(env, { actionId: x20Action.actionId, attemptRequestId: body.attemptRequestId, userId, period: usagePeriod });
+                if (x20Attempt.duplicate) return { reserved: false, reason: "duplicate_attempt" };
+                if (x20Attempt.duplicate === true || x20Attempt.status !== "reserved" || !isX20RequestId(x20Attempt.attemptId) || !Number.isInteger(Number(x20Attempt.attemptNumber)) || Number(x20Attempt.attemptNumber) < 1 || Number(x20Attempt.attemptNumber) > 3) {
+                  return { reserved: false, reason: x20Attempt.reason || "attempt_cap" };
+                }
+                logX20Lifecycle("x20_attempt_reserved", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber });
+                return { reserved: true, reason: "x20_attempt_reserved" };
+              },
+              readUsage: (userId, usagePeriod) =>
+                isX20Action ? readAIUsage(env, userId, usagePeriod) : readAssistantUsage(env, userId, usagePeriod),
+              execute: async ({ message: admittedMessage, safeHistory: admittedHistory }) => {
+                if (isX20Action) logX20Lifecycle("x20_provider_started", { actionId: x20Action?.actionId, attemptId: x20Attempt?.attemptId, attemptNumber: x20Attempt?.attemptNumber });
+                if (!isX20Action) {
+                  const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage });
+                  const adapted = await invokeWorkersAiText(env, projection);
+                  if (!adapted.ok) {
+                    const unavailable = new Error("Workers AI unavailable");
+                    unavailable.name = adapted.reason === "timeout" ? "HEGEVA_AI_TIMEOUT" : "HEGEVA_PROVIDER_UNAVAILABLE";
+                    throw unavailable;
+                  }
+                  await finishAssistantOperation(env, { operationId: assistantOperationId, status: "succeeded" });
+                  return { response: adapted.response };
+                }
+                const aiPromise =
+                  env.AI.run(
+                    "@cf/meta/llama-3.1-8b-instruct-fast",
+                    {
+                      messages: [
+                        {
+                          role: "system",
+                          content: systemPrompt
+                        },
+                        ...admittedHistory,
+                        {
+                          role: "user",
+                          content: admittedMessage
+                        }
+                      ],
+                      temperature: 0.15,
+                      max_tokens: selectAiOutputTokens({ isX20Action, appStudioProfile: isX10StudioProfile ? body.appStudioProfile : undefined })
+                    }
+                  );
 
-            let timeoutId;
+                let timeoutId;
+                const timeoutPromise =
+                  new Promise((_, reject) => {
+                    timeoutId = setTimeout(
+                      () => reject(new Error("HEGEVA_AI_TIMEOUT")),
+                      AI_TIMEOUT_MS
+                    );
+                  });
 
-            const timeoutPromise =
-              new Promise((_, reject) => {
-                timeoutId = setTimeout(
-                  () => reject(
-                    new Error("HEGEVA_AI_TIMEOUT")
-                  ),
-                  AI_TIMEOUT_MS
-                );
-              });
+                try {
+                  const providerResult = await Promise.race([aiPromise, timeoutPromise]);
+                  if (isX20Action && x20Attempt) {
+                    await finishX20Attempt(env, { attemptId: x20Attempt.attemptId, actionId: x20Action.actionId, status: "succeeded" });
+                    logX20Lifecycle("x20_provider_completed", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber });
+                    logX20Lifecycle("x20_attempt_completed", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber, status: "succeeded" });
+                  }
+                  if (!isX20Action && assistantOperationReserved) await finishAssistantOperation(env, { operationId: assistantOperationId, status: "succeeded" });
+                  return providerResult;
+                } catch (error) {
+                  if (isX20Action && x20Attempt) {
+                    const status = error?.message === "HEGEVA_AI_TIMEOUT" ? "timed_out" : "failed";
+                    await finishX20Attempt(env, { attemptId: x20Attempt.attemptId, actionId: x20Action.actionId, status });
+                    logX20Lifecycle("x20_provider_failed", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber, status, errorName: safeErrorName(error) });
+                    logX20Lifecycle("x20_attempt_failed", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber, status, errorName: safeErrorName(error) });
+                  }
+                  if (!isX20Action && assistantOperationReserved) await finishAssistantOperation(env, { operationId: assistantOperationId, status: error?.message === "HEGEVA_AI_TIMEOUT" ? "timed_out" : "failed" });
+                  throw error;
+                } finally {
+                  clearTimeout(timeoutId);
+                }
+              },
+            });
 
-            try {
-              result =
-                await Promise.race([
-                  aiPromise,
-                  timeoutPromise
-                ]);
-            } finally {
-              clearTimeout(timeoutId);
-            }
-          } finally {
-            aiRuntime.inFlight.delete(aiUserKey);
+          if (result instanceof Response) {
+            return result;
           }
 
         let aiResponse =
@@ -2810,31 +3764,21 @@ QUALITY RULES:
             fallbackResponses.en;
         }
 
-        await incrementAIUsage(
-          env,
-          user.id,
-          period
-        );
-
-        return Response.json({
-          response:
-            aiResponse,
-
+          return Response.json({
+          response: aiResponse,
           language,
-
-          version:
-            "V35.3.6"
+          version: "V35.3.6",
+          ...(!isX20Action && assistantOperationId ? { assistantOperationId } : {}),
+          ...(isX20Action && x20Action?.actionId ? { actionId: x20Action.actionId, attemptId: x20Attempt?.attemptId || null, actionKind: "x20" } : {})
         });
       } catch (error) {
-        console.error(
-          "HEGEVA AI chat error:",
-          error
-        );
+        logFailure("ai_chat_handler_failed", error);
 
         return Response.json(
           {
-            error:
-              "HEGEVA AI is temporarily unavailable."
+            error: "HEGEVA AI is temporarily unavailable.",
+            ...(!isX20Action && assistantOperationId ? { assistantOperationId } : {}),
+            ...(isX20Action && x20Action?.actionId ? { actionId: x20Action.actionId, attemptId: x20Attempt?.attemptId || null, actionKind: "x20" } : {})
           },
           {
             status: 500
@@ -2843,13 +3787,280 @@ QUALITY RULES:
       }
     }
 
+    if (url.pathname === "/api/ai-bot/approve") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        const body = await request.json();
+        const profileId = typeof body?.profileId === "string" ? body.profileId : "";
+        if (!AI_BOT_PROFILE_ID.test(profileId)) return Response.json({ error: "A valid AI Bot profile is required." }, { status: 400 });
+        const configuredOwner = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
+        const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+        if (!configuredOwner || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredOwner) || !userEmail || userEmail !== configuredOwner) return Response.json({ error: "Owner approval is unavailable." }, { status: 403 });
+        const stored = await loadStoredAIBotProfile(env, user.id, profileId);
+        if (!stored || stored.profile.enabled !== true) return Response.json({ error: "This AI Bot profile is unavailable." }, { status: 404 });
+        const current = stored.profile;
+        const now = new Date(); const approvedAt = now.toISOString(); const approvalExpiresAt = new Date(now.getTime() + 30 * 60 * 1000).toISOString();
+        const approvalVersion = Number.isSafeInteger(current.approvalVersion) && current.approvalVersion > 0 ? current.approvalVersion + 1 : 1;
+        const approvedByActorHash = await sha256Hex(user.id);
+        const next = { ...current, approvalState: "owner-approved", approvedAt, approvalExpiresAt, approvedByActorHash, approvalVersion, approvalRevision: approvedAt, updatedAt: approvedAt };
+        const records = stored.records.map((item) => item && item.id === profileId ? next : item);
+        const result = await env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='ai-bot-profiles' AND updatedAt=?4").bind(JSON.stringify(records), approvedAt, user.id, stored.row.updatedAt).run();
+        if (Number(result?.meta?.changes || 0) !== 1) return Response.json({ error: "The profile changed; reload and try again." }, { status: 409 });
+        return Response.json({ status: "owner-approved", approvalExpiresAt, approvalVersion }, { status: 200 });
+      } catch { emitMonitor("ai_bot_create", "approval_failed"); return Response.json({ error: "Owner approval is temporarily unavailable." }, { status: 503 }); }
+    }
+
+    if (url.pathname === "/api/ai-bot/canary-readiness") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        if (!request.headers.get("cookie")) return Response.json({ reason: "authentication-required" }, { status: 401 });
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ reason: "authentication-required" }, { status: 401 });
+        const body = await request.json();
+        const keys = body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body) : [];
+        if (keys.length !== 1 || keys[0] !== "profileId" || typeof body.profileId !== "string" || !AI_BOT_PROFILE_ID.test(body.profileId)) return Response.json({ reason: "invalid-request" }, { status: 400 });
+        const result = await evaluateAIBotCanaryPreflight(env, request, user, body.profileId);
+        return result.ok ? Response.json({ ready: true, reason: "ready" }, { status: 200 }) : Response.json({ reason: result.reason }, { status: result.status });
+      } catch { return Response.json({ reason: "internal-unavailable" }, { status: 503 }); }
+    }
+
+    if (url.pathname === "/api/ai-bot/canary-once") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      let authorizationHash = null;
+      const canaryReply = (reason, status) => Response.json({ reason }, { status });
+      try {
+        if (!request.headers.get("cookie")) return canaryReply("authentication-required", 401);
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return canaryReply("authentication-required", 401);
+        const body = await request.json();
+        const keys = body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body) : [];
+        if (keys.length !== 1 || keys[0] !== "profileId" || typeof body.profileId !== "string" || !AI_BOT_PROFILE_ID.test(body.profileId)) return canaryReply("invalid-request", 400);
+        const preflight = await evaluateAIBotCanaryPreflight(env, request, user, body.profileId);
+        if (!preflight.ok) return canaryReply(preflight.reason, preflight.status);
+        const profile = preflight.profile;
+        const actorHash = preflight.actorHash;
+        const providerConfig = preflight.providerConfig;
+        const operationId = crypto.randomUUID();
+        const rawToken = crypto.randomUUID() + crypto.randomUUID();
+        authorizationHash = await sha256Hex(rawToken);
+        const now = new Date();
+        const createdAt = now.toISOString();
+        const expiresAt = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
+        await env.DB.prepare("INSERT INTO ai_canary_authorizations(authorizationHash,actorHash,workspaceHash,operationType,maximumRequests,consumedCount,createdAt,expiresAt,status) VALUES(?1,?2,?2,'ai-bot',1,0,?3,?4,'active')").bind(authorizationHash, actorHash, createdAt, expiresAt).run();
+        const internalRequest = new Request(request.url, { method: "POST", headers: { "X-HEGEVA-CANARY-TOKEN": rawToken } });
+        const admission = await admitAIBotCanary(env, internalRequest, { authorizationHash, userId: user.id, operationId, profileId: body.profileId, approvedAt: profile.approvedAt, approvalExpiresAt: profile.approvalExpiresAt, approvalVersion: profile.approvalVersion, approvedByActorHash: profile.approvedByActorHash, globalDailyCeiling: providerConfig.requestCeiling, userDailyCeiling: providerConfig.userCeiling, workspaceDailyCeiling: providerConfig.workspaceCeiling, neuronDailyCeiling: providerConfig.neuronCeiling });
+        if (!admission.ok) { await revokeUnusedCanaryAuthorization(env, authorizationHash); return canaryReply(admission.reason === "authorization-consumed" ? "already-used" : "authorization-reservation-failed", 429); }
+        const projection = buildWorkersAiProjection({ operation: "ai-bot", locale: "en", prompt: "State the current HEGEVA canary readiness in one short sentence." });
+        if (!projection) { await finishAIBotOperation(env, { operationId, userId: user.id, profileId: body.profileId, reservationId: admission.reservationId, status: "failed", failureCode: "invalid-projection" }); return Response.json({ status: "failed", providerAttempted: false, financialGuardStatus: "released", reason: "provider-response-invalid" }, { status: 503 }); }
+        const provider = await invokeWorkersAiText(env, projection);
+        const failureReason = provider.ok ? null : provider.reason === "timeout" ? "provider-timeout" : provider.reason === "missing-response" ? "provider-response-invalid" : provider.reason === "provider-failure" ? "provider-failure" : "unknown";
+        try {
+          await finishAIBotOperation(env, { operationId, userId: user.id, profileId: body.profileId, reservationId: admission.reservationId, status: provider.ok ? "succeeded" : "failed", failureCode: provider.ok ? null : provider.reason });
+        } catch { return Response.json({ status: "failed", providerAttempted: true, financialGuardStatus: "reserved", reason: "operation-finalization-failed" }, { status: 503 }); }
+        return Response.json({ status: provider.ok ? "succeeded" : "failed", providerAttempted: true, financialGuardStatus: provider.ok ? "finalized" : "released", ...(provider.ok && provider.metrics ? { metrics: provider.metrics } : {}), ...(failureReason ? { reason: failureReason } : {}) }, { status: provider.ok ? 200 : 503 });
+      } catch {
+        if (authorizationHash) await revokeUnusedCanaryAuthorization(env, authorizationHash);
+        emitMonitor("ai_bot_canary", "preflight_failed");
+        return canaryReply(authorizationHash ? "authorization-reservation-failed" : "internal-unavailable", 503);
+      }
+    }
+
+    if (url.pathname === "/api/ai-bot/execute") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      let operationId = null; let profileId = null;
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        const body = await request.json();
+        profileId = typeof body?.profileId === "string" ? body.profileId : "";
+        operationId = typeof body?.operationId === "string" ? body.operationId : "";
+        if (!AI_BOT_PROFILE_ID.test(profileId) || !AI_BOT_OPERATION_ID.test(operationId)) return Response.json({ error: "A valid AI Bot operation is required." }, { status: 400 });
+        const profile = await loadCanonicalAIBotProfile(env, user.id, profileId);
+        if (!profile) return Response.json({ error: "AI Bot approval is required." }, { status: 403 });
+        const canaryEmail = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
+        const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+        const flags = parseProviderFlags(env);
+        if (!flags.canaryEnabled || !canaryEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(canaryEmail) || userEmail !== canaryEmail) return Response.json({ error: "AI Bot approval is required." }, { status: 403 });
+        const providerConfig = getWorkersAiConfig(env);
+        if (!providerConfig.enabled || providerConfig.globalKillSwitch || providerConfig.freeAllocationSource !== "configured" || env.FINANCIAL_GUARD_ENABLED !== "enabled" || !env.AI) return Response.json({ error: "AI Bot provider is currently unavailable." }, { status: 503 });
+        const prompt = typeof body?.prompt === "string" ? body.prompt.slice(0, CANARY_BOUNDS.maxInputTokens) : "";
+        const projection = buildWorkersAiProjection({ operation: "ai-bot", locale: typeof body?.locale === "string" ? body.locale : "en", prompt });
+        if (!projection) return Response.json({ error: "The AI Bot request could not be validated." }, { status: 400 });
+        const period = getCurrentPeriod();
+          const reservation = await admitAIBotCanary(env, request, { userId: user.id, operationId, profileId, approvedAt: profile.approvedAt, approvalExpiresAt: profile.approvalExpiresAt, approvalVersion: profile.approvalVersion, approvedByActorHash: profile.approvedByActorHash, globalDailyCeiling: providerConfig.dailyRequestCeiling, userDailyCeiling: providerConfig.perUserCeiling, workspaceDailyCeiling: providerConfig.perWorkspaceCeiling, neuronDailyCeiling: providerConfig.dailyNeuronCeiling });
+          if (!reservation.ok) return Response.json({ error: "AI Bot allowance is unavailable." }, { status: reservation.reason === "authorization-consumed" ? 409 : 429 });
+          const provider = await invokeWorkersAiText(env, projection);
+          await finishAIBotOperation(env, { operationId, userId: user.id, profileId, reservationId: reservation.reservationId, status: provider.ok ? "succeeded" : "failed", failureCode: provider.ok ? null : provider.reason });
+          if (!provider.ok) return Response.json({ error: "AI Bot execution is temporarily unavailable." }, { status: provider.reason === "timeout" ? 504 : 503 });
+          return Response.json({ schemaVersion: "0.1", status: "ready-for-review", provider: "workers-ai", executionState: "not-started", response: provider.response }, { status: 200 });
+      } catch { emitMonitor("ai_bot_execute", "handler_failed"); return Response.json({ error: "AI Bot execution is temporarily unavailable." }, { status: 503 }); }
+    }
+
+    if (url.pathname === "/api/ai/status") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const flags = parseProviderFlags(env);
+        const providerEnabled = flags.providerEnabled === true;
+        const globalKillSwitch = flags.killSwitchActive === true;
+        const canaryMode = flags.canaryEnabled === true;
+        const nonX20ProviderActive = providerEnabled && !globalKillSwitch;
+        return Response.json({
+          providerEnabled,
+          globalKillSwitch,
+          x20Enabled: true,
+          assistantEnabled: nonX20ProviderActive,
+          x10Enabled: nonX20ProviderActive,
+          aiBotsEnabled: canaryMode && nonX20ProviderActive,
+          x30Enabled: x30ProviderEnabled(env),
+          videoEnabled:
+            env?.CREATIVE_VIDEO_PROVIDER_ENABLED === "enabled",
+        }, { headers: { "Cache-Control": "no-store, max-age=0" } });
+      } catch {
+        return Response.json({ error: "AI status is temporarily unavailable." }, { status: 503, headers: { "Cache-Control": "no-store, max-age=0" } });
+      }
+    }
+
+    if (url.pathname === "/api/billing/public-status") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const provider =
+          typeof env.PAYMENT_PROVIDER === "string"
+            ? env.PAYMENT_PROVIDER.trim().toLowerCase()
+            : "";
+        const paymentMode =
+          typeof env.PAYMENT_MODE === "string"
+            ? env.PAYMENT_MODE.trim().toLowerCase()
+            : "";
+        const providerSelected = provider === "stripe";
+        const validMode = paymentMode === "test" || paymentMode === "live";
+        const secretReady = isStripeSecretForMode(
+          typeof env.STRIPE_SECRET_KEY === "string" ? env.STRIPE_SECRET_KEY.trim() : "",
+          paymentMode
+        );
+        const premiumPriceReady = Boolean(getStripePriceId(env, "premium"));
+        const proPriceReady = Boolean(getStripePriceId(env, "pro"));
+        const connected = providerSelected && validMode && secretReady;
+        const checkoutEnabled = connected && premiumPriceReady && proPriceReady;
+        return Response.json({
+          provider: providerSelected ? "stripe" : null,
+          mode: validMode ? paymentMode : null,
+          connected,
+          checkoutEnabled,
+          webhookConfigured: isStripeWebhookSecret(
+            typeof env.STRIPE_WEBHOOK_SECRET === "string" ? env.STRIPE_WEBHOOK_SECRET.trim() : ""
+          ),
+          managedPaymentsEnabled: false,
+        }, { headers: { "Cache-Control": "no-store, max-age=0" } });
+      } catch {
+        return Response.json({ error: "Billing status is temporarily unavailable." }, { status: 503, headers: { "Cache-Control": "no-store, max-age=0" } });
+      }
+    }
+
+    if (url.pathname === "/api/creative/capability") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user=await getLoggedInUser(request,env,ctx)
+        if(!user)return Response.json({authenticated:false,entitled:false,providers:{text:false,image:false,video:false}},{headers:{"Cache-Control":"private, no-store"}})
+        const planInfo=await getUserPlan(env,user.id),period=getCurrentPeriod(),credits=await readCreativeCredits(env.DB,user.id,period,planInfo.plan),capability=creativeProviderCapability(env,planInfo.plan)
+        return Response.json({authenticated:true,canaryEligible:isCreativeCanaryOwner(user,env),...capability,credits},{headers:{"Cache-Control":"private, no-store"}})
+      }catch{return Response.json({error:"Creative capability is temporarily unavailable."},{status:503,headers:{"Cache-Control":"private, no-store"}})}
+    }
+
+    if (url.pathname === "/api/creative/generate") {
+      if(request.method!=="POST")return Response.json({error:"Method not allowed."},{status:405})
+      let lease=null,user=null,reservation=null
+      try{
+        user=await getLoggedInUser(request,env,ctx)
+        if(!user)return Response.json({error:"Authentication required."},{status:401})
+        if(!isCreativeCanaryOwner(user,env))return Response.json({error:"Creative generation is currently limited to the approved canary."},{status:403})
+        const planInfo=await getUserPlan(env,user.id),capability=creativeProviderCapability(env,planInfo.plan)
+        if(!capability.entitled)return Response.json({error:"Premium or Pro is required for Creative AI generation."},{status:403})
+        const body=await request.json(),validated=validateCreativeGeneration(body)
+        if(!validated.ok)return Response.json({error:"The creative brief could not be validated."},{status:400})
+        const providerKey=validated.brief.operationType==="image"?"image":"text"
+        if(!capability.providers[providerKey])return Response.json({error:"The approved creative provider is unavailable."},{status:503})
+        const limiter=env.RATE_LIMITER?.getByName(`creative-rate-limit:${user.id}`)
+        lease=limiter?await limiter.admit():null
+        if(limiter&&!lease?.allowed)return Response.json({error:"Creative generation rate limit reached."},{status:429})
+        const period=getCurrentPeriod(),daily=new Date().toISOString().slice(0,10)
+        const dailyCount=await env.DB.prepare("SELECT COUNT(*) AS total FROM creative_credit_operations WHERE userId=?1 AND substr(createdAt,1,10)=?2").bind(user.id,daily).first()
+        if(Number(dailyCount?.total||0)>=10)return Response.json({error:"Creative daily generation limit reached."},{status:429})
+        reservation=await reserveCreativeCredits(env.DB,{operationId:validated.brief.operationId,requestId:validated.brief.requestId,userId:user.id,period,plan:planInfo.plan,operationType:validated.brief.operationType})
+        if(!reservation.reserved){const status=reservation.reason==="duplicate-operation"?409:reservation.reason==="credits-exhausted"?429:503;return Response.json({error:status===409?"This generation request was already processed.":status===429?"Creative AI credits are exhausted.":"Creative credit reservation is unavailable."},{status})}
+        const generated=await invokeCreativeProvider(env,validated.brief)
+        await settleCreativeCredits(env.DB,{operationId:validated.brief.operationId,userId:user.id,success:generated.ok,failureCode:generated.reason,settledCredits:generated.settledCredits})
+        if(!generated.ok)return Response.json({error:"Creative generation is temporarily unavailable.",reason:generated.reason},{status:generated.reason==="provider-timeout"?504:503})
+        const credits=await readCreativeCredits(env.DB,user.id,period,planInfo.plan)
+        return Response.json({...generated,executionState:"not-published",credits},{status:200,headers:{"Cache-Control":"private, no-store"}})
+      }catch{emitMonitor("creative_generate","handler_failed")
+        if(reservation?.reserved&&user)await settleCreativeCredits(env.DB,{operationId:reservation.operationId,userId:user.id,success:false,failureCode:"internal-failure"}).catch(()=>{})
+        return Response.json({error:"Creative generation is temporarily unavailable."},{status:503})
+      }finally{if(lease?.allowed&&lease?.token&&env.RATE_LIMITER)await env.RATE_LIMITER.getByName(`creative-rate-limit:${user?.id}`).release(lease.token).catch(()=>{})}
+    }
+
+    if (url.pathname === "/api/x30/capability") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+        if (!user) return Response.json({ authenticated: false, canaryEligible: false, generationEnabled: false }, { status: 200 });
+        const canaryEligible = isX30CanaryOwner(user, env);
+        return Response.json({ authenticated: true, canaryEligible, generationEnabled: canaryEligible && x30ProviderEnabled(env) }, { status: 200 });
+      } catch {
+        return Response.json({ authenticated: false, canaryEligible: false, generationEnabled: false }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/x30/generate") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        if (!isX30CanaryOwner(user, env)) return Response.json({ error: "X30 generation is not currently available." }, { status: 403 });
+        if (!x30ProviderEnabled(env)) return Response.json({ error: "X30 generation is not currently available." }, { status: 503 });
+        const body = await request.json();
+        const operationId = body?.operationId;
+        if (!isX30OperationId(operationId)) return Response.json({ error: "A valid X30 generation operation is required." }, { status: 400 });
+        const briefResult = validateX30ProviderBrief(body?.brief);
+        if (!briefResult.ok) return Response.json({ error: "The X30 brief could not be validated." }, { status: 400 });
+        const period = getCurrentPeriod();
+        const reservation = await startX30Generation(env, { operationId, userId: user.id, workspaceScope: user.id, period, planLimit: X30_MONTHLY_LIMIT, workspaceLimit: X30_WORKSPACE_LIMIT });
+        if (!reservation.reserved) {
+          const status = reservation.reason === "x30_allowance_exhausted" ? 429 : reservation.reason === "expired_x30_operation" ? 409 : 503;
+          return Response.json({ error: status === 429 ? "X30 generation allowance reached." : "X30 generation is not currently available." }, { status });
+        }
+        const provider = await invokeX30Provider(env, { brief: briefResult.brief, operationId, scope: "authenticated" });
+        await finishX30Generation(env, { operationId, userId: user.id, status: provider.ok ? "ready-for-review" : "rejected" });
+        if (!provider.ok) return Response.json({ error: "X30 generation is temporarily unavailable." }, { status: provider.reason === "provider_timeout" ? 504 : 502 });
+        return Response.json(provider.result, { status: 200 });
+      } catch { emitMonitor("x30_generate", "handler_failed");
+        return Response.json({ error: "X30 generation is not currently available." }, { status: 503 });
+      }
+    }
+
     // =========================================
     // STATIC HEGEVA WEBSITE
     // =========================================
+
+    // Retire the legacy browser UI while preserving API and asset behavior.
+    const acceptsHtml = (request.headers.get("Accept") || "").toLowerCase().includes("text/html");
+    const isApiPath = url.pathname === "/api" || url.pathname.startsWith("/api/");
+    const canonicalOrigin = getPublicAppUrl(request, env);
+    if (
+      !isApiPath &&
+      ["GET", "HEAD"].includes(request.method) &&
+      acceptsHtml &&
+      url.origin !== canonicalOrigin
+    ) {
+      return Response.redirect(`${canonicalOrigin}${url.pathname}${url.search}`, 308);
+    }
 
     return env.ASSETS.fetch(
       request
     );
   }
-};
+  };
+}
 
+export default createRequestHandler();

@@ -49,44 +49,26 @@ export async function sendResendEmail(
     .catch(() => null);
 
   if (!response.ok) {
-    console.error(
-      "HEGEVA Resend error:",
-      response.status,
-      data
-    );
+    console.error("HEGEVA_PROVIDER_FAILURE", {
+      provider: "resend",
+      operation: "email",
+      reason: "provider_rejected",
+      status: response.status,
+      responseType: typeof data,
+    });
 
-    throw new Error(
-      data?.message ||
-        `Email provider returned HTTP ${response.status}.`
-    );
+    throw new Error("Email provider unavailable.");
   }
 
   return data;
 }
 
-function queueEmail(ctx, promise) {
-  if (ctx?.waitUntil) {
-    ctx.waitUntil(
-      promise.catch((error) =>
-        console.error(
-          "HEGEVA queued email error:",
-          error
-        )
-      )
-    );
-  } else {
-    void promise.catch((error) =>
-      console.error(
-        "HEGEVA email error:",
-        error
-      )
-    );
-  }
-}
-
 export function createAuth(env, request, ctx) {
-  const origin =
-    new URL(request.url).origin;
+  const publicAppUrl =
+    typeof env.PUBLIC_APP_URL === "string" &&
+    env.PUBLIC_APP_URL.startsWith("https://")
+      ? env.PUBLIC_APP_URL.replace(/\/$/, "")
+      : "https://hegevaai.co.uk";
 
   return betterAuth({
     database: env.DB,
@@ -95,7 +77,19 @@ export function createAuth(env, request, ctx) {
       env.BETTER_AUTH_SECRET,
 
     baseURL:
-      origin,
+      publicAppUrl,
+
+    trustedOrigins: [
+      publicAppUrl,
+      "https://www.hegevaai.co.uk"
+    ],
+
+    advanced: {
+      // Authentication is exposed through the same-origin Next.js proxy at
+      // hegevaai.co.uk/api/auth. A host-only secure cookie is both safer and
+      // more reliable than a Domain cookie here (especially after redirects).
+      useSecureCookies: true
+    },
 
     emailAndPassword: {
       enabled: true,
@@ -123,17 +117,20 @@ export function createAuth(env, request, ctx) {
           const safeUrl =
             escapeHtml(url);
 
-          const emailPromise =
-            sendResendEmail(
-              env,
-              {
-                to:
-                  user.email,
+          // Password reset is a user-facing delivery action. Await the
+          // provider here so Better Auth can report a real failure instead of
+          // telling the UI an email was sent when Resend is missing or rejects
+          // the request.
+          await sendResendEmail(
+            env,
+            {
+              to:
+                user.email,
 
-                subject:
-                  "Reset your HEGEVA AI password",
+              subject:
+                "Reset your HEGEVA AI password",
 
-                text:
+              text:
 `Hello ${user?.name || "there"},
 
 Use this secure link to reset your HEGEVA AI password:
@@ -141,7 +138,7 @@ ${url}
 
 This link expires after one hour. If you did not request this, you can ignore this email.`,
 
-                html:
+              html:
 `<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#172033">
   <h2>HEGEVA AI password reset</h2>
 
@@ -167,14 +164,9 @@ This link expires after one hour. If you did not request this, you can ignore th
   </p>
 </div>`,
 
-                idempotencyKey:
-                  `hegeva-reset-${crypto.randomUUID()}`
-              }
-            );
-
-          queueEmail(
-            ctx,
-            emailPromise
+              idempotencyKey:
+                `hegeva-reset-${crypto.randomUUID()}`
+            }
           );
         }
     },

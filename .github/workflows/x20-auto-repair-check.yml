@@ -1,0 +1,40 @@
+name: X20 Auto Repair Hardening Check
+
+on:
+  pull_request:
+    branches:
+      - v0-rebuild
+    paths:
+      - 'v0-app/components/app-studio/x20-capability-auto-repair.tsx'
+      - 'v0-app/scripts/x20-capability-audit.mjs'
+      - 'v0-app/scripts/x20-auto-repair-smoke.mjs'
+      - '.github/workflows/x20-auto-repair-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-auto-repair:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v0-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Auto-repair smoke
+        run: node scripts/x20-auto-repair-smoke.mjs
+      - name: X20 full audit
+        run: npm run x20:audit
+      - name: TypeScript check
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build

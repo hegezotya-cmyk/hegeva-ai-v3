@@ -1,0 +1,73 @@
+name: HEGEVA V0 Build Check
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - v0-rebuild
+      - x20-studio-wow
+    paths:
+      - "v0-app/**"
+      - "src/**"
+      - "migrations/**"
+      - "scripts/**"
+      - "package.json"
+      - "package-lock.json"
+      - "wrangler.jsonc"
+      - ".github/workflows/main.yml"
+      - ".github/workflows/release.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            v0-app/package-lock.json
+
+      - name: Install Worker dependencies
+        run: npm ci
+
+      - name: Worker syntax check
+        run: |
+          node --check src/index-ledger.js
+          node --check src/index.js
+          node --check src/auth.js
+
+      - name: Apply D1 migrations locally
+        run: npm run db:migrations:local
+
+      - name: Worker deploy dry run
+        run: npm run deploy:dry-run
+
+      - name: Install V0 dependencies
+        working-directory: v0-app
+        run: npm ci
+
+      - name: X20 runtime stability check
+        working-directory: v0-app
+        run: npm run x20:stability
+
+      - name: TypeScript check
+        working-directory: v0-app
+        run: npx tsc --noEmit
+
+      - name: Next.js build
+        working-directory: v0-app
+        run: npm run build
+
+      - name: Cloudflare OpenNext build
+        working-directory: v0-app
+        run: npm run cf:build

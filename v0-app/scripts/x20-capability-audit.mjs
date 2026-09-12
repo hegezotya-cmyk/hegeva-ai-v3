@@ -1,0 +1,40 @@
+import fs from 'node:fs'
+import assert from 'node:assert/strict'
+
+const engine = fs.readFileSync(new URL('../lib/app-studio-capability-engine.ts', import.meta.url), 'utf8')
+const gate = fs.readFileSync(new URL('../lib/app-studio-capability-gate.ts', import.meta.url), 'utf8')
+const status = fs.readFileSync(new URL('../components/app-studio/x20-capability-status.tsx', import.meta.url), 'utf8')
+const autoRepair = fs.readFileSync(new URL('../components/app-studio/x20-capability-auto-repair.tsx', import.meta.url), 'utf8')
+
+assert(/starter/.test(engine) && /premium/.test(engine) && /growth/.test(engine), 'Capability engine must define starter, premium and growth tiers')
+assert(/localStorage/.test(engine), 'Capability engine must inspect persistence behavior')
+assert(/edit/i.test(engine) && /update/i.test(engine), 'Capability engine must inspect edit/update behavior')
+assert(/evaluateX20BuildCandidate/.test(gate), 'Capability gate must expose candidate evaluation')
+assert(/chooseX20Candidate/.test(gate), 'Capability gate must expose candidate selection')
+assert(/buildX20RetryInstruction/.test(gate), 'Capability gate must expose targeted retry instructions')
+
+assert(/evaluateX20BuildCandidate/.test(status), 'Live capability panel must use the real capability gate')
+assert(/hegeva:x20:studio:build-mode/.test(status), 'Capability panel must follow selected build level')
+assert(/hegeva:x20:studio:html/.test(status), 'Capability panel must inspect the current generated app')
+
+assert(/buildX20RetryInstruction/.test(autoRepair), 'Auto repair must build a targeted capability retry instruction')
+assert(/evaluateX20BuildCandidate/.test(autoRepair), 'Auto repair must gate the original candidate before retrying')
+assert(/function candidateRank/.test(autoRepair), 'Auto repair must rank capability and spec quality together')
+assert(/let bestHtml = html/.test(autoRepair) && /let best = base/.test(autoRepair), 'Auto repair must retain the original candidate as the initial best build')
+assert(/auditStudioSpecMatch/.test(autoRepair), 'Auto repair must audit request/spec fidelity')
+assert(/buildStudioSpecRepairInstruction/.test(autoRepair), 'Auto repair must build targeted spec repair instructions')
+assert(/REPAIR_KEY/.test(autoRepair), 'Auto repair must guard against repeated retry loops')
+assert(/REPAIR_ATTEMPTS_KEY/.test(autoRepair), 'Auto repair must persist retry attempt state')
+assert(/MAX_REPAIR_ATTEMPTS\s*=\s*3/.test(autoRepair), 'Auto repair must cap targeted retries at three attempts')
+assert(/readAttempts\(key\)/.test(autoRepair), 'Auto repair must read retry attempts per build fingerprint')
+assert(/while \(usedAttempts < MAX_REPAIR_ATTEMPTS/.test(autoRepair), 'Auto repair must enforce its retry cap in the repair loop')
+assert(/writeAttempts\(key, usedAttempts\)/.test(autoRepair), 'Auto repair must persist each retry attempt before retrying')
+assert(/missingRequired/.test(autoRepair) && /MANDATORY WORKING CAPABILITIES STILL MISSING/.test(autoRepair), 'Auto repair must explicitly target missing capabilities')
+assert(/retry\.rank > best\.rank/.test(autoRepair), 'Auto repair must only retain a candidate with a measurably better combined rank')
+assert(/best\.gate\.accepted && best\.spec\.score >= MIN_REQUEST_MATCH/.test(autoRepair), 'Auto repair must stop early when capability and request fidelity both pass')
+assert(/localStorage\.removeItem\(REPAIR_KEY\)/.test(autoRepair), 'Auto repair must unlock retry state after a non-improving attempt')
+assert(/looksLikeHtmlDocument\(retryHtml\)/.test(autoRepair), 'Auto repair retry HTML must be verified before selection')
+assert(/bestHtml !== html && best\.rank > base\.rank/.test(autoRepair), 'Auto repair must preserve the original unless a retry improves on it')
+assert(/localStorage\.setItem\(HTML_KEY, bestHtml\)/.test(autoRepair), 'The best repaired candidate across all attempts must replace the saved build')
+
+console.log('X20 capability audit passed: required tiers, strict persisted edit workflow, spec-aware targeted repair, bounded retries, measurable improvement and live status are wired')
