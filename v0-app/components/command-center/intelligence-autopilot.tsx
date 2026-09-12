@@ -40,7 +40,18 @@ import {
   type AutopilotPolicy,
   type IntegrationLoadSignal,
 } from "@/lib/autopilot-v1";
-
+type AutopilotDraft = {
+  id: string;
+  type: string;
+  tone: string;
+  recipient?: string;
+  subject?: string;
+  body: string;
+  createdAt: string;
+  sourceId?: string;
+  followUpAt?: string;
+  workflowStatus?: "draft" | "approved" | "completed";
+};
 type IntegrationProvider = {
   provider: "google" | "microsoft";
   configured: boolean;
@@ -391,11 +402,14 @@ const { items: tasks, setItems: setTasks } =
 
 const { items: invoices, setItems: setInvoices } =
   useWorkspaceData<AutopilotInvoice>("invoice_documents");
-   const {
-      items: actions,
-      setItems: setActions,
-      cloudEnabled,
-    } = useWorkspaceData<AutopilotAction>("autopilot_actions");
+ const { items: messages, setItems: setMessages } =
+  useWorkspaceData<AutopilotDraft>("messages");
+
+const {
+  items: actions,
+  setItems: setActions,
+  cloudEnabled,
+} = useWorkspaceData<AutopilotAction>("autopilot_actions");
    const { items: audit, setItems: setAudit } =
   useWorkspaceData<AutopilotAuditEvent>("autopilot_audit");
   const { items: policies } = useWorkspaceData<AutopilotPolicy>("autopilot_policy");
@@ -552,6 +566,88 @@ const prepareNeglectedLeadQuotes = (signal: AutopilotSignal) => {
 
     return next;
   });
+};const prepareDocumentFollowUps = (signal: AutopilotSignal) => {
+  if (
+    signal.kind !== "stale-quote" &&
+    signal.kind !== "overdue-invoice"
+  ) {
+    return;
+  }
+
+  const docs = invoices.filter((doc) =>
+    signal.sourceIds.includes(doc.id),
+  );
+
+  for (const doc of docs) {
+    const isInvoice = doc.type === "invoice";
+    const number = doc.number || doc.id;
+    const client = doc.clientName || "Customer";
+
+    const amount =
+      (doc.items || []).reduce(
+        (sum, item) =>
+          sum +
+          (Number(item.quantity) || 0) *
+            (Number(item.unitPrice) || 0),
+        0,
+      ) *
+      (1 + (Number(doc.vatRate) || 0) / 100);
+
+    const subject = isInvoice
+      ? `Payment reminder: ${number}`
+      : `Following up: ${number}`;
+
+    const body =
+      locale === "hu"
+        ? `Szia ${client},\n\nSzeretnék utánkövetni a(z) ${number} ${
+            isInvoice ? "számlával" : "ajánlattal"
+          } kapcsolatban. Összeg: ${amount.toFixed(2)} ${
+            doc.currency || "GBP"
+          }.\n\nÜdvözlettel`
+        : `Hello ${client},\n\nI am following up regarding ${number} for ${amount.toFixed(
+            2,
+          )} ${doc.currency || "GBP"}.\n\nKind regards`;
+
+    const title = isInvoice
+      ? `Payment reminder — ${client} — ${number}`
+      : `Follow up ${client} — ${number}`;
+
+    setMessages((all) =>
+      all.some((message) => message.sourceId === doc.id)
+        ? all
+        : [
+            {
+              id: crypto.randomUUID(),
+              sourceId: doc.id,
+              type: isInvoice ? "Payment reminder" : "Follow-up",
+              tone: "Professional",
+              recipient: doc.clientName,
+              subject,
+              body,
+              createdAt: new Date().toISOString(),
+              followUpAt: today,
+              workflowStatus: "draft",
+            },
+            ...all,
+          ],
+    );
+
+    setTasks((all) =>
+      all.some((task) => task.sourceId === doc.id)
+        ? all
+        : [
+            {
+              id: crypto.randomUUID(),
+              sourceId: doc.id,
+              title,
+              due: today,
+              priority: "high",
+              done: false,
+            },
+            ...all,
+          ],
+    );
+  }
 };
   const prepare = (signal: AutopilotSignal) => {
     if (!canPrepareAutopilot(signal, actions, policy, today)) return;
@@ -567,7 +663,7 @@ const prepareNeglectedLeadQuotes = (signal: AutopilotSignal) => {
     };
     setActions((all) => [action, ...all]);
     prepareNeglectedLeadQuotes(signal);
-    log(action.id, "prepared", action.title, now);
+   prepareDocumentFollowUps(signal); log(action.id, "prepared", action.title, now);
     setAsked(true);
   };
   const update = (
