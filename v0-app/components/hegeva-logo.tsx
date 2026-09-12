@@ -17,12 +17,12 @@ export function HegevaLogo({
 }) {
   const mark = (
     <Image
-      src="/hegeva-logo.png"
+      src="/hegeva-winged-logo.png"
       alt="HEGEVA AI"
-      width={190}
-      height={52}
+      width={1983}
+      height={793}
       priority={priority}
-      className={cn("h-8 w-auto select-none", className)}
+      className={cn("h-[72px] w-auto max-w-full object-contain select-none", className)}
     />
   )
 
