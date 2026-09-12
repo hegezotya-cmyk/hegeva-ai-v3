@@ -40,7 +40,18 @@ import {
   type AutopilotPolicy,
   type IntegrationLoadSignal,
 } from "@/lib/autopilot-v1";
-
+type AutopilotDraft = {
+  id: string;
+  type: string;
+  tone: string;
+  recipient?: string;
+  subject?: string;
+  body: string;
+  createdAt: string;
+  sourceId?: string;
+  followUpAt?: string;
+  workflowStatus?: "draft" | "approved" | "completed";
+};
 type IntegrationProvider = {
   provider: "google" | "microsoft";
   configured: boolean;
@@ -383,18 +394,24 @@ const COPY = {
 export function IntelligenceAutopilot() {
   const { locale } = useI18n();
   const c = COPY[locale];
-  const { items: customers } = useWorkspaceData<AutopilotCustomer>("customers"),
-    { items: tasks, setItems: setTasks } =
-      useWorkspaceData<AutopilotTask>("planner"),
-    { items: invoices } =
-      useWorkspaceData<AutopilotInvoice>("invoice_documents"),
-    {
-      items: actions,
-      setItems: setActions,
-      cloudEnabled,
-    } = useWorkspaceData<AutopilotAction>("autopilot_actions"),
-    { items: audit, setItems: setAudit } =
-      useWorkspaceData<AutopilotAuditEvent>("autopilot_audit");
+const { items: customers } =
+  useWorkspaceData<AutopilotCustomer>("customers");
+
+const { items: tasks, setItems: setTasks } =
+  useWorkspaceData<AutopilotTask>("planner");
+
+const { items: invoices, setItems: setInvoices } =
+  useWorkspaceData<AutopilotInvoice>("invoice_documents");
+ const { items: messages, setItems: setMessages } =
+  useWorkspaceData<AutopilotDraft>("messages");
+
+const {
+  items: actions,
+  setItems: setActions,
+  cloudEnabled,
+} = useWorkspaceData<AutopilotAction>("autopilot_actions");
+   const { items: audit, setItems: setAudit } =
+  useWorkspaceData<AutopilotAuditEvent>("autopilot_audit");
   const { items: policies } = useWorkspaceData<AutopilotPolicy>("autopilot_policy");
   const policy = policies[0] || DEFAULT_AUTOPILOT_POLICY;
   const [asked, setAsked] = useState(false);
@@ -506,7 +523,189 @@ export function IntelligenceAutopilot() {
             ...all,
           ].slice(0, 100),
     );
-  };
+  };const leadQuoteNumber = (customer: AutopilotCustomer) =>
+  `Q-${customer.id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 12).toUpperCase()}`;
+
+const prepareNeglectedLeadQuotes = (signal: AutopilotSignal) => {
+  if (signal.kind !== "neglected-lead") return;
+
+  const leads = customers.filter(
+    (customer) =>
+      signal.sourceIds.includes(customer.id) &&
+      customer.customerStatus === "lead",
+  );
+
+  setInvoices((all) => {
+    const next = [...all];
+
+    for (const customer of leads) {
+      const number = leadQuoteNumber(customer);
+
+      if (
+        next.some(
+          (doc) => doc.type === "quote" && doc.number === number,
+        )
+      ) {
+        continue;
+      }
+
+      next.unshift({
+        id: crypto.randomUUID(),
+        type: "quote",
+        status: "draft",
+        number,
+        clientName: customer.title || "Lead",
+        dueDate: new Date(Date.now() + 7 * 86400000)
+          .toISOString()
+          .slice(0, 10),
+        currency: "GBP",
+        vatRate: 0,
+        items: [{ quantity: 1, unitPrice: 0 }],
+      });
+    }
+
+    return next;
+  });
+};const prepareDocumentFollowUps = (signal: AutopilotSignal) => {
+  if (
+    signal.kind !== "stale-quote" &&
+    signal.kind !== "overdue-invoice"
+  ) {
+    return;
+  }
+
+  const docs = invoices.filter((doc) =>
+    signal.sourceIds.includes(doc.id),
+  );
+
+  for (const doc of docs) {
+    const isInvoice = doc.type === "invoice";
+    const number = doc.number || doc.id;
+    const client = doc.clientName || "Customer";
+
+    const amount =
+      (doc.items || []).reduce(
+        (sum, item) =>
+          sum +
+          (Number(item.quantity) || 0) *
+            (Number(item.unitPrice) || 0),
+        0,
+      ) *
+      (1 + (Number(doc.vatRate) || 0) / 100);
+
+    const subject = isInvoice
+      ? `Payment reminder: ${number}`
+      : `Following up: ${number}`;
+
+    const body =
+      locale === "hu"
+        ? `Szia ${client},\n\nSzeretnék utánkövetni a(z) ${number} ${
+            isInvoice ? "számlával" : "ajánlattal"
+          } kapcsolatban. Összeg: ${amount.toFixed(2)} ${
+            doc.currency || "GBP"
+          }.\n\nÜdvözlettel`
+        : `Hello ${client},\n\nI am following up regarding ${number} for ${amount.toFixed(
+            2,
+          )} ${doc.currency || "GBP"}.\n\nKind regards`;
+
+    const title = isInvoice
+      ? `Payment reminder — ${client} — ${number}`
+      : `Follow up ${client} — ${number}`;
+
+    setMessages((all) =>
+      all.some((message) => message.sourceId === doc.id)
+        ? all
+        : [
+            {
+              id: crypto.randomUUID(),
+              sourceId: doc.id,
+              type: isInvoice ? "Payment reminder" : "Follow-up",
+              tone: "Professional",
+              recipient: doc.clientName,
+              subject,
+              body,
+              createdAt: new Date().toISOString(),
+              followUpAt: today,
+              workflowStatus: "draft",
+            },
+            ...all,
+          ],
+    );
+
+    setTasks((all) =>
+      all.some((task) => task.sourceId === doc.id)
+        ? all
+        : [
+            {
+              id: crypto.randomUUID(),
+              sourceId: doc.id,
+              title,
+              due: today,
+              priority: "high",
+              done: false,
+            },
+            ...all,
+          ],
+    );
+  }
+};const prepareOperationalTasks = (signal: AutopilotSignal) => {
+  if (signal.kind === "invoice-draft") {
+    const drafts = invoices.filter(
+      (doc) =>
+        signal.sourceIds.includes(doc.id) &&
+        doc.type === "invoice" &&
+        doc.status === "draft",
+    );
+
+    setTasks((all) => {
+      const next = [...all];
+
+      for (const doc of drafts) {
+        const sourceId = `autopilot:invoice-draft:${doc.id}`;
+
+        if (next.some((task) => task.sourceId === sourceId)) continue;
+
+        next.unshift({
+          id: crypto.randomUUID(),
+          sourceId,
+          title: `${actionTitle(signal)} — ${doc.number || doc.id}`,
+          due: today,
+          priority: "high",
+          done: false,
+        });
+      }
+
+      return next;
+    });
+  }
+
+  if (signal.kind === "overdue-task") {
+    const overdue = tasks.filter((task) =>
+      signal.sourceIds.includes(task.id),
+    );
+
+    setTasks((all) => {
+      const next = [...all];
+
+      for (const task of overdue) {
+        const sourceId = `autopilot:overdue-task:${task.id}`;
+
+        if (next.some((item) => item.sourceId === sourceId)) continue;
+
+        next.unshift({
+          id: crypto.randomUUID(),
+          sourceId,
+          title: `${actionTitle(signal)} — ${task.title || task.id}`,
+          due: today,
+          priority: "high",
+          done: false,
+        });
+      }
+
+      return next;
+    });
+  }
+};
   const prepare = (signal: AutopilotSignal) => {
     if (!canPrepareAutopilot(signal, actions, policy, today)) return;
     const now = new Date().toISOString();
@@ -520,8 +719,11 @@ export function IntelligenceAutopilot() {
       createdAt: now,
     };
     setActions((all) => [action, ...all]);
-    log(action.id, "prepared", action.title, now);
-    setAsked(true);
+prepareNeglectedLeadQuotes(signal);
+prepareDocumentFollowUps(signal);
+prepareOperationalTasks(signal);
+log(action.id, "prepared", action.title, now);
+setAsked(true);
   };
   const update = (
     action: AutopilotAction,
