@@ -70,9 +70,9 @@ export function BusinessIntelligenceCenter(){
     setNotice(c.saved)
    }
 
-   const leadQuoteLabel=locale==="hu"?"Aj?nlatv?zlat k?sz?t?se":locale==="de"?"Angebotsentwurf erstellen":locale==="fr"?"Pr?parer un devis":locale==="es"?"Preparar presupuesto":"Prepare quote draft"
-   const leadQuotePreparedLabel=locale==="hu"?"Aj?nlat el?k?sz?tve":locale==="de"?"Angebot vorbereitet":locale==="fr"?"Devis pr?par?":locale==="es"?"Presupuesto preparado":"Quote prepared"
-   const leadQuoteOpenLabel=locale==="hu"?"Aj?nlatok megnyit?sa":locale==="de"?"Angebote ?ffnen":locale==="fr"?"Ouvrir les devis":locale==="es"?"Abrir presupuestos":"Open quotes"
+   const leadQuoteLabel=locale==="hu"?"Ajánlattervezet készítése":locale==="de"?"Angebotsentwurf erstellen":locale==="fr"?"Pr?parer un devis":locale==="es"?"Preparar presupuesto":"Prepare quote draft"
+   const leadQuotePreparedLabel=locale==="hu"?"Ajánlat elkészítve":locale==="de"?"Angebot vorbereitet":locale==="fr"?"Devis pr?par?":locale==="es"?"Presupuesto preparado":"Quote prepared"
+   const leadQuoteOpenLabel=locale==="hu"?"Ajánlatok megnyitása":locale==="de"?"Angebote ?ffnen":locale==="fr"?"Ouvrir les devis":locale==="es"?"Abrir presupuestos":"Open quotes"
    const paid=invoices.filter(x=>x.type==="invoice"&&x.status==="paid").reduce((s,x)=>s+invoiceTotal(x),0),outstanding=invoices.filter(x=>x.type==="invoice"&&x.status!=="paid").reduce((s,x)=>s+invoiceTotal(x),0),weekAgo=Date.now()-7*86400000
  const metrics=[[c.customers,customers.length],[c.newCustomers,customers.filter(x=>x.createdAt&&new Date(x.createdAt).getTime()>=weekAgo).length],[c.revenue,`£${paid.toFixed(2)}`],[c.outstanding,`£${outstanding.toFixed(2)}`],[c.tasks,tasks.filter(x=>!x.done).length]]
  const draftExists=(doc:IntelligenceInvoice)=>messages.some(message=>message.sourceId===doc.id),taskExists=(doc:IntelligenceInvoice)=>tasks.some(task=>task.sourceId===doc.id),followUpPrepared=(doc:IntelligenceInvoice)=>draftExists(doc)&&taskExists(doc)
