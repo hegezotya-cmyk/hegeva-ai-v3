@@ -349,9 +349,16 @@ async function syncStripeBillingIdentity(env, event, claim) {
 
       cancelAtPeriodEnd =
         subscription.cancel_at_period_end === true ? 1 : 0;
+      const itemPeriodEnds = Array.isArray(subscription?.items?.data)
+        ? subscription.items.data
+            .map((item) => Number(item?.current_period_end))
+            .filter((value) => Number.isFinite(value) && value > 0)
+        : [];
 
       const hydratedPeriodEndSeconds =
-        Number(subscription.current_period_end);
+        itemPeriodEnds.length > 0
+          ? Math.min(...itemPeriodEnds)
+          : Number(subscription.current_period_end);
 
       currentPeriodEnd =
         Number.isFinite(hydratedPeriodEndSeconds) &&
