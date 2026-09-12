@@ -7,6 +7,7 @@ import {useWorkspaceData} from "@/lib/use-workspace-data"
 import {createAdVariants,convertQuoteToInvoice,extractTaskCandidates,invoiceTotal,topActions,watchtowerSignals,type IntelligenceInvoice,type IntelligenceTask} from "@/lib/business-intelligence"
 
 type Draft={id:string;type:string;tone:string;recipient?:string;subject?:string;body:string;createdAt:string;sourceId?:string;followUpAt?:string;workflowStatus?:"draft"|"approved"|"completed"}
+type Customer={id:string;title?:string;customerStatus?:string;followUp?:string;createdAt?:string}
 type BillingHealth={connected?:boolean;checkoutEnabled?:boolean;webhookConfigured?:boolean;webhookVerified?:boolean;lastWebhookEventType?:string|null;lastWebhookEventCreatedAt?:string|null}
 type SystemHealth={loading:boolean;billing:BillingHealth|null;emailReady:boolean|null}
 const COPY={
@@ -19,13 +20,60 @@ const COPY={
 
 export function BusinessIntelligenceCenter(){
  const{locale}=useI18n(),c=COPY[locale],today=new Date().toISOString().slice(0,10)
- const{items:tasks,setItems:setTasks}=useWorkspaceData<IntelligenceTask>("planner"),{items:invoices,setItems:setInvoices}=useWorkspaceData<IntelligenceInvoice>("invoice_documents"),{items:messages,setItems:setMessages}=useWorkspaceData<Draft>("messages"),{items:customers}=useWorkspaceData<{id:string;title?:string;createdAt?:string}>("customers")
+ const{items:tasks,setItems:setTasks}=useWorkspaceData<IntelligenceTask>("planner"),{items:invoices,setItems:setInvoices}=useWorkspaceData<IntelligenceInvoice>("invoice_documents"),{items:messages,setItems:setMessages}=useWorkspaceData<Draft>("messages"),{items:customers,setItems:setCustomers}=useWorkspaceData<Customer>("customers")
  const[product,setProduct]=useState(""),[audience,setAudience]=useState(""),[benefit,setBenefit]=useState(""),[source,setSource]=useState(""),[notice,setNotice]=useState("")
  const[health,setHealth]=useState<SystemHealth>({loading:true,billing:null,emailReady:null})
  useEffect(()=>{let active=true;Promise.all([fetch("/api/billing/status",{credentials:"include",cache:"no-store",headers:{Accept:"application/json"}}).then(async r=>r.ok?await r.json():null).catch(()=>null),fetch("/api/system/email-status",{credentials:"include",cache:"no-store",headers:{Accept:"application/json"}}).then(async r=>r.ok?await r.json():null).catch(()=>null)]).then(([billing,email])=>{if(active)setHealth({loading:false,billing,emailReady:typeof email?.passwordRecovery==="boolean"?email.passwordRecovery:null})});return()=>{active=false}},[])
  const ads=useMemo(()=>createAdVariants(product,audience,benefit),[product,audience,benefit]),candidates=useMemo(()=>extractTaskCandidates(source),[source]),signals=useMemo(()=>watchtowerSignals(tasks,invoices,today),[tasks,invoices,today])
  const followups=invoices.filter(x=>(x.type==="invoice"&&x.status!=="paid"||x.type==="quote")&&x.dueDate<today)
- const paid=invoices.filter(x=>x.type==="invoice"&&x.status==="paid").reduce((s,x)=>s+invoiceTotal(x),0),outstanding=invoices.filter(x=>x.type==="invoice"&&x.status!=="paid").reduce((s,x)=>s+invoiceTotal(x),0),weekAgo=Date.now()-7*86400000
+ const neglectedLeads=customers.filter(x=>x.customerStatus==="lead"&&Boolean(x.followUp)&&x.followUp!<=today)
+   const leadQuoteNumber=(customer:Customer)=>`Q-${customer.id.replace(/[^a-zA-Z0-9]/g,"").slice(0,12).toUpperCase()}`
+   const leadQuoteExists=(customer:Customer)=>invoices.some(x=>x.type==="quote"&&x.number===leadQuoteNumber(customer))
+   const prepareLeadQuote=(customer:Customer)=>{
+    const number=leadQuoteNumber(customer)
+    if(leadQuoteExists(customer)){setNotice(c.saved);return}
+
+    const now=new Date()
+    const createdAt=now.toISOString()
+    const issueDate=createdAt.slice(0,10)
+
+    const next=new Date(now)
+    next.setDate(next.getDate()+7)
+    const nextFollowUp=next.toISOString().slice(0,10)
+
+    const quote:IntelligenceInvoice={
+      id:crypto.randomUUID(),
+      type:"quote",
+      status:"draft",
+      number,
+      issueDate,
+      dueDate:nextFollowUp,
+      currency:"GBP",
+      vatRate:0,
+      businessName:"",
+      businessDetails:"",
+      clientName:customer.title||"Lead",
+      clientDetails:"",
+      items:[{
+        id:crypto.randomUUID(),
+        description:"",
+        quantity:1,
+        unitPrice:0
+      }],
+      notes:"",
+      createdAt,
+      updatedAt:createdAt
+    }
+
+    setInvoices(xs=>[quote,...xs])
+    setCustomers(xs=>xs.map(x=>x.id===customer.id?{...x,followUp:nextFollowUp}:x))
+    setNotice(c.saved)
+   }
+
+   const leadQuoteLabel=locale==="hu"?"Aj?nlatv?zlat k?sz?t?se":locale==="de"?"Angebotsentwurf erstellen":locale==="fr"?"Pr?parer un devis":locale==="es"?"Preparar presupuesto":"Prepare quote draft"
+   const leadQuotePreparedLabel=locale==="hu"?"Aj?nlat el?k?sz?tve":locale==="de"?"Angebot vorbereitet":locale==="fr"?"Devis pr?par?":locale==="es"?"Presupuesto preparado":"Quote prepared"
+   const leadQuoteOpenLabel=locale==="hu"?"Aj?nlatok megnyit?sa":locale==="de"?"Angebote ?ffnen":locale==="fr"?"Ouvrir les devis":locale==="es"?"Abrir presupuestos":"Open quotes"
+   const paid=invoices.filter(x=>x.type==="invoice"&&x.status==="paid").reduce((s,x)=>s+invoiceTotal(x),0),outstanding=invoices.filter(x=>x.type==="invoice"&&x.status!=="paid").reduce((s,x)=>s+invoiceTotal(x),0),weekAgo=Date.now()-7*86400000
  const metrics=[[c.customers,customers.length],[c.newCustomers,customers.filter(x=>x.createdAt&&new Date(x.createdAt).getTime()>=weekAgo).length],[c.revenue,`£${paid.toFixed(2)}`],[c.outstanding,`£${outstanding.toFixed(2)}`],[c.tasks,tasks.filter(x=>!x.done).length]]
  const draftExists=(doc:IntelligenceInvoice)=>messages.some(message=>message.sourceId===doc.id),taskExists=(doc:IntelligenceInvoice)=>tasks.some(task=>task.sourceId===doc.id),followUpPrepared=(doc:IntelligenceInvoice)=>draftExists(doc)&&taskExists(doc)
  const prepareFollowUp=(doc:IntelligenceInvoice)=>{if(followUpPrepared(doc)){setNotice(c.prepared);return}const amount=new Intl.NumberFormat(locale,{style:"currency",currency:doc.currency||"GBP"}).format(invoiceTotal(doc));const body=locale==="hu"?`Kedves ${doc.clientName}!\n\nSzeretnék érdeklődni a(z) ${doc.number} számú, ${amount} összegű, ${doc.dueDate} határidejű tétellel kapcsolatban. Kérlek, jelezd, ha további információra van szükséged.\n\nÜdvözlettel`:locale==="de"?`Guten Tag ${doc.clientName},\n\nich möchte bezüglich ${doc.number} über ${amount} mit Fälligkeit ${doc.dueDate} nachfassen. Bitte teilen Sie mir mit, falls Sie weitere Informationen benötigen.\n\nMit freundlichen Grüßen`:locale==="fr"?`Bonjour ${doc.clientName},\n\nJe reviens vers vous concernant ${doc.number}, d’un montant de ${amount}, arrivée à échéance le ${doc.dueDate}. N’hésitez pas à me contacter si vous avez besoin d’informations complémentaires.\n\nCordialement`:locale==="es"?`Hola ${doc.clientName},\n\nMe pongo en contacto en relación con ${doc.number}, por un importe de ${amount}, con vencimiento el ${doc.dueDate}. Avísame si necesitas más información.\n\nUn saludo`:`Hello ${doc.clientName},\n\nI am following up regarding ${doc.number} for ${amount}, due on ${doc.dueDate}. Please let me know if you need any further information.\n\nKind regards`;setMessages(xs=>xs.some(message=>message.sourceId===doc.id)?xs:[{id:crypto.randomUUID(),sourceId:doc.id,type:doc.type==="invoice"?"Payment reminder":"Follow-up",tone:"Professional",recipient:doc.clientName,subject:doc.type==="invoice"?`Payment reminder: ${doc.number}`:`Following up: ${doc.number}`,body,createdAt:new Date().toISOString(),followUpAt:today,workflowStatus:"draft"},...xs]);const title=locale==="hu"?`${doc.clientName} utánkövetése – ${doc.number}`:locale==="de"?`${doc.clientName} nachfassen – ${doc.number}`:locale==="fr"?`Relancer ${doc.clientName} – ${doc.number}`:locale==="es"?`Seguimiento con ${doc.clientName} – ${doc.number}`:`Follow up ${doc.clientName} – ${doc.number}`;setTasks(xs=>xs.some(task=>task.sourceId===doc.id)?xs:[{id:crypto.randomUUID(),sourceId:doc.id,title,due:today,priority:"high",done:false},...xs]);setNotice(c.prepared)}
@@ -33,7 +81,7 @@ export function BusinessIntelligenceCenter(){
  return <div className="space-y-6">
   <section className={panel}><h2 className="flex items-center gap-2 text-xl font-semibold"><Sparkles className="size-5 text-primary"/>{c.morning}</h2><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{topActions(tasks,invoices,today).map(x=><div key={x} className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm font-medium">{x}</div>)}</div></section>
   <div className="grid gap-6 xl:grid-cols-2"><section className={panel}><h2 className="flex items-center gap-2 text-xl font-semibold"><Megaphone className="size-5 text-primary"/>{c.ads}</h2><div className="mt-4 grid gap-3 sm:grid-cols-3"><input className={input} value={product} onChange={e=>setProduct(e.target.value)} placeholder={c.product}/><input className={input} value={audience} onChange={e=>setAudience(e.target.value)} placeholder={c.audience}/><input className={input} value={benefit} onChange={e=>setBenefit(e.target.value)} placeholder={c.benefit}/></div><div className="mt-4 space-y-3">{ads.map(x=><article key={x.channel} className="rounded-2xl border border-border p-4"><strong>{x.channel} · {x.headline}</strong><p className="mt-2 text-sm text-muted-foreground">{x.body}</p><small className="mt-2 block text-primary">{x.cta}</small></article>)}</div><Link href="/app-studio/advertising" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary">{c.open}<ArrowRight className="size-4"/></Link></section>
-  <section id="customer-follow-up" className={`${panel} scroll-mt-24`}><h2 className="flex items-center gap-2 text-xl font-semibold"><MessageSquarePlus className="size-5 text-primary"/>{c.follow}</h2><div className="mt-4 space-y-3">{followups.length?followups.slice(0,6).map(x=><div key={x.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border p-4"><div><strong>{x.number}</strong><p className="text-sm text-muted-foreground">{x.clientName} · {new Intl.NumberFormat(locale,{style:"currency",currency:x.currency||"GBP"}).format(invoiceTotal(x))} · {x.dueDate}</p></div><button className={button} disabled={followUpPrepared(x)} onClick={()=>prepareFollowUp(x)}>{followUpPrepared(x)?c.prepared:c.draft}</button></div>):<p className="text-sm text-muted-foreground">{c.noFollow}</p>}</div><Link href="/business/messages" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary">{c.open}<ArrowRight className="size-4"/></Link></section></div>
+  <section id="customer-follow-up" className={`${panel} scroll-mt-24`}><h2 className="flex items-center gap-2 text-xl font-semibold"><MessageSquarePlus className="size-5 text-primary"/>{c.follow}</h2>{neglectedLeads.length>0&&<div className="mt-4 space-y-3">{neglectedLeads.slice(0,6).map(customer=><div key={customer.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4"><div><strong>{customer.title||"Lead"}</strong><p className="text-sm text-muted-foreground">{customer.followUp}</p></div><button className={button} disabled={leadQuoteExists(customer)} onClick={()=>prepareLeadQuote(customer)}>{leadQuoteExists(customer)?leadQuotePreparedLabel:leadQuoteLabel}</button></div>)}<Link href="/business/invoices" className="inline-flex items-center gap-2 text-sm font-semibold text-primary">{leadQuoteOpenLabel}<ArrowRight className="size-4"/></Link></div>}<div className="mt-4 space-y-3">{followups.length?followups.slice(0,6).map(x=><div key={x.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border p-4"><div><strong>{x.number}</strong><p className="text-sm text-muted-foreground">{x.clientName} · {new Intl.NumberFormat(locale,{style:"currency",currency:x.currency||"GBP"}).format(invoiceTotal(x))} · {x.dueDate}</p></div><button className={button} disabled={followUpPrepared(x)} onClick={()=>prepareFollowUp(x)}>{followUpPrepared(x)?c.prepared:c.draft}</button></div>):<p className="text-sm text-muted-foreground">{c.noFollow}</p>}</div><Link href="/business/messages" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary">{c.open}<ArrowRight className="size-4"/></Link></section></div>
   <section className={panel}><h2 className="flex items-center gap-2 text-xl font-semibold"><BarChart3 className="size-5 text-primary"/>{c.weekly}</h2><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{metrics.map(([label,value])=><div key={String(label)} className="rounded-2xl border border-border p-4"><p className="text-xs text-muted-foreground">{label}</p><strong className="mt-2 block text-2xl">{value}</strong></div>)}</div></section>
   <div className="grid gap-6 xl:grid-cols-2"><section className={panel}><h2 className="flex items-center gap-2 text-xl font-semibold"><FileInput className="size-5 text-primary"/>{c.extract}</h2><textarea className={`${input} mt-4 min-h-32`} value={source} onChange={e=>setSource(e.target.value)} placeholder={c.source}/><div className="mt-4 space-y-2">{candidates.map(x=><p key={x.id} className="rounded-xl border border-border p-3 text-sm">{x.title}{x.due&&<small className="ml-2 text-primary">{x.due}</small>}</p>)}</div><button disabled={!candidates.length} className={`${button} mt-4`} onClick={()=>{setTasks(xs=>[...candidates.map(x=>({id:crypto.randomUUID(),title:x.title,due:x.due,priority:"medium" as const,done:false})),...xs]);setNotice(c.saved)}}><Save className="size-4"/>{c.saveTasks}</button></section>
   <section className={panel}><h2 className="flex items-center gap-2 text-xl font-semibold"><Receipt className="size-5 text-primary"/>{c.quote}</h2><div className="mt-4 space-y-3">{invoices.filter(x=>x.type==="quote").slice(0,8).map(x=><div key={x.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border p-4"><div><strong>{x.number}</strong><p className="text-sm text-muted-foreground">{x.clientName} · {x.currency} {invoiceTotal(x).toFixed(2)}</p></div><button className={button} onClick={()=>{setInvoices(xs=>{const converted=convertQuoteToInvoice(x,xs);return xs.some(existing=>existing.id===converted.id)?xs:[converted,...xs]});setNotice(c.saved)}}>{c.convert}</button></div>)}</div><Link href="/business/invoices" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary">{c.open}<ArrowRight className="size-4"/></Link></section></div>
