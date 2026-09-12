@@ -648,6 +648,63 @@ const prepareNeglectedLeadQuotes = (signal: AutopilotSignal) => {
           ],
     );
   }
+};const prepareOperationalTasks = (signal: AutopilotSignal) => {
+  if (signal.kind === "invoice-draft") {
+    const drafts = invoices.filter(
+      (doc) =>
+        signal.sourceIds.includes(doc.id) &&
+        doc.type === "invoice" &&
+        doc.status === "draft",
+    );
+
+    setTasks((all) => {
+      const next = [...all];
+
+      for (const doc of drafts) {
+        const sourceId = `autopilot:invoice-draft:${doc.id}`;
+
+        if (next.some((task) => task.sourceId === sourceId)) continue;
+
+        next.unshift({
+          id: crypto.randomUUID(),
+          sourceId,
+          title: `${actionTitle(signal)} — ${doc.number || doc.id}`,
+          due: today,
+          priority: "high",
+          done: false,
+        });
+      }
+
+      return next;
+    });
+  }
+
+  if (signal.kind === "overdue-task") {
+    const overdue = tasks.filter((task) =>
+      signal.sourceIds.includes(task.id),
+    );
+
+    setTasks((all) => {
+      const next = [...all];
+
+      for (const task of overdue) {
+        const sourceId = `autopilot:overdue-task:${task.id}`;
+
+        if (next.some((item) => item.sourceId === sourceId)) continue;
+
+        next.unshift({
+          id: crypto.randomUUID(),
+          sourceId,
+          title: `${actionTitle(signal)} — ${task.title || task.id}`,
+          due: today,
+          priority: "high",
+          done: false,
+        });
+      }
+
+      return next;
+    });
+  }
 };
   const prepare = (signal: AutopilotSignal) => {
     if (!canPrepareAutopilot(signal, actions, policy, today)) return;
@@ -662,9 +719,11 @@ const prepareNeglectedLeadQuotes = (signal: AutopilotSignal) => {
       createdAt: now,
     };
     setActions((all) => [action, ...all]);
-    prepareNeglectedLeadQuotes(signal);
-   prepareDocumentFollowUps(signal); log(action.id, "prepared", action.title, now);
-    setAsked(true);
+prepareNeglectedLeadQuotes(signal);
+prepareDocumentFollowUps(signal);
+prepareOperationalTasks(signal);
+log(action.id, "prepared", action.title, now);
+setAsked(true);
   };
   const update = (
     action: AutopilotAction,
