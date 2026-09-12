@@ -22,7 +22,7 @@ export function HegevaLogo({
       width={1983}
       height={793}
       priority={priority}
-      className={cn("h-[72px] w-auto max-w-full object-contain select-none", className)}
+      className={cn("h-11 w-auto max-w-full shrink-0 object-contain select-none", className)}
     />
   )
 

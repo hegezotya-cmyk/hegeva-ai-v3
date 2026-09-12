@@ -90,7 +90,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 border-b border-border/80 bg-background/80 shadow-[0_12px_40px_-32px_rgba(0,0,0,.9)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/65">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
-          <span className="xl:hidden"><HegevaLogo priority /></span>
+          <span className="xl:hidden"><HegevaLogo priority className="h-11 max-w-[11rem] sm:h-12" /></span>
           <nav className="hidden items-center gap-0.5 min-[1180px]:flex xl:hidden" aria-label={aria.primary}>
             {navLink("/", t.nav.home)}
             {navLink("/command-center", t.nav.commandCenter)}

@@ -42,7 +42,7 @@ export function SiteFooter() {
         </ul>
 
         <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
-          <HegevaLogo href={null} />
+          <HegevaLogo href={null} className="h-10 max-w-[12rem] sm:h-11" />
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{t.footer.tagline}</p>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
             <Link href="/privacy" className="transition-colors hover:text-foreground">{legal.privacyLink}</Link>
