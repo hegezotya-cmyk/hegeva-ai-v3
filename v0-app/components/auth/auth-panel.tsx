@@ -51,9 +51,9 @@ export function AuthPanel() {
     }
   }
 
-  function safeCallbackURL() {
+  function safeCallbackURL(fallback = "/command-center") {
     const value = new URLSearchParams(window.location.search).get("callbackURL")
-    return value?.startsWith("/") && !value.startsWith("//") ? value : "/command-center"
+    return value?.startsWith("/") && !value.startsWith("//") ? value : fallback
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -116,7 +116,7 @@ export function AuthPanel() {
       }
 
       if (mode === "register" && registeredUserId && verifiedSession.data.user.id === registeredUserId) trackRegistrationCompleted()
-      router.push(safeCallbackURL())
+      router.push(safeCallbackURL(mode === "register" ? "/get-started" : "/command-center"))
       router.refresh()
     } catch {
       setError(c.authUnavailable)
