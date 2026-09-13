@@ -81,8 +81,9 @@ export function AnalyticsConsent() {
     const receive = (event: Event) => {
       if (consent !== "granted" || !window.gtag) return
       const detail = (event as CustomEvent<{ event?: string; path?: string }>).detail
-      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "pricing_view", "primary_cta_click", "subscription_success"].includes(detail.event || "")) return
-      if (!detail.path || !PUBLIC_ANALYTICS_PATHS.includes(detail.path)) return
+      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success"].includes(detail.event || "")) return
+      const activationPaths = ["/get-started", "/business/customers", "/business/invoices", "/command-center", "/pricing", "/account"]
+      if (!detail.path || (!PUBLIC_ANALYTICS_PATHS.includes(detail.path) && !activationPaths.includes(detail.path))) return
       const key = `${detail.event}:${detail.path}`
       if (detail.event !== "primary_cta_click" && sent.current.has(key)) return
       sent.current.add(key)

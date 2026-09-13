@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/status-badge"
 import { useI18n } from "@/lib/i18n/provider"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
+import { trackActivationEvent } from "@/lib/conversion-tracking"
 
 type Kind = "customers" | "documents" | "expenses"
 type RecordItem = { id: string; title: string; meta?: string; amount?: number; notes?: string; followUp?: string; customerStatus?: "lead" | "active" | "paused"; createdAt: string }
@@ -108,6 +109,7 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
     const parsedAmount = kind === "expenses" && amount ? Number(amount) : undefined
     if (kind === "expenses" && parsedAmount !== undefined && (!Number.isFinite(parsedAmount) || parsedAmount < 0)) return
 
+    const isNew = !editingId
     setItems((current) => {
       const existing = editingId ? current.find((item) => item.id === editingId) : undefined
       const next: RecordItem = {
@@ -124,6 +126,7 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
         ? current.map((item) => item.id === existing.id ? next : item)
         : [next, ...current]
     })
+    if (isNew && kind === "customers") trackActivationEvent("first_customer_created", "/business/customers")
     resetForm()
   }
 

@@ -1,12 +1,17 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect } from "react"
 import { ArrowUpRight, Blocks, Bot, CalendarDays, FilePlus2, FileText, MessageSquarePlus, Radar, Receipt, Shield, ShieldCheck, Sparkles, UserPlus } from "lucide-react"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { AICore } from "@/components/visual-engine"
 import type { CoreDecisionResponse, CoreDecisionStatus } from "@/lib/use-core-decision"
+import { trackActivationEvent } from "@/lib/conversion-tracking"
+import { useWorkspaceData } from "@/lib/use-workspace-data"
 
 type PriorityView = { text: string; href: string }
+type ActivationCustomer = { id: string }
+type ActivationDocument = { id: string; type?: "quote" | "invoice" }
 
 type CoreCopy = {
   executiveSummary: string
@@ -53,6 +58,15 @@ export function getCoreStatusSummary(locale: Locale, status: CoreDecisionStatus)
 }
 
 export function CoreDecisionSurface({ locale, status, response, priority, hasEnoughData }: { locale: Locale; status: CoreDecisionStatus; response: CoreDecisionResponse; priority: PriorityView; hasEnoughData: boolean }) {
+  const { items: activationCustomers } = useWorkspaceData<ActivationCustomer>("customers")
+  const { items: activationDocuments } = useWorkspaceData<ActivationDocument>("invoice_documents")
+  const hasActivationRecords = activationCustomers.length > 0 && activationDocuments.some((document) => document.type === "quote" || document.type === "invoice")
+  useEffect(() => {
+    if (hasEnoughData) {
+      trackActivationEvent("first_core_priority_seen", "/command-center")
+      if (hasActivationRecords) trackActivationEvent("activation_completed", "/command-center")
+    }
+  }, [hasActivationRecords, hasEnoughData])
   const copy = CORE_COPY[locale]
   const ready = status === "ready"
   const { coreSignals, coreDecision, opportunityRadar, preparedActions } = response

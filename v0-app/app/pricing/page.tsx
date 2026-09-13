@@ -9,6 +9,7 @@ import { authClient } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
 import { PRICING_COPY } from "@/lib/i18n/pricing-copy"
 import { AICore, IntelligenceCard, SignalIcon } from "@/components/visual-engine"
+import { trackActivationEvent } from "@/lib/conversion-tracking"
 
 type PaidPlan = "premium" | "pro"
 type BillingStatus = { checkoutEnabled?: boolean; webhookConfigured?: boolean; mode?: string }
@@ -177,6 +178,7 @@ export default function PricingPage() {
     }
 
     setBillingCancelled(false)
+    trackActivationEvent("checkout_started", "/pricing")
     setOpening(plan)
     setError("")
 

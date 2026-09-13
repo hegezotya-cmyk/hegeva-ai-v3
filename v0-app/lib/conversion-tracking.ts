@@ -37,6 +37,19 @@ export function trackRegistrationCompleted() {
   }))
 }
 
+export type ActivationEvent = "get_started_viewed" | "first_customer_created" | "first_quote_created" | "first_invoice_created" | "first_core_priority_seen" | "checkout_started" | "activation_completed"
+
+export function trackActivationEvent(event: ActivationEvent, path: string) {
+  if (typeof window === "undefined") return
+  try {
+    if (localStorage.getItem("hegeva:analytics-consent:v1") !== "granted") return
+    const key = `hegeva:activation-event:v1:${event}`
+    if (sessionStorage.getItem(key)) return
+    sessionStorage.setItem(key, "1")
+    window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event, path } }))
+  } catch {}
+}
+
 // A checkout return is not proof of payment. This is called only after the
 // Account page has re-read a paid entitlement from the authenticated API.
 // Keep the local marker deliberately free of customer, checkout and Stripe IDs.
