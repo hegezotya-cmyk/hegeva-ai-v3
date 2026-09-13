@@ -42,6 +42,7 @@ export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const studioRef = useRef<HTMLDivElement>(null)
+  const primaryEntryHref = authHydrated && session?.user ? "/command-center" : "/login?mode=register"
 
   useEffect(() => {
     setAuthHydrated(true)
@@ -129,7 +130,7 @@ export function SiteHeader() {
               <button type="button" disabled={loggingOut} onClick={() => void logout()} className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "gap-2 text-muted-foreground disabled:opacity-60")}><LogOut className="size-4" aria-hidden />{t.nav.logout}</button>
             </div>
           ) : <Link prefetch={false} href="/login" className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "hidden sm:inline-flex")}>{t.nav.login}</Link>)}
-          <Link prefetch={false} href={authHydrated && session?.user ? "/command-center" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "hidden bg-gold text-gold-foreground hover:bg-gold/90 sm:inline-flex")}>{authHydrated && session?.user ? t.nav.openWorkspace : t.nav.getStarted}</Link>
+          <Link prefetch={false} href={primaryEntryHref} className={cn(buttonVariants({ size: "lg" }), "hidden bg-gold text-gold-foreground hover:bg-gold/90 sm:inline-flex")}>{authHydrated && session?.user ? t.nav.openWorkspace : t.nav.getStarted}</Link>
           <button type="button" onClick={() => setMobileOpen((v) => !v)} aria-label={aria.menu} aria-expanded={mobileOpen} className="inline-flex size-11 items-center justify-center rounded-xl border border-border bg-secondary/60 text-foreground shadow-sm transition-colors hover:border-primary/30 hover:bg-secondary min-[1180px]:hidden xl:hidden">{mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}</button>
         </div>
       </div>
@@ -150,7 +151,7 @@ export function SiteHeader() {
             <div className="mt-3 grid grid-cols-2 items-center gap-2 border-t border-border pt-4">
               <LanguageSwitcher className="col-span-2" />
               {authHydrated && session?.user ? <button type="button" disabled={loggingOut} onClick={() => void logout()} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1 gap-2 disabled:opacity-60")}><LogOut className="size-4" aria-hidden /> {t.nav.logout}</button> : <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "flex-1")}>{t.nav.login}</Link>}
-              <Link href={authHydrated && session?.user ? "/command-center" : "/get-started"} className={cn(buttonVariants({ size: "lg" }), "flex-1 bg-gold text-gold-foreground hover:bg-gold/90")}>{authHydrated && session?.user ? t.nav.openWorkspace : t.nav.getStarted}</Link>
+              <Link href={primaryEntryHref} className={cn(buttonVariants({ size: "lg" }), "flex-1 bg-gold text-gold-foreground hover:bg-gold/90")}>{authHydrated && session?.user ? t.nav.openWorkspace : t.nav.getStarted}</Link>
             </div>
           </nav>
         </div>

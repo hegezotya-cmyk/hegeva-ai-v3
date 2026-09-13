@@ -422,7 +422,7 @@ export function FlagshipSections() {
             </div>
             <Link
               prefetch={false}
-              href={isLive ? "/command-center" : "/get-started"}
+              href={isLive ? "/command-center" : "/login?mode=register"}
               className="demo-action"
             >
               <Sparkles aria-hidden />

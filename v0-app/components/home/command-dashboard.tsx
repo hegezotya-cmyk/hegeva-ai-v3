@@ -36,7 +36,7 @@ export function CommandDashboard() {
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <SectionHeading eyebrow="Command intelligence" title={t.dashboard.heading} description={t.dashboard.subheading} action={<Link href="/get-started" className={cn(buttonVariants({ size: "lg" }), "h-11 gap-2 bg-gold text-gold-foreground hover:bg-gold/90")}>
+      <SectionHeading eyebrow="Command intelligence" title={t.dashboard.heading} description={t.dashboard.subheading} action={<Link href="/login?mode=register" className={cn(buttonVariants({ size: "lg" }), "h-11 gap-2 bg-gold text-gold-foreground hover:bg-gold/90")}>
           <Link2 className="size-4" aria-hidden />
           {t.dashboard.connect}
         </Link>} />
@@ -58,7 +58,7 @@ export function CommandDashboard() {
             title={t.dashboard.emptyTitle}
             body={t.dashboard.emptyBody}
             action={
-              <Link href="/get-started" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+              <Link href="/login?mode=register" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
                 {t.dashboard.connect}
               </Link>
             }
