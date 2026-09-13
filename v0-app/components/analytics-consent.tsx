@@ -81,7 +81,7 @@ export function AnalyticsConsent() {
     const receive = (event: Event) => {
       if (consent !== "granted" || !window.gtag) return
       const detail = (event as CustomEvent<{ event?: string; path?: string }>).detail
-      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "pricing_view", "primary_cta_click"].includes(detail.event || "")) return
+      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "pricing_view", "primary_cta_click", "subscription_success"].includes(detail.event || "")) return
       if (!detail.path || !PUBLIC_ANALYTICS_PATHS.includes(detail.path)) return
       const key = `${detail.event}:${detail.path}`
       if (detail.event !== "primary_cta_click" && sent.current.has(key)) return

@@ -7,7 +7,7 @@ const allowed = {
 } as const
 const campaignKey = "hegeva:campaign:v1"
 
-export const PUBLIC_ANALYTICS_PATHS = ["/", "/login", "/pricing", "/ai-for-small-business", "/ai-business-assistant", "/quote-and-invoice-software", "/ai-for-trades", "/ai-for-electricians"]
+export const PUBLIC_ANALYTICS_PATHS = ["/", "/login", "/pricing", "/account", "/ai-for-small-business", "/ai-business-assistant", "/quote-and-invoice-software", "/ai-for-trades", "/ai-for-electricians"]
 
 export function analyticsPageLocation(path: string): string {
   return window.location.origin + (PUBLIC_ANALYTICS_PATHS.includes(path) ? path : "/")
@@ -34,5 +34,22 @@ export function campaignAttribution(): Record<string, string> {
 export function trackRegistrationCompleted() {
   window.dispatchEvent(new CustomEvent("hegeva:analytics-event", {
     detail: { event: "registration_completed", path: "/login" },
+  }))
+}
+
+// A checkout return is not proof of payment. This is called only after the
+// Account page has re-read a paid entitlement from the authenticated API.
+// Keep the local marker deliberately free of customer, checkout and Stripe IDs.
+export function trackSubscriptionSuccess(plan: string, period: string) {
+  const key = `hegeva:subscription-success:v1:${plan}:${period || "current"}`
+  try {
+    if (sessionStorage.getItem(key)) return
+    sessionStorage.setItem(key, "1")
+  } catch {
+    // Without safe deduplication storage, prefer not to emit a conversion.
+    return
+  }
+  window.dispatchEvent(new CustomEvent("hegeva:analytics-event", {
+    detail: { event: "subscription_success", path: "/account" },
   }))
 }

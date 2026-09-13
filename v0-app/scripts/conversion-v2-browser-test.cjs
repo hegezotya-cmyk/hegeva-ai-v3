@@ -108,6 +108,42 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
       assert.equal(JSON.stringify(await testPage.evaluate(() => window.dataLayer || [])).includes(user.email), false)
       await testContext.close()
     }
+    // Checkout return alone must never become a conversion. Exercise the real
+    // Account page with isolated API fixtures; no Stripe or production writes.
+    async function subscriptionEvents({ consent, plan }) {
+      const testContext = await browser.newContext()
+      const recorded = []
+      await testContext.exposeBinding('recordSubscriptionEvent', (_, event) => recorded.push(event))
+      await testContext.addInitScript(({ consent }) => {
+        window.dataLayer = []
+        window.dataLayer.push = function (...items) {
+          for (const item of items) if (item?.[0] === 'event') window.recordSubscriptionEvent([item[0], item[1], JSON.parse(JSON.stringify(item[2] || {}))])
+          return Array.prototype.push.apply(this, items)
+        }
+        if (consent) localStorage.setItem('hegeva:analytics-consent:v1', consent)
+      }, { consent })
+      const user = {id:'billing-fixture',name:'Billing test',email:'billing@example.invalid',emailVerified:false,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}
+      await testContext.route('**/api/**', async route => {
+        const path = new URL(route.request().url()).pathname
+        if (path.endsWith('/get-session')) return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({user,session:{id:'billing-session',userId:user.id,token:'fixture-token',expiresAt:'2099-01-01T00:00:00.000Z'}})})
+        if (path === '/api/plan/status') return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({plan,aiMessages:0,aiLimit:100,period:'fixture-period'})})
+        if (path === '/api/billing/status') return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({customerPortalReady:false,subscriptionStatus:plan==='premium'?'active':null,cancelAtPeriodEnd:false,currentPeriodEnd:null})})
+        return route.fulfill({status:403,contentType:'application/json',body:'null'})
+      })
+      await testContext.route('**/*googletagmanager.com/**', route => route.fulfill({status:200,contentType:'application/javascript',body:''}))
+      await testContext.route('**/*google-analytics.com/**', route => route.abort())
+      const page = await testContext.newPage()
+      await page.goto(base + '/account?billing=success', {waitUntil:'domcontentloaded'})
+      await page.waitForFunction(() => document.body.innerText.includes('Subscription'))
+      await page.waitForTimeout(100)
+      await page.goto(base + '/account?billing=success', {waitUntil:'domcontentloaded'})
+      await page.waitForTimeout(100)
+      await testContext.close()
+      return recorded.filter(event => event[1] === 'subscription_success')
+    }
+    assert.equal((await subscriptionEvents({consent:'granted',plan:'premium'})).length, 1, 'verified paid entitlement sends once')
+    assert.equal((await subscriptionEvents({consent:null,plan:'premium'})).length, 0, 'no consent means no subscription conversion')
+    assert.equal((await subscriptionEvents({consent:'granted',plan:'basic'})).length, 0, 'billing URL alone cannot create a conversion')
     console.log('PASS: consent, event deduplication, campaign persistence, PII exclusion, registration entry, pricing, revocation, mobile overflow, metadata, runtime.')
   } finally { await browser.close() }
 })().catch(error => { console.error(error); process.exitCode = 1 })

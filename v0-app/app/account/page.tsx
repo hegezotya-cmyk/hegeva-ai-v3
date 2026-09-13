@@ -9,6 +9,7 @@ import { authClient } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
 import { ACCOUNT_COPY } from "@/lib/i18n/account-copy"
 import { LEADS_COPY } from "@/lib/i18n/leads-copy"
+import { trackSubscriptionSuccess } from "@/lib/conversion-tracking"
 
 type PlanStatus = { plan:string; aiMessages:number; aiLimit:number; period:string }
 type BillingStatus = { customerPortalReady:boolean; subscriptionStatus:string | null; cancelAtPeriodEnd:boolean; currentPeriodEnd:string | null }
@@ -110,6 +111,7 @@ export default function AccountPage() {
         const paid = PAID_PLANS.has(latest.plan)
         setBillingSuccess(paid)
         setBillingConfirmError(paid ? "" : "entitlement_pending")
+        if (paid) trackSubscriptionSuccess(latest.plan, latest.period)
         clearBillingQuery()
       }
     }
