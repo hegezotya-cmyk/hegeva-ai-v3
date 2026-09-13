@@ -12,6 +12,7 @@ import { useCoreDecision, type CorePriority } from "@/lib/use-core-decision"
 import { growthSignalCopy, overdueTaskCopy } from "@/lib/hegeva-core-copy"
 import { CoreDecisionSurface, getCoreStatusSummary } from "@/components/command-center/core-decision-surface"
 import { selectHegevaCorePriority } from "@/lib/hegeva-core"
+import { useAiAvailability } from "@/lib/ai-availability"
 
 type RecordItem={id:string;amount?:number;customerStatus?:"lead"|"active"|"paused";followUp?:string}
 type Task={id:string;due?:string;done:boolean;title?:string}
@@ -61,7 +62,8 @@ const onboardingCopy={
  es:{title:"Pon en marcha tu espacio",sub:"Completa estos primeros pasos reales. El progreso se calcula con los datos guardados.",progress:"completado",customer:"Añade tu primer cliente",task:"Planifica tu primera tarea",invoice:"Crea tu primer presupuesto o factura",assistant:"Haz tu primera pregunta a HEGEVA"},
 } as const
 export function OperatingCenter(){
-  const {locale}=useI18n();const c=copy[locale]
+  const {locale}=useI18n();const c=copy[locale];const {status:aiStatus}=useAiAvailability()
+  const assistantStatus={en:aiStatus.assistantEnabled?"Available":"Coming soon",hu:aiStatus.assistantEnabled?"Elérhető":"Hamarosan",de:aiStatus.assistantEnabled?"Verfügbar":"Demnächst",fr:aiStatus.assistantEnabled?"Disponible":"Bientôt",es:aiStatus.assistantEnabled?"Disponible":"Próximamente"}[locale]
   const pc=pulseCopy[locale]
   const ic=coreInsightCopy[locale]
   const gc=growthSignalCopy[locale]
@@ -135,6 +137,6 @@ export function OperatingCenter(){
     <footer className={cn(overdueTasks+overdueInvoices&&"has-alert")}><AlertTriangle aria-hidden/><span>{overdueTasks+overdueInvoices?`${overdueTasks+overdueInvoices} · ${c.attention}`:c.clear}</span></footer></article>
   </div>
   <div className="inventory-strip"><p>{c.inventory}</p>{inventory.map(([Icon,label,value,href])=><Link key={label} href={href}><Icon aria-hidden/><span>{label}</span><strong>{value}</strong></Link>)}<span className="ml-auto hidden items-center gap-2 text-xs text-muted-foreground xl:flex"><Cloud className="size-3.5"/>{cloudEnabled ? projection.cloud : projection.local}</span></div>
-  <div className="flex flex-wrap gap-2 border-t border-border px-4 py-3 sm:px-6"><Link href="/assistant" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold"><Bot aria-hidden className="size-3.5"/>{c.assistant}<span className="text-muted-foreground">· {c.available}</span></Link><Link href="/app-studio/build-my-app-x20" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold"><Blocks aria-hidden className="size-3.5"/>{c.appStudio}<span className="text-muted-foreground">· {c.available}</span></Link></div>
+  <div className="flex flex-wrap gap-2 border-t border-border px-4 py-3 sm:px-6"><Link href="/assistant" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold"><Bot aria-hidden className="size-3.5"/>{c.assistant}<span className="text-muted-foreground">· {assistantStatus}</span></Link><Link href="/app-studio/build-my-app-x20" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold"><Blocks aria-hidden className="size-3.5"/>{c.appStudio}<span className="text-muted-foreground">· {c.available}</span></Link></div>
  </section>
 }
