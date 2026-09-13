@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { useI18n } from "@/lib/i18n/provider"
+import { useSession } from "@/lib/auth-client"
+import { createCoreRequestCoordinator } from "@/lib/core-request-coordinator"
 
 export type CoreSignal = {
   approvedFollowUps: number
@@ -123,39 +125,9 @@ const FALLBACK: CoreDecisionResponse = {
 
 type CoreDecisionResult = { data: CoreDecisionResponse; status: Exclude<CoreDecisionStatus, "loading"> }
 
-type SharedCoreDecisionRequest = {
-  inflight: Promise<CoreDecisionResult> | null
-  cached: { result: CoreDecisionResult; expiresAt: number } | null
-}
+const coreRequests = createCoreRequestCoordinator<CoreDecisionResult>()
 
-const CORE_DECISION_CACHE_MS = 15_000
-const CORE_DECISION_REQUEST_KEY = "__hegevaCoreDecisionRequest__"
-
-function getSharedCoreDecisionRequest(): SharedCoreDecisionRequest | null {
-  if (typeof window === "undefined") return null
-
-  const browserWindow = window as Window & {
-    [CORE_DECISION_REQUEST_KEY]?: SharedCoreDecisionRequest
-  }
-
-  if (!browserWindow[CORE_DECISION_REQUEST_KEY]) {
-    browserWindow[CORE_DECISION_REQUEST_KEY] = { inflight: null, cached: null }
-  }
-
-  return browserWindow[CORE_DECISION_REQUEST_KEY]!
-}
-
-let inflight: Promise<CoreDecisionResult> | null = null
-
-function fetchCoreDecision(): Promise<CoreDecisionResult> {
-  const shared = getSharedCoreDecisionRequest()
-  const now = Date.now()
-
-  if (shared?.cached && shared.cached.expiresAt > now) return Promise.resolve(shared.cached.result)
-  if (shared?.inflight) return shared.inflight
-  if (inflight) return inflight
-
-  const request = (async (): Promise<CoreDecisionResult> => {
+async function fetchCoreDecisionRaw(): Promise<CoreDecisionResult> {
     try {
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 8000)
@@ -179,42 +151,52 @@ function fetchCoreDecision(): Promise<CoreDecisionResult> {
     } catch {
       return { data: FALLBACK, status: "unavailable" }
     }
-  })()
-
-  if (shared) shared.inflight = request
-  else inflight = request
-
-  void request.then((result) => {
-    if (shared) shared.cached = { result, expiresAt: Date.now() + CORE_DECISION_CACHE_MS }
-  }).finally(() => {
-    if (shared?.inflight === request) shared.inflight = null
-    if (inflight === request) inflight = null
-  })
-
-  return request
 }
 
-const GLOBAL_CORE_STATE: { data: CoreDecisionResponse; loading: boolean; status: CoreDecisionStatus } = { data: FALLBACK, loading: true, status: "loading" }
+const GLOBAL_CORE_STATE: { data: CoreDecisionResponse; loading: boolean; status: CoreDecisionStatus; revision: number } = { data: FALLBACK, loading: true, status: "loading", revision: 0 }
 const coreListeners = new Set<() => void>()
+let activeCoreIdentity: string | null = null
 
 function emitCore() { coreListeners.forEach((fn) => fn()) }
 
-if (typeof window !== "undefined") {
-  void fetchCoreDecision().then((result) => {
+function loadCoreDecision(identity: string, invalidate = false) {
+  GLOBAL_CORE_STATE.data = FALLBACK
+  GLOBAL_CORE_STATE.loading = true
+  GLOBAL_CORE_STATE.status = "loading"
+  emitCore()
+  void coreRequests.request(identity, fetchCoreDecisionRaw, invalidate).then(({ value: result, accepted }) => {
+    if (!accepted || activeCoreIdentity !== identity) return
     GLOBAL_CORE_STATE.data = result.data
     GLOBAL_CORE_STATE.loading = false
     GLOBAL_CORE_STATE.status = result.status
+    GLOBAL_CORE_STATE.revision += 1
     emitCore()
   })
 }
 
-export function useCoreDecision(): { data: CoreDecisionResponse; loading: boolean; status: CoreDecisionStatus } {
+export function useCoreDecision(): { data: CoreDecisionResponse; loading: boolean; status: CoreDecisionStatus; identity: string | null; revision: number; refresh: () => void } {
   const { locale } = useI18n()
+  const { data: session, isPending } = useSession()
+  const identity = session?.user?.id ? `user:${session.user.id}` : null
   const [, rerender] = useState(0)
   useEffect(() => {
     const listener = () => rerender((n) => n + 1)
     coreListeners.add(listener)
     return () => { coreListeners.delete(listener) }
   }, [locale])
-  return GLOBAL_CORE_STATE
+  useEffect(() => {
+    if (isPending) return
+    const identityChanged = activeCoreIdentity !== identity
+    activeCoreIdentity = identity
+    if (!identity) {
+      GLOBAL_CORE_STATE.data = FALLBACK
+      GLOBAL_CORE_STATE.loading = false
+      GLOBAL_CORE_STATE.status = "unauthenticated"
+      emitCore()
+      return
+    }
+    if (identityChanged) loadCoreDecision(identity, true)
+  }, [identity, isPending])
+  const visible = activeCoreIdentity === identity ? GLOBAL_CORE_STATE : { data: FALLBACK, loading: Boolean(identity), status: identity ? "loading" as const : "unauthenticated" as const, revision: 0 }
+  return { ...visible, identity, refresh: () => { if (identity) loadCoreDecision(identity, true) } }
 }

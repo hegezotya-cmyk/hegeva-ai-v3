@@ -10,6 +10,7 @@ import { useI18n } from "@/lib/i18n/provider"
 import { FIRST_CUSTOMER_COPY } from "@/lib/i18n/first-customer-copy"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { trackActivationEvent } from "@/lib/conversion-tracking"
+import { activationIdentity } from "@/lib/activation-measurement"
 
 type WorkspaceItem = { id: string }
 
@@ -27,7 +28,7 @@ export default function GetStartedPage() {
   const isReady = incompleteSteps.length === 0
 
   useEffect(() => {
-    if (session?.user) trackActivationEvent("get_started_viewed", "/get-started")
+    if (session?.user) trackActivationEvent("get_started_viewed", "/get-started", activationIdentity(session.user.id))
     if (!isPending && !session?.user) router.replace("/login?mode=register&callbackURL=%2Fget-started")
   }, [isPending, router, session?.user])
 

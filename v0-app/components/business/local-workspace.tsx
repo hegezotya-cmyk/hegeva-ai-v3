@@ -1,12 +1,13 @@
 "use client"
 
-import { FormEvent, useMemo, useState } from "react"
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react"
 import { Cloud, CloudOff, Pencil, Plus, Search, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/status-badge"
 import { useI18n } from "@/lib/i18n/provider"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { trackActivationEvent } from "@/lib/conversion-tracking"
+import { hasAcknowledgedRecord } from "@/lib/activation-measurement"
 
 type Kind = "customers" | "documents" | "expenses"
 type RecordItem = { id: string; title: string; meta?: string; amount?: number; notes?: string; followUp?: string; customerStatus?: "lead" | "active" | "paused"; createdAt: string }
@@ -57,7 +58,8 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
   }[locale]
   const translated = { customers:{title:t.business.customers,subtitle:t.business.customersDesc,placeholder:t.business.customers}, documents:{title:t.business.documents,subtitle:t.business.documentsDesc,placeholder:t.business.documents}, expenses:{title:t.business.expenses,subtitle:t.business.expensesDesc,placeholder:t.business.expenses} }[kind]
   const cfg = { ...config[kind], ...translated }
-  const { items, setItems, syncState, syncError, cloudEnabled } = useWorkspaceData<RecordItem>(kind)
+  const { items, setItems, syncState, syncError, cloudEnabled, cloudSaveVersion, cloudSavedItems, workspaceIdentity } = useWorkspaceData<RecordItem>(kind)
+  const pendingCustomerActivation = useRef<{ id: string; afterVersion: number } | null>(null)
   const [title, setTitle] = useState("")
   const [meta, setMeta] = useState("")
   const [amount, setAmount] = useState("")
@@ -81,6 +83,13 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
   }, [items, query, kind, customerFilter])
 
   const total = useMemo(() => items.reduce((sum, item) => sum + (item.amount || 0), 0), [items])
+
+  useEffect(() => {
+    const pending = pendingCustomerActivation.current
+    if (!pending || !hasAcknowledgedRecord({ cloudSaveVersion, afterVersion: pending.afterVersion, cloudSavedItems, recordId: pending.id })) return
+    trackActivationEvent("first_customer_created", "/business/customers", workspaceIdentity)
+    pendingCustomerActivation.current = null
+  }, [cloudSaveVersion, cloudSavedItems, workspaceIdentity])
 
   function resetForm() {
     setTitle("")
@@ -110,10 +119,11 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
     if (kind === "expenses" && parsedAmount !== undefined && (!Number.isFinite(parsedAmount) || parsedAmount < 0)) return
 
     const isNew = !editingId
+    const newRecordId = isNew ? crypto.randomUUID() : null
     setItems((current) => {
       const existing = editingId ? current.find((item) => item.id === editingId) : undefined
       const next: RecordItem = {
-        id: existing?.id || crypto.randomUUID(),
+        id: existing?.id || newRecordId!,
         title: clean,
         meta: meta.trim() || undefined,
         amount: parsedAmount,
@@ -126,7 +136,7 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
         ? current.map((item) => item.id === existing.id ? next : item)
         : [next, ...current]
     })
-    if (isNew && kind === "customers") trackActivationEvent("first_customer_created", "/business/customers")
+    if (isNew && kind === "customers" && newRecordId) pendingCustomerActivation.current = { id: newRecordId, afterVersion: cloudSaveVersion }
     resetForm()
   }
 

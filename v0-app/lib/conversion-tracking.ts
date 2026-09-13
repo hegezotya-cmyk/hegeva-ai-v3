@@ -37,15 +37,21 @@ export function trackRegistrationCompleted() {
   }))
 }
 
-export type ActivationEvent = "get_started_viewed" | "first_customer_created" | "first_quote_created" | "first_invoice_created" | "first_core_priority_seen" | "checkout_started" | "activation_completed"
+import { activationStorageKey, type ActivationEvent } from "./activation-measurement"
+export type { ActivationEvent } from "./activation-measurement"
 
-export function trackActivationEvent(event: ActivationEvent, path: string) {
+export function trackActivationEvent(event: ActivationEvent, path: string, identity?: string | null) {
   if (typeof window === "undefined") return
   try {
     if (localStorage.getItem("hegeva:analytics-consent:v1") !== "granted") return
-    const key = `hegeva:activation-event:v1:${event}`
-    if (sessionStorage.getItem(key)) return
-    sessionStorage.setItem(key, "1")
+    const key = activationStorageKey(event, identity)
+    if (!key) return
+    // Browser-local dedup prevents repeat milestones in later sessions. Clearing
+    // browser storage or using another device can still produce a new event.
+    const persistentMilestones = new Set<ActivationEvent>(["first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "activation_completed"])
+    const storage = persistentMilestones.has(event) ? localStorage : sessionStorage
+    if (storage.getItem(key)) return
+    storage.setItem(key, "1")
     window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event, path } }))
   } catch {}
 }

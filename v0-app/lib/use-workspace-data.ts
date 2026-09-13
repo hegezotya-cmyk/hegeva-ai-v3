@@ -48,6 +48,10 @@ export function useWorkspaceData<T>(type: string): {
   syncState: WorkspaceSyncState
   syncError: string
   cloudEnabled: boolean
+  cloudSaveVersion: number
+  cloudSavedAt: number
+  cloudSavedItems: T[]
+  workspaceIdentity: string | null
 } {
   const { data: session, isPending } = useSession()
   const userId = session?.user?.id
@@ -55,6 +59,9 @@ export function useWorkspaceData<T>(type: string): {
   const [items, setItems] = useState<T[]>([])
   const [syncState, setSyncState] = useState<WorkspaceSyncState>("checking")
   const [syncError, setSyncError] = useState("")
+  const [cloudSaveVersion, setCloudSaveVersion] = useState(0)
+  const [cloudSavedAt, setCloudSavedAt] = useState(0)
+  const [cloudSavedItems, setCloudSavedItems] = useState<T[]>([])
   const readyToSave = useRef(false)
   const skipNextSave = useRef(false)
 
@@ -163,6 +170,9 @@ export function useWorkspaceData<T>(type: string): {
         }
 
         setSyncState("cloud")
+        setCloudSaveVersion((version) => version + 1)
+        setCloudSavedAt(Date.now())
+        setCloudSavedItems(items)
       } catch (error) {
         if (controller.signal.aborted) {
           setSyncState("error")
@@ -188,5 +198,9 @@ export function useWorkspaceData<T>(type: string): {
     syncState,
     syncError,
     cloudEnabled: Boolean(userId),
+    cloudSaveVersion,
+    cloudSavedAt,
+    cloudSavedItems,
+    workspaceIdentity: userId ? `user:${userId}` : null,
   }
 }
