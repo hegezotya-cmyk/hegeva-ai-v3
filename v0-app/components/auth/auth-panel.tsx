@@ -116,7 +116,8 @@ export function AuthPanel() {
       }
 
       if (mode === "register" && registeredUserId && verifiedSession.data.user.id === registeredUserId) trackRegistrationCompleted()
-      router.push(safeCallbackURL(mode === "register" ? "/get-started" : "/command-center"))
+      const callbackURL = safeCallbackURL()
+      router.push(mode === "register" && callbackURL === "/command-center" ? "/get-started" : callbackURL)
       router.refresh()
     } catch {
       setError(c.authUnavailable)
