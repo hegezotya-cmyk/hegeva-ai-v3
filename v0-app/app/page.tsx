@@ -6,8 +6,25 @@ import { FlagshipSections } from "@/components/home/flagship-sections"
 import { OutcomeLauncher } from "@/components/outcome-launcher"
 
 export default function HomePage() {
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "HEGEVA AI",
+      url: "https://hegevaai.co.uk",
+      logo: "https://hegevaai.co.uk/hegeva-logo.png",
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "HEGEVA AI",
+      url: "https://hegevaai.co.uk",
+      description: "AI-powered business workspace for small businesses and growing teams.",
+    },
+  ]
   return (
     <AppShell>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <Hero />
       <OutcomeLauncher />
       <FlagshipSections />
