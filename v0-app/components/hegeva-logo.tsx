@@ -10,17 +10,20 @@ export function HegevaLogo({
   className,
   href = "/",
   priority = false,
+  variant = "full",
 }: {
   className?: string
   href?: string | null
   priority?: boolean
+  variant?: "full" | "header"
 }) {
+  const isHeaderVariant = variant === "header"
   const mark = (
     <Image
-      src="/hegeva-logo-gold-official.png"
+      src={isHeaderVariant ? "/hegeva-logo-gold-header.png" : "/hegeva-logo-gold-official.png"}
       alt="HEGEVA AI"
-      width={2172}
-      height={724}
+      width={isHeaderVariant ? 501 : 2172}
+      height={isHeaderVariant ? 167 : 724}
       priority={priority}
       className={cn("h-10 w-auto max-w-full object-contain select-none", className)}
       style={{ display: "block", width: "10.25rem", height: "auto", maxWidth: "100%" }}
