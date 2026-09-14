@@ -7,6 +7,7 @@ import { analyticsPageLocation, campaignAttribution, PUBLIC_ANALYTICS_PATHS } fr
 import { useI18n } from "@/lib/i18n/provider"
 
 const MEASUREMENT_ID = "G-TK99HP2BG7"
+const CLARITY_PROJECT_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID || ""
 const CONSENT_KEY = "hegeva:analytics-consent:v1"
 const PENDING_CTA_KEY = "hegeva:pending-acquisition:v1"
 type Consent = "granted" | "denied" | null
@@ -15,6 +16,7 @@ declare global {
   interface Window {
     dataLayer: unknown[]
     gtag?: (...args: unknown[]) => void
+    clarity?: (...args: unknown[]) => void
   }
 }
 
@@ -58,6 +60,20 @@ function enableAnalytics() {
     script.async = true
     script.src = `https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_ID}`
     document.head.appendChild(script)
+  }
+  if (CLARITY_PROJECT_ID) {
+    window.clarity = window.clarity || function clarity(...args: unknown[]) {
+      (window.clarity as unknown as { q?: unknown[] }).q = (window.clarity as unknown as { q?: unknown[] }).q || []
+      ;(window.clarity as unknown as { q: unknown[] }).q.push(args)
+    }
+    window.clarity("consentv2", { ad_Storage: "granted", analytics_Storage: "granted" })
+    if (!document.getElementById("hegeva-microsoft-clarity")) {
+      const script = document.createElement("script")
+      script.id = "hegeva-microsoft-clarity"
+      script.async = true
+      script.src = `https://www.clarity.ms/tag/${encodeURIComponent(CLARITY_PROJECT_ID)}`
+      document.head.appendChild(script)
+    }
   }
 }
 
@@ -136,6 +152,7 @@ export function AnalyticsConsent() {
       sessionStorage.removeItem("hegeva:campaign:v1")
       sessionStorage.removeItem(PENDING_CTA_KEY)
       window.gtag?.("consent", "update", { analytics_storage: "denied" })
+      window.clarity?.("consentv2", { ad_Storage: "denied", analytics_Storage: "denied" })
     }
   }
 
