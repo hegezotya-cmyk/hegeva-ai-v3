@@ -1,13 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { ArrowRight, MessageSquareText } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-
-const heroArtworkUrl = "/hegeva-hero-gold-official.png"
 
 const liveHeroCopy = {
   en: { motto:"RUN THE BUSINESS. NOT THE BUSYWORK.", title:["See what matters.","Take the next step.","Grow with control."], subtitle:"Keep customers, quotes, invoices, follow-ups and today’s priorities in one clear business view.", primary:"Start free", secondary:"See your business in one view", signal:"Built for real business work", signalDetail:"CUSTOMERS · CASHFLOW · PRIORITIES" },
@@ -21,17 +18,30 @@ export function Hero() {
   const { locale } = useI18n()
   const copy = liveHeroCopy[locale]
   const conversion = {
-    en: { title: ["Less admin.", "More business."], description: "One workspace for small-business owners: customers, quotes, invoices and planning. HEGEVA Core helps you see what needs attention next.", cta: "Try HEGEVA AI" },
-    hu: { title: ["Kevesebb admin.", "Több üzlet."], description: "Egy munkatér kisvállalkozóknak: ügyfelek, ajánlatok, számlák és tervezés. A HEGEVA Core segít átlátni, mi igényel figyelmet.", cta: "Próbáld ki a HEGEVA AI-t" },
-    de: { title: ["Weniger Verwaltung.", "Mehr Geschäft."], description: "Ein Workspace für kleine Unternehmen: Kunden, Angebote, Rechnungen und Planung. HEGEVA Core zeigt, was als Nächstes Aufmerksamkeit braucht.", cta: "HEGEVA AI ausprobieren" },
-    fr: { title: ["Moins d’administratif.", "Plus d’activité."], description: "Un espace pour les petites entreprises : clients, devis, factures et planification. HEGEVA Core vous aide à voir les prochaines priorités.", cta: "Essayer HEGEVA AI" },
-    es: { title: ["Menos papeleo.", "Más negocio."], description: "Un espacio para pequeñas empresas: clientes, presupuestos, facturas y planificación. HEGEVA Core te ayuda a ver qué necesita atención.", cta: "Prueba HEGEVA AI" },
+    en: { title: ["Less admin.", "More business."], description: "One workspace for small-business owners: customers, quotes, invoices and planning. HEGEVA Core helps you see what needs attention next.", cta: "Try HEGEVA AI", pricing: "View pricing" },
+    hu: { title: ["Kevesebb admin.", "Több üzlet."], description: "Egy munkatér kisvállalkozóknak: ügyfelek, ajánlatok, számlák és tervezés. A HEGEVA Core segít átlátni, mi igényel figyelmet.", cta: "Próbáld ki a HEGEVA AI-t", pricing: "Árak megtekintése" },
+    de: { title: ["Weniger Verwaltung.", "Mehr Geschäft."], description: "Ein Workspace für kleine Unternehmen: Kunden, Angebote, Rechnungen und Planung. HEGEVA Core zeigt, was als Nächstes Aufmerksamkeit braucht.", cta: "HEGEVA AI ausprobieren", pricing: "Preise ansehen" },
+    fr: { title: ["Moins d’administratif.", "Plus d’activité."], description: "Un espace pour les petites entreprises : clients, devis, factures et planification. HEGEVA Core vous aide à voir les prochaines priorités.", cta: "Essayer HEGEVA AI", pricing: "Voir les prix" },
+    es: { title: ["Menos papeleo.", "Más negocio."], description: "Un espacio para pequeñas empresas: clientes, presupuestos, facturas y planificación. HEGEVA Core te ayuda a ver qué necesita atención.", cta: "Prueba HEGEVA AI", pricing: "Ver precios" },
   }[locale]
 
   return (
     <section className="cinematic-hero relative isolate overflow-hidden">
       <div className="hero-artwork-layer" aria-hidden>
-        <Image src={heroArtworkUrl} alt="" fill priority sizes="100vw" className="hero-environment" />
+        <picture>
+          <source
+            media="(min-width: 901px)"
+            srcSet="/hegeva-hero-gold-official.png"
+            type="image/png"
+          />
+          <img
+            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+            alt=""
+            width={811}
+            height={490}
+            className="hero-environment absolute"
+          />
+        </picture>
       </div>
       <div className="hero-spectrum" aria-hidden />
       <div className="hero-energy-trail trail-one" aria-hidden />
@@ -61,6 +71,12 @@ export function Hero() {
             >
               <MessageSquareText className="size-4 text-primary" aria-hidden />
               {copy.secondary}
+            </Link>
+            <Link
+              href="/pricing"
+              className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "h-11 px-4 text-sm text-muted-foreground hover:text-foreground")}
+            >
+              {conversion.pricing}
             </Link>
           </div>
 
