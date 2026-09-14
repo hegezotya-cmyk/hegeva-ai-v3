@@ -12,7 +12,7 @@ import { isX30OperationId, startX30Generation, finishX30Generation, X30_MONTHLY_
 import { validateX30ProviderBrief, x30ProviderEnabled, isX30CanaryOwner } from "./x30-generation.js";
 import { invokeX30Provider } from "./x30-provider.js";
 import { buildWorkersAiProjection, getWorkersAiConfig, getWorkersAiCanaryConfig, invokeWorkersAiText, parseProviderFlags, CANARY_BOUNDS } from "./cloudflare-ai-provider.js";
-import { createPortalShare, readPortalShare, revokePortalShare } from "./client-portal.js";
+import { createPortalShare, previewPortalShare, readPortalShare, revokePortalShare } from "./client-portal.js";
 import { completeOAuth, disconnectIntegration, listConnections, readIntegrationIntelligence, readIntegrationSignals, startOAuth } from "./integrations.js";
 import { creativeProviderCapability, invokeCreativeProvider, isCreativeCanaryOwner, readCreativeCredits, reserveCreativeCredits, settleCreativeCredits, validateCreativeGeneration } from "./creative-provider.js";
 import { createDurableMemoryD1Adapter } from "./durable-memory-d1-adapter.js";
@@ -1410,6 +1410,11 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
       const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
       let body;try{body=await request.json()}catch{return Response.json({error:"Invalid JSON body."},{status:400})}
       const result=await createPortalShare(env.DB,user.id,body);return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store"}});
+    }
+    if (url.pathname === "/api/client-portal/preview" && request.method === "POST") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      let body;try{body=await request.json()}catch{return Response.json({error:"Invalid JSON body."},{status:400})}
+      const result=await previewPortalShare(env.DB,user.id,body);return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store"}});
     }
     if (url.pathname.startsWith("/api/client-portal/share/") && request.method === "DELETE") {
       const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
