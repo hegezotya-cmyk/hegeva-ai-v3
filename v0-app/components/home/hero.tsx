@@ -7,8 +7,7 @@ import { useI18n } from "@/lib/i18n/provider"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-const heroArtworkSource = "/hegeva-homepage-clean-master-aaa-v2.png"
-const heroArtworkUrl = heroArtworkSource.replace(/\.png$/, ".webp")
+const heroArtworkUrl = "/hegeva-hero-gold-official.png"
 
 const liveHeroCopy = {
   en: { motto:"RUN THE BUSINESS. NOT THE BUSYWORK.", title:["See what matters.","Take the next step.","Grow with control."], subtitle:"Keep customers, quotes, invoices, follow-ups and today’s priorities in one clear business view.", primary:"Start free", secondary:"See your business in one view", signal:"Built for real business work", signalDetail:"CUSTOMERS · CASHFLOW · PRIORITIES" },

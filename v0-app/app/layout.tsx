@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   },
   robots: { index: true, follow: true },
   icons: {
-    icon: [{ url: '/hegeva-logo.png', type: 'image/png' }],
+    icon: [{ url: '/hegeva-logo-gold-official.png', type: 'image/png' }],
   },
   manifest: '/manifest.webmanifest',
 }

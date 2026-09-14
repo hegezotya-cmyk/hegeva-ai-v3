@@ -12,7 +12,7 @@ export default function HomePage() {
       "@type": "Organization",
       name: "HEGEVA AI",
       url: "https://hegevaai.co.uk",
-      logo: "https://hegevaai.co.uk/hegeva-logo.png",
+      logo: "https://hegevaai.co.uk/hegeva-logo-gold-official.png",
     },
     {
       "@context": "https://schema.org",
