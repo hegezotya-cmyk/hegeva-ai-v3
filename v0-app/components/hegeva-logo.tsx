@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 
 /**
  * The single, authoritative HEGEVA brand mark.
- * Uses the supplied official logo asset — never a generic "H" substitute.
+ * Uses the approved black-and-gold crest asset — never a generic "H" substitute.
  */
 export function HegevaLogo({
   className,
@@ -17,12 +17,12 @@ export function HegevaLogo({
 }) {
   const mark = (
     <Image
-      src="/hegeva-winged-logo.png"
+      src="/hegeva-logo.png"
       alt="HEGEVA AI"
-      width={1983}
-      height={793}
+      width={190}
+      height={52}
       priority={priority}
-      className={cn("h-[72px] w-auto max-w-full object-contain select-none", className)}
+      className={cn("h-10 w-auto max-w-full object-contain select-none", className)}
     />
   )
 

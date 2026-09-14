@@ -59,24 +59,24 @@
 :root {
   color-scheme: dark;
 
-  /* Deep graphite near-black with subtle green intelligence */
-  --background: oklch(0.105 0.009 115);
-  --foreground: oklch(0.95 0.008 160);
+  /* Black-gold HEGEVA base, with deep green reserved for live intelligence. */
+  --background: oklch(0.09 0.008 92);
+  --foreground: oklch(0.965 0.01 92);
 
-  --card: oklch(0.19 0.014 170);
-  --card-foreground: oklch(0.95 0.008 160);
-  --popover: oklch(0.17 0.014 170);
-  --popover-foreground: oklch(0.95 0.008 160);
+  --card: oklch(0.15 0.012 103);
+  --card-foreground: oklch(0.965 0.01 92);
+  --popover: oklch(0.125 0.01 98);
+  --popover-foreground: oklch(0.965 0.01 92);
 
   /* Emerald primary */
   --primary: oklch(0.74 0.165 158);
   --primary-foreground: oklch(0.16 0.02 160);
 
-  --secondary: oklch(0.25 0.016 172);
-  --secondary-foreground: oklch(0.93 0.008 160);
+  --secondary: oklch(0.2 0.014 102);
+  --secondary-foreground: oklch(0.94 0.01 92);
 
-  --muted: oklch(0.23 0.013 172);
-  --muted-foreground: oklch(0.68 0.02 166);
+  --muted: oklch(0.18 0.011 102);
+  --muted-foreground: oklch(0.69 0.018 96);
 
   /* Turquoise / cyan intelligence lighting */
   --accent: oklch(0.8 0.12 196);
@@ -84,8 +84,8 @@
 
   --destructive: oklch(0.62 0.2 25);
 
-  --border: oklch(0.85 0.03 168 / 12%);
-  --input: oklch(0.9 0.02 168 / 14%);
+  --border: oklch(0.82 0.09 87 / 16%);
+  --input: oklch(0.88 0.06 87 / 16%);
   --ring: oklch(0.74 0.165 158);
 
   /* Restrained premium gold */
@@ -95,10 +95,10 @@
   --emerald: oklch(0.74 0.165 158);
   --violet: oklch(0.72 0.14 292);
 
-  --surface-0: oklch(0.125 0.009 120);
-  --surface-1: oklch(0.155 0.011 135);
-  --surface-2: oklch(0.19 0.014 145);
-  --surface-3: oklch(0.235 0.017 150);
+  --surface-0: oklch(0.105 0.009 96);
+  --surface-1: oklch(0.13 0.011 101);
+  --surface-2: oklch(0.165 0.014 103);
+  --surface-3: oklch(0.205 0.017 105);
   --gold-deep: oklch(0.43 0.085 75);
   --gold-light: oklch(0.9 0.09 88);
   --shadow-soft: 0 18px 60px -34px oklch(0 0 0 / 0.82);
@@ -128,13 +128,13 @@
 
   --radius: 0.75rem;
 
-  --sidebar: oklch(0.17 0.014 170);
-  --sidebar-foreground: oklch(0.9 0.008 160);
-  --sidebar-primary: oklch(0.74 0.165 158);
-  --sidebar-primary-foreground: oklch(0.16 0.02 160);
-  --sidebar-accent: oklch(0.24 0.016 172);
-  --sidebar-accent-foreground: oklch(0.93 0.008 160);
-  --sidebar-border: oklch(0.85 0.03 168 / 10%);
+  --sidebar: oklch(0.105 0.01 96);
+  --sidebar-foreground: oklch(0.93 0.01 92);
+  --sidebar-primary: var(--gold);
+  --sidebar-primary-foreground: var(--gold-foreground);
+  --sidebar-accent: oklch(0.17 0.015 99);
+  --sidebar-accent-foreground: oklch(0.95 0.01 92);
+  --sidebar-border: oklch(0.82 0.09 87 / 15%);
   --sidebar-ring: oklch(0.74 0.165 158);
 }
 
@@ -219,14 +219,14 @@
 }
 
 @layer utilities {
-  /* Atmospheric graphite base with emerald + cyan illumination */
+  /* Cinematic black-gold atmosphere, with deep green only as a controlled accent. */
   .hegeva-atmosphere {
     background-color: var(--background);
     background-image:
-      radial-gradient(55% 42% at 58% -8%, oklch(0.82 0.13 85 / 0.14), transparent 62%),
-      radial-gradient(48% 48% at 92% 25%, oklch(0.72 0.14 292 / 0.11), transparent 65%),
-      radial-gradient(45% 50% at 12% 88%, oklch(0.8 0.12 196 / 0.1), transparent 62%),
-      linear-gradient(115deg,oklch(.085 .008 100),var(--background) 45%,oklch(.095 .012 165));
+      radial-gradient(56% 44% at 54% -10%, oklch(0.82 0.13 85 / 0.19), transparent 62%),
+      radial-gradient(42% 45% at 94% 26%, oklch(0.74 0.165 158 / 0.1), transparent 66%),
+      radial-gradient(42% 46% at 6% 88%, oklch(0.43 0.085 75 / 0.16), transparent 64%),
+      linear-gradient(118deg,oklch(.07 .007 86),var(--background) 48%,oklch(.085 .012 132));
   }
 
   .hegeva-atmosphere::before,
@@ -241,8 +241,8 @@
     opacity: 0.07;
     pointer-events: none;
   }
-  .hegeva-atmosphere::before { top: 8rem; right: -12rem; background: var(--violet); }
-  .hegeva-atmosphere::after { bottom: 5rem; left: -14rem; background: var(--cyan); }
+  .hegeva-atmosphere::before { top: 8rem; right: -12rem; background: var(--gold); }
+  .hegeva-atmosphere::after { bottom: 5rem; left: -14rem; background: var(--emerald); }
 
   /* Subtle technical grid */
   .hegeva-grid {
@@ -253,8 +253,8 @@
     mask-image:linear-gradient(to bottom,black,transparent 82%);
   }
 
-  .desktop-command-rail{position:fixed;z-index:55;inset:0 auto 0 0;display:none;width:15rem;border-right:1px solid oklch(.82 .13 85/.16);background:linear-gradient(180deg,oklch(.125 .012 105/.98),oklch(.08 .007 145/.99));box-shadow:30px 0 80px -50px oklch(.82 .13 85/.35)}
-  .command-rail-core{display:flex;align-items:center;gap:.65rem;margin:0 .75rem .85rem;border:1px solid oklch(.8 .12 196/.2);border-radius:1rem;padding:.65rem;background:linear-gradient(135deg,oklch(.8 .12 196/.08),oklch(.72 .14 292/.04))}.command-rail-core .ve-core{width:2rem;height:2rem;flex:none}.command-rail-core strong,.command-rail-core small{display:block;overflow-wrap:anywhere}.command-rail-core strong{font-family:var(--font-mono);font-size:.57rem;letter-spacing:.12em;color:var(--cyan)}.command-rail-core small{margin-top:.2rem;font-size:.58rem;color:var(--muted-foreground)}
+  .desktop-command-rail{position:fixed;z-index:55;inset:0 auto 0 0;display:none;width:15rem;border-right:1px solid oklch(.82 .13 85/.22);background:radial-gradient(130% 28% at 0 0,oklch(.82 .13 85/.11),transparent 58%),linear-gradient(180deg,oklch(.105 .01 93/.99),oklch(.065 .008 88/.99));box-shadow:30px 0 90px -52px oklch(.82 .13 85/.48)}
+  .command-rail-core{display:flex;align-items:center;gap:.65rem;margin:0 .75rem .85rem;border:1px solid oklch(.82 .13 85/.23);border-radius:1rem;padding:.65rem;background:linear-gradient(135deg,oklch(.82 .13 85/.1),oklch(.74 .165 158/.05))}.command-rail-core .ve-core{width:2rem;height:2rem;flex:none}.command-rail-core strong,.command-rail-core small{display:block;overflow-wrap:anywhere}.command-rail-core strong{font-family:var(--font-mono);font-size:.57rem;letter-spacing:.12em;color:var(--gold-light)}.command-rail-core small{margin-top:.2rem;font-size:.58rem;color:var(--muted-foreground)}
   .command-rail-brand{height:5.4rem;border-bottom:1px solid var(--border);padding:1.1rem 1.25rem}.command-rail-brand>a{display:inline-flex}.command-rail-brand>span{display:block;margin-top:.55rem;font-family:var(--font-mono);font-size:.5rem;letter-spacing:.2em;color:oklch(.82 .13 85/.65)}
   .desktop-command-rail nav{overflow-y:auto;height:calc(100dvh - 10.2rem);padding:1rem .65rem;scrollbar-width:none}.desktop-command-rail nav section+section{margin-top:1.4rem}.desktop-command-rail nav section>p{padding:0 .65rem .45rem;font-size:.55rem;font-weight:800;letter-spacing:.17em;text-transform:uppercase;color:var(--muted-foreground)}
   .desktop-command-rail nav a{position:relative;display:grid;grid-template-columns:2rem 1fr .35rem;align-items:center;gap:.6rem;min-height:2.65rem;padding:.25rem .6rem;color:var(--muted-foreground);transition:background var(--motion-fast),color var(--motion-fast),transform var(--motion-fast)}.desktop-command-rail nav a:hover{background:oklch(1 0 0/.035);color:var(--foreground);transform:translateX(2px)}.desktop-command-rail nav a>span{display:grid;width:2rem;height:2rem;place-items:center;border:1px solid transparent}.desktop-command-rail nav a svg{width:.9rem;height:.9rem}.desktop-command-rail nav a b{font-size:.72rem;font-weight:600}.desktop-command-rail nav a i{width:.3rem;height:.3rem;border-radius:50%}.desktop-command-rail nav a.is-active{background:linear-gradient(90deg,oklch(.82 .13 85/.12),transparent);color:var(--gold-light)}.desktop-command-rail nav a.is-active>span{border-color:oklch(.82 .13 85/.24);background:oklch(.82 .13 85/.08);box-shadow:inset 0 0 16px oklch(.82 .13 85/.06)}.desktop-command-rail nav a.is-active i{background:var(--gold);box-shadow:0 0 14px var(--gold)}.desktop-command-rail nav a.is-active::before{content:"";position:absolute;left:-.65rem;width:2px;height:55%;background:var(--gold);box-shadow:0 0 14px var(--gold)}
@@ -684,4 +684,40 @@
 .desktop-command-rail .command-rail-brand > span {
   margin: 0;
   line-height: 1.2;
+}
+
+/* Official black-gold crest rollout and Visual Polish V1. */
+.desktop-command-rail .command-rail-brand img{max-width:172px;max-height:48px;filter:drop-shadow(0 8px 18px color-mix(in oklab,var(--gold) 18%,transparent))}
+.brand-footer img{filter:drop-shadow(0 8px 18px color-mix(in oklab,var(--gold) 16%,transparent))}
+
+.cinematic-hero{background:linear-gradient(110deg,oklch(.055 .007 83/.91) 0%,oklch(.065 .009 88/.75) 42%,oklch(.05 .008 82/.3) 76%)}
+.cinematic-hero::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(48% 58% at 18% 32%,oklch(.82 .13 85/.18),transparent 68%),linear-gradient(90deg,oklch(.045 .006 82/.8),transparent 63%)}
+.cinematic-hero .hero-artwork-layer{opacity:.92;filter:saturate(.9) contrast(1.08) brightness(.8)}
+.cinematic-hero .hero-layout{position:relative;z-index:2}
+.hero-live-copy{border-left:1px solid color-mix(in oklab,var(--gold) 52%,transparent);padding-left:clamp(1rem,2.5vw,2.2rem);text-shadow:0 4px 30px oklch(0 0 0/.9)}
+.hero-motto{color:var(--gold-light)!important;text-shadow:0 0 24px color-mix(in oklab,var(--gold) 34%,transparent)}
+.hero-title-energy{background:linear-gradient(105deg,var(--gold-light),var(--gold) 42%,var(--emerald));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-truth-line{border-color:color-mix(in oklab,var(--gold) 45%,transparent)!important;background:linear-gradient(90deg,color-mix(in oklab,var(--gold) 10%,transparent),transparent)!important;box-shadow:inset 0 1px 0 oklch(1 0 0/.09)}
+.hero-truth-line i{background:var(--gold)!important;box-shadow:0 0 16px var(--gold)!important}
+
+.hegeva-atmosphere main:not(.cinematic-hero)>section{position:relative;isolation:isolate;border-top:1px solid color-mix(in oklab,var(--gold) 13%,transparent);border-bottom:1px solid color-mix(in oklab,var(--gold) 7%,transparent)}
+.hegeva-atmosphere main:not(.cinematic-hero)>section::before{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(110deg,transparent 0%,color-mix(in oklab,var(--gold) 3%,transparent) 52%,transparent 100%);pointer-events:none}
+.glass-panel,.ve-panel{border-color:color-mix(in oklab,var(--gold) 22%,var(--border));background:linear-gradient(145deg,oklch(1 0 0/.05),transparent 32%),linear-gradient(165deg,color-mix(in oklab,var(--surface-2) 94%,var(--gold) 6%),var(--surface-0));box-shadow:inset 0 1px 0 oklch(1 0 0/.08),0 25px 60px -42px oklch(0 0 0/.95)}
+.glass-panel:hover,.ve-panel-interactive:hover{border-color:color-mix(in oklab,var(--gold) 48%,transparent);box-shadow:inset 0 1px 0 oklch(1 0 0/.1),0 30px 80px -48px oklch(0 0 0/.98),0 0 34px color-mix(in oklab,var(--gold) 9%,transparent)}
+.hegeva-atmosphere :where(.bg-card,.bg-background\/55,.bg-background\/45){background-color:color-mix(in oklab,var(--surface-1) 92%,var(--gold) 8%)}
+.hegeva-atmosphere :where(.border-border){border-color:color-mix(in oklab,var(--gold) 18%,var(--border))}
+.pricing-hero{position:relative;padding:clamp(2rem,5vw,4rem) 1rem;border:1px solid color-mix(in oklab,var(--gold) 28%,transparent);background:radial-gradient(circle at 50% 0,color-mix(in oklab,var(--gold) 18%,transparent),transparent 48%),linear-gradient(150deg,color-mix(in oklab,var(--surface-1) 92%,var(--gold) 8%),var(--surface-0));box-shadow:0 32px 90px -58px color-mix(in oklab,var(--gold) 58%,transparent)}
+.brand-footer{background:radial-gradient(70% 90% at 50% 120%,color-mix(in oklab,var(--gold) 11%,transparent),transparent 60%),linear-gradient(180deg,color-mix(in oklab,var(--surface-1) 85%,transparent),var(--background))!important}
+.brand-footer li>span:first-child{border-color:color-mix(in oklab,var(--gold) 38%,transparent)!important;background:color-mix(in oklab,var(--gold) 10%,transparent)!important}.brand-footer li svg{color:var(--gold)!important}
+
+/* Keep the shell out of the earlier blue/cyan visual language. */
+.hegeva-atmosphere{background:radial-gradient(circle at 54% -8%,oklch(.82 .13 85/.16),transparent 34rem),radial-gradient(circle at 94% 30%,oklch(.74 .165 158/.1),transparent 30rem),radial-gradient(circle at 4% 90%,oklch(.43 .085 75/.16),transparent 30rem),linear-gradient(145deg,oklch(.055 .007 84),oklch(.085 .011 96) 46%,oklch(.06 .009 105))!important}
+.hegeva-atmosphere::before{background:radial-gradient(circle at 12% 8%,oklch(.82 .13 85/.12),transparent 28rem),radial-gradient(circle at 90% 22%,oklch(.74 .165 158/.08),transparent 28rem),radial-gradient(circle at 18% 88%,oklch(.43 .085 75/.12),transparent 26rem)!important}
+
+@media (max-width:640px){
+  .cinematic-hero{min-height:720px;background:linear-gradient(158deg,oklch(.045 .006 82/.94),oklch(.07 .01 92/.82) 56%,oklch(.075 .02 135/.8))}
+  .cinematic-hero .hero-artwork-layer{opacity:.65;transform:scale(1.08);transform-origin:72% 35%}
+  .hero-live-copy{margin-top:6rem;border-left:0;border-top:1px solid color-mix(in oklab,var(--gold) 48%,transparent);padding:1.2rem 0 0;text-shadow:0 3px 24px oklch(0 0 0/.92)}
+  .hero-actions>a{flex:1;justify-content:center}
+  .hegeva-atmosphere main:not(.cinematic-hero)>section{background-image:linear-gradient(155deg,oklch(.11 .012 97/.98),oklch(.075 .009 91/.99))!important}
 }

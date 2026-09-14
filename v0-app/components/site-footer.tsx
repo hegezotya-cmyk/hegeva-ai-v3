@@ -28,7 +28,7 @@ export function SiteFooter() {
   ]
 
   return (
-    <footer className="border-t border-border bg-background/60">
+    <footer className="brand-footer border-t border-border bg-background/60">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {trust.map(({ icon: Icon, label }) => (
@@ -42,7 +42,7 @@ export function SiteFooter() {
         </ul>
 
         <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
-          <HegevaLogo href={null} />
+          <HegevaLogo href={null} className="h-11 sm:h-12" />
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{t.footer.tagline}</p>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
             <Link href="/privacy" className="transition-colors hover:text-foreground">{legal.privacyLink}</Link>
