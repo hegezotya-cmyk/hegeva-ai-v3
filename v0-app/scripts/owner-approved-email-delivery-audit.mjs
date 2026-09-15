@@ -31,6 +31,7 @@ function fakeDb() {
 }
 const post = (body) => new Request("https://hegevaai.co.uk/api/external-actions/email-delivery/confirm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
 const handler = createRequestHandler({ getLoggedInUserFn: async () => ({ id: "owner" }) }), anonymous = createRequestHandler({ getLoggedInUserFn: async () => null })
+const verifiedOwner = createRequestHandler({ getLoggedInUserFn: async () => ({ id: "owner-test", email: "owner@example.test", emailVerified: true }) })
 function fakeLimiter({ allowed = true, throws = false } = {}) { return { getByName(name) { return { async admit() { if (throws) throw new Error("limiter unavailable"); return allowed ? { allowed: true, token: `${name}:token` } : { allowed: false, retryAfterMs: 1000 } }, async release() { return { released: true } } } } } }
 const originalFetch = globalThis.fetch
 try {
@@ -49,9 +50,15 @@ try {
   const timeout = fakeDb(); globalThis.fetch = async () => { const error = new Error("timeout"); error.name = "AbortError"; throw error }
   const timeoutResponse = await handler.fetch(post({ actionId: action.id, confirmationDigest: digest }), { DB: timeout.db, EMAIL_DELIVERY_ENABLED: "enabled", RESEND_API_KEY: "mock", RATE_LIMITER: fakeLimiter() }, {})
   assert.equal(timeoutResponse.status, 503); assert.equal((await timeoutResponse.json()).status, "uncertain")
+  const testDb = fakeDb(), testAction = { ...action, id: "owner-email-delivery-test-v1", recipient: "owner@example.test", subject: "HEGEVA AI — Email Delivery Test", body: "This is a controlled HEGEVA AI email delivery test. No customer action is required." }, testDigest = await emailContentDigest(testAction)
+  assert.equal((await verifiedOwner.fetch(post({ actionId: testAction.id, confirmationDigest: testDigest }), { DB: testDb.db, EMAIL_DELIVERY_ENABLED: "enabled", EMAIL_DELIVERY_TEST_MODE_ENABLED: "disabled", RATE_LIMITER: fakeLimiter() }, {})).status, 503)
+  globalThis.fetch = async () => new Response(JSON.stringify({ id: "owner-test-provider-id" }), { status: 200 })
+  assert.equal((await verifiedOwner.fetch(post({ actionId: testAction.id, confirmationDigest: testDigest }), { DB: testDb.db, EMAIL_DELIVERY_ENABLED: "enabled", EMAIL_DELIVERY_TEST_MODE_ENABLED: "enabled", RESEND_API_KEY: "mock", RATE_LIMITER: fakeLimiter() }, {})).status, 200)
+  assert.equal((await verifiedOwner.fetch(post({ actionId: testAction.id, confirmationDigest: testDigest }), { DB: testDb.db, EMAIL_DELIVERY_ENABLED: "enabled", EMAIL_DELIVERY_TEST_MODE_ENABLED: "enabled", RESEND_API_KEY: "mock", RATE_LIMITER: fakeLimiter() }, {})).status, 409, "owner test is limited to one operation")
 } finally { globalThis.fetch = originalFetch }
 const worker = fs.readFileSync(new URL("../../src/index.js", import.meta.url), "utf8"), migration = fs.readFileSync(new URL("../../migrations/0021_email_delivery_operations.sql", import.meta.url), "utf8")
 assert(worker.includes('env.EMAIL_DELIVERY_ENABLED !== "enabled"') && worker.includes("Idempotency-Key") === false && worker.includes("idempotencyKey: operationId"))
 assert(worker.includes("email-delivery-rate-limit:${user.id}") && worker.includes("Email delivery rate limit reached") && worker.includes("email_delivery_rate_limit_failed"))
+for (const token of ["owner-email-delivery-test-v1", "EMAIL_DELIVERY_TEST_MODE_ENABLED", "user?.emailVerified !== true", "/api/external-actions/email-delivery/test/preview"]) assert(worker.includes(token), `missing owner test control: ${token}`)
 assert(migration.includes("UNIQUE(userId, actionId, readyVersion)") && migration.includes("email_delivery_history_no_update") && migration.includes("email_delivery_history_no_delete"))
 console.log("Owner-approved email delivery audit passed: mocked provider, auth, stale confirmation, idempotency, immutable history, and kill switch.")

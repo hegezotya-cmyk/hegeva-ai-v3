@@ -141,6 +141,16 @@ export function MessageStudio() {
     setApprovingId(draft.id); setApprovalNotice("")
     try { const response = await fetch("/api/external-actions/email-delivery/confirm", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ actionId: draft.id, confirmationDigest }) }); const payload = await response.json().catch(() => null); if (response.ok && payload?.action?.approvalState === "sent") setDrafts((all) => all.map((item) => item.id === draft.id ? payload.action as Draft : item)); else setApprovalNotice(payload?.error || editCopy.failed) } catch { setApprovalNotice(editCopy.failed) } finally { setApprovingId(null) }
   }
+  async function ownerDeliveryTest() {
+    setApprovalNotice("")
+    try {
+      const preview = await fetch("/api/external-actions/email-delivery/test/preview", { credentials: "include" })
+      const data = await preview.json().catch(() => null)
+      const draft = data?.action as Draft | undefined
+      if (!preview.ok || !draft) { setApprovalNotice(data?.error || editCopy.failed); return }
+      await confirmEmailDelivery(draft)
+    } catch { setApprovalNotice(editCopy.failed) }
+  }
 
   return (
     <div>
@@ -171,6 +181,7 @@ export function MessageStudio() {
       </form>
 
       <section>
+        <section className="mb-4 rounded-xl border border-amber-300/35 bg-amber-300/10 p-4"><p className="text-xs font-bold tracking-wide text-amber-200">TEST MODE · OWNER ONLY</p><p className="mt-1 text-xs text-muted-foreground">Recipient, subject, and body are fixed server-side. Available only when both delivery gates are enabled.</p><button type="button" onClick={ownerDeliveryTest} className="mt-3 min-h-10 rounded-lg border border-amber-300/40 px-3 text-xs font-semibold text-amber-200">Preview owner delivery test</button></section>
         {approvalNotice && <p role="status" className="mb-3 rounded-xl border border-destructive/35 bg-destructive/10 px-4 py-3 text-sm text-destructive">{approvalNotice}</p>}
         {drafts.length === 0 ? (
           <div className="glass-panel rounded-2xl p-8 text-center">
