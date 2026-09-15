@@ -78,6 +78,24 @@ export type PreparedAction = {
   preparedAt: string
 }
 
+export type AIEmployeeRole = "Sales" | "Finance" | "Marketing" | "Support"
+
+export type AIEmployeeDelegation = {
+  role: AIEmployeeRole
+  label: string
+  status: "awaiting-approval"
+  preparationStatus: "prepared-only"
+  deliveryStatus: "not-sent"
+  executionStatus: "not-executed"
+  title: string
+  content: string
+  sourceIds: string[]
+  targetType: string
+  targetHref: string
+  rationale: string
+  preparedAt: string
+}
+
 export type CoreDecisionResponse = {
   coreSignals: CoreSignal
   corePriorities: CorePriority[]
@@ -89,6 +107,7 @@ export type CoreDecisionResponse = {
   companion: CompanionProjection
   priorities: CorePriority[]
   preparedActions: PreparedAction[]
+  employeeDelegations: AIEmployeeDelegation[]
   metadata: {
     version: string
     generatedAt: string
@@ -120,6 +139,7 @@ const FALLBACK: CoreDecisionResponse = {
   companion: { context: [], suggestions: [], scope: "authenticated-cloud", userControlled: true },
   priorities: [],
   preparedActions: [],
+  employeeDelegations: [],
   metadata: { version: "core-v1", generatedAt: new Date().toISOString(), locale: "en", scope: "authenticated-cloud" },
 }
 

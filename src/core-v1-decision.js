@@ -690,6 +690,60 @@ export function prepareActionsForSignals(signals, workspaceData, locale = "en", 
   }).filter(Boolean);
 }
 
+const EMPLOYEE_DELEGATION_RULES = [
+  { role: "Sales", kinds: ["followup-message", "x20-spec"] },
+  { role: "Finance", kinds: ["invoice-followup"] },
+  { role: "Marketing", kinds: ["creative-brief"] },
+  { role: "Support", kinds: ["task"] },
+];
+
+const EMPLOYEE_LABELS = {
+  en: { Sales: "Sales review", Finance: "Finance review", Marketing: "Marketing review", Support: "Support review" },
+  hu: { Sales: "Értékesítési áttekintés", Finance: "Pénzügyi áttekintés", Marketing: "Marketing áttekintés", Support: "Ügyféltámogatási áttekintés" },
+  de: { Sales: "Vertriebsprüfung", Finance: "Finanzprüfung", Marketing: "Marketingprüfung", Support: "Supportprüfung" },
+  fr: { Sales: "Revue commerciale", Finance: "Revue financière", Marketing: "Revue marketing", Support: "Revue support" },
+  es: { Sales: "Revisión comercial", Finance: "Revisión financiera", Marketing: "Revisión de marketing", Support: "Revisión de soporte" },
+};
+
+export function prepareEmployeeDelegations(preparedActions, locale = "en") {
+  if (!Array.isArray(preparedActions)) return [];
+  const labels = EMPLOYEE_LABELS[locale] || EMPLOYEE_LABELS.en;
+
+  return EMPLOYEE_DELEGATION_RULES.flatMap(({ role, kinds }) => {
+    const action = preparedActions.find((candidate) =>
+      candidate &&
+      candidate.status === "prepared" &&
+      kinds.includes(candidate.kind) &&
+      Array.isArray(candidate.sourceIds) &&
+      candidate.sourceIds.length > 0 &&
+      candidate.sourceIds.every((sourceId) => typeof sourceId === "string" && sourceId) &&
+      typeof candidate.title === "string" && candidate.title &&
+      typeof candidate.content === "string" && candidate.content &&
+      typeof candidate.reason === "string" && candidate.reason &&
+      typeof candidate.targetType === "string" && candidate.targetType &&
+      typeof candidate.targetHref === "string" && candidate.targetHref.startsWith("/") &&
+      typeof candidate.preparedAt === "string" && Number.isFinite(Date.parse(candidate.preparedAt)),
+    );
+    if (!action) return [];
+
+    return [{
+      role,
+      label: labels[role],
+      status: "awaiting-approval",
+      preparationStatus: "prepared-only",
+      deliveryStatus: "not-sent",
+      executionStatus: "not-executed",
+      title: action.title,
+      content: action.content,
+      sourceIds: [...action.sourceIds],
+      targetType: action.targetType,
+      targetHref: action.targetHref,
+      rationale: action.reason,
+      preparedAt: action.preparedAt,
+    }];
+  });
+}
+
 // =========================================
 // MAIN EXPORT
 // =========================================
@@ -697,6 +751,7 @@ export function prepareActionsForSignals(signals, workspaceData, locale = "en", 
 export function runCoreV1Decision(workspaceData, cloudEnabled, locale = "en") {
   const decision = computeCoreDecision(workspaceData, cloudEnabled);
   const preparedActions = prepareActionsForSignals(decision, workspaceData, locale, 3);
+  const employeeDelegations = prepareEmployeeDelegations(preparedActions, locale);
 
   return {
     coreSignals: decision.coreSignals,
@@ -714,6 +769,7 @@ export function runCoreV1Decision(workspaceData, cloudEnabled, locale = "en") {
       severity: p.severity,
     })),
     preparedActions,
+    employeeDelegations,
     metadata: {
       version: "core-v1",
       generatedAt: new Date().toISOString(),
