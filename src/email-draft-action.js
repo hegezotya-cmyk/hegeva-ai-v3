@@ -42,6 +42,34 @@ function copy(locale, values) {
   return messages[locale] || messages.en;
 }
 
+function upgradeLegacyDraft(existing, now) {
+  if (
+    existing?.actionType !== "email-draft" ||
+    existing?.workflowStatus !== "draft" ||
+    existing?.deliveryStatus !== "not-sent" ||
+    existing?.sent !== false ||
+    existing?.approvalState
+  ) return null;
+  return {
+    ...existing,
+    approvalState: "awaiting-approval",
+    approvalVersion: 0,
+    approvedAt: null,
+    approvedByActorHash: null,
+    executionStatus: "not-executed",
+    audit: [{
+      event: "prepared",
+      actionType: "email-draft",
+      target: email(existing.recipient),
+      previousState: "prepared",
+      newState: "awaiting-approval",
+      occurredAt: now,
+      deliveryStatus: "not-sent",
+      executionStatus: "not-executed",
+    }],
+  };
+}
+
 export function prepareOverdueInvoiceEmailDraft({ invoice, customers, messages, locale = "en", now = new Date().toISOString() }) {
   const today = now.slice(0, 10);
   const invoiceId = string(invoice?.id, 100);
@@ -70,7 +98,10 @@ export function prepareOverdueInvoiceEmailDraft({ invoice, customers, messages, 
 
   const actionKey = `email-draft:invoice:${invoiceId}`;
   const existing = Array.isArray(messages) && messages.find((message) => message?.actionKey === actionKey);
-  if (existing) return { ok: true, created: false, draft: existing };
+  if (existing) {
+    const upgraded = upgradeLegacyDraft(existing, now);
+    return { ok: true, created: false, updated: Boolean(upgraded), draft: upgraded || existing };
+  }
 
   const resolvedLocale = SUPPORTED_LOCALES.has(locale) ? locale : "en";
   const amount = new Intl.NumberFormat(resolvedLocale, {
@@ -90,9 +121,24 @@ export function prepareOverdueInvoiceEmailDraft({ invoice, customers, messages, 
     body: wording.body,
     createdAt: now,
     workflowStatus: "draft",
+    approvalState: "awaiting-approval",
+    approvalVersion: 0,
+    approvedAt: null,
+    approvedByActorHash: null,
     deliveryStatus: "not-sent",
+    executionStatus: "not-executed",
     sent: false,
     evidence: { invoiceNumber: number, dueDate, amount, customerName },
+    audit: [{
+      event: "prepared",
+      actionType: "email-draft",
+      target: recipient,
+      previousState: "prepared",
+      newState: "awaiting-approval",
+      occurredAt: now,
+      deliveryStatus: "not-sent",
+      executionStatus: "not-executed",
+    }],
   };
   return { ok: true, created: true, draft };
 }
