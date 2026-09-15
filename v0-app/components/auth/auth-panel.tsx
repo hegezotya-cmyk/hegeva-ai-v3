@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { trackRegistrationCompleted } from "@/lib/conversion-tracking"
 import { useRouter } from "next/navigation"
 import { authClient, signIn, signUp, useSession } from "@/lib/auth-client"
+import { HEGEVA_EMAIL_VERIFICATION_CALLBACK } from "@/lib/auth-verification"
 import { useI18n } from "@/lib/i18n/provider"
 import { AUTH_COPY } from "@/lib/i18n/auth-copy"
 import { SkeletonSurface } from "@/components/visual-engine"
@@ -20,6 +20,7 @@ export function AuthPanel() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [verificationPending, setVerificationPending] = useState(false)
   const [passwordRecoveryAvailable, setPasswordRecoveryAvailable] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -61,8 +62,6 @@ export function AuthPanel() {
     setError("")
     setSuccess("")
     setBusy(true)
-    let registeredUserId: string | undefined
-
     try {
       if (mode === "forgot") {
         const recoveryAvailable = await checkPasswordRecovery()
@@ -90,21 +89,30 @@ export function AuthPanel() {
           name: name.trim(),
           email: email.trim(),
           password,
+          callbackURL: HEGEVA_EMAIL_VERIFICATION_CALLBACK,
         })
 
         if (result.error) {
           setError(c.authFailed)
           return
         }
-        registeredUserId = result.data?.user?.id
+        setVerificationPending(true)
+        setSuccess(c.verificationRequired)
+        return
       } else {
         const result = await signIn.email({
           email: email.trim(),
           password,
+          callbackURL: HEGEVA_EMAIL_VERIFICATION_CALLBACK,
         })
 
         if (result.error) {
-          setError(c.authFailed)
+          if (result.error.code === "EMAIL_NOT_VERIFIED") {
+            setVerificationPending(true)
+            setError(c.verificationRequired)
+          } else {
+            setError(c.authFailed)
+          }
           return
         }
       }
@@ -115,11 +123,38 @@ export function AuthPanel() {
         return
       }
 
-      if (mode === "register" && registeredUserId && verifiedSession.data.user.id === registeredUserId) trackRegistrationCompleted()
-      router.push(mode === "register" ? "/get-started" : safeCallbackURL())
+      router.push(safeCallbackURL())
       router.refresh()
     } catch {
       setError(c.authUnavailable)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function resendVerification() {
+    setError("")
+    setSuccess("")
+    setBusy(true)
+
+    try {
+      const result = await authClient.sendVerificationEmail({
+        email: email.trim(),
+        callbackURL: HEGEVA_EMAIL_VERIFICATION_CALLBACK,
+      })
+
+      if (result.error) {
+        if (result.error.code === "EMAIL_ALREADY_VERIFIED") {
+          setSuccess(c.alreadyVerified)
+        } else {
+          setError(c.verificationUnavailable)
+        }
+        return
+      }
+
+      setSuccess(c.verificationResent)
+    } catch {
+      setError(c.verificationUnavailable)
     } finally {
       setBusy(false)
     }
@@ -242,6 +277,17 @@ export function AuthPanel() {
           <p className="rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-foreground">
             {success}
           </p>
+        )}
+
+        {verificationPending && (
+          <button
+            type="button"
+            onClick={() => void resendVerification()}
+            disabled={busy || !email.trim()}
+            className="w-full rounded-xl border border-input px-4 py-3 text-sm font-semibold text-foreground disabled:opacity-60"
+          >
+            {c.resendVerification}
+          </button>
         )}
 
         <button

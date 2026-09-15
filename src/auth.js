@@ -3,6 +3,9 @@ import { betterAuth } from "better-auth";
 export const HEGEVA_EMAIL_FROM =
   "HEGEVA AI <noreply@hegevaai.co.uk>";
 
+export const HEGEVA_EMAIL_VERIFICATION_CALLBACK =
+  "/email-verification?status=verified";
+
 function escapeHtml(value = "") {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -63,6 +66,102 @@ export async function sendResendEmail(
   return data;
 }
 
+function verifiedAuthLink(url, publicAppUrl) {
+  try {
+    const candidate = new URL(url);
+    const expected = new URL(
+      "/api/auth/verify-email",
+      publicAppUrl
+    );
+
+    if (
+      candidate.origin !== expected.origin ||
+      candidate.pathname !== expected.pathname ||
+      !candidate.searchParams.get("token")
+    ) {
+      return null;
+    }
+
+    return candidate.toString();
+  } catch {
+    return null;
+  }
+}
+
+export async function sendEmailVerification(
+  env,
+  { user, url, publicAppUrl }
+) {
+  const verificationUrl =
+    verifiedAuthLink(
+      url,
+      publicAppUrl
+    );
+
+  if (
+    !verificationUrl ||
+    !user ||
+    typeof user.email !== "string"
+  ) {
+    throw new Error("Invalid email verification request.");
+  }
+
+  const safeName =
+    escapeHtml(
+      user.name ||
+        "there"
+    );
+  const safeUrl =
+    escapeHtml(verificationUrl);
+
+  await sendResendEmail(
+    env,
+    {
+      to:
+        user.email,
+
+      subject:
+        "Verify your HEGEVA AI email address",
+
+      text:
+`Hello ${user.name || "there"},
+
+Verify your HEGEVA AI email address by opening this secure link:
+${verificationUrl}
+
+This link expires after one hour. If you did not create this account or request this email, you can ignore it.`,
+
+      html:
+`<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#172033">
+  <h2>Verify your HEGEVA AI email</h2>
+
+  <p>Hello ${safeName},</p>
+
+  <p>
+    Confirm that you control this email address to activate your HEGEVA AI account.
+  </p>
+
+  <p>
+    <a
+      href="${safeUrl}"
+      style="display:inline-block;padding:12px 18px;background:#111827;color:#fff;text-decoration:none;border-radius:8px"
+    >
+      Verify my email
+    </a>
+  </p>
+
+  <p style="font-size:13px;color:#5f6b7a">
+    This link expires after one hour.
+    If you did not create this account or request this email, ignore it.
+  </p>
+</div>`,
+
+      idempotencyKey:
+        `hegeva-email-verification-${crypto.randomUUID()}`
+    }
+  );
+}
+
 export function createAuth(env, request, ctx) {
   const publicAppUrl =
     typeof env.PUBLIC_APP_URL === "string" &&
@@ -98,7 +197,9 @@ export function createAuth(env, request, ctx) {
 
       maxPasswordLength: 128,
 
-      autoSignIn: true,
+      autoSignIn: false,
+
+      requireEmailVerification: true,
 
       resetPasswordTokenExpiresIn:
         3600,
@@ -166,6 +267,24 @@ This link expires after one hour. If you did not request this, you can ignore th
 
               idempotencyKey:
                 `hegeva-reset-${crypto.randomUUID()}`
+            }
+          );
+        }
+    },
+
+    emailVerification: {
+      sendOnSignUp: true,
+
+      expiresIn: 3600,
+
+      sendVerificationEmail:
+        async ({ user, url }) => {
+          await sendEmailVerification(
+            env,
+            {
+              user,
+              url,
+              publicAppUrl
             }
           );
         }

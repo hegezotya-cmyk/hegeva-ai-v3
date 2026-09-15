@@ -6,6 +6,7 @@ const ROUTE_POLICIES = Object.freeze({
   "sign-up/email": { limit: 3, windowMs: ONE_HOUR },
   "forget-password": { limit: 3, windowMs: ONE_HOUR },
   "request-password-reset": { limit: 3, windowMs: ONE_HOUR },
+  "send-verification-email": { limit: 3, windowMs: ONE_HOUR },
   "reset-password": { limit: 5, windowMs: ONE_HOUR },
   "sign-out": { limit: 30, windowMs: SIXTY_SECONDS },
 });
