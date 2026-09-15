@@ -3421,10 +3421,23 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
 
     if (url.pathname === "/api/external-actions/email-delivery/confirm") {
       if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      let deliveryLimiter = null;
+      let deliveryLease = null;
+      let deliveryUserId = null;
       try {
         const user = await getLoggedInUserFn(request, env, ctx);
         if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
         if (env.EMAIL_DELIVERY_ENABLED !== "enabled") return Response.json({ error: "Email delivery is disabled." }, { status: 503 });
+        deliveryUserId = user.id;
+        deliveryLimiter = env.RATE_LIMITER?.getByName(`email-delivery-rate-limit:${user.id}`);
+        if (!deliveryLimiter) return Response.json({ error: "Email delivery is temporarily unavailable." }, { status: 503 });
+        try {
+          deliveryLease = await deliveryLimiter.admit();
+        } catch (error) {
+          logFailure("email_delivery_rate_limit_failed", error);
+          return Response.json({ error: "Email delivery is temporarily unavailable." }, { status: 503 });
+        }
+        if (!deliveryLease?.allowed) return Response.json({ error: "Email delivery rate limit reached. Please try again later." }, { status: 429, headers: { "Retry-After": String(Math.max(1, Math.ceil((Number(deliveryLease?.retryAfterMs) || 1000) / 1000))) } });
         let body;
         try { body = await request.json(); } catch { return Response.json({ error: "Invalid JSON body." }, { status: 400 }); }
         const actionId = typeof body?.actionId === "string" ? body.actionId.trim() : "";
@@ -3465,6 +3478,14 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
       } catch (error) {
         logFailure("email_delivery_failed", error);
         return Response.json({ error: "Email delivery is temporarily unavailable." }, { status: 503 });
+      } finally {
+        if (deliveryLease?.allowed && deliveryLease?.token && deliveryLimiter && deliveryUserId) {
+          try {
+            await deliveryLimiter.release(deliveryLease.token);
+          } catch (error) {
+            logFailure("email_delivery_rate_limit_release_failed", error);
+          }
+        }
       }
     }
 
