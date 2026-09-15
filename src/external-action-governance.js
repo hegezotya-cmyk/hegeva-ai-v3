@@ -17,16 +17,51 @@ export function isGovernedExternalAction(action) {
     text(action.actionKey, 200) &&
     action.deliveryStatus === "not-sent" &&
     action.executionStatus === "not-executed" &&
-    ["awaiting-approval", "approved"].includes(action.approvalState) &&
+    ["awaiting-approval", "approved", "ready-to-execute"].includes(action.approvalState) &&
     Array.isArray(action.audit) && action.audit.every(validAuditEntry),
   )
+}
+
+export function markGovernedExternalActionReady(action, { actorHash, now }) {
+  if (!isGovernedExternalAction(action) || !text(actorHash, 128) || !Number.isFinite(Date.parse(now))) {
+    return { ok: false, reason: "invalid-action" }
+  }
+  if (action.approvalState === "ready-to-execute") return { ok: true, idempotent: true, action }
+  if (action.approvalState !== "approved") return { ok: false, reason: "invalid-transition" }
+
+  const readyVersion = Number.isSafeInteger(action.readyVersion) && action.readyVersion >= 0 ? action.readyVersion + 1 : 1
+  const auditEntry = {
+    event: "ready-to-execute",
+    actionType: action.actionType,
+    target: text(action.recipient, 200),
+    previousState: "approved",
+    newState: "ready-to-execute",
+    occurredAt: now,
+    actorHash: text(actorHash, 128),
+    deliveryStatus: "not-sent",
+    executionStatus: "not-executed",
+  }
+  return {
+    ok: true,
+    idempotent: false,
+    action: {
+      ...action,
+      approvalState: "ready-to-execute",
+      workflowStatus: "ready-to-execute",
+      readyAt: now,
+      readyByActorHash: text(actorHash, 128),
+      readyVersion,
+      audit: [...action.audit, auditEntry],
+      updatedAt: now,
+    },
+  }
 }
 
 export function approveGovernedExternalAction(action, { actorHash, now }) {
   if (!isGovernedExternalAction(action) || !text(actorHash, 128) || !Number.isFinite(Date.parse(now))) {
     return { ok: false, reason: "invalid-action" }
   }
-  if (action.approvalState === "approved") return { ok: true, idempotent: true, action }
+  if (["approved", "ready-to-execute"].includes(action.approvalState)) return { ok: true, idempotent: true, action }
   if (action.approvalState !== "awaiting-approval") return { ok: false, reason: "invalid-transition" }
 
   const approvalVersion = Number.isSafeInteger(action.approvalVersion) && action.approvalVersion >= 0 ? action.approvalVersion + 1 : 1

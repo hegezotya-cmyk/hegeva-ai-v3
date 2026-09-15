@@ -30,7 +30,7 @@ assert(messageStudio.includes("task.sourceId === linkedSourceId ? { ...task, don
 assert(messageStudio.includes('workflowStatus:"completed"')&&messageStudio.includes("task.sourceId === draft.sourceId ? {...task,done:true}"),"Completing an approved follow-up must complete its linked Planner task")
 assert(!/sendMail|sendEmail|mailto:/.test(messageStudio),"Message Studio must not automatically send follow-ups")
 const messageStudioPostTargets=[...messageStudio.matchAll(/fetch\("([^"]+)"[\s\S]{0,250}?method:\s*"POST"/g)].map(match=>match[1])
-assert.deepEqual(messageStudioPostTargets,["/api/external-actions/approve"],"Message Studio may only POST an explicit governed owner approval, never delivery")
+assert.deepEqual(messageStudioPostTargets.sort(),["/api/external-actions/approve","/api/external-actions/ready"],"Message Studio may only POST explicit governed approval and readiness transitions, never delivery")
 const planner=fs.readFileSync(new URL("../components/business/planner.tsx",import.meta.url),"utf8")
 assert(planner.includes("sourceId: existing?.sourceId"),"Editing a Planner task must preserve its follow-up identity")
 const commandCenter=fs.readFileSync(new URL("../components/command-center/operating-center.tsx",import.meta.url),"utf8")

@@ -18,7 +18,7 @@ import { creativeProviderCapability, invokeCreativeProvider, isCreativeCanaryOwn
 import { createDurableMemoryD1Adapter } from "./durable-memory-d1-adapter.js";
 import { runCoreV1Decision } from "./core-v1-decision.js";
 import { prepareOverdueInvoiceEmailDraft } from "./email-draft-action.js";
-import { approveGovernedExternalAction } from "./external-action-governance.js";
+import { approveGovernedExternalAction, markGovernedExternalActionReady } from "./external-action-governance.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -3344,7 +3344,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         if (!approved.ok) return Response.json({ error: "This action cannot be approved in its current state." }, { status: 409 });
         if (approved.idempotent) {
           emitMonitor("external_action_approval", "reused", { actionType: current.actionType });
-          return Response.json({ state: "approved", action: approved.action, idempotent: true }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+          return Response.json({ state: approved.action.approvalState, action: approved.action, idempotent: true }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
         }
 
         const nextMessages = messages.map((message) => message?.id === actionId ? approved.action : message);
@@ -3359,6 +3359,61 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
       } catch (error) {
         logFailure("external_action_approval_failed", error);
         return Response.json({ error: "Owner approval is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/external-actions/ready") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: "Invalid JSON body." }, { status: 400 });
+        }
+        const actionId = typeof body?.actionId === "string" ? body.actionId.trim() : "";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(actionId)) {
+          return Response.json({ error: "A valid action is required." }, { status: 400 });
+        }
+
+        const row = await env.DB.prepare(
+          "SELECT data, updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1",
+        ).bind(user.id, "messages").first();
+        let messages;
+        try {
+          messages = row?.data ? JSON.parse(row.data) : [];
+        } catch {
+          return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+        }
+        if (!Array.isArray(messages)) return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+
+        const current = messages.find((message) => message?.id === actionId);
+        if (!current) return Response.json({ error: "Action not found." }, { status: 404 });
+        const now = new Date().toISOString();
+        const ready = markGovernedExternalActionReady(current, { actorHash: await sha256Hex(user.id), now });
+        if (!ready.ok) return Response.json({ error: "This action cannot be marked ready in its current state." }, { status: 409 });
+        if (ready.idempotent) {
+          emitMonitor("external_action_ready", "reused", { actionType: current.actionType });
+          return Response.json({ state: "ready-to-execute", action: ready.action, idempotent: true }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+        }
+
+        const nextMessages = messages.map((message) => message?.id === actionId ? ready.action : message);
+        const update = await env.DB.prepare(
+          "UPDATE workspace_data SET data = ?1, updatedAt = ?2 WHERE userId = ?3 AND dataType = 'messages' AND updatedAt = ?4",
+        ).bind(JSON.stringify(nextMessages), now, user.id, row?.updatedAt).run();
+        if (Number(update?.meta?.changes || 0) !== 1) {
+          return Response.json({ error: "The action changed; reload and try again." }, { status: 409 });
+        }
+        emitMonitor("external_action_ready", "ready", { actionType: ready.action.actionType });
+        return Response.json({ state: "ready-to-execute", action: ready.action, idempotent: false }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+      } catch (error) {
+        logFailure("external_action_ready_failed", error);
+        return Response.json({ error: "Preparing the action for execution is temporarily unavailable." }, { status: 503 });
       }
     }
 

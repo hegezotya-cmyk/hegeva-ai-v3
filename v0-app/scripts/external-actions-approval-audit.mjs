@@ -101,14 +101,33 @@ try {
   assert.equal(approvedBody.action.audit.at(-1).previousState, "awaiting-approval")
   assert.equal(approvedBody.action.audit.at(-1).newState, "approved")
 
+  const ready = await ownerHandler.fetch(post("/api/external-actions/ready", { actionId }), { DB: workspace.db }, {})
+  assert.equal(ready.status, 200, "the authenticated owner must be able to mark an approved action ready to execute")
+  const readyBody = await ready.json()
+  assert.equal(readyBody.state, "ready-to-execute")
+  assert.equal(readyBody.action.approvalState, "ready-to-execute")
+  assert.equal(readyBody.action.deliveryStatus, "not-sent")
+  assert.equal(readyBody.action.executionStatus, "not-executed")
+  assert.deepEqual(readyBody.action.evidence, originalEvidence, "ready transition must not mutate evidence")
+  assert.equal(readyBody.action.audit.at(-1).previousState, "approved")
+  assert.equal(readyBody.action.audit.at(-1).newState, "ready-to-execute")
+
+  const readyRepeated = await ownerHandler.fetch(post("/api/external-actions/ready", { actionId }), { DB: workspace.db }, {})
+  assert.equal(readyRepeated.status, 200, "repeated ready transition must be idempotent")
+  assert.equal((await readyRepeated.json()).idempotent, true)
+
   const repeated = await ownerHandler.fetch(post("/api/external-actions/approve", { actionId }), { DB: workspace.db }, {})
   assert.equal(repeated.status, 200, "repeated owner approval must be idempotent")
   const repeatedBody = await repeated.json()
   assert.equal(repeatedBody.idempotent, true)
+  assert.equal(repeatedBody.state, "ready-to-execute")
+  assert.equal(repeatedBody.action.approvalState, "ready-to-execute")
   assert.equal(repeatedBody.action.approvedAt, approvedBody.action.approvedAt)
 
   assert.equal((await anonymousHandler.fetch(post("/api/external-actions/approve", { actionId }), { DB: workspace.db }, {})).status, 401, "anonymous approval must be rejected")
+  assert.equal((await anonymousHandler.fetch(post("/api/external-actions/ready", { actionId }), { DB: workspace.db }, {})).status, 401, "anonymous ready transition must be rejected")
   assert.equal((await otherHandler.fetch(post("/api/external-actions/approve", { actionId }), { DB: workspace.db }, {})).status, 404, "cross-tenant approval must not reveal or approve another tenant's action")
+  assert.equal((await otherHandler.fetch(post("/api/external-actions/ready", { actionId }), { DB: workspace.db }, {})).status, 404, "cross-tenant ready transition must not reveal or alter another tenant's action")
   assert.equal((await ownerHandler.fetch(post("/api/external-actions/approve", { actionId: "missing-action" }), { DB: workspace.db }, {})).status, 404, "a missing action must be rejected")
 
   const stored = JSON.parse(workspace.records.get("owner:messages").data)
@@ -121,6 +140,6 @@ try {
 
 assert.equal(externalProviderCalls, 0, "approval must make zero external provider calls")
 const studio = fs.readFileSync(new URL("../components/business/message-studio.tsx", import.meta.url), "utf8")
-assert(studio.includes('"/api/external-actions/approve"') && studio.includes("approvalState === \"awaiting-approval\""), "Message Studio must use the server-side approval boundary")
+assert(studio.includes('"/api/external-actions/approve"') && studio.includes('"/api/external-actions/ready"') && studio.includes("approvalState === \"awaiting-approval\"") && studio.includes("approvalState === \"approved\""), "Message Studio must use the server-side governed approval and readiness boundaries")
 assert(studio.includes("notSent") && studio.includes("notExecuted"), "Message Studio must distinguish approval from delivery and execution")
 console.log("External Actions approval audit passed: server-side owner approval, tenant isolation, idempotency, auditability, and no execution.")
