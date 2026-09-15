@@ -39,7 +39,9 @@
     "AI_GLOBAL_KILL_SWITCH": "enabled",
     "AI_BOT_CANARY_ENABLED": "disabled",
     "AI_BOT_CANARY_EMAIL": "hegezotya@gmx.com",
-    "FINANCIAL_GUARD_ENABLED": "enabled"
+    "FINANCIAL_GUARD_ENABLED": "enabled",
+    "EMAIL_DELIVERY_ENABLED": "disabled",
+    "EMAIL_DELIVERY_TEST_MODE_ENABLED": "disabled"
     ,"CREATIVE_CANARY_ENABLED": "enabled"
     ,"CREATIVE_CANARY_EMAIL": "hegezotya+stripe-test@gmx.com"
     ,"CREATIVE_TEXT_PROVIDER_ENABLED": "enabled"
