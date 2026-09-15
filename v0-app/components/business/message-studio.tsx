@@ -17,16 +17,17 @@ type Draft = {
   body: string
   createdAt: string
   followUpAt?: string
-  workflowStatus?: "draft" | "approved" | "ready-to-execute" | "completed"
-  approvalState?: "awaiting-approval" | "approved" | "ready-to-execute"
+  workflowStatus?: "draft" | "approved" | "ready-to-execute" | "sending" | "sent" | "failed" | "uncertain" | "completed"
+  approvalState?: "awaiting-approval" | "approved" | "ready-to-execute" | "sending" | "sent" | "failed" | "uncertain"
   approvalVersion?: number
   approvedAt?: string
   approvedByActorHash?: string | null
   readyAt?: string
   readyByActorHash?: string | null
+  readyVersion?: number
   completedAt?: string
-  deliveryStatus?: "not-sent"
-  executionStatus?: "not-executed"
+  deliveryStatus?: "not-sent" | "sent" | "failed"
+  executionStatus?: "not-executed" | "executed"
   evidence?: { invoiceNumber?: string; dueDate?: string; amount?: string; customerName?: string }
   sourceId?: string
 }
@@ -132,6 +133,14 @@ export function MessageStudio() {
       setDrafts((all) => all.map((item) => item.id === draft.id ? payload.action as Draft : item))
     } catch { setApprovalNotice(editCopy.failed) } finally { setApprovingId(null) }
   }
+  async function confirmEmailDelivery(draft: Draft) {
+    const canonical = JSON.stringify({ recipient: (draft.recipient || "").trim().toLowerCase(), subject: (draft.subject || "").trim(), body: draft.body.trim(), readyVersion: draft.readyVersion || 0 })
+    const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical))
+    const confirmationDigest = [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("")
+    if (!window.confirm(`Send this exact email now?\n\nTo: ${draft.recipient}\nSubject: ${draft.subject}\n\n${draft.body}`)) return
+    setApprovingId(draft.id); setApprovalNotice("")
+    try { const response = await fetch("/api/external-actions/email-delivery/confirm", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ actionId: draft.id, confirmationDigest }) }); const payload = await response.json().catch(() => null); if (response.ok && payload?.action?.approvalState === "sent") setDrafts((all) => all.map((item) => item.id === draft.id ? payload.action as Draft : item)); else setApprovalNotice(payload?.error || editCopy.failed) } catch { setApprovalNotice(editCopy.failed) } finally { setApprovingId(null) }
+  }
 
   return (
     <div>
@@ -178,7 +187,7 @@ export function MessageStudio() {
                     <div className="flex flex-wrap gap-2 text-xs text-muted-foreground"><span>{draft.type}</span><span>·</span><span>{draft.tone}</span></div>
                     {draft.subject && <h2 className="mt-2 font-semibold text-foreground">{draft.subject}</h2>}
                     {draft.recipient && <p className="mt-1 text-xs text-muted-foreground">{c.to}: {draft.recipient}</p>}
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs"><span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1">{draft.workflowStatus === "completed" ? <CheckCircle2 className="size-3 text-primary" /> : <ShieldCheck className="size-3" />}{governed ? draft.approvalState === "ready-to-execute" ? readyCopy : draft.approvalState === "approved" ? editCopy.approved : editCopy.awaiting : draft.workflowStatus === "completed" ? editCopy.completed : draft.workflowStatus === "approved" ? editCopy.approved : editCopy.draft}</span>{governed && <><span className="inline-flex rounded-full border border-amber-300/35 bg-amber-300/10 px-2 py-1 font-semibold uppercase tracking-wide text-amber-200">{editCopy.notSent}</span><span className="inline-flex rounded-full border border-border px-2 py-1 text-muted-foreground">{editCopy.notExecuted}</span></>}{draft.followUpAt && <span className={`inline-flex items-center gap-1 ${draft.workflowStatus !== "completed" && draft.followUpAt <= new Date().toISOString().slice(0,10) ? "text-amber-500" : "text-muted-foreground"}`}><CalendarClock className="size-3" />{draft.followUpAt}{draft.workflowStatus !== "completed" && draft.followUpAt <= new Date().toISOString().slice(0,10) ? ` · ${editCopy.due}` : ""}</span>}</div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs"><span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1">{draft.workflowStatus === "completed" ? <CheckCircle2 className="size-3 text-primary" /> : <ShieldCheck className="size-3" />}{governed ? draft.approvalState === "ready-to-execute" ? readyCopy : draft.approvalState === "sent" ? "SENT" : draft.approvalState === "sending" ? "SENDING" : draft.approvalState === "failed" ? "FAILED" : draft.approvalState === "uncertain" ? "DELIVERY UNCERTAIN" : draft.approvalState === "approved" ? editCopy.approved : editCopy.awaiting : draft.workflowStatus === "completed" ? editCopy.completed : draft.workflowStatus === "approved" ? editCopy.approved : editCopy.draft}</span>{governed && <><span className="rounded-full border px-2 py-1">{draft.deliveryStatus === "sent" ? "SENT" : draft.deliveryStatus === "failed" ? "FAILED" : editCopy.notSent}</span><span className="rounded-full border px-2 py-1">{draft.executionStatus === "executed" ? "EXECUTED" : editCopy.notExecuted}</span></>}{draft.followUpAt && <span className={`inline-flex items-center gap-1 ${draft.workflowStatus !== "completed" && draft.followUpAt <= new Date().toISOString().slice(0,10) ? "text-amber-500" : "text-muted-foreground"}`}><CalendarClock className="size-3" />{draft.followUpAt}{draft.workflowStatus !== "completed" && draft.followUpAt <= new Date().toISOString().slice(0,10) ? ` · ${editCopy.due}` : ""}</span>}</div>
                     {draft.sourceId && tasks.find(task => task.sourceId === draft.sourceId) && <p className="mt-2 text-xs text-primary">{editCopy.linked}: {tasks.find(task => task.sourceId === draft.sourceId)?.title}</p>}
                     {governed && draft.evidence && <p className="mt-2 text-xs text-muted-foreground">{editCopy.evidence}: {[draft.evidence.invoiceNumber, draft.evidence.dueDate, draft.evidence.amount, draft.evidence.customerName].filter(Boolean).join(" · ")}</p>}
                   </div>
@@ -189,7 +198,7 @@ export function MessageStudio() {
                   </div>}
                 </div>
                 <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{draft.body}</p>
-                <div className="mt-4 flex flex-wrap gap-2">{governed ? <>{draft.approvalState === "awaiting-approval" && <button type="button" onClick={() => approveGovernedAction(draft)} disabled={approvingId === draft.id} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60">{approvingId === draft.id ? editCopy.approving : editCopy.approveAction}</button>}{draft.approvalState === "approved" && <button type="button" onClick={() => markReady(draft)} disabled={approvingId === draft.id} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60">{approvingId === draft.id ? readyingCopy : readyActionCopy}</button>}</> : <>{draft.workflowStatus !== "approved" && draft.workflowStatus !== "completed" && <button type="button" onClick={() => setDrafts(all => all.map(x => x.id === draft.id ? {...x, workflowStatus:"approved", approvedAt:new Date().toISOString()} : x))} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary">{editCopy.approve}</button>}{draft.workflowStatus === "approved" && <button type="button" onClick={() => {const completedAt=new Date().toISOString();setDrafts(all => all.map(x => x.id === draft.id ? {...x, workflowStatus:"completed", completedAt} : x));if(draft.sourceId)setTasks(all => all.map(task => task.sourceId === draft.sourceId ? {...task,done:true} : task))}} className="min-h-10 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground">{editCopy.complete}</button>}</>}</div>
+                <div className="mt-4 flex flex-wrap gap-2">{governed ? <>{draft.approvalState === "awaiting-approval" && <button type="button" onClick={() => approveGovernedAction(draft)} disabled={approvingId === draft.id} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60">{approvingId === draft.id ? editCopy.approving : editCopy.approveAction}</button>}{draft.approvalState === "approved" && <button type="button" onClick={() => markReady(draft)} disabled={approvingId === draft.id} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60">{approvingId === draft.id ? readyingCopy : readyActionCopy}</button>}{draft.approvalState === "ready-to-execute" && <button type="button" onClick={() => confirmEmailDelivery(draft)} disabled={approvingId === draft.id} className="min-h-10 rounded-lg bg-destructive px-3 text-xs font-semibold text-destructive-foreground">Send email now</button>}</> : <>{draft.workflowStatus !== "approved" && draft.workflowStatus !== "completed" && <button type="button" onClick={() => setDrafts(all => all.map(x => x.id === draft.id ? {...x, workflowStatus:"approved", approvedAt:new Date().toISOString()} : x))} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary">{editCopy.approve}</button>}{draft.workflowStatus === "approved" && <button type="button" onClick={() => {const completedAt=new Date().toISOString();setDrafts(all => all.map(x => x.id === draft.id ? {...x, workflowStatus:"completed", completedAt} : x));if(draft.sourceId)setTasks(all => all.map(task => task.sourceId === draft.sourceId ? {...task,done:true} : task))}} className="min-h-10 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground">{editCopy.complete}</button>}</>}</div>
                 <p className="mt-4 text-[11px] text-muted-foreground">{c.saved} {new Date(draft.createdAt).toLocaleString(locale)}</p>
               </article>
             })}

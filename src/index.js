@@ -19,6 +19,7 @@ import { createDurableMemoryD1Adapter } from "./durable-memory-d1-adapter.js";
 import { runCoreV1Decision } from "./core-v1-decision.js";
 import { prepareOverdueInvoiceEmailDraft } from "./email-draft-action.js";
 import { approveGovernedExternalAction, markGovernedExternalActionReady } from "./external-action-governance.js";
+import { applyEmailDeliveryState, canConfirmEmailDelivery, emailContentDigest } from "./email-delivery-governance.js";
 import { synchronizePreparedWork, transitionPreparedWork } from "./prepared-work-review.js";
 
 // =========================================
@@ -3415,6 +3416,55 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
       } catch (error) {
         logFailure("external_action_ready_failed", error);
         return Response.json({ error: "Preparing the action for execution is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/external-actions/email-delivery/confirm") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        if (env.EMAIL_DELIVERY_ENABLED !== "enabled") return Response.json({ error: "Email delivery is disabled." }, { status: 503 });
+        let body;
+        try { body = await request.json(); } catch { return Response.json({ error: "Invalid JSON body." }, { status: 400 }); }
+        const actionId = typeof body?.actionId === "string" ? body.actionId.trim() : "";
+        const confirmationDigest = typeof body?.confirmationDigest === "string" ? body.confirmationDigest : "";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(actionId) || !/^[a-f0-9]{64}$/.test(confirmationDigest)) return Response.json({ error: "A valid final confirmation is required." }, { status: 400 });
+        const row = await env.DB.prepare("SELECT data, updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'messages' LIMIT 1").bind(user.id).first();
+        let messages; try { messages = row?.data ? JSON.parse(row.data) : []; } catch { return Response.json({ error: "Workspace data is unavailable." }, { status: 503 }); }
+        if (!Array.isArray(messages)) return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+        const current = messages.find((message) => message?.id === actionId);
+        const digest = await emailContentDigest(current);
+        if (!canConfirmEmailDelivery(current, confirmationDigest) || digest !== confirmationDigest) return Response.json({ error: "This exact ready email must be reviewed again." }, { status: 409 });
+        const actorHash = await sha256Hex(user.id), now = new Date().toISOString(), operationId = crypto.randomUUID();
+        try {
+          await env.DB.batch([
+            env.DB.prepare("INSERT INTO email_delivery_operations (operationId,userId,actionId,readyVersion,contentDigest,status,confirmedByActorHash,confirmedAt,createdAt,updatedAt) VALUES (?1,?2,?3,?4,?5,'sending',?6,?7,?7,?7)").bind(operationId, user.id, actionId, current.readyVersion, digest, actorHash, now),
+            env.DB.prepare("INSERT INTO email_delivery_history (id,operationId,userId,event,status,actorHash,occurredAt) VALUES (?1,?2,?3,'final-confirmed','sending',?4,?5)").bind(crypto.randomUUID(), operationId, user.id, actorHash, now),
+          ]);
+        } catch {
+          const existing = await env.DB.prepare("SELECT status FROM email_delivery_operations WHERE userId=?1 AND actionId=?2 AND readyVersion=?3 LIMIT 1").bind(user.id, actionId, current.readyVersion).first();
+          return Response.json({ error: existing?.status === "sent" ? "This email was already sent." : "A delivery operation already exists for this email." }, { status: 409 });
+        }
+        const sending = applyEmailDeliveryState(current, "sending", { now, actorHash });
+        const update = await env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='messages' AND updatedAt=?4").bind(JSON.stringify(messages.map((message) => message?.id === actionId ? sending : message)), now, user.id, row.updatedAt).run();
+        if (Number(update?.meta?.changes || 0) !== 1) return Response.json({ error: "The email changed; reload and try again." }, { status: 409 });
+        try {
+          const result = await sendResendEmail(env, { to: current.recipient, subject: current.subject, text: current.body, html: `<div style="white-space:pre-wrap">${current.body.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</div>`, idempotencyKey: operationId });
+          const providerMessageId = typeof result?.id === "string" ? result.id : "";
+          if (!providerMessageId) throw new Error("provider-response-invalid");
+          const sentAt = new Date().toISOString(), sent = applyEmailDeliveryState(sending, "sent", { now: sentAt, actorHash, providerMessageId });
+          await env.DB.batch([env.DB.prepare("UPDATE email_delivery_operations SET status='sent',providerMessageId=?1,updatedAt=?2 WHERE operationId=?3 AND userId=?4 AND status='sending'").bind(providerMessageId, sentAt, operationId, user.id), env.DB.prepare("INSERT INTO email_delivery_history (id,operationId,userId,event,status,providerMessageId,actorHash,occurredAt) VALUES (?1,?2,?3,'sent','sent',?4,?5,?6)").bind(crypto.randomUUID(), operationId, user.id, providerMessageId, actorHash, sentAt), env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='messages'").bind(JSON.stringify(messages.map((message) => message?.id === actionId ? sent : message)), sentAt, user.id)]);
+          return Response.json({ action: sent, status: "sent" }, { headers: { "Cache-Control": "private, no-store" } });
+        } catch (error) {
+          const uncertain = error?.name === "AbortError" || error?.message === "provider-response-invalid";
+          const finalStatus = uncertain ? "uncertain" : "failed", completedAt = new Date().toISOString(), failed = applyEmailDeliveryState(sending, finalStatus, { now: completedAt, actorHash, failureCode: uncertain ? "provider-outcome-uncertain" : "provider-failure" });
+          await env.DB.batch([env.DB.prepare("UPDATE email_delivery_operations SET status=?1,failureCode=?2,updatedAt=?3 WHERE operationId=?4 AND userId=?5 AND status='sending'").bind(finalStatus, uncertain ? "provider-outcome-uncertain" : "provider-failure", completedAt, operationId, user.id), env.DB.prepare("INSERT INTO email_delivery_history (id,operationId,userId,event,status,failureCode,actorHash,occurredAt) VALUES (?1,?2,?3,?4,?4,?5,?6,?7)").bind(crypto.randomUUID(), operationId, user.id, finalStatus, uncertain ? "provider-outcome-uncertain" : "provider-failure", actorHash, completedAt), env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='messages'").bind(JSON.stringify(messages.map((message) => message?.id === actionId ? failed : message)), completedAt, user.id)]);
+          return Response.json({ error: uncertain ? "Delivery outcome is uncertain; no retry is available." : "Email delivery failed.", status: finalStatus }, { status: 503 });
+        }
+      } catch (error) {
+        logFailure("email_delivery_failed", error);
+        return Response.json({ error: "Email delivery is temporarily unavailable." }, { status: 503 });
       }
     }
 

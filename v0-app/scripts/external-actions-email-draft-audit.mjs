@@ -120,7 +120,7 @@ assert.equal(externalDeliveryCalls, 0, "the complete route must make zero extern
 
 const worker = fs.readFileSync(new URL("../../src/index.js", import.meta.url), "utf8")
 const endpointStart = worker.indexOf('"/api/external-actions/email-draft"')
-const endpointEnd = worker.indexOf("// HEGEVA CORE V1 DECIDE", endpointStart)
+const endpointEnd = worker.indexOf('"/api/external-actions/email-delivery/confirm"', endpointStart)
 const endpoint = worker.slice(endpointStart, endpointEnd)
 assert(endpointStart >= 0 && endpointEnd > endpointStart, "governed email draft endpoint must exist")
 assert(/getLoggedInUserFn\(request, env, ctx\)/.test(endpoint), "endpoint must authenticate server-side")
