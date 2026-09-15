@@ -28,7 +28,9 @@ for (const locale of ["en", "hu", "de", "fr", "es"]) {
   })
   assert.equal(result.ok, true, `${locale} must produce a supported draft`)
   assert.equal(result.draft.workflowStatus, "draft")
+  assert.equal(result.draft.approvalState, "awaiting-approval")
   assert.equal(result.draft.deliveryStatus, "not-sent")
+  assert.equal(result.draft.executionStatus, "not-executed")
   assert.equal(result.draft.sent, false)
   assert.equal(result.draft.recipient, "draft-test@example.test")
   assert.match(result.draft.body, /INV-EMAIL-DRAFT-E2E-TEST/)
@@ -44,6 +46,20 @@ const repeated = prepareOverdueInvoiceEmailDraft({ invoice: checkpointInvoice, c
 assert.equal(repeated.ok, true)
 assert.equal(repeated.created, false, "the same invoice action must reuse its existing draft")
 assert.equal(repeated.draft.id, first.draft.id)
+const legacyDraft = { ...first.draft }
+delete legacyDraft.approvalState
+delete legacyDraft.approvalVersion
+delete legacyDraft.approvedAt
+delete legacyDraft.approvedByActorHash
+delete legacyDraft.executionStatus
+delete legacyDraft.audit
+const upgraded = prepareOverdueInvoiceEmailDraft({ invoice: checkpointInvoice, customers: [customer], messages: [legacyDraft], now: "2026-02-01T12:00:00.000Z" })
+assert.equal(upgraded.ok, true)
+assert.equal(upgraded.created, false)
+assert.equal(upgraded.updated, true, "a safe existing V1 draft must gain approval metadata without a migration")
+assert.equal(upgraded.draft.approvalState, "awaiting-approval")
+assert.equal(upgraded.draft.deliveryStatus, "not-sent")
+assert.equal(upgraded.draft.executionStatus, "not-executed")
 
 function database(records) {
   return {
@@ -90,7 +106,7 @@ globalThis.fetch = async () => {
 }
 const created = await handler.fetch(request("invoice-email-draft-e2e-test"), { DB: database(records) }, {})
 assert.equal(created.status, 200)
-assert.deepEqual(await created.json(), { draft: JSON.parse(records.get("u1:messages").data)[0], created: true, state: "prepared", sent: false })
+assert.deepEqual(await created.json(), { draft: JSON.parse(records.get("u1:messages").data)[0], created: true, state: "awaiting-approval", sent: false })
 const reused = await handler.fetch(request("invoice-email-draft-e2e-test"), { DB: database(records) }, {})
 assert.equal(reused.status, 200)
 assert.equal((await reused.json()).created, false)
@@ -110,6 +126,8 @@ assert(endpointStart >= 0 && endpointEnd > endpointStart, "governed email draft 
 assert(/getLoggedInUserFn\(request, env, ctx\)/.test(endpoint), "endpoint must authenticate server-side")
 assert(/WHERE userId = \?1 AND dataType = \?2/.test(endpoint), "endpoint must tenant-scope every workspace read")
 assert(/workflowStatus:\s*"draft"/.test(fs.readFileSync(new URL("../../src/email-draft-action.js", import.meta.url), "utf8")), "draft state must be explicit")
+assert(/approvalState:\s*"awaiting-approval"/.test(fs.readFileSync(new URL("../../src/email-draft-action.js", import.meta.url), "utf8")), "approval state must be explicit")
+assert(/executionStatus:\s*"not-executed"/.test(fs.readFileSync(new URL("../../src/email-draft-action.js", import.meta.url), "utf8")), "execution boundary must be explicit")
 assert(!/sendResendEmail|sendMail|smtp|gmail\.googleapis|graph\.microsoft|mailto:/.test(endpoint), "email draft endpoint must never invoke delivery")
 assert(!/fetch\(/.test(endpoint), "email draft endpoint must not make external network calls")
 const core = fs.readFileSync(new URL("../components/command-center/core-decision-surface.tsx", import.meta.url), "utf8")

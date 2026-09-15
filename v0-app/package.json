@@ -27,7 +27,7 @@
     "audit:roadmap-3": "node scripts/pulse-continuity-audit.mjs && node scripts/brain-mission-projection-audit.mjs && node scripts/mission-ux-audit.mjs",
     "audit:roadmap-4": "node scripts/companion-layer-audit.mjs",
     "audit:business-intelligence": "node scripts/business-intelligence-audit.mjs",
-    "audit:external-actions": "node scripts/external-actions-email-draft-audit.mjs",
+    "audit:external-actions": "node --import ./scripts/audit-runtime-register.mjs scripts/external-actions-email-draft-audit.mjs && node --import ./scripts/audit-runtime-register.mjs scripts/external-actions-approval-audit.mjs",
     "audit:autopilot-phase1": "node scripts/autopilot-phase1-audit.mjs",
     "audit:money-journey": "node scripts/money-test-audit.mjs",
     "audit:goal-v4": "node scripts/goal-mode-v4-audit.mjs && node scripts/opportunity-radar-v2-audit.mjs",

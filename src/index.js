@@ -18,6 +18,7 @@ import { creativeProviderCapability, invokeCreativeProvider, isCreativeCanaryOwn
 import { createDurableMemoryD1Adapter } from "./durable-memory-d1-adapter.js";
 import { runCoreV1Decision } from "./core-v1-decision.js";
 import { prepareOverdueInvoiceEmailDraft } from "./email-draft-action.js";
+import { approveGovernedExternalAction } from "./external-action-governance.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -3279,7 +3280,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           return Response.json({ error: "The available workspace evidence cannot support this email draft." }, { status });
         }
 
-        if (result.created) {
+        if (result.created || result.updated) {
           const now = new Date().toISOString();
           await env.DB.prepare(`
             INSERT INTO workspace_data (id, userId, dataType, data, createdAt, updatedAt)
@@ -3291,18 +3292,73 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
             JSON.stringify([result.draft, ...stored.messages]),
             now,
           ).run();
-          emitMonitor("email_draft_action", "prepared", { actionType: result.draft.actionType });
+          emitMonitor("email_draft_action", result.created ? "prepared" : "upgraded", { actionType: result.draft.actionType });
         } else {
           emitMonitor("email_draft_action", "reused", { actionType: result.draft.actionType });
         }
 
         return Response.json(
-          { draft: result.draft, created: result.created, state: "prepared", sent: false },
+          { draft: result.draft, created: result.created, state: "awaiting-approval", sent: false },
           { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } },
         );
       } catch (error) {
         logFailure("email_draft_action_failed", error);
         return Response.json({ error: "Email draft preparation is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/external-actions/approve") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: "Invalid JSON body." }, { status: 400 });
+        }
+        const actionId = typeof body?.actionId === "string" ? body.actionId.trim() : "";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(actionId)) {
+          return Response.json({ error: "A valid action is required." }, { status: 400 });
+        }
+
+        const row = await env.DB.prepare(
+          "SELECT data, updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1",
+        ).bind(user.id, "messages").first();
+        let messages;
+        try {
+          messages = row?.data ? JSON.parse(row.data) : [];
+        } catch {
+          return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+        }
+        if (!Array.isArray(messages)) return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+
+        const current = messages.find((message) => message?.id === actionId);
+        if (!current) return Response.json({ error: "Action not found." }, { status: 404 });
+        const now = new Date().toISOString();
+        const approved = approveGovernedExternalAction(current, { actorHash: await sha256Hex(user.id), now });
+        if (!approved.ok) return Response.json({ error: "This action cannot be approved in its current state." }, { status: 409 });
+        if (approved.idempotent) {
+          emitMonitor("external_action_approval", "reused", { actionType: current.actionType });
+          return Response.json({ state: "approved", action: approved.action, idempotent: true }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+        }
+
+        const nextMessages = messages.map((message) => message?.id === actionId ? approved.action : message);
+        const update = await env.DB.prepare(
+          "UPDATE workspace_data SET data = ?1, updatedAt = ?2 WHERE userId = ?3 AND dataType = 'messages' AND updatedAt = ?4",
+        ).bind(JSON.stringify(nextMessages), now, user.id, row?.updatedAt).run();
+        if (Number(update?.meta?.changes || 0) !== 1) {
+          return Response.json({ error: "The action changed; reload and try again." }, { status: 409 });
+        }
+        emitMonitor("external_action_approval", "approved", { actionType: approved.action.actionType });
+        return Response.json({ state: "approved", action: approved.action, idempotent: false }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+      } catch (error) {
+        logFailure("external_action_approval_failed", error);
+        return Response.json({ error: "Owner approval is temporarily unavailable." }, { status: 503 });
       }
     }
 
