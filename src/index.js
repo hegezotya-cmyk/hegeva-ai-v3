@@ -19,6 +19,7 @@ import { createDurableMemoryD1Adapter } from "./durable-memory-d1-adapter.js";
 import { runCoreV1Decision } from "./core-v1-decision.js";
 import { prepareOverdueInvoiceEmailDraft } from "./email-draft-action.js";
 import { approveGovernedExternalAction, markGovernedExternalActionReady } from "./external-action-governance.js";
+import { synchronizePreparedWork, transitionPreparedWork } from "./prepared-work-review.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -3414,6 +3415,47 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
       } catch (error) {
         logFailure("external_action_ready_failed", error);
         return Response.json({ error: "Preparing the action for execution is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/prepared-work/sync" || url.pathname === "/api/prepared-work/review") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        const row = await env.DB.prepare("SELECT data, updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'prepared_work' LIMIT 1").bind(user.id).first();
+        let records;
+        try { records = row?.data ? JSON.parse(row.data) : []; } catch { return Response.json({ error: "Prepared work is unavailable." }, { status: 503 }); }
+        if (!Array.isArray(records)) return Response.json({ error: "Prepared work is unavailable." }, { status: 503 });
+        const now = new Date().toISOString();
+        let next;
+        if (url.pathname === "/api/prepared-work/sync") {
+          const workspaceData = {};
+          for (const [dataType, coreKey] of [["customers", "customers"], ["invoice_documents", "invoices"], ["planner", "tasks"], ["messages", "messages"], ["documents", "documents"], ["expenses", "expenses"], ["goals", "goals"]]) {
+            const source = await env.DB.prepare("SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1").bind(user.id, dataType).first();
+            try { workspaceData[coreKey] = source?.data ? JSON.parse(source.data) : []; } catch { workspaceData[coreKey] = []; }
+          }
+          next = synchronizePreparedWork(records, runCoreV1Decision(workspaceData, true, "en").employeeDelegations, now);
+          if (!next.ok) return Response.json({ error: "Prepared work is unavailable." }, { status: 503 });
+        } else {
+          let body;
+          try { body = await request.json(); } catch { return Response.json({ error: "Invalid JSON body." }, { status: 400 }); }
+          const actionId = typeof body?.actionId === "string" ? body.actionId : "";
+          const action = typeof body?.action === "string" ? body.action : "";
+          next = transitionPreparedWork(records, actionId, action, { actorHash: await sha256Hex(user.id), now });
+          if (!next.ok) return Response.json({ error: "This review action is unavailable." }, { status: next.reason === "not-found" ? 404 : 409 });
+          next.created = 0;
+        }
+        if (next.created === 0 && url.pathname === "/api/prepared-work/sync") return Response.json({ records: next.records, created: 0 }, { headers: { "Cache-Control": "private, no-store" } });
+        const data = JSON.stringify(next.records);
+        const update = row
+          ? await env.DB.prepare("UPDATE workspace_data SET data = ?1, updatedAt = ?2 WHERE userId = ?3 AND dataType = 'prepared_work' AND updatedAt = ?4").bind(data, now, user.id, row.updatedAt).run()
+          : await env.DB.prepare("INSERT INTO workspace_data (id, userId, dataType, data, createdAt, updatedAt) VALUES (?1, ?2, 'prepared_work', ?3, ?4, ?4) ON CONFLICT(userId, dataType) DO NOTHING").bind(crypto.randomUUID(), user.id, data, now).run();
+        if (Number(update?.meta?.changes || 0) !== 1) return Response.json({ error: "Prepared work changed; reload and try again." }, { status: 409 });
+        return Response.json({ records: next.records, created: next.created || 0, ...(next.record ? { record: next.record } : {}) }, { headers: { "Cache-Control": "private, no-store" } });
+      } catch (error) {
+        logFailure("prepared_work_review_failed", error);
+        return Response.json({ error: "Prepared work is temporarily unavailable." }, { status: 503 });
       }
     }
 
