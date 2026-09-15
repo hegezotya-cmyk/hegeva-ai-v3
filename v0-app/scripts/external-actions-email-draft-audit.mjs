@@ -4,19 +4,19 @@ import { createRequestHandler } from "../../src/index.js"
 import { prepareOverdueInvoiceEmailDraft } from "../../src/email-draft-action.js"
 
 const checkpointInvoice = {
-  id: "invoice-1",
+  id: "invoice-email-draft-e2e-test",
   type: "invoice",
   status: "sent",
-  number: "INV-123",
+  number: "INV-EMAIL-DRAFT-E2E-TEST",
   dueDate: "2026-01-01",
   currency: "GBP",
   vatRate: 20,
   businessName: "HEGEVA Ltd",
-  clientName: "Ada Customer",
-  clientDetails: "ada@example.test",
+  clientName: "HEGEVA Draft Test Customer",
+  clientDetails: "draft-test@example.test",
   items: [{ quantity: 1, unitPrice: 100 }],
 }
-const customer = { id: "customer-1", title: "Ada Customer" }
+const customer = { id: "customer-email-draft-e2e-test", title: "HEGEVA Draft Test Customer" }
 
 for (const locale of ["en", "hu", "de", "fr", "es"]) {
   const result = prepareOverdueInvoiceEmailDraft({
@@ -30,8 +30,8 @@ for (const locale of ["en", "hu", "de", "fr", "es"]) {
   assert.equal(result.draft.workflowStatus, "draft")
   assert.equal(result.draft.deliveryStatus, "not-sent")
   assert.equal(result.draft.sent, false)
-  assert.equal(result.draft.recipient, "ada@example.test")
-  assert.match(result.draft.body, /INV-123/)
+  assert.equal(result.draft.recipient, "draft-test@example.test")
+  assert.match(result.draft.body, /INV-EMAIL-DRAFT-E2E-TEST/)
   assert.match(result.draft.body, /120/)
   assert.match(result.draft.body, /2026-01-01/)
 }
@@ -72,7 +72,7 @@ const records = new Map([
   ["u1:invoice_documents", { data: JSON.stringify([checkpointInvoice]) }],
   ["u1:customers", { data: JSON.stringify([customer]) }],
   ["u1:messages", { data: "[]" }],
-  ["u2:invoice_documents", { data: JSON.stringify([{ ...checkpointInvoice, id: "invoice-2" }]) }],
+  ["u2:invoice_documents", { data: JSON.stringify([{ ...checkpointInvoice, id: "invoice-other-tenant" }]) }],
   ["u2:customers", { data: JSON.stringify([customer]) }],
   ["u2:messages", { data: "[]" }],
 ])
@@ -82,17 +82,25 @@ const request = (invoiceId) => new Request("https://hegevaai.co.uk/api/external-
   headers: { "Content-Type": "application/json", Origin: "https://hegevaai.co.uk" },
   body: JSON.stringify({ invoiceId, locale: "en" }),
 })
-const created = await handler.fetch(request("invoice-1"), { DB: database(records) }, {})
+const originalFetch = globalThis.fetch
+let externalDeliveryCalls = 0
+globalThis.fetch = async () => {
+  externalDeliveryCalls += 1
+  throw new Error("External delivery is forbidden during the email draft E2E test.")
+}
+const created = await handler.fetch(request("invoice-email-draft-e2e-test"), { DB: database(records) }, {})
 assert.equal(created.status, 200)
 assert.deepEqual(await created.json(), { draft: JSON.parse(records.get("u1:messages").data)[0], created: true, state: "prepared", sent: false })
-const reused = await handler.fetch(request("invoice-1"), { DB: database(records) }, {})
+const reused = await handler.fetch(request("invoice-email-draft-e2e-test"), { DB: database(records) }, {})
 assert.equal(reused.status, 200)
 assert.equal((await reused.json()).created, false)
 assert.equal(JSON.parse(records.get("u1:messages").data).length, 1, "retries must not create duplicate drafts")
-const crossTenant = await handler.fetch(request("invoice-2"), { DB: database(records) }, {})
+const crossTenant = await handler.fetch(request("invoice-other-tenant"), { DB: database(records) }, {})
 assert.equal(crossTenant.status, 404, "another tenant's invoice must not be visible")
 const unauthenticated = createRequestHandler({ getLoggedInUserFn: async () => null })
-assert.equal((await unauthenticated.fetch(request("invoice-1"), { DB: database(records) }, {})).status, 401)
+assert.equal((await unauthenticated.fetch(request("invoice-email-draft-e2e-test"), { DB: database(records) }, {})).status, 401)
+globalThis.fetch = originalFetch
+assert.equal(externalDeliveryCalls, 0, "the complete route must make zero external delivery calls")
 
 const worker = fs.readFileSync(new URL("../../src/index.js", import.meta.url), "utf8")
 const endpointStart = worker.indexOf('"/api/external-actions/email-draft"')
