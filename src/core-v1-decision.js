@@ -525,20 +525,21 @@ function prepareFollowupMessageDraft(signal, workspaceData, locale = "en") {
 
 function prepareInvoiceFollowupDraft(signal, workspaceData, locale = "en") {
   const invoice = workspaceData.invoices.find(i => signal.sourceIds?.includes(i.id));
+  if (!invoice || invoice.type !== "invoice") return null;
   const subtotal = invoice?.items?.reduce((s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0) || 0;
   const total = subtotal * (1 + (Number(invoice?.vatRate) || 0) / 100);
   const templates = {
-    en: (i, t) => `Send payment reminder for invoice ${i?.number || "INV-XXX"} (${i?.currency || "GBP"} ${t})`,
-    hu: (i, t) => `Fizetési emlékeztető küldése a(z) ${i?.number || "INV-XXX"} számlához (${i?.currency || "GBP"} ${t})`,
-    de: (i, t) => `Zahlungserinnerung für Rechnung ${i?.number || "INV-XXX"} senden (${i?.currency || "GBP"} ${t})`,
-    fr: (i, t) => `Envoyer un rappel de paiement pour la facture ${i?.number || "INV-XXX"} (${i?.currency || "GBP"} ${t})`,
-    es: (i, t) => `Enviar recordatorio de pago para la factura ${i?.number || "INV-XXX"} (${i?.currency || "GBP"} ${t})`,
+    en: (i, t) => `Prepare a payment reminder draft for invoice ${i.number} (${i.currency || "GBP"} ${t})`,
+    hu: (i, t) => `Fizetési emlékeztető vázlatának előkészítése a(z) ${i.number} számlához (${i.currency || "GBP"} ${t})`,
+    de: (i, t) => `Einen Zahlungserinnerungsentwurf für Rechnung ${i.number} vorbereiten (${i.currency || "GBP"} ${t})`,
+    fr: (i, t) => `Préparer un brouillon de rappel de paiement pour la facture ${i.number} (${i.currency || "GBP"} ${t})`,
+    es: (i, t) => `Preparar un borrador de recordatorio de pago para la factura ${i.number} (${i.currency || "GBP"} ${t})`,
   };
   const t = templates[locale] || templates.en;
   return {
     kind: "invoice-followup",
     status: "prepared",
-    title: `Payment reminder: ${invoice?.number || "Invoice"}`,
+    title: `Payment reminder: ${invoice.number || "Invoice"}`,
     content: t(invoice, total.toFixed(2)),
     sourceIds: signal.sourceIds,
     targetType: "messages",
@@ -678,7 +679,14 @@ export function prepareActionsForSignals(signals, workspaceData, locale = "en", 
   // Prepare drafts
   return sorted.map(s => {
     const fn = PREPARATION_DISPATCH[s.kind];
-    return fn ? fn(s, workspaceData, locale) : null;
+    let actionSignal = s;
+    if (fn === prepareInvoiceFollowupDraft && !workspaceData.invoices.some(invoice => s.sourceIds?.includes(invoice.id))) {
+      const today = new Date().toISOString().slice(0, 10);
+      const invoice = workspaceData.invoices.find(item => item.type === "invoice" && item.status === "sent" && item.dueDate < today);
+      if (!invoice) return null;
+      actionSignal = { ...s, sourceIds: [invoice.id] };
+    }
+    return fn ? fn(actionSignal, workspaceData, locale) : null;
   }).filter(Boolean);
 }
 
