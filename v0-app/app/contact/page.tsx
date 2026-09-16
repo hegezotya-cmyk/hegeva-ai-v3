@@ -42,6 +42,9 @@ export default function ContactPage() {
   return <AppShell>
     <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <PageHeader eyebrow="HEGEVA AI" title={c.title} subtitle={c.subtitle} />
+      <p className="mt-4 text-sm text-muted-foreground">
+        <a href="mailto:hegevaai85@gmail.com" className="font-medium text-primary hover:underline">{c.directEmail}</a>
+      </p>
       <form onSubmit={submit} className="ve-panel mt-8 space-y-5 rounded-3xl p-6 sm:p-8">
         <div className="grid gap-5 sm:grid-cols-2">
           <label className="text-sm font-medium">{c.name}<input name="name" required minLength={2} maxLength={100} className="mt-2 w-full rounded-xl border border-input bg-input/30 px-3.5 py-3 outline-none focus:border-primary/50" /></label>

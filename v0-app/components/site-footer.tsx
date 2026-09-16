@@ -18,12 +18,13 @@ export function SiteFooter() {
   const { t, locale } = useI18n()
   const legal = LEGAL_COPY[locale]
   const c = trustCopy[locale]
+  const supportEmail = "hegevaai85@gmail.com"
 
   const trust = [
     { icon: ShieldCheck, label: c.encrypted },
     { icon: CloudCog, label: c.cloud },
     { icon: Globe, label: `${c.languages} · EN | HU | DE | FR | ES` },
-    { icon: Headphones, label: c.support },
+    { icon: Headphones, label: c.support, href: `mailto:${supportEmail}` },
     { icon: Wallet, label: c.fees },
   ]
 
@@ -31,12 +32,16 @@ export function SiteFooter() {
     <footer className="brand-footer border-t border-border bg-background/60">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {trust.map(({ icon: Icon, label }) => (
+          {trust.map(({ icon: Icon, label, href }) => (
             <li key={label} className="flex items-center gap-2.5">
               <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10">
                 <Icon className="size-4 text-primary" aria-hidden />
               </span>
-              <span className="text-balance text-xs font-medium leading-tight text-muted-foreground">{label}</span>
+              {href ? (
+                <a href={href} className="text-balance text-xs font-medium leading-tight text-muted-foreground transition-colors hover:text-foreground hover:underline">{label}</a>
+              ) : (
+                <span className="text-balance text-xs font-medium leading-tight text-muted-foreground">{label}</span>
+              )}
             </li>
           ))}
         </ul>
