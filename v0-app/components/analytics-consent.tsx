@@ -12,6 +12,8 @@ declare global {
   interface Window {
     dataLayer: unknown[]
     gtag?: (...args: unknown[]) => void
+    __hegevaConsentDefaulted?: boolean
+    __hegevaAnalyticsConfigured?: boolean
   }
 }
 
@@ -26,6 +28,7 @@ const copy = {
 function queueConsentDefault() {
   window.dataLayer = window.dataLayer || []
   window.gtag = window.gtag || function gtag(...args: unknown[]) { window.dataLayer.push(args) }
+  if (window.__hegevaConsentDefaulted) return
   window.gtag("consent", "default", {
     analytics_storage: "denied",
     ad_storage: "denied",
@@ -33,17 +36,26 @@ function queueConsentDefault() {
     ad_personalization: "denied",
     wait_for_update: 500,
   })
+  window.__hegevaConsentDefaulted = true
 }
 
 function enableAnalytics() {
   queueConsentDefault()
-  window.gtag?.("consent", "update", { analytics_storage: "granted" })
-  window.gtag?.("js", new Date())
-  window.gtag?.("config", MEASUREMENT_ID, {
-    anonymize_ip: true,
-    allow_google_signals: false,
-    allow_ad_personalization_signals: false,
+  window.gtag?.("consent", "update", {
+    analytics_storage: "granted",
+    ad_storage: "denied",
+    ad_user_data: "denied",
+    ad_personalization: "denied",
   })
+  if (!window.__hegevaAnalyticsConfigured) {
+    window.gtag?.("js", new Date())
+    window.gtag?.("config", MEASUREMENT_ID, {
+      anonymize_ip: true,
+      allow_google_signals: false,
+      allow_ad_personalization_signals: false,
+    })
+    window.__hegevaAnalyticsConfigured = true
+  }
   if (!document.getElementById("hegeva-google-analytics")) {
     const script = document.createElement("script")
     script.id = "hegeva-google-analytics"
@@ -83,7 +95,12 @@ export function AnalyticsConsent() {
     setConsent(next)
     setOpen(false)
     if (next === "granted") enableAnalytics()
-    else window.gtag?.("consent", "update", { analytics_storage: "denied" })
+    else window.gtag?.("consent", "update", {
+      analytics_storage: "denied",
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
+    })
   }
 
   return <>
