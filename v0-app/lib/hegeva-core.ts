@@ -16,7 +16,7 @@ export function rankHegevaCorePriorities(signals:HegevaCoreSignals):HegevaCorePr
   {kind:"draft-invoices",count:safeCount(signals.draftInvoices),href:"/business/invoices",severity:"ready"},
  ]
  const ranked=candidates.filter(item=>item.count>0)
- return ranked.length?ranked:[signals.hasRecords?{kind:"clear",count:0,href:"/business",severity:"ready"}:{kind:"start",count:0,href:"/business/customers",severity:"ready"}]
+ return ranked.length?ranked.slice(0,5):[signals.hasRecords?{kind:"clear",count:0,href:"/business",severity:"ready"}:{kind:"start",count:0,href:"/business/customers",severity:"ready"}]
 }
 
 export function selectHegevaCorePriority(signals:HegevaCoreSignals):HegevaCorePriority{
