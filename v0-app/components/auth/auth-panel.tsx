@@ -6,6 +6,7 @@ import { authClient, signIn, signUp, useSession } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
 import { AUTH_COPY } from "@/lib/i18n/auth-copy"
 import { SkeletonSurface } from "@/components/visual-engine"
+import { DEMO_REGISTRATION_KEY, readDemoRegistrationContext, recordAnalyticsEvent } from "@/components/acquisition/acquisition-attribution"
 
 export function AuthPanel() {
   const router = useRouter()
@@ -74,6 +75,11 @@ export function AuthPanel() {
       }
 
       if (mode === "register") {
+        const demoContext = readDemoRegistrationContext()
+        if (demoContext) {
+          recordAnalyticsEvent("registration_start", "/login", { entry_context: "demo", demo_business_type: demoContext.businessType })
+          sessionStorage.removeItem(DEMO_REGISTRATION_KEY)
+        }
         const result = await signUp.email({
           name: name.trim(),
           email: email.trim(),

@@ -70,9 +70,9 @@ export function AnalyticsConsent() {
   useEffect(() => {
     const receive = (event: Event) => {
       if (consent !== "granted" || !window.gtag) return
-      const detail = (event as CustomEvent<{ event?: string; path?: string }>).detail
-      if (!detail || !["landing_page_view", "registration_start", "pricing_view"].includes(detail.event || "")) return
-      window.gtag("event", detail.event, { page_path: detail.path })
+      const detail = (event as CustomEvent<{ event?: string; path?: string; params?: Record<string,string|number|boolean> }>).detail
+      if (!detail || !["landing_page_view", "registration_start", "pricing_view", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click"].includes(detail.event || "")) return
+      window.gtag("event", detail.event, { page_path: detail.path, ...(detail.params || {}) })
     }
     window.addEventListener("hegeva:analytics-event", receive)
     return () => window.removeEventListener("hegeva:analytics-event", receive)
