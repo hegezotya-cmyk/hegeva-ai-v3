@@ -1,0 +1,78 @@
+name: HEGEVA Analytics Hotfix V1 UI Deploy
+
+on:
+  push:
+    branches:
+      - growth-analytics-hotfix-v1-20260919
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hegeva-analytics-hotfix-v1-ui-deploy
+  cancel-in-progress: false
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  verify-and-deploy-ui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v0-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify protected HEGEVA files unchanged
+        working-directory: .
+        shell: bash
+        run: |
+          git diff --exit-code 9665a73027fc117d58e022c6669789e17d0aa180 -- \
+            v0-app/components/hegeva-logo.tsx \
+            v0-app/app/globals.css \
+            v0-app/components/desktop-command-rail.tsx \
+            v0-app/components/site-header.tsx \
+            v0-app/components/app-shell.tsx \
+            v0-app/components/command-center/core-decision-surface.tsx \
+            v0-app/lib/hegeva-core.ts \
+            v0-app/components/growth/sixty-second-challenge.tsx \
+            v0-app/components/growth/free-tools-hub.tsx \
+            v0-app/app/get-started/page.tsx \
+            v0-app/components/get-started/first-wow.tsx
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Analytics hotfix audit
+        run: node scripts/analytics-challenge-view-hotfix-audit.mjs
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Production build
+        run: npm run build
+
+      - name: Cloudflare OpenNext build
+        run: npm run cf:build
+
+      - name: Require Cloudflare credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN repository secret"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing CLOUDFLARE_ACCOUNT_ID repository secret"; exit 1; }
+
+      - name: Deploy V0 UI Worker only
+        run: npx opennextjs-cloudflare deploy
