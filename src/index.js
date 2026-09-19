@@ -3672,6 +3672,20 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           workspaceData.goals = [];
         }
 
+        // Read workspace-scoped Business Knowledge as context only.
+        // Missing/unavailable memory must never block Core decisions.
+        try {
+          const memoryAdapter = createDurableMemoryD1Adapter({ DB: env.DB });
+          const knowledgeRecord = await readBusinessKnowledgeMemory(memoryAdapter, {
+            userId,
+            workspaceId: userId,
+          });
+          workspaceData.businessKnowledge = knowledgeRecord?.payload || null;
+        } catch (error) {
+          workspaceData.businessKnowledge = null;
+          logFailure("core_business_knowledge_read_failed", error);
+        }
+
         const cloudEnabled = true; // authenticated user
         const locale = "en"; // TODO: extract from user preferences
 
