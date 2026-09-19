@@ -1,0 +1,15 @@
+import assert from "node:assert/strict"
+import fs from "node:fs"
+const board=fs.readFileSync(new URL("../components/command-center/prepared-work-review-board.tsx",import.meta.url),"utf8")
+const invoices=fs.readFileSync(new URL("../app/business/invoices/page.tsx",import.meta.url),"utf8")
+assert.match(board,/record\.status === "approved"/)
+assert.match(board,/record\.rationale === "quote-brief-owner-review-pending"/)
+assert.match(board,/prepare=quote/)
+assert.match(board,/preparedWorkId/)
+assert.match(invoices,/searchParams\.get\("prepare"\)!=="quote"/)
+assert.match(invoices,/type:"quote",status:"draft"/)
+assert.match(invoices,/Review scope, line items, pricing, VAT, dates and terms before saving/)
+const handoff=invoices.slice(invoices.indexOf('useEffect(()=>{if(searchParams.get("prepare")'),invoices.indexOf('useEffect(()=>{if(doc.id==="draft"&&docs.some'))
+assert(!/setDocs\(|fetch\(|sendMail|sendEmail|stripe\.|status:"sent"|status:"paid"/.test(handoff),"quote handoff must only prefill local unsaved editor state")
+assert.match(invoices,/function save\(\)/,"existing explicit Save gate must remain")
+console.log("Approved quote editor handoff audit passed: approved-only, draft prefill only, explicit Save remains required.")
