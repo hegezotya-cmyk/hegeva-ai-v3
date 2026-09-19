@@ -22,7 +22,7 @@ jobs:
         shell: bash
         run: |
           BASE=02a25ab6b4c09e549dbec9c9f9e5e8ff7710d883
-          allowed='^(.github/workflows/hegeva-referral-v1-check.yml|v0-app/app/r/\[code\]/page.tsx|v0-app/lib/conversion-tracking.ts|v0-app/components/acquisition/acquisition-attribution.tsx|v0-app/components/analytics-consent.tsx|v0-app/components/auth/auth-panel.tsx|v0-app/scripts/referral-v1-audit.mjs)$'
+          allowed='^(\.github/workflows/hegeva-referral-v1-ui-deploy\.yml|.github/workflows/hegeva-referral-v1-check.yml|v0-app/app/r/\[code\]/page.tsx|v0-app/lib/conversion-tracking.ts|v0-app/components/acquisition/acquisition-attribution.tsx|v0-app/components/analytics-consent.tsx|v0-app/components/auth/auth-panel.tsx|v0-app/scripts/referral-v1-audit.mjs)$'
           bad=$(git diff --name-only "$BASE"...HEAD | grep -Ev "$allowed" || true)
           if [ -n "$bad" ]; then
             echo "Unexpected files changed:"
