@@ -1,0 +1,70 @@
+name: HEGEVA Analytics Hotfix V1 Check
+
+on:
+  push:
+    branches:
+      - growth-analytics-hotfix-v1-20260919
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce narrow analytics-hotfix scope
+        shell: bash
+        run: |
+          BASE=9665a73027fc117d58e022c6669789e17d0aa180
+          allowed='^(.github/workflows/hegeva-analytics-hotfix-v1-check.yml|.github/workflows/hegeva-analytics-hotfix-v1-ui-deploy.yml|v0-app/components/analytics-consent.tsx|v0-app/scripts/analytics-challenge-view-hotfix-audit.mjs)$'
+          bad=$(git diff --name-only "$BASE"...HEAD | grep -Ev "$allowed" || true)
+          if [ -n "$bad" ]; then
+            echo "Unexpected files changed:"
+            echo "$bad"
+            exit 1
+          fi
+
+      - name: Verify protected HEGEVA files unchanged
+        shell: bash
+        run: |
+          git diff --exit-code 9665a73027fc117d58e022c6669789e17d0aa180 -- \
+            v0-app/components/hegeva-logo.tsx \
+            v0-app/app/globals.css \
+            v0-app/components/desktop-command-rail.tsx \
+            v0-app/components/site-header.tsx \
+            v0-app/components/app-shell.tsx \
+            v0-app/components/command-center/core-decision-surface.tsx \
+            v0-app/lib/hegeva-core.ts \
+            v0-app/components/growth/sixty-second-challenge.tsx \
+            v0-app/components/growth/free-tools-hub.tsx \
+            v0-app/app/get-started/page.tsx \
+            v0-app/components/get-started/first-wow.tsx
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: v0-app
+        run: npm ci
+
+      - name: Analytics hotfix audit
+        working-directory: v0-app
+        run: node scripts/analytics-challenge-view-hotfix-audit.mjs
+
+      - name: TypeScript check
+        working-directory: v0-app
+        run: npx tsc --noEmit
+
+      - name: Production build
+        working-directory: v0-app
+        run: npm run build
