@@ -1,0 +1,16 @@
+import assert from "node:assert/strict"
+import fs from "node:fs"
+const source=fs.readFileSync(new URL("../../src/index.js",import.meta.url),"utf8")
+assert.match(source,/url\.pathname === "\/api\/business-knowledge"/)
+assert.match(source,/\["GET", "PUT"\]\.includes\(request\.method\)/)
+assert.match(source,/getLoggedInUser\(request, env, ctx\)/)
+assert.match(source,/createDurableMemoryD1Adapter\(\{ DB: env\.DB \}\)/)
+assert.match(source,/readBusinessKnowledgeMemory\(adapter/)
+assert.match(source,/saveBusinessKnowledgeMemory\(adapter/)
+assert.match(source,/const workspaceId = user\.id/)
+assert.match(source,/Cache-Control": "private, no-store"/)
+const start=source.indexOf('if (url.pathname === "/api/business-knowledge")')
+const end=source.indexOf("// HEGEVA CORE V1 DECIDE",start)
+const route=source.slice(start,end)
+assert(!/reserveAIUsage|sendResendEmail|sendMail|sendEmail|stripe|env\.AI|invokeWorkersAi/i.test(route))
+console.log("Business Knowledge API audit passed: authenticated scoped durable-memory read/write, no AI/provider/external execution.")
