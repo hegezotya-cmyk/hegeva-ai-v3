@@ -5,7 +5,10 @@ const indexSource=fs.readFileSync(new URL("../../src/index.js",import.meta.url),
 assert.match(indexSource,/readBusinessKnowledgeMemory\(memoryAdapter/)
 assert.match(indexSource,/workspaceData\.businessKnowledge = knowledgeRecord\?\.payload \|\| null/)
 assert.match(indexSource,/workspaceData\.businessKnowledge = null/)
-const coreRoute=indexSource.slice(indexSource.indexOf("// HEGEVA CORE V1 DECIDE"),indexSource.indexOf("// HEGEVA AI CHAT"))
+const coreStart=indexSource.indexOf("// HEGEVA CORE V1 DECIDE")
+const coreEnd=indexSource.indexOf("// HEGEVA AI CHAT",coreStart)
+assert(coreStart>=0 && coreEnd>coreStart,"Core route markers missing")
+const coreRoute=indexSource.slice(coreStart,coreEnd)
 assert(!/saveBusinessKnowledgeMemory\(/.test(coreRoute),"Core decide must not write Business Knowledge")
 
 const coreSource=fs.readFileSync(new URL("../../src/core-v1-decision.js",import.meta.url),"utf8")
