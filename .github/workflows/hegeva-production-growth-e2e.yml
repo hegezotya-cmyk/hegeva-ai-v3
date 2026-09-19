@@ -1,0 +1,169 @@
+name: HEGEVA Production Growth E2E
+
+on:
+  push:
+    branches:
+      - growth-launch-audit-v1-20260919
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: v0-app
+        run: npm ci
+
+      - name: Install Chromium
+        working-directory: v0-app
+        run: npx playwright install --with-deps chromium
+
+      - name: Run live production checks
+        working-directory: v0-app
+        shell: bash
+        run: |
+          cat > /tmp/hegeva-production-e2e.mjs <<'NODE'
+          import { chromium } from "playwright"
+          const BASE = "https://hegevaai.co.uk"
+          const failures = []
+          const ok = (name, detail="") => console.log("PASS", name, detail)
+          const bad = (name, detail="") => { failures.push(name + ": " + detail); console.error("FAIL", name, detail) }
+
+          async function cleanContext(browser, viewport={width:1440,height:900}) {
+            const context = await browser.newContext({ viewport, permissions:["clipboard-read","clipboard-write"] })
+            await context.addInitScript(() => localStorage.setItem("hegeva:analytics-consent:v1","denied"))
+            return context
+          }
+
+          async function noOverflow(page, name) {
+            const size = await page.evaluate(() => ({c:document.documentElement.clientWidth,s:document.documentElement.scrollWidth}))
+            size.s <= size.c + 2 ? ok(name, size.s + "/" + size.c) : bad(name, "horizontal overflow " + size.s + ">" + size.c)
+          }
+
+          async function pageCheck(browser, path, needles, name, viewport) {
+            const context = await cleanContext(browser, viewport)
+            const page = await context.newPage()
+            const errors = []
+            page.on("pageerror", e => errors.push(String(e)))
+            try {
+              const response = await page.goto(BASE + path, {waitUntil:"domcontentloaded",timeout:45000})
+              const status = response ? response.status() : 0
+              status > 0 && status < 400 ? ok(name + " HTTP", String(status)) : bad(name + " HTTP", String(status))
+              const body = (await page.locator("body").innerText()).toLowerCase()
+              for (const needle of needles) body.includes(needle.toLowerCase()) ? ok(name + " content", needle) : bad(name + " content", "missing " + needle)
+              await noOverflow(page, name + " overflow")
+              if (errors.length) bad(name + " pageerror", errors.join(" | "))
+            } catch (e) { bad(name, String(e)) }
+            await context.close()
+          }
+
+          async function redirectCheck(browser, path, expectedPath, params, name) {
+            const context = await cleanContext(browser)
+            const page = await context.newPage()
+            try {
+              const response = await page.goto(BASE + path, {waitUntil:"domcontentloaded",timeout:45000})
+              const status = response ? response.status() : 0
+              const url = new URL(page.url())
+              let good = status > 0 && status < 400 && url.pathname === expectedPath
+              for (const [k,v] of Object.entries(params)) good = good && url.searchParams.get(k) === v
+              good ? ok(name, url.pathname + url.search) : bad(name, page.url())
+            } catch (e) { bad(name, String(e)) }
+            await context.close()
+          }
+
+          async function challenge(browser, viewport, name) {
+            const context = await cleanContext(browser, viewport)
+            const page = await context.newPage()
+            try {
+              const response = await page.goto(BASE + "/challenge", {waitUntil:"domcontentloaded",timeout:45000})
+              if (!response || response.status() >= 400) throw new Error("HTTP " + (response ? response.status() : 0))
+              await page.getByRole("button",{name:/START FREE DEMO/i}).click()
+              await page.getByRole("button",{name:/^Electrician$/i}).click()
+              await page.getByText("£2,050 currently needs attention",{exact:false}).waitFor({timeout:15000})
+              ok(name + " priorities")
+              await page.getByRole("button",{name:/PREPARE ACTION/i}).click()
+              await page.getByText("Prepared only. Nothing has been sent.",{exact:false}).waitFor()
+              ok(name + " prepared-only")
+              const body = await page.locator("body").innerText()
+              body.includes("68") && body.includes("/100") ? ok(name + " score","68/100") : bad(name + " score","missing 68/100")
+              await page.getByRole("button",{name:/Why this score/i}).click()
+              const detail = await page.locator("body").innerText()
+              for (const s of ["55/100","60/100","70/100","86/100"]) detail.includes(s) ? ok(name + " score detail",s) : bad(name + " score detail","missing " + s)
+              const href = await page.getByRole("link",{name:/TRY WITH MY BUSINESS/i}).getAttribute("href")
+              href === "/login?mode=register&callbackURL=%2Fget-started" ? ok(name + " signup CTA",href) : bad(name + " signup CTA",String(href))
+              await noOverflow(page, name + " overflow")
+            } catch (e) { bad(name,String(e)) }
+            await context.close()
+          }
+
+          async function freeTools(browser) {
+            const context = await cleanContext(browser)
+            const page = await context.newPage()
+            try {
+              await page.goto(BASE + "/free-tools",{waitUntil:"domcontentloaded",timeout:45000})
+              await page.getByLabel("Customer name").fill("Test Customer")
+              await page.getByLabel("Reference").fill("INV-TEST")
+              await page.getByLabel("Amount (£)").fill("125")
+              await page.getByLabel("Days overdue").fill("10")
+              await page.getByRole("button",{name:/^GENERATE$/i}).click()
+              await page.getByText("INV-TEST",{exact:false}).waitFor()
+              ok("Free Tools invoice chaser")
+              await page.getByRole("button",{name:/Admin Cost Calculator/i}).click()
+              const body = await page.locator("body").innerText()
+              body.includes("£6,500") ? ok("Free Tools admin calculator","£6,500") : bad("Free Tools admin calculator","result missing")
+            } catch (e) { bad("Free Tools flow",String(e)) }
+            await context.close()
+          }
+
+          async function signup(browser) {
+            const context = await cleanContext(browser)
+            const page = await context.newPage()
+            try {
+              await page.goto(BASE + "/login?mode=register&callbackURL=%2Fget-started",{waitUntil:"domcontentloaded",timeout:45000})
+              await page.locator('[data-registration-active="true"]').waitFor({timeout:10000})
+              const u = new URL(page.url())
+              u.searchParams.get("mode")==="register" && u.searchParams.get("callbackURL")==="/get-started" ? ok("Signup handoff","callback preserved") : bad("Signup handoff",page.url())
+              await page.goto(BASE + "/get-started",{waitUntil:"domcontentloaded",timeout:45000})
+              const g = new URL(page.url())
+              g.pathname==="/login" && g.searchParams.get("callbackURL")==="/get-started" ? ok("Unauthenticated get-started protection",g.pathname+g.search) : bad("Unauthenticated get-started protection",page.url())
+            } catch (e) { bad("Signup/get-started",String(e)) }
+            await context.close()
+          }
+
+          const browser = await chromium.launch({headless:true})
+          try {
+            await pageCheck(browser,"/",["GIVE HEGEVA 60 SECONDS","Start 60-second challenge"],"Homepage")
+            await pageCheck(browser,"/challenge",["HEGEVA 60-SECOND CHALLENGE","START FREE DEMO"],"Challenge page")
+            await pageCheck(browser,"/free-tools",["FREE SMALL-BUSINESS TOOLS","Invoice Chaser"],"Free Tools page")
+            const niches = [["/for-electricians","AI workspace for electricians"],["/for-builders","AI workspace for builders"],["/for-plumbers","AI workspace for plumbers"],["/for-cleaners","AI workspace for cleaning businesses"],["/for-property-maintenance","AI workspace for property maintenance businesses"],["/for-consultants","AI workspace for consultants"]]
+            for (const item of niches) await pageCheck(browser,item[0],[item[1],"TRY THE 60-SECOND CHALLENGE"],"Niche " + item[0])
+            const shorts = {"/li":"linkedin","/fb":"facebook","/ig":"instagram","/tt":"tiktok","/reddit":"reddit","/yt":"youtube","/sc":"snapchat"}
+            for (const [path,source] of Object.entries(shorts)) await redirectCheck(browser,path,"/",{utm_source:source,utm_medium:"organic",utm_campaign:"hegeva_growth_2026"},"Short link " + path)
+            await redirectCheck(browser,"/r/prodcheck","/challenge",{ref:"prodcheck"},"Referral route")
+            await challenge(browser,{width:1440,height:900},"Challenge desktop")
+            await challenge(browser,{width:390,height:844},"Challenge mobile 390x844")
+            await challenge(browser,{width:412,height:915},"Challenge mobile 412x915")
+            await pageCheck(browser,"/free-tools",["FREE SMALL-BUSINESS TOOLS"],"Free Tools mobile 390x844",{width:390,height:844})
+            await pageCheck(browser,"/for-electricians",["AI workspace for electricians"],"Niche mobile 390x844",{width:390,height:844})
+            await freeTools(browser)
+            await signup(browser)
+          } finally { await browser.close() }
+
+          console.log("Production E2E failures:", failures.length)
+          if (failures.length) { for (const f of failures) console.error("-",f); process.exit(1) }
+          console.log("HEGEVA Production Growth E2E PASS")
+          NODE
