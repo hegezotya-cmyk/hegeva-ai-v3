@@ -17,6 +17,7 @@ declare global {
     dataLayer: unknown[]
     gtag?: (...args: unknown[]) => void
     clarity?: (...args: unknown[]) => void
+    __hegevaConsentDefaulted?: boolean
   }
 }
 
@@ -31,6 +32,7 @@ const copy = {
 function queueConsentDefault() {
   window.dataLayer = window.dataLayer || []
   window.gtag = window.gtag || function gtag() { window.dataLayer.push(arguments) }
+  if (window.__hegevaConsentDefaulted) return
   window.gtag("consent", "default", {
     analytics_storage: "denied",
     ad_storage: "denied",
@@ -38,6 +40,7 @@ function queueConsentDefault() {
     ad_personalization: "denied",
     wait_for_update: 500,
   })
+  window.__hegevaConsentDefaulted = true
 }
 
 function enableAnalytics() {
