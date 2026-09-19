@@ -47,6 +47,8 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: v0-app/package-lock.json
+      - name: Install Worker dependencies
+        run: npm ci --ignore-scripts
       - name: Install V0 dependencies
         working-directory: v0-app
         run: npm ci
