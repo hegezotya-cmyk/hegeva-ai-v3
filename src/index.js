@@ -16,6 +16,7 @@ import { createPortalShare, previewPortalShare, readPortalShare, revokePortalSha
 import { completeOAuth, disconnectIntegration, listConnections, readIntegrationIntelligence, readIntegrationSignals, startOAuth } from "./integrations.js";
 import { creativeProviderCapability, invokeCreativeProvider, isCreativeCanaryOwner, readCreativeCredits, reserveCreativeCredits, settleCreativeCredits, validateCreativeGeneration } from "./creative-provider.js";
 import { createDurableMemoryD1Adapter } from "./durable-memory-d1-adapter.js";
+import { readBusinessKnowledgeMemory, saveBusinessKnowledgeMemory } from "./business-knowledge-memory.js";
 import { runCoreV1Decision } from "./core-v1-decision.js";
 import { prepareOverdueInvoiceEmailDraft } from "./email-draft-action.js";
 import { approveGovernedExternalAction, markGovernedExternalActionReady } from "./external-action-governance.js";
@@ -3550,6 +3551,51 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
       } catch (error) {
         logFailure("prepared_work_review_failed", error);
         return Response.json({ error: "Prepared work is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    // =========================================
+    // BUSINESS KNOWLEDGE V1 — DURABLE MEMORY
+    // Authenticated, workspace-scoped, owner-controlled.
+    // =========================================
+
+    if (url.pathname === "/api/business-knowledge") {
+      if (!["GET", "PUT"].includes(request.method)) {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+
+        // The current HEGEVA workspace is owner-scoped by userId.
+        const workspaceId = user.id;
+        const adapter = createDurableMemoryD1Adapter({ DB: env.DB });
+
+        if (request.method === "GET") {
+          const record = await readBusinessKnowledgeMemory(adapter, { userId: user.id, workspaceId });
+          return Response.json(
+            { profile: record?.payload || { version: 1, workspaceId, items: [] } },
+            { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } }
+          );
+        }
+
+        const body = await request.json();
+        const items = Array.isArray(body?.items) ? body.items : [];
+        const now = new Date().toISOString();
+        const record = await saveBusinessKnowledgeMemory(adapter, {
+          userId: user.id,
+          workspaceId,
+          items,
+          now,
+          correlationId: crypto.randomUUID(),
+        });
+        return Response.json(
+          { profile: record.payload },
+          { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } }
+        );
+      } catch (error) {
+        logFailure("business_knowledge_failed", error);
+        return Response.json({ error: "Business knowledge is temporarily unavailable." }, { status: 503 });
       }
     }
 
