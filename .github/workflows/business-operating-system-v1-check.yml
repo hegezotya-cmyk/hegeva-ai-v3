@@ -6,6 +6,8 @@ on:
       - business-operating-system-v1-20260919
     paths:
       - "src/core-v1-decision.js"
+      - "src/business-knowledge-memory.js"
+      - "src/index.js"
       - "src/prepared-work-review.js"
       - "v0-app/lib/business-rules-v1.ts"
       - "v0-app/lib/business-knowledge-v1.ts"
@@ -15,6 +17,9 @@ on:
       - "v0-app/scripts/business-rules-v1-audit.mjs"
       - "v0-app/scripts/business-rules-core-integration-audit.mjs"
       - "v0-app/scripts/business-knowledge-v1-audit.mjs"
+      - "v0-app/scripts/business-knowledge-memory-runtime-audit.mjs"
+      - "v0-app/scripts/business-knowledge-api-audit.mjs"
+      - "v0-app/scripts/business-knowledge-core-read-audit.mjs"
       - "v0-app/scripts/lead-to-money-v1-audit.mjs"
       - "v0-app/scripts/command-center-owner-attention-audit.mjs"
       - "v0-app/package.json"
