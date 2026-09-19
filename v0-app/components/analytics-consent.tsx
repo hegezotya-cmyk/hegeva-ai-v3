@@ -100,7 +100,7 @@ export function AnalyticsConsent() {
     const receive = (event: Event) => {
       if (consent !== "granted" || !window.gtag) return
       const detail = (event as CustomEvent<{ event?: string; path?: string; params?: Record<string, string | number | boolean> }>).detail
-      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click", "challenge_view", "challenge_start", "business_type_selected", "demo_loaded", "demo_analysis_complete", "priority_viewed", "prepare_action_click", "prepared_action_complete", "challenge_complete", "business_score_view", "try_my_business_click", "own_business_start", "own_business_result", "share_click"].includes(detail.event || "")) return
+      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click", "challenge_view", "challenge_start", "business_type_selected", "demo_loaded", "demo_analysis_complete", "priority_viewed", "prepare_action_click", "prepared_action_complete", "challenge_complete", "business_score_view", "try_my_business_click", "own_business_start", "own_business_result", "share_click", "free_tool_use", "free_tool_cta_click"].includes(detail.event || "")) return
       const activationPaths = ["/get-started", "/business/customers", "/business/invoices", "/command-center", "/pricing", "/account", "/demo", "/challenge"]
       if (!detail.path || (!PUBLIC_ANALYTICS_PATHS.includes(detail.path) && !activationPaths.includes(detail.path))) return
       const key = `${detail.event}:${detail.path}`
@@ -127,7 +127,7 @@ export function AnalyticsConsent() {
         }
       }
     } catch { /* Storage must never prevent navigation or signup. */ }
-    const landingPaths = ["/", "/ai-for-small-business", "/ai-business-assistant", "/quote-and-invoice-software", "/ai-for-trades", "/ai-for-electricians", "/for-electricians", "/for-builders", "/for-plumbers", "/for-cleaners", "/for-property-maintenance", "/for-consultants"]
+    const landingPaths = ["/", "/ai-for-small-business", "/ai-business-assistant", "/quote-and-invoice-software", "/ai-for-trades", "/ai-for-electricians", "/for-electricians", "/for-builders", "/for-plumbers", "/for-cleaners", "/for-property-maintenance", "/for-consultants", "/free-tools"]
     const registering = pathname === "/login" && Boolean(document.querySelector('[data-registration-active="true"]'))
     const event = landingPaths.includes(pathname) ? "landing_page_view" : pathname === "/pricing" ? "pricing_view" : registering ? "registration_start" : null
     if (event) window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event, path: pathname } }))
