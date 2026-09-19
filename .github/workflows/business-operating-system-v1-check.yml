@@ -23,6 +23,7 @@ on:
       - "v0-app/scripts/lead-to-money-v1-audit.mjs"
       - "v0-app/scripts/command-center-owner-attention-audit.mjs"
       - "v0-app/scripts/ai-employees-orchestration-audit.mjs"
+      - "v0-app/scripts/quote-email-governance-audit.mjs"
       - "v0-app/package.json"
       - ".github/workflows/business-operating-system-v1-check.yml"
   workflow_dispatch:
@@ -67,3 +68,6 @@ jobs:
       - name: Run AI Employees audits
         working-directory: v0-app
         run: npm run audit:ai-employees
+      - name: Run Quote Email Governance audit
+        working-directory: v0-app
+        run: npm run audit:quote-email

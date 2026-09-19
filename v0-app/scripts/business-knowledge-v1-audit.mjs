@@ -15,6 +15,10 @@ const profile=mod.buildBusinessKnowledgeProfile({workspaceId:"ws-1",items:[
 ]})
 assert.equal(profile.items.length,2)
 assert.equal(mod.selectBusinessKnowledge(profile,["payment-term"]).length,1)
+const ownerVerified=mod.buildBusinessKnowledgeProfile({workspaceId:"ws-1",items:[{id:"invalid-owner",field:"service",value:"Plumbing",source:"owner",confidence:"verified",updatedAt:now}]})
+const workspaceExplicit=mod.buildBusinessKnowledgeProfile({workspaceId:"ws-1",items:[{id:"invalid-workspace",field:"service",value:"Plumbing",source:"workspace",confidence:"explicit",updatedAt:now}]})
+assert.equal(ownerVerified.items.length,0,"owner + verified must be rejected")
+assert.equal(workspaceExplicit.items.length,0,"workspace + explicit must be rejected")
 const context={userId:"u-1",workspaceId:"ws-1",projectIds:[],permissions:["memory.read","memory.write"],persistentMemoryEnabled:false,now}
 const record=mod.businessKnowledgeToMemory(profile,context,"corr-1")
 assert.equal(record.type,"workspace")

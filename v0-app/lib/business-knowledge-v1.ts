@@ -14,7 +14,7 @@ export function buildBusinessKnowledgeProfile(input:{workspaceId:string;items:Bu
  const seen=new Set<string>(); const items:BusinessKnowledgeItem[]=[]
  for(const raw of input.items||[]){
   const field=raw?.field; const value=clean(raw?.value); const id=clean(raw?.id,160)
-  if(!id||!allowed.has(field)||!value||!["owner","workspace"].includes(raw.source)||!["explicit","verified"].includes(raw.confidence)||!Number.isFinite(Date.parse(raw.updatedAt))) continue
+  if(!id||!allowed.has(field)||!value||!((raw.source==="owner"&&raw.confidence==="explicit")||(raw.source==="workspace"&&raw.confidence==="verified"))||!Number.isFinite(Date.parse(raw.updatedAt))) continue
   const key=`${field}:${value.toLowerCase()}`; if(seen.has(key)) continue; seen.add(key)
   items.push({...raw,id,value,sourceId:clean(raw.sourceId,160)||undefined})
  }
