@@ -22,6 +22,7 @@ export type AnalyticsEvent =
   | "try_my_business_click"
   | "own_business_start"
   | "own_business_result"
+  | "share_click"
 
 export type AnalyticsParams = Record<string, string | number | boolean>
 

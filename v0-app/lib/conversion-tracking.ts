@@ -1,9 +1,9 @@
 // Only public campaign labels, never arbitrary URL values or workspace identifiers.
 const allowed = {
-  utm_source: ["facebook", "instagram", "tiktok", "linkedin", "reddit", "youtube", "snapchat", "chatgpt"],
+  utm_source: ["facebook", "instagram", "tiktok", "linkedin", "reddit", "youtube", "snapchat", "chatgpt", "share"],
   utm_medium: ["social", "paid_social", "organic_social", "organic", "referral"],
   utm_campaign: ["less_admin", "grow_business", "hegeva_launch", "hegeva_growth_2026"],
-  utm_content: ["video_1", "video_2", "video_3", "text_post_1"],
+  utm_content: ["video_1", "video_2", "video_3", "text_post_1", "challenge_share"],
 } as const
 const campaignKey = "hegeva:campaign:v1"
 
