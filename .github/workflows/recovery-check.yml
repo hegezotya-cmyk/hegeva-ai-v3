@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - recovery-demo-on-golden-20260919
+  pull_request:
+    branches:
+      - hegeva-unified-golden-20260915
   workflow_dispatch:
 
 permissions:
