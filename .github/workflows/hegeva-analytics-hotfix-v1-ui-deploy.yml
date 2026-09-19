@@ -112,17 +112,7 @@ jobs:
             await page.getByRole("button", { name: /PREPARE ACTION/i }).click()
             await page.getByText("Prepared only. Nothing has been sent.", { exact: false }).waitFor()
 
-            const events = await page.evaluate(() => {
-              const rows = (window.dataLayer || []).map(x => {
-                try { return Array.from(x) } catch { return x }
-              })
-              return rows
-                .filter(x => Array.isArray(x) && x[0] === "event")
-                .map(x => ({ name: x[1], params: x[2] || {} }))
-            })
-
-            const names = events.map(e => e.name)
-            for (const expected of [
+            const expectedEvents = [
               "challenge_view",
               "challenge_start",
               "business_type_selected",
@@ -133,7 +123,27 @@ jobs:
               "prepare_action_click",
               "prepared_action_complete",
               "challenge_complete",
-            ]) {
+            ]
+
+            await page.waitForFunction((expected) => {
+              const rows = (window.dataLayer || []).map(x => {
+                try { return Array.from(x) } catch { return x }
+              })
+              const names = rows.filter(x => Array.isArray(x) && x[0] === "event").map(x => x[1])
+              return expected.every(name => names.includes(name))
+            }, expectedEvents, { timeout: 5000 }).catch(() => {})
+
+            const events = await page.evaluate(() => {
+              const rows = (window.dataLayer || []).map(x => {
+                try { return Array.from(x) } catch { return x }
+              })
+              return rows
+                .filter(x => Array.isArray(x) && x[0] === "event")
+                .map(x => ({ name: x[1], params: x[2] || {} }))
+            })
+
+            const names = events.map(e => e.name)
+            for (const expected of expectedEvents) {
               names.includes(expected) ? ok("GA4 event", expected) : bad("GA4 event", "missing " + expected + "; have " + names.join(","))
             }
 
