@@ -15,6 +15,11 @@ const ALLOWED_FIELDS = new Set([
 const clean = (value, max = 500) =>
   typeof value === "string" ? value.trim().slice(0, max) : "";
 
+const containsProhibitedData = (value) =>
+  /(password|api[_ -]?key|secret|bearer\s+token|access[_ -]?token|refresh[_ -]?token|card\s*number|cvv|cvc)/i.test(
+    typeof value === "string" ? value : JSON.stringify(value ?? "")
+  );
+
 export function buildBusinessKnowledgeMemoryRecord({ userId, workspaceId, items, now, correlationId }) {
   const ownerUserId = clean(userId, 128);
   const scopeId = clean(workspaceId, 128);
@@ -37,8 +42,7 @@ export function buildBusinessKnowledgeMemoryRecord({ userId, workspaceId, items,
       !id ||
       !ALLOWED_FIELDS.has(field) ||
       !value ||
-      !["owner", "workspace"].includes(source) ||
-      !["explicit", "verified"].includes(confidence) ||
+      !((source === "owner" && confidence === "explicit") || (source === "workspace" && confidence === "verified")) ||
       !Number.isFinite(Date.parse(updatedAt))
     ) continue;
     const key = `${field}:${value.toLowerCase()}`;
@@ -53,6 +57,10 @@ export function buildBusinessKnowledgeMemoryRecord({ userId, workspaceId, items,
       confidence,
       updatedAt,
     });
+  }
+
+  if (containsProhibitedData(accepted)) {
+    throw new Error("business-knowledge-prohibited-data");
   }
 
   return {
