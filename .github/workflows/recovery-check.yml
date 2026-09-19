@@ -1,0 +1,42 @@
+name: HEGEVA Recovery Check
+
+on:
+  push:
+    branches:
+      - recovery-demo-on-golden-20260919
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v0-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Consent Mode V2 audit
+        run: node scripts/consent-mode-v2-audit.mjs
+
+      - name: Demo analytics audit
+        run: node scripts/demo-analytics-audit.mjs
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Production build
+        run: npm run build
