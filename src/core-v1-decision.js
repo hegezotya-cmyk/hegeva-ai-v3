@@ -583,6 +583,31 @@ function prepareInvoiceFollowupDraft(signal, workspaceData, locale = "en") {
   };
 }
 
+function prepareQuoteFollowupDraft(signal, workspaceData, locale = "en") {
+  const quote = workspaceData.invoices.find(i => signal.sourceIds?.includes(i.id));
+  if (!quote || quote.type !== "quote") return null;
+  const customer = workspaceData.customers.find(c => c.id === quote.customerId || signal.sourceIds?.includes(c.id));
+  const templates = {
+    en: (q, c) => `Prepare a quote follow-up draft for ${c?.title || "customer"} regarding quote ${q.number || q.id}`,
+    hu: (q, c) => `Ajánlat-utánkövetési vázlat előkészítése ${c?.title || "ügyfél"} részére: ${q.number || q.id}`,
+    de: (q, c) => `Angebots-Nachfassentwurf für ${c?.title || "Kunde"} zu Angebot ${q.number || q.id} vorbereiten`,
+    fr: (q, c) => `Préparer un brouillon de relance pour ${c?.title || "client"} concernant le devis ${q.number || q.id}`,
+    es: (q, c) => `Preparar un borrador de seguimiento para ${c?.title || "cliente"} sobre el presupuesto ${q.number || q.id}`,
+  };
+  const t = templates[locale] || templates.en;
+  return {
+    kind: "followup-message",
+    status: "prepared",
+    title: `Quote follow-up: ${quote.number || "Quote"}`,
+    content: t(quote, customer),
+    sourceIds: signal.sourceIds,
+    targetType: "messages",
+    targetHref: "/business/messages",
+    reason: "quote-followup-approval-pending",
+    preparedAt: new Date().toISOString(),
+  };
+}
+
 function prepareTaskDraft(signal, workspaceData, locale = "en") {
   const task = workspaceData.tasks.find(t => signal.sourceIds?.includes(t.id));
   const templates = {
@@ -653,12 +678,12 @@ const PREPARATION_DISPATCH = {
   "review-followups": prepareFollowupMessageDraft,
   "customer-followups": prepareFollowupMessageDraft,
   "overdue-invoices": prepareInvoiceFollowupDraft,
-  "stale-quotes": prepareInvoiceFollowupDraft,
+  "stale-quotes": prepareQuoteFollowupDraft,
   "draft-invoices": prepareInvoiceFollowupDraft,
   "overdue-tasks": prepareTaskDraft,
   "today-tasks": prepareTaskDraft,
   "payment-risk": prepareInvoiceFollowupDraft,
-  "quote-leakage": prepareInvoiceFollowupDraft,
+  "quote-leakage": prepareQuoteFollowupDraft,
   "workload-bottleneck": prepareTaskDraft,
   "dormant-customers": prepareFollowupMessageDraft,
   "followup-effectiveness": prepareFollowupMessageDraft,
@@ -725,6 +750,9 @@ export function prepareActionsForSignals(signals, workspaceData, locale = "en", 
   return sorted.map(s => {
     const fn = PREPARATION_DISPATCH[s.kind];
     let actionSignal = s;
+    if (fn === prepareQuoteFollowupDraft && !workspaceData.invoices.some(item => item.type === "quote" && s.sourceIds?.includes(item.id))) {
+      return null;
+    }
     if (fn === prepareInvoiceFollowupDraft && !workspaceData.invoices.some(invoice => s.sourceIds?.includes(invoice.id))) {
       const today = new Date().toISOString().slice(0, 10);
       const invoice = workspaceData.invoices.find(item => item.type === "invoice" && item.status === "sent" && item.dueDate < today);
