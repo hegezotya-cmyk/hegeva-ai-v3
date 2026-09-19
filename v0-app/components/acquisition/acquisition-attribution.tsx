@@ -9,6 +9,17 @@ export type AnalyticsEvent =
   | "demo_workspace_view"
   | "demo_business_switch"
   | "demo_signup_click"
+  | "challenge_view"
+  | "challenge_start"
+  | "business_type_selected"
+  | "demo_loaded"
+  | "demo_analysis_complete"
+  | "priority_viewed"
+  | "prepare_action_click"
+  | "prepared_action_complete"
+  | "challenge_complete"
+  | "business_score_view"
+  | "try_my_business_click"
 
 export type AnalyticsParams = Record<string, string | number | boolean>
 
