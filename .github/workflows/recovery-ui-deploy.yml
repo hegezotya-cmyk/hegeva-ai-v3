@@ -1,9 +1,9 @@
 name: HEGEVA Recovery UI Deploy
 
 on:
-  push:
+  pull_request:
     branches:
-      - recovery-demo-on-latest-copilot-20260919
+      - owner-approved-email-delivery-v1-20260915
     paths:
       - "v0-app/**"
       - ".github/workflows/recovery-ui-deploy.yml"
@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: hegeva-recovery-ui-deploy
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
