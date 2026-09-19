@@ -96,11 +96,16 @@ export type AIEmployeeDelegation = {
   preparedAt: string
 }
 
+export type LeadToMoneyProjection = { stage: string; status: "observed" | "needs-attention" | "complete"; sourceIds: string[]; nextStage?: string; kind: string; severity: "high" | "medium"; href: string }
+export type BusinessRuleProjection = { kind: string; sourceIds: string[]; severity: "high" | "medium"; href: string; ruleId: string; requiresApproval: true }
+
 export type CoreDecisionResponse = {
   coreSignals: CoreSignal
   corePriorities: CorePriority[]
   coreDecision: CorePriority
   opportunityRadar: OpportunityRadarFinding[]
+  businessRules: BusinessRuleProjection[]
+  leadToMoney: LeadToMoneyProjection[]
   fixMyBusiness: FixMyBusinessSignal[]
   goalMode: GoalModeProjection
   pulse: PulseProjection
@@ -133,6 +138,8 @@ const FALLBACK: CoreDecisionResponse = {
   corePriorities: [],
   coreDecision: { kind: "start", count: 0, href: "/business/customers", severity: "ready" },
   opportunityRadar: [],
+  businessRules: [],
+  leadToMoney: [],
   fixMyBusiness: [{ kind: "foundation", severity: "ready", count: 0, sourceIds: [], actionKey: "buildFoundation" }],
   goalMode: null,
   pulse: { understood: "", continuity: [], nextActions: [] },
@@ -218,5 +225,3 @@ export function useCoreDecision(): { data: CoreDecisionResponse; loading: boolea
     if (identityChanged) loadCoreDecision(identity, true)
   }, [identity, isPending])
   const visible = activeCoreIdentity === identity ? GLOBAL_CORE_STATE : { data: FALLBACK, loading: Boolean(identity), status: identity ? "loading" as const : "unauthenticated" as const, revision: 0 }
-  return { ...visible, identity, refresh: () => { if (identity) loadCoreDecision(identity, true) } }
-}
