@@ -1,13 +1,13 @@
 // Only public campaign labels, never arbitrary URL values or workspace identifiers.
 const allowed = {
-  utm_source: ["facebook", "instagram", "tiktok", "linkedin", "reddit"],
-  utm_medium: ["social", "paid_social", "organic_social"],
-  utm_campaign: ["less_admin", "grow_business", "hegeva_launch"],
-  utm_content: ["video_1", "video_2"],
+  utm_source: ["facebook", "instagram", "tiktok", "linkedin", "reddit", "youtube", "snapchat", "chatgpt"],
+  utm_medium: ["social", "paid_social", "organic_social", "organic", "referral"],
+  utm_campaign: ["less_admin", "grow_business", "hegeva_launch", "hegeva_growth_2026"],
+  utm_content: ["video_1", "video_2", "video_3", "text_post_1"],
 } as const
 const campaignKey = "hegeva:campaign:v1"
 
-export const PUBLIC_ANALYTICS_PATHS = ["/", "/login", "/pricing", "/account", "/ai-for-small-business", "/ai-business-assistant", "/quote-and-invoice-software", "/ai-for-trades", "/ai-for-electricians"]
+export const PUBLIC_ANALYTICS_PATHS = ["/", "/login", "/pricing", "/account", "/demo", "/ai-for-small-business", "/ai-business-assistant", "/quote-and-invoice-software", "/ai-for-trades", "/ai-for-electricians"]
 
 export function analyticsPageLocation(path: string): string {
   return window.location.origin + (PUBLIC_ANALYTICS_PATHS.includes(path) ? path : "/")
