@@ -109,7 +109,10 @@ jobs:
             {
               const c=await context(browser), p=await c.newPage()
               await p.goto(BASE+"/r/ga4wire",{waitUntil:"domcontentloaded",timeout:45000})
-              await p.waitForTimeout(700)
+              await p.waitForFunction(()=>{
+                const rows=(window.dataLayer||[]).map(x=>{try{return Array.from(x)}catch{return x}})
+                return rows.some(x=>Array.isArray(x)&&x[0]==="event"&&x[1]==="referral_visit")
+              },{timeout:5000}).catch(()=>{})
               const events=await gaEvents(p)
               requireEvents(events,["referral_visit"],"Referral GA4 wiring")
               const ref=events.find(e=>e.name==="referral_visit")
