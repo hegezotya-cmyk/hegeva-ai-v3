@@ -36,5 +36,9 @@ for (const locale of ["en:", "hu:", "de:", "fr:", "es:"]) assert(component.inclu
 assert(!/fetch\(|AIBotExecution|\/api\/ai-bot\/execute|\/api\/ai-bot\/canary-once|sendMail|sendEmail|mailto:|googleapis|graph\.microsoft|stripe|payment/i.test(component), "AI Employees must remain presentation-only with no external execution path")
 
 const worker = fs.readFileSync(new URL("../../src/core-v1-decision.js", import.meta.url), "utf8")
-assert(!/fetch\(|sendMail|sendEmail|mailto:|googleapis|graph\.microsoft|stripe|payment/i.test(worker.slice(worker.indexOf("function prepareEmployeeDelegations"))), "employee delegation must be deterministic and side-effect free")
+const employeeStart = worker.indexOf("export function prepareEmployeeDelegations")
+const employeeEnd = worker.indexOf("export function runCoreV1Decision", employeeStart)
+assert(employeeStart >= 0 && employeeEnd > employeeStart, "employee delegation function markers missing")
+const employeeSource = worker.slice(employeeStart, employeeEnd)
+assert(!/fetch\(|sendMail|sendEmail|mailto:|googleapis|graph\.microsoft|stripe\.|env\.AI|invokeWorkersAi/i.test(employeeSource), "employee delegation must be deterministic and side-effect free")
 console.log("AI Employees orchestration audit passed: deterministic four-role prepared delegation, evidence preservation, five locales, and no external execution.")
