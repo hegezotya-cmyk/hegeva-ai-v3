@@ -11,6 +11,7 @@ import { FIRST_CUSTOMER_COPY } from "@/lib/i18n/first-customer-copy"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { trackActivationEvent } from "@/lib/conversion-tracking"
 import { activationIdentity } from "@/lib/activation-measurement"
+import { FirstWowQuickStart } from "@/components/get-started/first-wow"
 
 type WorkspaceItem = { id: string }
 
@@ -44,6 +45,8 @@ export default function GetStartedPage() {
         </h1>
 
         <p className="mt-4 max-w-3xl text-muted-foreground">{c.subtitle}</p>
+
+        {!hasBusinessRecord && <FirstWowQuickStart />}
 
         {isReady ? (
           <section className="mt-10 rounded-3xl border border-primary/25 bg-primary/[.05] p-6 sm:p-8">

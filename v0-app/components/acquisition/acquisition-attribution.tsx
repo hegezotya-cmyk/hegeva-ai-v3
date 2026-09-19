@@ -20,6 +20,8 @@ export type AnalyticsEvent =
   | "challenge_complete"
   | "business_score_view"
   | "try_my_business_click"
+  | "own_business_start"
+  | "own_business_result"
 
 export type AnalyticsParams = Record<string, string | number | boolean>
 
