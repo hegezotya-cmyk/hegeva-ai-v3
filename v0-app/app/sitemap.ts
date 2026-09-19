@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = 'https://hegevaai.co.uk'
-  const routes = ['', '/challenge', '/ai-for-small-business', '/ai-business-assistant', '/quote-and-invoice-software', '/ai-for-trades', '/ai-for-electricians', '/pricing', '/contact', '/privacy', '/terms']
+  const routes = ['', '/challenge', '/ai-for-small-business', '/ai-business-assistant', '/quote-and-invoice-software', '/ai-for-trades', '/ai-for-electricians', '/for-electricians', '/for-builders', '/for-plumbers', '/for-cleaners', '/for-property-maintenance', '/for-consultants', '/pricing', '/contact', '/privacy', '/terms']
   return routes.map((route) => ({
     url: `${base}${route}`,
     lastModified: new Date(),
