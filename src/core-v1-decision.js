@@ -496,6 +496,40 @@ export function computeCoreDecision(workspaceData, cloudEnabled) {
 }
 
 // =========================================
+// BUSINESS RULES V1
+// Deterministic, evidence-backed signals only. No external execution.
+// =========================================
+
+const validRuleDay = (value) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : null;
+const uniqueRuleSourceIds = (values) => [...new Set(values.filter(Boolean))];
+
+export function evaluateBusinessRules(workspaceData, today = new Date().toISOString().slice(0, 10)) {
+  const ruleToday = validRuleDay(today);
+  if (!ruleToday) return [];
+  const customers = Array.isArray(workspaceData?.customers) ? workspaceData.customers : [];
+  const invoices = Array.isArray(workspaceData?.invoices) ? workspaceData.invoices : [];
+  const tasks = Array.isArray(workspaceData?.tasks) ? workspaceData.tasks : [];
+  const rules = [];
+
+  const overdueInvoices = invoices.filter((item) => item?.type === "invoice" && item?.status !== "paid" && validRuleDay(item?.dueDate) && item.dueDate.slice(0, 10) < ruleToday);
+  if (overdueInvoices.length) rules.push({ ruleId:"overdue-invoice", kind:"overdue-invoices", sourceIds:uniqueRuleSourceIds(overdueInvoices.map((item)=>item.id)), count:overdueInvoices.length, severity:"high", role:"Finance", href:"/business/intelligence#customer-follow-up", requiresApproval:true });
+
+  const staleQuotes = invoices.filter((item) => item?.type === "quote" && item?.status !== "paid" && validRuleDay(item?.dueDate) && item.dueDate.slice(0, 10) < ruleToday);
+  if (staleQuotes.length) rules.push({ ruleId:"stale-quote", kind:"stale-quotes", sourceIds:uniqueRuleSourceIds(staleQuotes.map((item)=>item.id)), count:staleQuotes.length, severity:"high", role:"Sales", href:"/business/intelligence#customer-follow-up", requiresApproval:true });
+
+  const leads = customers.filter((item) => item?.customerStatus === "lead" && validRuleDay(item?.followUp) && item.followUp.slice(0, 10) <= ruleToday);
+  if (leads.length) rules.push({ ruleId:"lead-follow-up", kind:"customer-followups", sourceIds:uniqueRuleSourceIds(leads.map((item)=>item.id)), count:leads.length, severity:"high", role:"Sales", href:"/business/customers", requiresApproval:true });
+
+  const cutoff = new Date(ruleToday + "T00:00:00Z"); cutoff.setUTCDate(cutoff.getUTCDate() - 90); const dormantBefore = cutoff.toISOString().slice(0, 10);
+  const dormantCustomers = customers.filter((item) => { if (item?.customerStatus !== "active") return false; const activityDay=validRuleDay(item?.updatedAt || item?.createdAt); return Boolean(activityDay && activityDay < dormantBefore); });
+  if (dormantCustomers.length) rules.push({ ruleId:"dormant-customer", kind:"dormant-customers", sourceIds:uniqueRuleSourceIds(dormantCustomers.map((item)=>item.id)), count:dormantCustomers.length, severity:"medium", role:"Sales", href:"/business/customers", requiresApproval:true });
+
+  const overdueTasks = tasks.filter((item) => !item?.done && validRuleDay(item?.due) && item.due.slice(0, 10) < ruleToday);
+  if (overdueTasks.length) rules.push({ ruleId:"overdue-task", kind:"overdue-tasks", sourceIds:uniqueRuleSourceIds(overdueTasks.map((item)=>item.id)), count:overdueTasks.length, severity:"medium", role:"Support", href:"/business/planner", requiresApproval:true });
+  return rules;
+}
+
+// =========================================
 // ACTION PREPARATION (DRAFT ONLY)
 // =========================================
 
@@ -660,12 +694,23 @@ export function prepareActionsForSignals(signals, workspaceData, locale = "en", 
     }
   }
 
+  // Business Rules signals preserve real workspace evidence and remain owner-approved.
+  for (const rule of signals.businessRules || []) {
+    if (rule.requiresApproval === true && PREPARATION_DISPATCH[rule.kind] && Array.isArray(rule.sourceIds) && rule.sourceIds.length > 0) {
+      allSignals.push({ kind: rule.kind, sourceIds: rule.sourceIds, severity: rule.severity, href: rule.href, evidenceBacked: true });
+    }
+  }
+
   // Deduplicate by kind, keep highest severity
   const byKind = new Map();
   for (const s of allSignals) {
     const existing = byKind.get(s.kind);
     const severityOrder = { critical: 3, attention: 2, ready: 1, high: 3, medium: 2, low: 1 };
-    if (!existing || (severityOrder[s.severity] || 0) > (severityOrder[existing.severity] || 0)) {
+    const candidateSeverity = severityOrder[s.severity] || 0;
+    const existingSeverity = severityOrder[existing?.severity] || 0;
+    const candidateHasEvidence = Boolean(s.evidenceBacked && s.sourceIds?.length);
+    const existingHasEvidence = Boolean(existing?.evidenceBacked && existing?.sourceIds?.length);
+    if (!existing || candidateSeverity > existingSeverity || (candidateSeverity === existingSeverity && candidateHasEvidence && !existingHasEvidence)) {
       byKind.set(s.kind, s);
     }
   }
@@ -750,7 +795,8 @@ export function prepareEmployeeDelegations(preparedActions, locale = "en") {
 
 export function runCoreV1Decision(workspaceData, cloudEnabled, locale = "en") {
   const decision = computeCoreDecision(workspaceData, cloudEnabled);
-  const preparedActions = prepareActionsForSignals(decision, workspaceData, locale, 3);
+  const businessRules = evaluateBusinessRules(workspaceData);
+  const preparedActions = prepareActionsForSignals({ ...decision, businessRules }, workspaceData, locale, 3);
   const employeeDelegations = prepareEmployeeDelegations(preparedActions, locale);
 
   return {
@@ -759,6 +805,7 @@ export function runCoreV1Decision(workspaceData, cloudEnabled, locale = "en") {
     coreDecision: decision.coreDecision,
     opportunityRadar: decision.opportunityRadar,
     fixMyBusiness: decision.fixMyBusiness,
+    businessRules,
     goalMode: decision.goalMode,
     pulse: decision.pulse,
     companion: decision.companion,
