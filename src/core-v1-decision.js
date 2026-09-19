@@ -569,6 +569,27 @@ export function projectLeadToMoney(workspaceData) {
 // ACTION PREPARATION (DRAFT ONLY)
 // =========================================
 
+function getBusinessKnowledgeValue(workspaceData, field) {
+  const items = Array.isArray(workspaceData?.businessKnowledge?.items) ? workspaceData.businessKnowledge.items : [];
+  const item = items.find((candidate) =>
+    candidate?.field === field &&
+    ((candidate?.source === "owner" && candidate?.confidence === "explicit") ||
+      (candidate?.source === "workspace" && candidate?.confidence === "verified")) &&
+    typeof candidate?.value === "string" &&
+    candidate.value.trim()
+  );
+  return item?.value?.trim() || "";
+}
+
+function businessKnowledgeNote(workspaceData, { includePaymentTerm = false } = {}) {
+  const tone = getBusinessKnowledgeValue(workspaceData, "communication-tone");
+  const paymentTerm = includePaymentTerm ? getBusinessKnowledgeValue(workspaceData, "payment-term") : "";
+  const parts = [];
+  if (tone) parts.push(`Use the owner's communication tone: ${tone}`);
+  if (paymentTerm) parts.push(`Respect the verified payment terms: ${paymentTerm}`);
+  return parts.length ? ` Business context: ${parts.join(". ")}.` : "";
+}
+
 function prepareFollowupMessageDraft(signal, workspaceData, locale = "en") {
   const customer = workspaceData.customers.find(c => signal.sourceIds?.includes(c.id));
   const message = workspaceData.messages.find(m => signal.sourceIds?.includes(m.id));
@@ -584,7 +605,7 @@ function prepareFollowupMessageDraft(signal, workspaceData, locale = "en") {
     kind: "followup-message",
     status: "prepared",
     title: `Follow up: ${customer?.title || "Customer"}`,
-    content: t(customer, message),
+    content: t(customer, message) + businessKnowledgeNote(workspaceData),
     sourceIds: signal.sourceIds,
     targetType: "messages",
     targetHref: "/business/messages",
@@ -610,7 +631,7 @@ function prepareInvoiceFollowupDraft(signal, workspaceData, locale = "en") {
     kind: "invoice-followup",
     status: "prepared",
     title: `Payment reminder: ${invoice.number || "Invoice"}`,
-    content: t(invoice, total.toFixed(2)),
+    content: t(invoice, total.toFixed(2)) + businessKnowledgeNote(workspaceData, { includePaymentTerm: true }),
     sourceIds: signal.sourceIds,
     targetType: "messages",
     targetHref: "/business/messages",
@@ -635,7 +656,7 @@ function prepareQuoteFollowupDraft(signal, workspaceData, locale = "en") {
     kind: "followup-message",
     status: "prepared",
     title: `Quote follow-up: ${quote.number || "Quote"}`,
-    content: t(quote, customer),
+    content: t(quote, customer) + businessKnowledgeNote(workspaceData),
     sourceIds: signal.sourceIds,
     targetType: "messages",
     targetHref: "/business/messages",
