@@ -15,6 +15,8 @@ const emptyDecision={corePriorities:[],opportunityRadar:[],fixMyBusiness:[],busi
 const actions=prepareActionsForSignals(emptyDecision,workspaceData,"en",5)
 assert.ok(actions.length>=3)
 assert.ok(actions.some(x=>x.kind==="invoice-followup"&&x.sourceIds.includes("invoice-1")))
+assert.ok(actions.some(x=>x.kind==="followup-message"&&x.sourceIds.includes("quote-1")&&x.reason==="quote-followup-approval-pending"))
+assert.ok(!actions.some(x=>x.kind==="invoice-followup"&&x.sourceIds.includes("quote-1")))
 assert.ok(actions.some(x=>x.kind==="followup-message"&&x.sourceIds.includes("lead-1")))
 assert.ok(actions.some(x=>x.kind==="task"&&x.sourceIds.includes("task-1")))
 assert.ok(actions.every(x=>x.status==="prepared"))
