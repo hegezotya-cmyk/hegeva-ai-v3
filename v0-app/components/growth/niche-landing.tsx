@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { ArrowRight, FileText, MessageSquareText, ShieldCheck, Users } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
+import { recordAnalyticsEvent } from "@/components/acquisition/acquisition-attribution"
 
 type SupportedLocale = "en" | "hu" | "de" | "fr" | "es"
 
@@ -127,6 +128,7 @@ export function NicheLanding({ slug, labels }: NicheLandingProps) {
               className="hegeva-primary inline-flex min-h-12 items-center gap-2 rounded-xl px-6 text-sm font-bold"
               data-acquisition-event="demo_entry_click"
               data-niche={slug}
+              onClick={() => recordAnalyticsEvent("demo_entry_click", `/${slug}`, { source: "niche_landing", niche: slug, destination: "/challenge" })}
             >
               {c.challenge}<ArrowRight className="size-4" aria-hidden />
             </Link>
