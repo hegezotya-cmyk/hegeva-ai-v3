@@ -38,7 +38,7 @@ export function EmailVerificationPanel({
     <section className="glass-panel rounded-2xl p-6 sm:p-8">
       <h1 className="text-2xl font-semibold">{title}</h1>
       <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{message}</p>
-      <Link href="/login" className="mt-6 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">
+      <Link href={verified ? "/login?callbackURL=%2Fget-started" : "/login"} className="mt-6 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">
         {verified ? c.continueToLogin : c.returnLogin}
       </Link>
     </section>
