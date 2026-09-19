@@ -1,0 +1,172 @@
+name: HEGEVA Analytics Hotfix V1 UI Deploy
+
+on:
+  push:
+    branches:
+      - growth-analytics-hotfix-v1-20260919
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hegeva-analytics-hotfix-v1-ui-deploy
+  cancel-in-progress: false
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  verify-and-deploy-ui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v0-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify protected HEGEVA files unchanged
+        working-directory: .
+        shell: bash
+        run: |
+          git diff --exit-code 9665a73027fc117d58e022c6669789e17d0aa180 -- \
+            v0-app/components/hegeva-logo.tsx \
+            v0-app/app/globals.css \
+            v0-app/components/desktop-command-rail.tsx \
+            v0-app/components/site-header.tsx \
+            v0-app/components/app-shell.tsx \
+            v0-app/components/command-center/core-decision-surface.tsx \
+            v0-app/lib/hegeva-core.ts \
+            v0-app/components/growth/sixty-second-challenge.tsx \
+            v0-app/components/growth/free-tools-hub.tsx \
+            v0-app/app/get-started/page.tsx \
+            v0-app/components/get-started/first-wow.tsx
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Analytics hotfix audit
+        run: node scripts/analytics-challenge-view-hotfix-audit.mjs
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Production build
+        run: npm run build
+
+      - name: Cloudflare OpenNext build
+        run: npm run cf:build
+
+      - name: Require Cloudflare credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN repository secret"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing CLOUDFLARE_ACCOUNT_ID repository secret"; exit 1; }
+
+      - name: Deploy V0 UI Worker only
+        run: npx opennextjs-cloudflare deploy
+
+      - name: Install Chromium for post-deploy verification
+        run: npx playwright install --with-deps chromium
+
+      - name: Post-deploy GA4 wiring verification
+        shell: bash
+        run: |
+          cat > .hegeva-ga4-postdeploy.mjs <<'NODE'
+          import { chromium } from "playwright"
+          const BASE = "https://hegevaai.co.uk"
+          const failures = []
+          const ok = (name, detail = "") => console.log("PASS", name, detail)
+          const bad = (name, detail = "") => { failures.push(name + ": " + detail); console.error("FAIL", name, detail) }
+
+          const browser = await chromium.launch({ headless: true })
+          try {
+            const context = await browser.newContext({
+              viewport: { width: 1440, height: 900 },
+              permissions: ["clipboard-read", "clipboard-write"],
+            })
+            await context.addInitScript(() => localStorage.setItem("hegeva:analytics-consent:v1", "granted"))
+            await context.route(/googletagmanager\.com|google-analytics\.com|analytics\.google\.com|clarity\.ms/, route => route.abort())
+
+            const page = await context.newPage()
+            await page.goto(BASE + "/challenge?utm_source=linkedin&utm_medium=organic&utm_campaign=hegeva_growth_2026&utm_content=video_1", {
+              waitUntil: "domcontentloaded",
+              timeout: 45000,
+            })
+            await page.waitForTimeout(700)
+
+            await page.getByRole("button", { name: /START FREE DEMO/i }).click()
+            await page.getByRole("button", { name: /^Electrician$/i }).click()
+            await page.getByText("£2,050 currently needs attention", { exact: false }).waitFor({ timeout: 15000 })
+            await page.getByRole("button", { name: /PREPARE ACTION/i }).click()
+            await page.getByText("Prepared only. Nothing has been sent.", { exact: false }).waitFor()
+
+            const expectedEvents = [
+              "challenge_view",
+              "challenge_start",
+              "business_type_selected",
+              "demo_loaded",
+              "demo_analysis_complete",
+              "priority_viewed",
+              "business_score_view",
+              "prepare_action_click",
+              "prepared_action_complete",
+              "challenge_complete",
+            ]
+
+            await page.waitForFunction((expected) => {
+              const rows = (window.dataLayer || []).map(x => {
+                try { return Array.from(x) } catch { return x }
+              })
+              const names = rows.filter(x => Array.isArray(x) && x[0] === "event").map(x => x[1])
+              return expected.every(name => names.includes(name))
+            }, expectedEvents, { timeout: 5000 }).catch(() => {})
+
+            const events = await page.evaluate(() => {
+              const rows = (window.dataLayer || []).map(x => {
+                try { return Array.from(x) } catch { return x }
+              })
+              return rows
+                .filter(x => Array.isArray(x) && x[0] === "event")
+                .map(x => ({ name: x[1], params: x[2] || {} }))
+            })
+
+            const names = events.map(e => e.name)
+            for (const expected of expectedEvents) {
+              names.includes(expected) ? ok("GA4 event", expected) : bad("GA4 event", "missing " + expected + "; have " + names.join(","))
+            }
+
+            const tracked = events.find(e => e.name === "challenge_start")
+            const p = tracked?.params || {}
+            if (
+              p.campaign_source === "linkedin" &&
+              p.campaign_medium === "organic" &&
+              p.campaign_name === "hegeva_growth_2026" &&
+              p.campaign_content === "video_1"
+            ) ok("UTM propagation", "linkedin/organic/hegeva_growth_2026/video_1")
+            else bad("UTM propagation", JSON.stringify(p))
+
+            await context.close()
+          } finally {
+            await browser.close()
+          }
+
+          if (failures.length) {
+            for (const failure of failures) console.error("-", failure)
+            process.exit(1)
+          }
+          console.log("HEGEVA post-deploy GA4 wiring PASS")
+          NODE
+          node ./.hegeva-ga4-postdeploy.mjs
+          rm -f .hegeva-ga4-postdeploy.mjs
