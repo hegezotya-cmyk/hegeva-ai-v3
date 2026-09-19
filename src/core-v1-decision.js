@@ -783,6 +783,27 @@ export function prepareActionsForSignals(signals, workspaceData, locale = "en", 
     }
   }
 
+  // Lead-to-Money only prepares the safely supported quote-follow-up gap.
+  // It never creates invoices, records payments, qualifies leads, or executes externally.
+  for (const item of signals.leadToMoney || []) {
+    if (
+      item?.stage === "follow-up" &&
+      item?.status === "needs-attention" &&
+      item?.nextStage === "invoice" &&
+      Array.isArray(item.sourceIds) &&
+      item.sourceIds.length > 0
+    ) {
+      allSignals.push({
+        kind: "stale-quotes",
+        sourceIds: item.sourceIds,
+        severity: "attention",
+        href: item.targetHref,
+        evidenceBacked: true,
+        leadToMoney: true,
+      });
+    }
+  }
+
   // Deduplicate by kind, keep highest severity
   const byKind = new Map();
   for (const s of allSignals) {
@@ -891,7 +912,7 @@ export function runCoreV1Decision(workspaceData, cloudEnabled, locale = "en") {
   const decision = computeCoreDecision(workspaceData, cloudEnabled);
   const businessRules = evaluateBusinessRules(workspaceData);
   const leadToMoney = projectLeadToMoney(workspaceData);
-  const preparedActions = prepareActionsForSignals({ ...decision, businessRules }, workspaceData, locale, 3);
+  const preparedActions = prepareActionsForSignals({ ...decision, businessRules, leadToMoney }, workspaceData, locale, 3);
   const employeeDelegations = prepareEmployeeDelegations(preparedActions, locale);
 
   return {
