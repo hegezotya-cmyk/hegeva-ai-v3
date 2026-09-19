@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { ArrowRight, CheckCircle2, Clock3, FileText, Gauge, ShieldCheck, Sparkles } from "lucide-react"
+import { ArrowRight, CheckCircle2, Clock3, FileText, Gauge, Share2, ShieldCheck, Sparkles } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { calculateBusinessScore, DEMO_SCORE_SIGNALS } from "@/lib/business-score"
 import { recordAnalyticsEvent, saveDemoRegistrationContext } from "@/components/acquisition/acquisition-attribution"
@@ -52,6 +52,9 @@ const COPY = {
     finalBody: "Now let it check your business.",
     tryMine: "TRY WITH MY BUSINESS",
     signupTrust: "No card required. You stay in control.",
+    share: "SHARE THE CHALLENGE",
+    shared: "Challenge link copied.",
+    shareText: "I tried the HEGEVA 60-Second Business Challenge. Try it yourself.",
     payments: "Payments",
     sales: "Sales follow-up",
     customers: "Customer attention",
@@ -104,6 +107,9 @@ const COPY = {
     finalBody: "Most nézze meg a te vállalkozásodat.",
     tryMine: "PRÓBÁLD A SAJÁT VÁLLALKOZÁSOMMAL",
     signupTrust: "Nem kell bankkártya. Te maradsz irányításban.",
+    share: "KIHÍVÁS MEGOSZTÁSA",
+    shared: "A kihívás linkje kimásolva.",
+    shareText: "Kipróbáltam a HEGEVA 60 másodperces üzleti kihívását. Próbáld ki te is.",
     payments: "Fizetések",
     sales: "Értékesítési utánkövetés",
     customers: "Ügyfélfigyelem",
@@ -140,7 +146,7 @@ const COPY = {
     why: "Warum dieser Score?", hide: "Score-Details ausblenden", control: "HEGEVA zeigt die Signale hinter dem Score. Du entscheidest.",
     interpretation: "Mehrere Bereiche brauchen Aufmerksamkeit", finalTitle: "HEGEVA hat in weniger als 60 Sekunden etwas Nützliches gefunden.",
     finalBody: "Jetzt kann HEGEVA dein Unternehmen prüfen.", tryMine: "MIT MEINEM UNTERNEHMEN TESTEN",
-    signupTrust: "Keine Karte erforderlich. Du behältst die Kontrolle.", payments: "Zahlungen", sales: "Vertriebs-Nachverfolgung",
+    signupTrust: "Keine Karte erforderlich. Du behältst die Kontrolle.", share: "CHALLENGE TEILEN", shared: "Challenge-Link kopiert.", shareText: "Ich habe die HEGEVA 60-Sekunden-Business-Challenge ausprobiert. Probier sie selbst.", payments: "Zahlungen", sales: "Vertriebs-Nachverfolgung",
     customers: "Kundenaufmerksamkeit", admin: "Admin-Kontrolle",
     scoreReasons: {
       overdue_invoice: "Eine Rechnung ist überfällig", invoice_14_days: "Rechnung ist 14+ Tage verspätet", invoice_1000_plus: "Überfälliger Wert ist £1.000+",
@@ -165,7 +171,7 @@ const COPY = {
     why: "Pourquoi ce score ?", hide: "Masquer les détails", control: "HEGEVA montre les signaux derrière le score. Vous décidez quoi faire.",
     interpretation: "Plusieurs domaines nécessitent une attention", finalTitle: "HEGEVA a trouvé quelque chose d’utile en moins de 60 secondes.",
     finalBody: "Maintenant, laissez-le examiner votre entreprise.", tryMine: "ESSAYER AVEC MON ENTREPRISE",
-    signupTrust: "Aucune carte requise. Vous gardez le contrôle.", payments: "Paiements", sales: "Suivi commercial",
+    signupTrust: "Aucune carte requise. Vous gardez le contrôle.", share: "PARTAGER LE DÉFI", shared: "Lien du défi copié.", shareText: "J’ai essayé le défi business HEGEVA de 60 secondes. Essayez-le vous-même.", payments: "Paiements", sales: "Suivi commercial",
     customers: "Attention client", admin: "Contrôle administratif",
     scoreReasons: {
       overdue_invoice: "Une facture est en retard", invoice_14_days: "Facture en retard de 14+ jours", invoice_1000_plus: "Montant en retard de £1 000+",
@@ -190,7 +196,7 @@ const COPY = {
     why: "¿Por qué esta puntuación?", hide: "Ocultar detalles", control: "HEGEVA muestra las señales detrás de la puntuación. Tú decides qué hacer.",
     interpretation: "Varias áreas necesitan atención", finalTitle: "HEGEVA encontró algo útil en menos de 60 segundos.",
     finalBody: "Ahora deja que revise tu negocio.", tryMine: "PROBAR CON MI NEGOCIO",
-    signupTrust: "No necesitas tarjeta. Tú mantienes el control.", payments: "Pagos", sales: "Seguimiento comercial",
+    signupTrust: "No necesitas tarjeta. Tú mantienes el control.", share: "COMPARTIR EL RETO", shared: "Enlace del reto copiado.", shareText: "Probé el reto empresarial de 60 segundos de HEGEVA. Pruébalo tú también.", payments: "Pagos", sales: "Seguimiento comercial",
     customers: "Atención al cliente", admin: "Control administrativo",
     scoreReasons: {
       overdue_invoice: "Hay una factura vencida", invoice_14_days: "Factura vencida hace 14+ días", invoice_1000_plus: "Valor vencido de £1.000+",
@@ -211,6 +217,7 @@ export function SixtySecondChallenge() {
   const [selected, setSelected] = useState<BusinessType>("electrician")
   const [prepared, setPrepared] = useState(false)
   const [showWhy, setShowWhy] = useState(false)
+  const [shareStatus, setShareStatus] = useState("")
   const resultsTracked = useRef(false)
   const score = useMemo(() => calculateBusinessScore(DEMO_SCORE_SIGNALS), [])
   const profile = PROFILES[selected]
@@ -254,6 +261,22 @@ export function SixtySecondChallenge() {
   const tryMyBusiness = () => {
     saveDemoRegistrationContext(selected)
     recordAnalyticsEvent("try_my_business_click", "/challenge", { score: score.overall, business_type: selected, destination: "/login" })
+  }
+
+  const shareChallenge = async () => {
+    const url = `${window.location.origin}/challenge?utm_source=share&utm_medium=referral&utm_campaign=hegeva_growth_2026&utm_content=challenge_share`
+    recordAnalyticsEvent("share_click", "/challenge", { share_type: "challenge", business_type: selected })
+    setShareStatus("")
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "HEGEVA 60-Second Business Challenge", text: c.shareText, url })
+        return
+      }
+      await navigator.clipboard.writeText(`${c.shareText} ${url}`)
+      setShareStatus(c.shared)
+    } catch {
+      // A cancelled native share is not an error and must not affect the challenge.
+    }
   }
 
   const categories = [
@@ -396,6 +419,12 @@ export function SixtySecondChallenge() {
                   {c.tryMine}<ArrowRight className="size-4" aria-hidden />
                 </Link>
                 <p className="mt-3 text-xs text-muted-foreground">{c.signupTrust}</p>
+                <div className="mt-5">
+                  <button type="button" onClick={() => void shareChallenge()} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-gold/35 px-4 text-sm font-semibold text-gold">
+                    <Share2 className="size-4" aria-hidden />{c.share}
+                  </button>
+                  {shareStatus && <p className="mt-2 text-xs text-muted-foreground" role="status">{shareStatus}</p>}
+                </div>
               </section>
             </div>
           )}
