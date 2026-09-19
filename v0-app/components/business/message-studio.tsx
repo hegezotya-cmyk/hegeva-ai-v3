@@ -1,6 +1,6 @@
 "use client"
 
-import { FormEvent, useState } from "react"
+import { FormEvent, useEffect, useState } from "react"
 import { CalendarClock, CheckCircle2, Cloud, CloudOff, Copy, Pencil, Plus, ShieldCheck, Trash2, X } from "lucide-react"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { useI18n } from "@/lib/i18n/provider"
@@ -48,6 +48,27 @@ export function MessageStudio() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const [approvalNotice, setApprovalNotice] = useState("")
+  useEffect(() => {
+    try {
+      const key = "hegeva:first-wow-message-seed:v1"
+      const raw = sessionStorage.getItem(key)
+      if (!raw) return
+      const seed = JSON.parse(raw)
+      const age = Date.now() - Number(seed?.at || 0)
+      if (age < 0 || age > 30 * 60 * 1000 || typeof seed?.body !== "string") {
+        sessionStorage.removeItem(key)
+        return
+      }
+      if (typeof seed.type === "string") setType(seed.type)
+      if (typeof seed.tone === "string") setTone(seed.tone)
+      if (typeof seed.subject === "string") setSubject(seed.subject)
+      setBody(seed.body)
+      sessionStorage.removeItem(key)
+    } catch {
+      // Quick-start handoff is best-effort and must never block Message Studio.
+    }
+  }, [])
+
   const editCopy = {
     en:{edit:"Edit draft",update:"Update draft",cancel:"Cancel",follow:"Follow-up date",draft:"Draft",approve:"Approve",approved:"Approved",complete:"Complete follow-up",completed:"Completed",due:"Follow-up due",linked:"Linked planner task",awaiting:"Awaiting approval",notSent:"Not sent",notExecuted:"Not executed",approveAction:"Approve action",approving:"Approving…",failed:"Approval could not be completed. Reload and try again.",evidence:"Evidence"},hu:{edit:"Vázlat szerkesztése",update:"Vázlat frissítése",cancel:"Mégse",follow:"Utánkövetés dátuma",draft:"Vázlat",approve:"Jóváhagyás",approved:"Jóváhagyva",complete:"Utánkövetés lezárása",completed:"Lezárva",due:"Utánkövetés esedékes",linked:"Kapcsolódó tervezőfeladat",awaiting:"Jóváhagyásra vár",notSent:"Nincs elküldve",notExecuted:"Nincs végrehajtva",approveAction:"Művelet jóváhagyása",approving:"Jóváhagyás…",failed:"A jóváhagyás nem sikerült. Töltsd újra az oldalt, majd próbáld újra.",evidence:"Bizonyíték"},de:{edit:"Entwurf bearbeiten",update:"Entwurf aktualisieren",cancel:"Abbrechen",follow:"Nachfassdatum",draft:"Entwurf",approve:"Freigeben",approved:"Freigegeben",complete:"Nachfassung abschließen",completed:"Abgeschlossen",due:"Nachfassung fällig",linked:"Verknüpfte Planeraufgabe",awaiting:"Wartet auf Freigabe",notSent:"Nicht gesendet",notExecuted:"Nicht ausgeführt",approveAction:"Aktion freigeben",approving:"Freigabe…",failed:"Die Freigabe konnte nicht abgeschlossen werden. Bitte neu laden und erneut versuchen.",evidence:"Nachweis"},fr:{edit:"Modifier le brouillon",update:"Mettre à jour",cancel:"Annuler",follow:"Date de suivi",draft:"Brouillon",approve:"Approuver",approved:"Approuvé",complete:"Terminer le suivi",completed:"Terminé",due:"Suivi dû",linked:"Tâche liée au planificateur",awaiting:"En attente d’approbation",notSent:"Non envoyé",notExecuted:"Non exécuté",approveAction:"Approuver l’action",approving:"Approbation…",failed:"L’approbation n’a pas pu être effectuée. Rechargez puis réessayez.",evidence:"Preuve"},es:{edit:"Editar borrador",update:"Actualizar borrador",cancel:"Cancelar",follow:"Fecha de seguimiento",draft:"Borrador",approve:"Aprobar",approved:"Aprobado",complete:"Completar seguimiento",completed:"Completado",due:"Seguimiento pendiente",linked:"Tarea vinculada del planificador",awaiting:"Pendiente de aprobación",notSent:"No enviado",notExecuted:"No ejecutado",approveAction:"Aprobar acción",approving:"Aprobando…",failed:"No se pudo completar la aprobación. Recarga e inténtalo de nuevo.",evidence:"Evidencia"},
   }[locale]
