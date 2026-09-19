@@ -22,6 +22,7 @@ on:
       - "v0-app/scripts/business-knowledge-core-read-audit.mjs"
       - "v0-app/scripts/lead-to-money-v1-audit.mjs"
       - "v0-app/scripts/command-center-owner-attention-audit.mjs"
+      - "v0-app/scripts/ai-employees-orchestration-audit.mjs"
       - "v0-app/package.json"
       - ".github/workflows/business-operating-system-v1-check.yml"
   workflow_dispatch:
