@@ -57,7 +57,8 @@ window.gtag("consent","default",{
   ad_user_data:"denied",
   ad_personalization:"denied",
   wait_for_update:500
-});`
+});
+window.__hegevaConsentDefaulted=true;`
   return <script id="hegeva-consent-mode-default" dangerouslySetInnerHTML={{ __html: source }} />
 }
 
