@@ -1,0 +1,71 @@
+name: HEGEVA Growth Engine V1 Check
+
+on:
+  push:
+    branches:
+      - growth-engine-v1-20260919
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce narrow Growth Engine scope
+        shell: bash
+        run: |
+          BASE=d71adf9a79d63c2114572f7a63160185bf7da689
+          allowed='^(.github/workflows/hegeva-growth-engine-v1-check.yml|.github/workflows/hegeva-growth-engine-v1-ui-deploy.yml|v0-app/app/challenge/page.tsx|v0-app/app/page.tsx|v0-app/app/sitemap.ts|v0-app/components/acquisition/acquisition-attribution.tsx|v0-app/components/analytics-consent.tsx|v0-app/components/growth/sixty-second-challenge.tsx|v0-app/lib/business-score.ts|v0-app/lib/conversion-tracking.ts|v0-app/scripts/growth-engine-v1-audit.mjs)$'
+          bad=$(git diff --name-only "$BASE"...HEAD | grep -Ev "$allowed" || true)
+          if [ -n "$bad" ]; then
+            echo "Unexpected files changed:"
+            echo "$bad"
+            exit 1
+          fi
+
+      - name: Verify protected recovery files are unchanged
+        shell: bash
+        run: |
+          git diff --exit-code d71adf9a79d63c2114572f7a63160185bf7da689 --             v0-app/components/hegeva-logo.tsx             v0-app/app/globals.css             v0-app/components/desktop-command-rail.tsx             v0-app/components/site-header.tsx             v0-app/components/app-shell.tsx             v0-app/components/command-center/core-decision-surface.tsx             v0-app/lib/hegeva-core.ts             v0-app/components/auth/auth-panel.tsx
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: v0-app
+        run: npm ci
+
+      - name: Growth Engine V1 audit
+        working-directory: v0-app
+        run: node scripts/growth-engine-v1-audit.mjs
+
+      - name: Product audit
+        working-directory: v0-app
+        run: npm run audit:product
+
+      - name: Mobile audit
+        working-directory: v0-app
+        run: npm run audit:ui-mobile
+
+      - name: Visual audit
+        working-directory: v0-app
+        run: npm run audit:visual
+
+      - name: TypeScript check
+        working-directory: v0-app
+        run: npx tsc --noEmit
+
+      - name: Production build
+        working-directory: v0-app
+        run: npm run build
