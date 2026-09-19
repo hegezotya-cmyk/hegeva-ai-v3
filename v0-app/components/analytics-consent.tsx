@@ -96,14 +96,14 @@ export function AnalyticsConsent() {
   useEffect(() => {
     const receive = (event: Event) => {
       if (consent !== "granted" || !window.gtag) return
-      const detail = (event as CustomEvent<{ event?: string; path?: string }>).detail
-      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success"].includes(detail.event || "")) return
-      const activationPaths = ["/get-started", "/business/customers", "/business/invoices", "/command-center", "/pricing", "/account"]
+      const detail = (event as CustomEvent<{ event?: string; path?: string; params?: Record<string, string | number | boolean> }>).detail
+      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click"].includes(detail.event || "")) return
+      const activationPaths = ["/get-started", "/business/customers", "/business/invoices", "/command-center", "/pricing", "/account", "/demo"]
       if (!detail.path || (!PUBLIC_ANALYTICS_PATHS.includes(detail.path) && !activationPaths.includes(detail.path))) return
       const key = `${detail.event}:${detail.path}`
       if (detail.event !== "primary_cta_click" && sent.current.has(key)) return
       sent.current.add(key)
-      window.gtag("event", detail.event, { page_path: detail.path, page_location: analyticsPageLocation(detail.path), page_title: "HEGEVA AI", page_referrer: "", ...campaignAttribution() })
+      window.gtag("event", detail.event, { page_path: detail.path, page_location: analyticsPageLocation(detail.path), page_title: "HEGEVA AI", page_referrer: "", ...campaignAttribution(), ...(detail.params || {}) })
     }
     window.addEventListener("hegeva:analytics-event", receive)
     return () => window.removeEventListener("hegeva:analytics-event", receive)
