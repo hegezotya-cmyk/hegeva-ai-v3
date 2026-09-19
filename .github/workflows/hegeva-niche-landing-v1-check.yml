@@ -1,0 +1,59 @@
+name: HEGEVA Niche Landing V1 Check
+
+on:
+  push:
+    branches:
+      - growth-niche-pages-v1-20260919
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce narrow niche-page scope
+        shell: bash
+        run: |
+          BASE=d8177d6eb640593f43ba7ae675bfb8acbac77df5
+          allowed='^(.github/workflows/hegeva-niche-landing-v1-check.yml|v0-app/app/(for-electricians|for-builders|for-plumbers|for-cleaners|for-property-maintenance|for-consultants)/page.tsx|v0-app/components/growth/niche-landing.tsx|v0-app/lib/conversion-tracking.ts|v0-app/components/analytics-consent.tsx|v0-app/app/sitemap.ts|v0-app/scripts/niche-landing-v1-audit.mjs)$'
+          bad=$(git diff --name-only "$BASE"...HEAD | grep -Ev "$allowed" || true)
+          if [ -n "$bad" ]; then
+            echo "Unexpected files changed:"
+            echo "$bad"
+            exit 1
+          fi
+
+      - name: Verify protected HEGEVA files unchanged
+        shell: bash
+        run: |
+          git diff --exit-code d8177d6eb640593f43ba7ae675bfb8acbac77df5 --             v0-app/components/hegeva-logo.tsx             v0-app/app/globals.css             v0-app/components/desktop-command-rail.tsx             v0-app/components/site-header.tsx             v0-app/components/app-shell.tsx             v0-app/components/command-center/core-decision-surface.tsx             v0-app/lib/hegeva-core.ts             v0-app/components/auth/auth-panel.tsx             v0-app/app/get-started/page.tsx             v0-app/components/get-started/first-wow.tsx
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: v0-app
+        run: npm ci
+
+      - name: Niche landing audit
+        working-directory: v0-app
+        run: node scripts/niche-landing-v1-audit.mjs
+
+      - name: TypeScript check
+        working-directory: v0-app
+        run: npx tsc --noEmit
+
+      - name: Production build
+        working-directory: v0-app
+        run: npm run build
