@@ -638,6 +638,38 @@ function prepareLeadQualificationDraft(signal, workspaceData, locale = "en") {
   };
 }
 
+function prepareQuoteBriefDraft(signal, workspaceData, locale = "en") {
+  const customer = workspaceData.customers.find(c => signal.sourceIds?.includes(c.id));
+  if (!customer) return null;
+  const service = getBusinessKnowledgeValue(workspaceData, "service");
+  const price = getBusinessKnowledgeValue(workspaceData, "price");
+  const paymentTerm = getBusinessKnowledgeValue(workspaceData, "payment-term");
+  const context = [
+    service ? `Service: ${service}` : "",
+    price ? `Verified price context: ${price}` : "",
+    paymentTerm ? `Payment terms: ${paymentTerm}` : "",
+  ].filter(Boolean).join(". ");
+  const templates = {
+    en: (c) => `Prepare an owner-review quote brief for ${c?.title || "customer"}. Use only verified workspace/business knowledge; confirm scope and pricing before creating any quote document.`,
+    hu: (c) => `Tulajdonosi ellenőrzésre szánt ajánlati vázlat előkészítése ${c?.title || "ügyfél"} részére. Csak ellenőrzött workspace/business knowledge adatot használj; az ajánlati dokumentum létrehozása előtt ellenőrizd a munkakört és az árat.`,
+    de: (c) => `Einen Angebotsentwurf zur Inhaberprüfung für ${c?.title || "Kunde"} vorbereiten. Nur verifizierte Workspace-/Business-Knowledge-Daten verwenden; Umfang und Preis vor Erstellung eines Angebotsdokuments bestätigen.`,
+    fr: (c) => `Préparer un brouillon de devis pour validation du propriétaire pour ${c?.title || "client"}. Utiliser uniquement des données Workspace/Business Knowledge vérifiées; confirmer le périmètre et le prix avant de créer un devis.`,
+    es: (c) => `Preparar un borrador de presupuesto para revisión del propietario para ${c?.title || "cliente"}. Usar solo datos verificados de Workspace/Business Knowledge; confirmar alcance y precio antes de crear el presupuesto.`,
+  };
+  const t = templates[locale] || templates.en;
+  return {
+    kind: "quote-brief",
+    status: "prepared",
+    title: `Quote brief: ${customer?.title || "Customer"}`,
+    content: t(customer) + (context ? ` Business context: ${context}.` : "") + businessKnowledgeNote(workspaceData),
+    sourceIds: signal.sourceIds,
+    targetType: "invoices",
+    targetHref: "/business/invoices",
+    reason: "quote-brief-owner-review-pending",
+    preparedAt: new Date().toISOString(),
+  };
+}
+
 function prepareInvoiceFollowupDraft(signal, workspaceData, locale = "en") {
   const invoice = workspaceData.invoices.find(i => signal.sourceIds?.includes(i.id));
   if (!invoice || invoice.type !== "invoice") return null;
@@ -756,6 +788,7 @@ function prepareAIBotHandoffDraft(signal, workspaceData, locale = "en") {
 
 const PREPARATION_DISPATCH = {
   "lead-qualification": prepareLeadQualificationDraft,
+  "quote-brief": prepareQuoteBriefDraft,
   "complete-followups": prepareFollowupMessageDraft,
   "review-followups": prepareFollowupMessageDraft,
   "customer-followups": prepareFollowupMessageDraft,
@@ -821,6 +854,14 @@ export function prepareActionsForSignals(signals, workspaceData, locale = "en", 
         evidenceBacked: true,
         leadToMoney: true,
       });
+      allSignals.push({
+        kind: "quote-brief",
+        sourceIds: item.sourceIds,
+        severity: "ready",
+        href: "/business/invoices",
+        evidenceBacked: true,
+        leadToMoney: true,
+      });
     }
     if (item.stage === "follow-up" && item.nextStage === "invoice") {
       allSignals.push({
@@ -872,7 +913,7 @@ export function prepareActionsForSignals(signals, workspaceData, locale = "en", 
 }
 
 const EMPLOYEE_DELEGATION_RULES = [
-  { role: "Sales", kinds: ["lead-qualification", "followup-message", "x20-spec"] },
+  { role: "Sales", kinds: ["lead-qualification", "quote-brief", "followup-message", "x20-spec"] },
   { role: "Finance", kinds: ["invoice-followup"] },
   { role: "Marketing", kinds: ["creative-brief"] },
   { role: "Support", kinds: ["task"] },
