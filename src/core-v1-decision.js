@@ -528,6 +528,28 @@ export function evaluateBusinessRules(workspaceData, today = new Date().toISOStr
 }
 
 // =========================================
+// LEAD-TO-MONEY V1 (EVIDENCE PROJECTION)
+// =========================================
+export function projectLeadToMoney(workspaceData) {
+  const customers=Array.isArray(workspaceData?.customers)?workspaceData.customers:[];
+  const documents=Array.isArray(workspaceData?.invoices)?workspaceData.invoices:[];
+  const messages=Array.isArray(workspaceData?.messages)?workspaceData.messages:[];
+  const unique=(values)=>[...new Set(values.filter(Boolean))]; const records=[];
+  for(const customer of customers){
+    const docs=documents.filter(d=>d.customerId===customer.id||d.sourceId===customer.id),quotes=docs.filter(d=>d.type==="quote"),invoices=docs.filter(d=>d.type==="invoice"),related=unique([customer.id,...docs.map(d=>d.id)]),msgs=messages.filter(m=>m.sourceId&&related.includes(m.sourceId)),paid=invoices.some(i=>i.status==="paid"),openInvoice=invoices.some(i=>i.status!=="paid"),hasFollowup=msgs.some(m=>["draft","approved","completed"].includes(m.workflowStatus||""))||Boolean(customer.followUp);
+    if(customer.customerStatus==="lead"&&!quotes.length) records.push({stage:"qualified",status:"needs-attention",sourceIds:[customer.id],nextStage:"quote",kind:"lead-qualification",severity:"high",href:"/business/customers"});
+    if(quotes.length&&!hasFollowup&&!openInvoice&&!paid) records.push({stage:"follow-up",status:"needs-attention",sourceIds:unique([customer.id,...quotes.map(q=>q.id)]),nextStage:"invoice",kind:"quote-followup",severity:"high",href:"/business/messages"});
+    if(openInvoice) records.push({stage:"invoice",status:"needs-attention",sourceIds:unique([customer.id,...invoices.filter(i=>i.status!=="paid").map(i=>i.id)]),nextStage:"payment",kind:"invoice-payment",severity:"high",href:"/business/invoices"});
+    if(paid&&customer.customerStatus==="active") records.push({stage:"repeat-business",status:"observed",sourceIds:related,kind:"repeat-business",severity:"medium",href:"/business/customers"});
+  }
+  return records;
+}
+
+function prepareLeadReviewDraft(signal) { return {kind:"followup-message",status:"prepared",title:"Review lead qualification",content:"Review this lead and prepare the next owner-approved sales step.",sourceIds:signal.sourceIds,targetType:"customers",targetHref:"/business/customers",reason:"lead-qualification-review",preparedAt:new Date().toISOString()}; }
+function prepareQuoteFollowupDraft(signal) { return {kind:"followup-message",status:"prepared",title:"Prepare quote follow-up",content:"A quote exists without a recorded follow-up or invoice. Prepare the next sales follow-up for owner review.",sourceIds:signal.sourceIds,targetType:"messages",targetHref:"/business/messages",reason:"quote-followup-needed",preparedAt:new Date().toISOString()}; }
+function prepareRepeatBusinessDraft(signal) { return {kind:"followup-message",status:"prepared",title:"Review repeat-business opportunity",content:"Paid work exists for an active customer. Prepare a repeat-business review; do not contact the customer automatically.",sourceIds:signal.sourceIds,targetType:"customers",targetHref:"/business/customers",reason:"repeat-business-review",preparedAt:new Date().toISOString()}; }
+
+// =========================================
 // ACTION PREPARATION (DRAFT ONLY)
 // =========================================
 
@@ -666,6 +688,10 @@ const PREPARATION_DISPATCH = {
   "leads": prepareFollowupMessageDraft,
   "operations": prepareTaskDraft,
   "foundation": prepareX20SpecDraft,
+  "lead-qualification": prepareLeadReviewDraft,
+  "quote-followup": prepareQuoteFollowupDraft,
+  "invoice-payment": prepareInvoiceFollowupDraft,
+  "repeat-business": prepareRepeatBusinessDraft,
 };
 
 export function prepareActionsForSignals(signals, workspaceData, locale = "en", max = 3) {
@@ -681,6 +707,11 @@ export function prepareActionsForSignals(signals, workspaceData, locale = "en", 
   // Deterministic Business Rules V1 signals. These carry real record IDs into preparation.
   for (const rule of signals.businessRules || []) {
     if (rule.requiresApproval && PREPARATION_DISPATCH[rule.kind]) allSignals.push(rule);
+  }
+
+  // Lead-to-Money gaps become bounded prepared work.
+  for (const gap of signals.leadToMoney || []) {
+    if (PREPARATION_DISPATCH[gap.kind]) allSignals.push(gap);
   }
 
   // Opportunity Radar signals
@@ -788,7 +819,8 @@ export function prepareEmployeeDelegations(preparedActions, locale = "en") {
 export function runCoreV1Decision(workspaceData, cloudEnabled, locale = "en") {
   const decision = computeCoreDecision(workspaceData, cloudEnabled);
   const businessRules = evaluateBusinessRules(workspaceData);
-  const preparedActions = prepareActionsForSignals({ ...decision, businessRules }, workspaceData, locale, 3);
+  const leadToMoney = projectLeadToMoney(workspaceData);
+  const preparedActions = prepareActionsForSignals({ ...decision, businessRules, leadToMoney }, workspaceData, locale, 3);
   const employeeDelegations = prepareEmployeeDelegations(preparedActions, locale);
 
   return {
@@ -797,6 +829,7 @@ export function runCoreV1Decision(workspaceData, cloudEnabled, locale = "en") {
     coreDecision: decision.coreDecision,
     opportunityRadar: decision.opportunityRadar,
     businessRules,
+    leadToMoney,
     fixMyBusiness: decision.fixMyBusiness,
     goalMode: decision.goalMode,
     pulse: decision.pulse,
