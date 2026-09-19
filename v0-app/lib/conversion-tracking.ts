@@ -3,7 +3,7 @@ const allowed = {
   utm_source: ["facebook", "instagram", "tiktok", "linkedin", "reddit", "youtube", "snapchat", "chatgpt", "share"],
   utm_medium: ["social", "paid_social", "organic_social", "organic", "referral"],
   utm_campaign: ["less_admin", "grow_business", "hegeva_launch", "hegeva_growth_2026"],
-  utm_content: ["video_1", "video_2", "video_3", "text_post_1", "challenge_share"],
+  utm_content: ["video_1", "video_2", "video_3", "text_post_1", "challenge_share", "v2_challenge", "v2_consultants", "v2_free_tools", "v2_electricians", "v2_builders", "v2_plumbers", "v2_cleaners", "v2_property"],
 } as const
 const campaignKey = "hegeva:campaign:v1"
 const referralKey = "hegeva:referral:v1"
