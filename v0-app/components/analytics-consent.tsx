@@ -100,12 +100,13 @@ export function AnalyticsConsent() {
     const receive = (event: Event) => {
       if (consent !== "granted" || !window.gtag) return
       const detail = (event as CustomEvent<{ event?: string; path?: string; params?: Record<string, string | number | boolean> }>).detail
-      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click"].includes(detail.event || "")) return
-      const activationPaths = ["/get-started", "/business/customers", "/business/invoices", "/command-center", "/pricing", "/account", "/demo"]
+      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click", "challenge_view", "challenge_start", "business_type_selected", "demo_loaded", "demo_analysis_complete", "priority_viewed", "prepare_action_click", "prepared_action_complete", "challenge_complete", "business_score_view", "try_my_business_click"].includes(detail.event || "")) return
+      const activationPaths = ["/get-started", "/business/customers", "/business/invoices", "/command-center", "/pricing", "/account", "/demo", "/challenge"]
       if (!detail.path || (!PUBLIC_ANALYTICS_PATHS.includes(detail.path) && !activationPaths.includes(detail.path))) return
       const key = `${detail.event}:${detail.path}`
-      if (detail.event !== "primary_cta_click" && sent.current.has(key)) return
-      sent.current.add(key)
+      const repeatable = detail.event === "primary_cta_click" || detail.event === "demo_business_switch" || detail.event === "business_type_selected"
+      if (!repeatable && sent.current.has(key)) return
+      if (!repeatable) sent.current.add(key)
       window.gtag("event", detail.event, { page_path: detail.path, page_location: analyticsPageLocation(detail.path), page_title: "HEGEVA AI", page_referrer: "", ...campaignAttribution(), ...(detail.params || {}) })
     }
     window.addEventListener("hegeva:analytics-event", receive)
