@@ -7,6 +7,7 @@ import { HEGEVA_EMAIL_VERIFICATION_CALLBACK } from "@/lib/auth-verification"
 import { useI18n } from "@/lib/i18n/provider"
 import { AUTH_COPY } from "@/lib/i18n/auth-copy"
 import { SkeletonSurface } from "@/components/visual-engine"
+import { DEMO_REGISTRATION_KEY, readDemoRegistrationContext } from "@/components/acquisition/acquisition-attribution"
 
 export function AuthPanel() {
   const router = useRouter()
@@ -29,7 +30,14 @@ export function AuthPanel() {
 
   useEffect(() => {
     if (mode === "register" && !isPending && !session?.user) {
-      window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event: "registration_start", path: "/login" } }))
+      const demoContext = readDemoRegistrationContext()
+      window.dispatchEvent(new CustomEvent("hegeva:analytics-event", {
+        detail: {
+          event: "registration_start",
+          path: "/login",
+          params: demoContext ? { entry_context: "demo", demo_business_type: demoContext.businessType } : {},
+        },
+      }))
     }
   }, [mode, isPending, session?.user])
 
@@ -96,6 +104,7 @@ export function AuthPanel() {
           setError(c.authFailed)
           return
         }
+        try { sessionStorage.removeItem(DEMO_REGISTRATION_KEY) } catch {}
         setVerificationPending(true)
         setSuccess(c.verificationRequired)
         return
