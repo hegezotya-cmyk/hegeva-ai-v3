@@ -614,6 +614,30 @@ function prepareFollowupMessageDraft(signal, workspaceData, locale = "en") {
   };
 }
 
+function prepareLeadQualificationDraft(signal, workspaceData, locale = "en") {
+  const customer = workspaceData.customers.find(c => signal.sourceIds?.includes(c.id) && c?.customerStatus === "lead");
+  if (!customer) return null;
+  const templates = {
+    en: (c) => `Review and qualify lead ${c?.title || "Lead"} before preparing a quote. Confirm the need, scope and contact details; do not send or create a quote yet.`,
+    hu: (c) => `${c?.title || "Lead"} lead áttekintése és minősítése ajánlat előkészítése előtt. Ellenőrizd az igényt, a munkakört és a kapcsolati adatokat; még ne küldj és ne hozz létre ajánlatot.`,
+    de: (c) => `Lead ${c?.title || "Lead"} vor der Angebotserstellung prüfen und qualifizieren. Bedarf, Umfang und Kontaktdaten bestätigen; noch kein Angebot senden oder erstellen.`,
+    fr: (c) => `Examiner et qualifier le prospect ${c?.title || "Lead"} avant de préparer un devis. Confirmer le besoin, le périmètre et les coordonnées; ne pas encore envoyer ni créer de devis.`,
+    es: (c) => `Revisar y calificar el lead ${c?.title || "Lead"} antes de preparar un presupuesto. Confirmar necesidad, alcance y datos de contacto; todavía no enviar ni crear un presupuesto.`,
+  };
+  const t = templates[locale] || templates.en;
+  return {
+    kind: "lead-qualification",
+    status: "prepared",
+    title: `Qualify lead: ${customer?.title || "Lead"}`,
+    content: t(customer) + businessKnowledgeNote(workspaceData),
+    sourceIds: signal.sourceIds,
+    targetType: "customers",
+    targetHref: "/business/customers",
+    reason: "lead-qualification-approval-pending",
+    preparedAt: new Date().toISOString(),
+  };
+}
+
 function prepareInvoiceFollowupDraft(signal, workspaceData, locale = "en") {
   const invoice = workspaceData.invoices.find(i => signal.sourceIds?.includes(i.id));
   if (!invoice || invoice.type !== "invoice") return null;
@@ -731,6 +755,7 @@ function prepareAIBotHandoffDraft(signal, workspaceData, locale = "en") {
 }
 
 const PREPARATION_DISPATCH = {
+  "lead-qualification": prepareLeadQualificationDraft,
   "complete-followups": prepareFollowupMessageDraft,
   "review-followups": prepareFollowupMessageDraft,
   "customer-followups": prepareFollowupMessageDraft,
@@ -783,16 +808,21 @@ export function prepareActionsForSignals(signals, workspaceData, locale = "en", 
     }
   }
 
-  // Lead-to-Money only prepares the safely supported quote-follow-up gap.
-  // It never creates invoices, records payments, qualifies leads, or executes externally.
+  // Lead-to-Money prepares only owner-reviewable work from evidence-backed gaps.
+  // It never changes lead status, creates/sends quotes, creates invoices, records payments, or executes externally.
   for (const item of signals.leadToMoney || []) {
-    if (
-      item?.stage === "follow-up" &&
-      item?.status === "needs-attention" &&
-      item?.nextStage === "invoice" &&
-      Array.isArray(item.sourceIds) &&
-      item.sourceIds.length > 0
-    ) {
+    if (!Array.isArray(item?.sourceIds) || item.sourceIds.length === 0 || item?.status !== "needs-attention") continue;
+    if (item.stage === "qualified" && item.nextStage === "quote") {
+      allSignals.push({
+        kind: "lead-qualification",
+        sourceIds: item.sourceIds,
+        severity: "attention",
+        href: item.targetHref,
+        evidenceBacked: true,
+        leadToMoney: true,
+      });
+    }
+    if (item.stage === "follow-up" && item.nextStage === "invoice") {
       allSignals.push({
         kind: "stale-quotes",
         sourceIds: item.sourceIds,
@@ -842,7 +872,7 @@ export function prepareActionsForSignals(signals, workspaceData, locale = "en", 
 }
 
 const EMPLOYEE_DELEGATION_RULES = [
-  { role: "Sales", kinds: ["followup-message", "x20-spec"] },
+  { role: "Sales", kinds: ["lead-qualification", "followup-message", "x20-spec"] },
   { role: "Finance", kinds: ["invoice-followup"] },
   { role: "Marketing", kinds: ["creative-brief"] },
   { role: "Support", kinds: ["task"] },
