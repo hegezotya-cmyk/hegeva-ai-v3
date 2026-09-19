@@ -63,7 +63,7 @@
     "cf:deploy": "npm run cf:build && opennextjs-cloudflare deploy",
     "cf:typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "audit:business-rules": "node scripts/business-rules-v1-audit.mjs && node scripts/business-rules-core-integration-audit.mjs",
-    "audit:business-knowledge": "node scripts/business-knowledge-v1-audit.mjs && node scripts/business-knowledge-memory-runtime-audit.mjs",
+    "audit:business-knowledge": "node scripts/business-knowledge-v1-audit.mjs && node scripts/business-knowledge-memory-runtime-audit.mjs && node scripts/business-knowledge-api-audit.mjs",
     "audit:lead-to-money": "node scripts/lead-to-money-v1-audit.mjs",
     "audit:business-operating-system": "npm run audit:business-rules && npm run audit:business-knowledge && npm run audit:lead-to-money && node scripts/command-center-owner-attention-audit.mjs && npm run audit:prepared-work && npm run audit:ai-employees"
   },
