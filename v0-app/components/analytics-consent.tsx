@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
-import { analyticsPageLocation, campaignAttribution, captureReferralAttribution, PUBLIC_ANALYTICS_PATHS } from "@/lib/conversion-tracking"
+import { analyticsPageLocation, campaignAttribution, captureReferralAttribution, clearReferralAttribution, PUBLIC_ANALYTICS_PATHS } from "@/lib/conversion-tracking"
 import { useI18n } from "@/lib/i18n/provider"
 
 const MEASUREMENT_ID = "G-TK99HP2BG7"
@@ -164,6 +164,7 @@ export function AnalyticsConsent() {
     else {
       sessionStorage.removeItem("hegeva:campaign:v1")
       sessionStorage.removeItem(PENDING_CTA_KEY)
+      clearReferralAttribution()
       window.gtag?.("consent", "update", { analytics_storage: "denied" })
       window.clarity?.("consentv2", { ad_Storage: "denied", analytics_Storage: "denied" })
     }
