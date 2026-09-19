@@ -77,8 +77,14 @@ jobs:
               await p.evaluate(()=>document.addEventListener("click",e=>{const a=e.target instanceof Element?e.target.closest("a"):null;if(a&&a.getAttribute("href")?.startsWith("/login?mode=register"))e.preventDefault()},true))
               await p.getByRole("link",{name:/TRY WITH MY BUSINESS/i}).click()
               await p.waitForTimeout(200)
+              const expectedChallenge=["challenge_view","challenge_start","business_type_selected","demo_loaded","demo_analysis_complete","priority_viewed","business_score_view","prepare_action_click","prepared_action_complete","challenge_complete","share_click","try_my_business_click"]
+              await p.waitForFunction((expected)=>{
+                const rows=(window.dataLayer||[]).map(x=>{try{return Array.from(x)}catch{return x}})
+                const names=rows.filter(x=>Array.isArray(x)&&x[0]==="event").map(x=>x[1])
+                return expected.every(name=>names.includes(name))
+              },expectedChallenge,{timeout:5000}).catch(()=>{})
               const events=await gaEvents(p)
-              requireEvents(events,["challenge_view","challenge_start","business_type_selected","demo_loaded","demo_analysis_complete","priority_viewed","business_score_view","prepare_action_click","prepared_action_complete","challenge_complete","share_click","try_my_business_click"],"Challenge GA4 wiring")
+              requireEvents(events,expectedChallenge,"Challenge GA4 wiring")
               const tracked=events.find(e=>e.name==="challenge_start")
               const q=tracked?.params||{}
               q.campaign_source==="linkedin"&&q.campaign_medium==="organic"&&q.campaign_name==="hegeva_growth_2026"&&q.campaign_content==="video_1" ? ok("UTM propagation","linkedin/organic/hegeva_growth_2026/video_1") : bad("UTM propagation",JSON.stringify(q))
