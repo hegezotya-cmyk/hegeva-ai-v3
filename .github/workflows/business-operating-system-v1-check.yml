@@ -48,6 +48,21 @@ jobs:
       - name: Install V0 dependencies
         working-directory: v0-app
         run: npm ci
-      - name: Run Business Operating System V1 audit suite
+      - name: Run Business Rules audits
         working-directory: v0-app
-        run: npm run audit:business-operating-system
+        run: npm run audit:business-rules
+      - name: Run Business Knowledge audits
+        working-directory: v0-app
+        run: npm run audit:business-knowledge
+      - name: Run Lead-to-Money audits
+        working-directory: v0-app
+        run: npm run audit:lead-to-money
+      - name: Run Command Center owner-attention audit
+        working-directory: v0-app
+        run: node scripts/command-center-owner-attention-audit.mjs
+      - name: Run Prepared Work audits
+        working-directory: v0-app
+        run: npm run audit:prepared-work
+      - name: Run AI Employees audits
+        working-directory: v0-app
+        run: npm run audit:ai-employees
