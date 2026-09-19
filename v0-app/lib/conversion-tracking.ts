@@ -7,7 +7,7 @@ const allowed = {
 } as const
 const campaignKey = "hegeva:campaign:v1"
 
-export const PUBLIC_ANALYTICS_PATHS = ["/", "/login", "/pricing", "/account", "/demo", "/challenge", "/ai-for-small-business", "/ai-business-assistant", "/quote-and-invoice-software", "/ai-for-trades", "/ai-for-electricians", "/for-electricians", "/for-builders", "/for-plumbers", "/for-cleaners", "/for-property-maintenance", "/for-consultants"]
+export const PUBLIC_ANALYTICS_PATHS = ["/", "/login", "/pricing", "/account", "/demo", "/challenge", "/ai-for-small-business", "/ai-business-assistant", "/quote-and-invoice-software", "/ai-for-trades", "/ai-for-electricians", "/for-electricians", "/for-builders", "/for-plumbers", "/for-cleaners", "/for-property-maintenance", "/for-consultants", "/free-tools"]
 
 export function analyticsPageLocation(path: string): string {
   return window.location.origin + (PUBLIC_ANALYTICS_PATHS.includes(path) ? path : "/")
