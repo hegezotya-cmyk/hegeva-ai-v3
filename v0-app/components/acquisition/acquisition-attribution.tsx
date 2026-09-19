@@ -23,6 +23,8 @@ export type AnalyticsEvent =
   | "own_business_start"
   | "own_business_result"
   | "share_click"
+  | "free_tool_use"
+  | "free_tool_cta_click"
 
 export type AnalyticsParams = Record<string, string | number | boolean>
 
