@@ -83,7 +83,7 @@ jobs:
       - name: Post-deploy GA4 wiring verification
         shell: bash
         run: |
-          cat > /tmp/hegeva-ga4-postdeploy.mjs <<'NODE'
+          cat > .hegeva-ga4-postdeploy.mjs <<'NODE'
           import { chromium } from "playwright"
           const BASE = "https://hegevaai.co.uk"
           const failures = []
@@ -168,4 +168,5 @@ jobs:
           }
           console.log("HEGEVA post-deploy GA4 wiring PASS")
           NODE
-          node /tmp/hegeva-ga4-postdeploy.mjs
+          node ./.hegeva-ga4-postdeploy.mjs
+          rm -f .hegeva-ga4-postdeploy.mjs
