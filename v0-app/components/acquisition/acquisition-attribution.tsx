@@ -1,5 +1,59 @@
 "use client"
 import { useEffect } from "react"
-type SafeEvent="landing_page_view"|"registration_start"|"pricing_view"
-function record(event:SafeEvent,path:string){try{if(localStorage.getItem("hegeva:analytics-consent:v1")!=="granted")return;window.dispatchEvent(new CustomEvent("hegeva:analytics-event",{detail:{event,path}}))}catch{}}
-export function AcquisitionAttribution({path}:{path:string}){useEffect(()=>{record("landing_page_view",path);const click=(event:MouseEvent)=>{const target=(event.target as Element|null)?.closest<HTMLElement>("[data-acquisition-event]"),name=target?.dataset.acquisitionEvent;if(name==="registration_start"||name==="pricing_view")record(name,path)};document.addEventListener("click",click);return()=>document.removeEventListener("click",click)},[path]);return null}
+
+export type AnalyticsEvent =
+  | "landing_page_view"
+  | "registration_start"
+  | "pricing_view"
+  | "demo_entry_click"
+  | "demo_workspace_view"
+  | "demo_business_switch"
+  | "demo_signup_click"
+
+export type AnalyticsParams = Record<string, string | number | boolean>
+
+const CONSENT_KEY = "hegeva:analytics-consent:v1"
+export const DEMO_REGISTRATION_KEY = "hegeva:demo-registration:v1"
+
+export function recordAnalyticsEvent(event: AnalyticsEvent, path: string, params: AnalyticsParams = {}) {
+  try {
+    if (localStorage.getItem(CONSENT_KEY) !== "granted") return
+    window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event, path, params } }))
+  } catch {}
+}
+
+export function saveDemoRegistrationContext(businessType: string) {
+  try {
+    sessionStorage.setItem(DEMO_REGISTRATION_KEY, JSON.stringify({ origin: "demo", businessType, at: Date.now() }))
+  } catch {}
+}
+
+export function readDemoRegistrationContext() {
+  try {
+    const raw = sessionStorage.getItem(DEMO_REGISTRATION_KEY)
+    if (!raw) return null
+    const value = JSON.parse(raw)
+    if (value?.origin !== "demo" || typeof value.businessType !== "string" || Date.now() - Number(value.at) > 30 * 60 * 1000) {
+      sessionStorage.removeItem(DEMO_REGISTRATION_KEY)
+      return null
+    }
+    return value as { origin: "demo"; businessType: string; at: number }
+  } catch {
+    return null
+  }
+}
+
+export function AcquisitionAttribution({ path }: { path: string }) {
+  useEffect(() => {
+    recordAnalyticsEvent("landing_page_view", path)
+    const click = (event: MouseEvent) => {
+      const target = (event.target as Element | null)?.closest<HTMLElement>("[data-acquisition-event]")
+      const name = target?.dataset.acquisitionEvent as AnalyticsEvent | undefined
+      if (name === "registration_start" || name === "pricing_view") recordAnalyticsEvent(name, path)
+      if (name === "demo_entry_click") recordAnalyticsEvent(name, path, { source: "homepage", destination: "/demo" })
+    }
+    document.addEventListener("click", click)
+    return () => document.removeEventListener("click", click)
+  }, [path])
+  return null
+}
