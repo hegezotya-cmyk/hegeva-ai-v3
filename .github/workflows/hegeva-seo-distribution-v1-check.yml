@@ -1,0 +1,46 @@
+name: HEGEVA SEO Distribution V1 Check
+
+on:
+  push:
+    branches:
+      - growth-seo-distribution-v1-20260919
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce audit-only SEO scope
+        shell: bash
+        run: |
+          BASE=0d79fbe87e8d28a29472ca6b9cb3f7af72c9dcff
+          allowed='^(.github/workflows/hegeva-seo-distribution-v1-check.yml|v0-app/scripts/seo-distribution-v1-audit.mjs|v0-app/docs/seo-distribution-v1.md)$'
+          bad=$(git diff --name-only "$BASE"...HEAD | grep -Ev "$allowed" || true)
+          if [ -n "$bad" ]; then
+            echo "Unexpected files changed:"
+            echo "$bad"
+            exit 1
+          fi
+
+      - name: Verify product files exactly match Distribution V2 baseline
+        shell: bash
+        run: |
+          git diff --exit-code 0d79fbe87e8d28a29472ca6b9cb3f7af72c9dcff -- v0-app             ':(exclude)v0-app/scripts/seo-distribution-v1-audit.mjs'             ':(exclude)v0-app/docs/seo-distribution-v1.md'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run source + live SEO audit
+        working-directory: v0-app
+        run: node scripts/seo-distribution-v1-audit.mjs
