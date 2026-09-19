@@ -1,0 +1,48 @@
+name: HEGEVA Business Operating System V1 Check
+
+on:
+  push:
+    branches:
+      - business-operating-system-v1-20260919
+    paths:
+      - "src/core-v1-decision.js"
+      - "src/prepared-work-review.js"
+      - "v0-app/lib/business-rules-v1.ts"
+      - "v0-app/lib/business-knowledge-v1.ts"
+      - "v0-app/lib/lead-to-money-v1.ts"
+      - "v0-app/lib/use-core-decision.ts"
+      - "v0-app/components/command-center/**"
+      - "v0-app/scripts/business-rules-v1-audit.mjs"
+      - "v0-app/scripts/business-rules-core-integration-audit.mjs"
+      - "v0-app/scripts/business-knowledge-v1-audit.mjs"
+      - "v0-app/scripts/lead-to-money-v1-audit.mjs"
+      - "v0-app/scripts/command-center-owner-attention-audit.mjs"
+      - "v0-app/package.json"
+      - ".github/workflows/business-operating-system-v1-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: business-operating-system-v1-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+      - name: Install V0 dependencies
+        working-directory: v0-app
+        run: npm ci
+      - name: Run Business Operating System V1 audit suite
+        working-directory: v0-app
+        run: npm run audit:business-operating-system
