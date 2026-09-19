@@ -4,6 +4,8 @@ Date: 2026-09-19
 
 Goal: create the first high-quality organic directory listings for HEGEVA AI without paid promotion or duplicate/spam submissions.
 
+Initial indexed duplicate check (2026-09-19): no obvious existing HEGEVA listing surfaced for Product Hunt, SaaSHub or AlternativeTo. Re-check inside each platform before submitting because public search indexing can be incomplete.
+
 Primary website:
 https://hegevaai.co.uk
 
