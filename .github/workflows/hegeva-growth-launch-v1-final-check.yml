@@ -22,7 +22,7 @@ jobs:
         shell: bash
         run: |
           BASE=9665a73027fc117d58e022c6669789e17d0aa180
-          allowed='^(.github/workflows/hegeva-growth-launch-v1-final-check.yml|.github/workflows/hegeva-production-growth-e2e.yml|.github/workflows/hegeva-ga4-funnel-wiring-e2e.yml|v0-app/scripts/growth-launch-v1-audit.mjs|v0-app/scripts/production-growth-e2e.mjs)
+          allowed='^(.github/workflows/hegeva-growth-launch-v1-final-check.yml|.github/workflows/hegeva-production-growth-e2e.yml|.github/workflows/hegeva-ga4-funnel-wiring-e2e.yml|v0-app/scripts/growth-launch-v1-audit.mjs)$'
           bad=$(git diff --name-only "$BASE"...HEAD | grep -Ev "$allowed" || true)
           if [ -n "$bad" ]; then
             echo "Unexpected files changed:"
@@ -30,82 +30,7 @@ jobs:
             exit 1
           fi
 
-      - name: Verify product files exactly match latest referral baseline
-        shell: bash
-        run: |
-          git diff --exit-code 9665a73027fc117d58e022c6669789e17d0aa180 -- v0-app ':(exclude)v0-app/scripts/growth-launch-v1-audit.mjs'
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: v0-app/package-lock.json
-
-      - name: Install dependencies
-        working-directory: v0-app
-        run: npm ci
-
-      - name: Growth Engine audit
-        working-directory: v0-app
-        run: node scripts/growth-engine-v1-audit.mjs
-
-      - name: Onboarding WOW audit
-        working-directory: v0-app
-        run: node scripts/onboarding-first-wow-audit.mjs
-
-      - name: Share privacy audit
-        working-directory: v0-app
-        run: node scripts/share-v1-audit.mjs
-
-      - name: Marketing short-links audit
-        working-directory: v0-app
-        run: node scripts/marketing-short-links-audit.mjs
-
-      - name: Niche landing audit
-        working-directory: v0-app
-        run: node scripts/niche-landing-v1-audit.mjs
-
-      - name: Free Tools audit
-        working-directory: v0-app
-        run: node scripts/free-tools-v1-audit.mjs
-
-      - name: Referral privacy audit
-        working-directory: v0-app
-        run: node scripts/referral-v1-audit.mjs
-
-      - name: Growth Launch summary audit
-        working-directory: v0-app
-        run: node scripts/growth-launch-v1-audit.mjs
-
-      - name: Product audit
-        working-directory: v0-app
-        run: npm run audit:product
-
-      - name: Mobile audit
-        working-directory: v0-app
-        run: npm run audit:ui-mobile
-
-      - name: Visual audit
-        working-directory: v0-app
-        run: npm run audit:visual
-
-      - name: TypeScript check
-        working-directory: v0-app
-        run: npx tsc --noEmit
-
-      - name: Production build
-        working-directory: v0-app
-        run: npm run build
-
-          bad=$(git diff --name-only "$BASE"...HEAD | grep -Ev "$allowed" || true)
-          if [ -n "$bad" ]; then
-            echo "Unexpected files changed:"
-            echo "$bad"
-            exit 1
-          fi
-
-      - name: Verify product files exactly match latest referral baseline
+      - name: Verify product files exactly match referral baseline
         shell: bash
         run: |
           git diff --exit-code 9665a73027fc117d58e022c6669789e17d0aa180 -- v0-app ':(exclude)v0-app/scripts/growth-launch-v1-audit.mjs'
