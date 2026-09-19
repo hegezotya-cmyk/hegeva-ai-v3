@@ -530,6 +530,42 @@ export function evaluateBusinessRules(workspaceData, today = new Date().toISOStr
 }
 
 // =========================================
+// LEAD-TO-MONEY V1
+// Evidence-only projection. No external execution.
+// =========================================
+
+export function projectLeadToMoney(workspaceData) {
+  const customers = Array.isArray(workspaceData?.customers) ? workspaceData.customers : [];
+  const documents = Array.isArray(workspaceData?.invoices) ? workspaceData.invoices : [];
+  const messages = Array.isArray(workspaceData?.messages) ? workspaceData.messages : [];
+  const out = [];
+  const uniqueIds = (values) => [...new Set(values.filter(Boolean))];
+
+  for (const customer of customers) {
+    const docs = documents.filter((item) => item?.customerId === customer.id || item?.sourceId === customer.id);
+    const quotes = docs.filter((item) => item?.type === "quote");
+    const invoices = docs.filter((item) => item?.type === "invoice");
+    const relatedIds = uniqueIds([customer.id, ...docs.map((item) => item.id)]);
+    const relatedMessages = messages.filter((item) => item?.sourceId && relatedIds.includes(item.sourceId));
+    const paidInvoices = invoices.filter((item) => item?.status === "paid");
+    const openInvoices = invoices.filter((item) => item?.status !== "paid");
+    const hasFollowup = relatedMessages.some((item) => ["draft", "approved", "completed"].includes(item?.workflowStatus)) || Boolean(customer?.followUp);
+
+    if (customer?.customerStatus === "lead") {
+      out.push({ id:`ltm:${customer.id}:lead`, stage:"lead", sourceIds:[customer.id], status:"observed", reason:"Lead exists in workspace.", nextStage:"qualified", targetHref:"/business/customers" });
+      if (!quotes.length) out.push({ id:`ltm:${customer.id}:qualification`, stage:"qualified", sourceIds:[customer.id], status:"needs-attention", reason:"Lead has no linked quote yet; review qualification before preparing an offer.", nextStage:"quote", targetHref:"/business/customers" });
+    }
+    if (customer?.customerStatus === "active") out.push({ id:`ltm:${customer.id}:customer`, stage:"customer", sourceIds:[customer.id], status:"complete", reason:"Customer is active.", nextStage:quotes.length ? "follow-up" : "quote", targetHref:"/business/customers" });
+    if (quotes.length) out.push({ id:`ltm:${customer.id}:quote`, stage:"quote", sourceIds:uniqueIds([customer.id,...quotes.map((item)=>item.id)]), status:"complete", reason:"Linked quote exists.", nextStage:"follow-up", targetHref:"/business/invoices" });
+    if (quotes.length && !hasFollowup && !openInvoices.length && !paidInvoices.length) out.push({ id:`ltm:${customer.id}:follow-up`, stage:"follow-up", sourceIds:uniqueIds([customer.id,...quotes.map((item)=>item.id)]), status:"needs-attention", reason:"Quote exists without recorded follow-up or invoice.", nextStage:"invoice", targetHref:"/business/messages" });
+    if (openInvoices.length) out.push({ id:`ltm:${customer.id}:invoice`, stage:"invoice", sourceIds:uniqueIds([customer.id,...openInvoices.map((item)=>item.id)]), status:"needs-attention", reason:"Invoice exists and payment is not recorded as paid.", nextStage:"payment", targetHref:"/business/invoices" });
+    if (paidInvoices.length) out.push({ id:`ltm:${customer.id}:payment`, stage:"payment", sourceIds:uniqueIds([customer.id,...paidInvoices.map((item)=>item.id)]), status:"complete", reason:"Paid invoice is recorded.", nextStage:"repeat-business", targetHref:"/business/invoices" });
+    if (paidInvoices.length && customer?.customerStatus === "active") out.push({ id:`ltm:${customer.id}:repeat`, stage:"repeat-business", sourceIds:relatedIds, status:"observed", reason:"Active customer has completed paid work; repeat-business review is supported.", targetHref:"/business/customers" });
+  }
+  return out;
+}
+
+// =========================================
 // ACTION PREPARATION (DRAFT ONLY)
 // =========================================
 
@@ -824,6 +860,7 @@ export function prepareEmployeeDelegations(preparedActions, locale = "en") {
 export function runCoreV1Decision(workspaceData, cloudEnabled, locale = "en") {
   const decision = computeCoreDecision(workspaceData, cloudEnabled);
   const businessRules = evaluateBusinessRules(workspaceData);
+  const leadToMoney = projectLeadToMoney(workspaceData);
   const preparedActions = prepareActionsForSignals({ ...decision, businessRules }, workspaceData, locale, 3);
   const employeeDelegations = prepareEmployeeDelegations(preparedActions, locale);
 
@@ -834,6 +871,7 @@ export function runCoreV1Decision(workspaceData, cloudEnabled, locale = "en") {
     opportunityRadar: decision.opportunityRadar,
     fixMyBusiness: decision.fixMyBusiness,
     businessRules,
+    leadToMoney,
     goalMode: decision.goalMode,
     pulse: decision.pulse,
     companion: decision.companion,
