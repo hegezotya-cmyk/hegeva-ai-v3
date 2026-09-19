@@ -127,7 +127,7 @@ export function AnalyticsConsent() {
         }
       }
     } catch { /* Storage must never prevent navigation or signup. */ }
-    const landingPaths = ["/", "/ai-for-small-business", "/ai-business-assistant", "/quote-and-invoice-software", "/ai-for-trades", "/ai-for-electricians"]
+    const landingPaths = ["/", "/ai-for-small-business", "/ai-business-assistant", "/quote-and-invoice-software", "/ai-for-trades", "/ai-for-electricians", "/for-electricians", "/for-builders", "/for-plumbers", "/for-cleaners", "/for-property-maintenance", "/for-consultants"]
     const registering = pathname === "/login" && Boolean(document.querySelector('[data-registration-active="true"]'))
     const event = landingPaths.includes(pathname) ? "landing_page_view" : pathname === "/pricing" ? "pricing_view" : registering ? "registration_start" : null
     if (event) window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event, path: pathname } }))
