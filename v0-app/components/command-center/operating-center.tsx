@@ -47,6 +47,13 @@ const pulseCopy={
  fr:{pulse:"HEGEVA Pulse",todaySummary:"Votre entreprise aujourd’hui",tasksToday:"Tâches dues aujourd’hui",openInvoices:"Factures ouvertes",expectedRevenue:"Revenu GBP attendu",draftMessages:"Brouillons de messages",quickActions:"Actions rapides",newInvoice:"Créer une facture",newMessage:"Écrire un message",newTask:"Ajouter une tâche",newCustomer:"Ajouter un client"},
  es:{pulse:"HEGEVA Pulse",todaySummary:"Tu negocio hoy",tasksToday:"Tareas para hoy",openInvoices:"Facturas abiertas",expectedRevenue:"Ingresos GBP previstos",draftMessages:"Borradores de mensajes",quickActions:"Acciones rápidas",newInvoice:"Crear factura",newMessage:"Escribir mensaje",newTask:"Añadir tarea",newCustomer:"Añadir cliente"},
 } as const
+const attentionCopy={
+ en:{eyebrow:"OWNER ATTENTION",title:"What needs your attention today?",sub:"Real Core evidence only. HEGEVA prepares the next step; you stay in control.",prepared:"Prepared for review",empty:"Nothing new needs owner attention from the current records.",review:"Review"},
+ hu:{eyebrow:"TULAJDONOSI FIGYELEM",title:"Mit kell ma elintézned?",sub:"Csak valódi Core-bizonyíték. A HEGEVA előkészíti a következő lépést; az irányítás nálad marad.",prepared:"Áttekintésre előkészítve",empty:"A jelenlegi adatok alapján nincs új, tulajdonosi figyelmet igénylő tétel.",review:"Áttekintés"},
+ de:{eyebrow:"INHABER-AUFMERKSAMKEIT",title:"Was braucht heute Ihre Aufmerksamkeit?",sub:"Nur echte Core-Nachweise. HEGEVA bereitet den nächsten Schritt vor; Sie behalten die Kontrolle.",prepared:"Zur Prüfung vorbereitet",empty:"Aus den aktuellen Daten ergibt sich nichts Neues für die Inhaberprüfung.",review:"Prüfen"},
+ fr:{eyebrow:"ATTENTION DU PROPRIÉTAIRE",title:"Que faut-il traiter aujourd’hui ?",sub:"Uniquement des preuves Core réelles. HEGEVA prépare l’étape suivante ; vous gardez le contrôle.",prepared:"Préparé pour examen",empty:"Aucun nouvel élément ne nécessite l’attention du propriétaire.",review:"Examiner"},
+ es:{eyebrow:"ATENCIÓN DEL PROPIETARIO",title:"¿Qué necesita tu atención hoy?",sub:"Solo evidencia real de Core. HEGEVA prepara el siguiente paso; tú mantienes el control.",prepared:"Preparado para revisión",empty:"Nada nuevo requiere atención del propietario con los datos actuales.",review:"Revisar"},
+} as const
 const coreInsightCopy={
  en:{label:"HEGEVA Core priority",review:(count:number)=>`${count} customer follow-up${count===1?" is":"s are"} ready for your approval.`,finish:(count:number)=>`${count} approved follow-up${count===1?" is":"s are"} ready to complete.`,overdue:(count:number,value:string)=>`${count} overdue invoice${count===1?"":"s"} worth ${value} need your attention.`,tasks:(count:number)=>`${count} task${count===1?" is":"s are"} due today.`,clear:"No urgent payment or task risk detected in your current records.",start:"Add your first customer, task or invoice and HEGEVA will build your operating picture.",reviewAction:"Review drafts",finishAction:"Complete follow-ups",invoices:"Prepare follow-ups",planner:"Open today’s tasks",customers:"Add real business data"},
  hu:{label:"A HEGEVA Core prioritása",review:(count:number)=>`${count} ügyfél-utánkövetés vár jóváhagyásra.`,finish:(count:number)=>`${count} jóváhagyott utánkövetés lezárható.`,overdue:(count:number,value:string)=>`${count} lejárt, összesen ${value} értékű számla igényel figyelmet.`,tasks:(count:number)=>`${count} feladat esedékes ma.`,clear:"A jelenlegi adatokban nincs sürgős fizetési vagy feladatkockázat.",start:"Add hozzá az első ügyfelet, feladatot vagy számlát, és a HEGEVA felépíti a működési képet.",reviewAction:"Vázlatok áttekintése",finishAction:"Utánkövetések lezárása",invoices:"Utánkövetések előkészítése",planner:"Mai feladatok megnyitása",customers:"Valós üzleti adatok hozzáadása"},
@@ -66,6 +73,7 @@ export function OperatingCenter(){
   const assistantStatus={en:aiStatus.assistantEnabled?"Available":"Coming soon",hu:aiStatus.assistantEnabled?"Elérhető":"Hamarosan",de:aiStatus.assistantEnabled?"Verfügbar":"Demnächst",fr:aiStatus.assistantEnabled?"Disponible":"Bientôt",es:aiStatus.assistantEnabled?"Disponible":"Próximamente"}[locale]
   const pc=pulseCopy[locale]
   const ic=coreInsightCopy[locale]
+  const ac=attentionCopy[locale]
   const gc=growthSignalCopy[locale]
   const oc=onboardingCopy[locale]
   const otc=overdueTaskCopy[locale]
@@ -116,6 +124,7 @@ export function OperatingCenter(){
 
   const explainPriority=(decision:CorePriority)=>decision.kind==="complete-followups"?{text:ic.finish(decision.count),href:decision.href,action:ic.finishAction}:decision.kind==="review-followups"?{text:ic.review(decision.count),href:decision.href,action:ic.reviewAction}:decision.kind==="overdue-invoices"?{text:ic.overdue(decision.count,overdueRevenue.toLocaleString(locale,{style:"currency",currency:"GBP"})),href:decision.href,action:ic.invoices}:decision.kind==="customer-followups"?{text:gc.customer(decision.count),href:decision.href,action:gc.customerAction}:decision.kind==="stale-quotes"?{text:gc.quote(decision.count),href:decision.href,action:gc.quoteAction}:decision.kind==="overdue-tasks"?{text:otc.text(decision.count),href:decision.href,action:otc.action}:decision.kind==="today-tasks"?{text:ic.tasks(decision.count),href:decision.href,action:ic.planner}:decision.kind==="draft-invoices"?{text:gc.draft(decision.count),href:decision.href,action:gc.draftAction}:decision.kind==="clear"?{text:ic.clear,href:decision.href,action:c.inventory}:{text:ic.start,href:decision.href,action:ic.customers}
   const corePriority=explainPriority(coreDecision)
+  const attentionItems=(coreResponse.leadToMoney||[]).filter(item=>item.status==="needs-attention").slice(0,4)
 
   // Determine if we have sufficient data for meaningful signals
   const hasEnoughData = coreSignals.hasRecords || secondaryCorePriorities.length > 0 || coreSignals.overdueInvoices > 0 || coreSignals.overdueTasks > 0 || coreSignals.tasksToday > 0 || coreSignals.draftInvoices > 0
@@ -127,6 +136,11 @@ export function OperatingCenter(){
 <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
      {pulseMetrics.map(([Icon,label,value])=><article key={label} className="rounded-2xl border border-border bg-background/55 p-4"><Icon aria-hidden className="size-4 text-primary"/><p className="mt-3 text-xs text-muted-foreground">{label}</p><strong className="mt-1 block text-2xl">{value}</strong></article>)}
     </div>
+  </div>
+
+  <div className="border-t border-border px-4 py-6 sm:px-6">
+   <p className="ve-eyebrow">{ac.eyebrow}</p><h3 className="mt-1 font-display text-2xl font-semibold">{ac.title}</h3><p className="mt-2 max-w-3xl text-sm text-muted-foreground">{ac.sub}</p>
+   {attentionItems.length?<div className="mt-4 grid gap-3 sm:grid-cols-2">{attentionItems.map(item=><Link key={item.kind+item.sourceIds.join(":")} href={item.href} className="rounded-2xl border border-amber-300/25 bg-amber-300/[.04] p-4 transition-colors hover:border-primary/35"><div className="flex items-center justify-between gap-3"><strong className="text-sm">{item.stage.replace(/-/g," ")}</strong><span className="rounded-full border border-amber-300/30 px-2 py-1 text-[.6rem] font-bold uppercase tracking-[.1em] text-amber-200">{ac.prepared}</span></div><p className="mt-2 text-xs text-muted-foreground">{item.sourceIds.length} evidence record{item.sourceIds.length===1?"":"s"} · {item.nextStage||item.stage}</p><span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary">{ac.review}<ArrowUpRight className="size-3.5"/></span></Link>)}</div>:<div className="mt-4 rounded-2xl border border-border bg-background/45 p-4 text-sm text-muted-foreground"><Check className="mr-2 inline size-4 text-primary"/>{ac.empty}</div>}
   </div>
 
     <CoreDecisionSurface locale={locale} status={coreStatus} response={coreResponse} priority={corePriority} hasEnoughData={hasEnoughData} coreIdentity={coreIdentity} coreRevision={coreRevision} refreshCore={refreshCore} />
