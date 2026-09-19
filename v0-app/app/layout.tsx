@@ -48,6 +48,20 @@ export const viewport: Viewport = {
   themeColor: '#0b1310',
 }
 
+function ConsentModeBootstrap() {
+  const source = `window.dataLayer=window.dataLayer||[];
+window.gtag=window.gtag||function(){window.dataLayer.push(arguments)};
+window.gtag("consent","default",{
+  analytics_storage: "denied",
+  ad_storage: "denied",
+  ad_user_data: "denied",
+  ad_personalization: "denied",
+  wait_for_update: 500
+});
+window.__hegevaConsentDefaulted=true;`
+  return <script id="hegeva-consent-mode-default" dangerouslySetInnerHTML={{ __html: source }} />
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -58,6 +72,7 @@ export default function RootLayout({
       lang="en"
       className={`dark bg-background ${geistSans.variable} ${geistMono.variable}`}
     >
+      <head><ConsentModeBootstrap /></head>
       <body className="antialiased font-sans">
         <I18nProvider>
           <WorkspaceLocalPrivacyGuard />
