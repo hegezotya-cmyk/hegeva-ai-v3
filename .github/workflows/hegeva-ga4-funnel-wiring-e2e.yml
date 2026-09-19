@@ -36,7 +36,7 @@ jobs:
         working-directory: v0-app
         shell: bash
         run: |
-          cat > /tmp/hegeva-ga4-wiring.mjs <<'NODE'
+          cat > .hegeva-ga4-wiring.mjs <<'NODE'
           import { chromium } from "playwright"
           const BASE="https://hegevaai.co.uk"
           const failures=[]
@@ -133,4 +133,5 @@ jobs:
           if(failures.length){for(const f of failures)console.error("-",f);process.exit(1)}
           console.log("HEGEVA GA4 Funnel Wiring E2E PASS")
           NODE
-          node /tmp/hegeva-ga4-wiring.mjs
+          node ./.hegeva-ga4-wiring.mjs
+          rm -f .hegeva-ga4-wiring.mjs
