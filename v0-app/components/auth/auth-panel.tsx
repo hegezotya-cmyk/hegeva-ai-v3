@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { authClient, signIn, signUp, useSession } from "@/lib/auth-client"
 import { HEGEVA_EMAIL_VERIFICATION_CALLBACK } from "@/lib/auth-verification"
+import { captureReferralAttribution, clearReferralAttribution } from "@/lib/conversion-tracking"
 import { useI18n } from "@/lib/i18n/provider"
 import { AUTH_COPY } from "@/lib/i18n/auth-copy"
 import { SkeletonSurface } from "@/components/visual-engine"
@@ -95,6 +96,13 @@ export function AuthPanel() {
         if (result.error) {
           setError(c.authFailed)
           return
+        }
+        const referral = captureReferralAttribution()
+        if (referral) {
+          window.dispatchEvent(new CustomEvent("hegeva:analytics-event", {
+            detail: { event: "referral_signup", path: "/login", params: { referral_code: referral.code } },
+          }))
+          clearReferralAttribution()
         }
         setVerificationPending(true)
         setSuccess(c.verificationRequired)

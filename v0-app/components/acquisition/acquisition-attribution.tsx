@@ -25,6 +25,8 @@ export type AnalyticsEvent =
   | "share_click"
   | "free_tool_use"
   | "free_tool_cta_click"
+  | "referral_visit"
+  | "referral_signup"
 
 export type AnalyticsParams = Record<string, string | number | boolean>
 

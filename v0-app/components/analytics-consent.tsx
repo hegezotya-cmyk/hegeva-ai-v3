@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
-import { analyticsPageLocation, campaignAttribution, PUBLIC_ANALYTICS_PATHS } from "@/lib/conversion-tracking"
+import { analyticsPageLocation, campaignAttribution, captureReferralAttribution, clearReferralAttribution, PUBLIC_ANALYTICS_PATHS } from "@/lib/conversion-tracking"
 import { useI18n } from "@/lib/i18n/provider"
 
 const MEASUREMENT_ID = "G-TK99HP2BG7"
@@ -100,7 +100,7 @@ export function AnalyticsConsent() {
     const receive = (event: Event) => {
       if (consent !== "granted" || !window.gtag) return
       const detail = (event as CustomEvent<{ event?: string; path?: string; params?: Record<string, string | number | boolean> }>).detail
-      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click", "challenge_view", "challenge_start", "business_type_selected", "demo_loaded", "demo_analysis_complete", "priority_viewed", "prepare_action_click", "prepared_action_complete", "challenge_complete", "business_score_view", "try_my_business_click", "own_business_start", "own_business_result", "share_click", "free_tool_use", "free_tool_cta_click"].includes(detail.event || "")) return
+      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click", "challenge_view", "challenge_start", "business_type_selected", "demo_loaded", "demo_analysis_complete", "priority_viewed", "prepare_action_click", "prepared_action_complete", "challenge_complete", "business_score_view", "try_my_business_click", "own_business_start", "own_business_result", "share_click", "free_tool_use", "free_tool_cta_click", "referral_visit", "referral_signup"].includes(detail.event || "")) return
       const activationPaths = ["/get-started", "/business/customers", "/business/invoices", "/command-center", "/pricing", "/account", "/demo", "/challenge"]
       if (!detail.path || (!PUBLIC_ANALYTICS_PATHS.includes(detail.path) && !activationPaths.includes(detail.path))) return
       const key = `${detail.event}:${detail.path}`
@@ -147,6 +147,15 @@ export function AnalyticsConsent() {
     return () => document.removeEventListener("click", click, true)
   }, [consent, pathname])
 
+  useEffect(() => {
+    if (consent !== "granted" || pathname !== "/challenge") return
+    const referral = captureReferralAttribution()
+    if (!referral?.fresh) return
+    window.dispatchEvent(new CustomEvent("hegeva:analytics-event", {
+      detail: { event: "referral_visit", path: "/challenge", params: { referral_code: referral.code } },
+    }))
+  }, [consent, pathname])
+
   const choose = (next: Exclude<Consent, null>) => {
     localStorage.setItem(CONSENT_KEY, next)
     setConsent(next)
@@ -155,6 +164,7 @@ export function AnalyticsConsent() {
     else {
       sessionStorage.removeItem("hegeva:campaign:v1")
       sessionStorage.removeItem(PENDING_CTA_KEY)
+      clearReferralAttribution()
       window.gtag?.("consent", "update", { analytics_storage: "denied" })
       window.clarity?.("consentv2", { ad_Storage: "denied", analytics_Storage: "denied" })
     }

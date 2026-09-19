@@ -6,6 +6,8 @@ const allowed = {
   utm_content: ["video_1", "video_2", "video_3", "text_post_1", "challenge_share"],
 } as const
 const campaignKey = "hegeva:campaign:v1"
+const referralKey = "hegeva:referral:v1"
+const SAFE_REFERRAL = /^[A-Za-z0-9_-]{1,32}$/
 
 export const PUBLIC_ANALYTICS_PATHS = ["/", "/login", "/pricing", "/account", "/demo", "/challenge", "/ai-for-small-business", "/ai-business-assistant", "/quote-and-invoice-software", "/ai-for-trades", "/ai-for-electricians", "/for-electricians", "/for-builders", "/for-plumbers", "/for-cleaners", "/for-property-maintenance", "/for-consultants", "/free-tools"]
 
@@ -29,6 +31,34 @@ export function campaignAttribution(): Record<string, string> {
     const names: Record<string, string> = { utm_source: "campaign_source", utm_medium: "campaign_medium", utm_campaign: "campaign_name", utm_content: "campaign_content" }
     return Object.fromEntries(Object.entries(result).map(([key, value]) => [names[key], value]))
   } catch { return {} }
+}
+
+export function captureReferralAttribution() {
+  if (typeof window === "undefined") return null
+  try {
+    if (localStorage.getItem("hegeva:analytics-consent:v1") !== "granted") return null
+    const params = new URLSearchParams(window.location.search)
+    const direct = params.get("ref") || ""
+    if (SAFE_REFERRAL.test(direct)) {
+      const value = { code: direct, at: Date.now() }
+      sessionStorage.setItem(referralKey, JSON.stringify(value))
+      return { ...value, fresh: true as const }
+    }
+    const saved = JSON.parse(sessionStorage.getItem(referralKey) || "null")
+    if (!saved || !SAFE_REFERRAL.test(saved.code || "")) return null
+    const age = Date.now() - Number(saved.at || 0)
+    if (age < 0 || age > 30 * 24 * 60 * 60 * 1000) {
+      sessionStorage.removeItem(referralKey)
+      return null
+    }
+    return { code: saved.code as string, at: Number(saved.at), fresh: false as const }
+  } catch {
+    return null
+  }
+}
+
+export function clearReferralAttribution() {
+  try { sessionStorage.removeItem(referralKey) } catch {}
 }
 
 export function trackRegistrationCompleted() {
