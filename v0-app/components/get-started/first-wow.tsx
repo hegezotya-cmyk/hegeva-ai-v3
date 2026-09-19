@@ -132,7 +132,7 @@ export function FirstWowQuickStart() {
     try {
       sessionStorage.setItem(FIRST_WOW_MESSAGE_SEED_KEY, JSON.stringify({
         at: Date.now(),
-        type: c.intents[intent][2],
+        type: intent === "payment" ? "Payment reminder" : intent === "quote" ? "Follow-up" : intent === "support" ? "Support response" : "Customer reply",
         tone: "Professional",
         subject: c.intents[intent][0],
         body: prepared,
