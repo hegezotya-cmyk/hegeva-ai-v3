@@ -9,7 +9,8 @@ const coreRoute=indexSource.slice(indexSource.indexOf("// HEGEVA CORE V1 DECIDE"
 assert(!/saveBusinessKnowledgeMemory\(/.test(coreRoute),"Core decide must not write Business Knowledge")
 
 const coreSource=fs.readFileSync(new URL("../../src/core-v1-decision.js",import.meta.url),"utf8")
-const mod=await import(`data:text/javascript;base64,${Buffer.from(coreSource).toString("base64")}`)
+const strippedCore=coreSource.replace(/^import .*$/gm,"")
+const mod=await import(`data:text/javascript;base64,${Buffer.from(strippedCore).toString("base64")}`)
 const result=mod.runCoreV1Decision({
  customers:[],invoices:[],tasks:[],messages:[],documents:[],expenses:[],goals:[],
  businessKnowledge:{version:1,items:[
