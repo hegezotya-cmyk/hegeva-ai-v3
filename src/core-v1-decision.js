@@ -858,6 +858,15 @@ export function prepareEmployeeDelegations(preparedActions, locale = "en") {
 // =========================================
 
 export function runCoreV1Decision(workspaceData, cloudEnabled, locale = "en") {
+  const businessKnowledge = workspaceData?.businessKnowledge?.items?.length
+    ? {
+        version: workspaceData.businessKnowledge.version || 1,
+        items: workspaceData.businessKnowledge.items.filter((item) =>
+          ["business-name", "service", "price", "payment-term", "communication-tone", "business-rule"].includes(item?.field)
+          && ["explicit", "verified"].includes(item?.confidence)
+        ),
+      }
+    : null;
   const decision = computeCoreDecision(workspaceData, cloudEnabled);
   const businessRules = evaluateBusinessRules(workspaceData);
   const leadToMoney = projectLeadToMoney(workspaceData);
@@ -872,6 +881,7 @@ export function runCoreV1Decision(workspaceData, cloudEnabled, locale = "en") {
     fixMyBusiness: decision.fixMyBusiness,
     businessRules,
     leadToMoney,
+    businessKnowledge,
     goalMode: decision.goalMode,
     pulse: decision.pulse,
     companion: decision.companion,
