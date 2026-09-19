@@ -496,6 +496,38 @@ export function computeCoreDecision(workspaceData, cloudEnabled) {
 }
 
 // =========================================
+// BUSINESS RULES V1 (DETERMINISTIC / SIDE-EFFECT FREE)
+// =========================================
+
+export function evaluateBusinessRules(workspaceData, today = new Date().toISOString().slice(0, 10)) {
+  const validDay = (value) => typeof value === "string" && /^\\d{4}-\\d{2}-\\d{2}/.test(value) ? value.slice(0, 10) : null;
+  if (!validDay(today)) return [];
+  const signals = [];
+  const invoices = Array.isArray(workspaceData?.invoices) ? workspaceData.invoices : [];
+  const customers = Array.isArray(workspaceData?.customers) ? workspaceData.customers : [];
+  const tasks = Array.isArray(workspaceData?.tasks) ? workspaceData.tasks : [];
+
+  const overdueInvoices = invoices.filter(x => x.type === "invoice" && x.status !== "paid" && validDay(x.dueDate) && x.dueDate < today);
+  if (overdueInvoices.length) signals.push({ kind: "overdue-invoices", sourceIds: overdueInvoices.map(x => x.id), severity: "high", href: "/business/intelligence#customer-follow-up", ruleId: "overdue-invoice", requiresApproval: true });
+
+  const staleQuotes = invoices.filter(x => x.type === "quote" && x.status !== "paid" && validDay(x.dueDate) && x.dueDate < today);
+  if (staleQuotes.length) signals.push({ kind: "stale-quotes", sourceIds: staleQuotes.map(x => x.id), severity: "high", href: "/business/intelligence#customer-follow-up", ruleId: "stale-quote", requiresApproval: true });
+
+  const dueLeads = customers.filter(x => x.customerStatus === "lead" && validDay(x.followUp) && x.followUp <= today);
+  if (dueLeads.length) signals.push({ kind: "customer-followups", sourceIds: dueLeads.map(x => x.id), severity: "high", href: "/business/customers", ruleId: "lead-follow-up", requiresApproval: true });
+
+  const cutoff = new Date(today + "T00:00:00Z"); cutoff.setUTCDate(cutoff.getUTCDate() - 90);
+  const dormantBefore = cutoff.toISOString().slice(0, 10);
+  const dormant = customers.filter(x => x.customerStatus === "active" && validDay(x.updatedAt || x.createdAt) && (x.updatedAt || x.createdAt).slice(0, 10) < dormantBefore);
+  if (dormant.length) signals.push({ kind: "dormant-customers", sourceIds: dormant.map(x => x.id), severity: "medium", href: "/business/customers", ruleId: "dormant-customer", requiresApproval: true });
+
+  const overdueTasks = tasks.filter(x => !x.done && validDay(x.due) && x.due < today);
+  if (overdueTasks.length) signals.push({ kind: "overdue-tasks", sourceIds: overdueTasks.map(x => x.id), severity: "medium", href: "/business/planner", ruleId: "overdue-task", requiresApproval: true });
+
+  return signals;
+}
+
+// =========================================
 // ACTION PREPARATION (DRAFT ONLY)
 // =========================================
 
@@ -646,6 +678,11 @@ export function prepareActionsForSignals(signals, workspaceData, locale = "en", 
     }
   }
 
+  // Deterministic Business Rules V1 signals. These carry real record IDs into preparation.
+  for (const rule of signals.businessRules || []) {
+    if (rule.requiresApproval && PREPARATION_DISPATCH[rule.kind]) allSignals.push(rule);
+  }
+
   // Opportunity Radar signals
   for (const finding of signals.opportunityRadar) {
     if (PREPARATION_DISPATCH[finding.kind]) {
@@ -750,7 +787,8 @@ export function prepareEmployeeDelegations(preparedActions, locale = "en") {
 
 export function runCoreV1Decision(workspaceData, cloudEnabled, locale = "en") {
   const decision = computeCoreDecision(workspaceData, cloudEnabled);
-  const preparedActions = prepareActionsForSignals(decision, workspaceData, locale, 3);
+  const businessRules = evaluateBusinessRules(workspaceData);
+  const preparedActions = prepareActionsForSignals({ ...decision, businessRules }, workspaceData, locale, 3);
   const employeeDelegations = prepareEmployeeDelegations(preparedActions, locale);
 
   return {
@@ -758,6 +796,7 @@ export function runCoreV1Decision(workspaceData, cloudEnabled, locale = "en") {
     corePriorities: decision.corePriorities,
     coreDecision: decision.coreDecision,
     opportunityRadar: decision.opportunityRadar,
+    businessRules,
     fixMyBusiness: decision.fixMyBusiness,
     goalMode: decision.goalMode,
     pulse: decision.pulse,
