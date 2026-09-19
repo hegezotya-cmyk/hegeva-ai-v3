@@ -18,6 +18,16 @@ const base={userId:"user-1",workspaceId:"workspace-1",now,correlationId:"corr-1"
 ]}
 const created=await mod.saveBusinessKnowledgeMemory(adapter,base)
 assert.equal(created.payload.items.length,2)
+const trustPairs=mod.buildBusinessKnowledgeMemoryRecord({...base,items:[
+ {id:"ok-owner",field:"service",value:"Owner explicit",source:"owner",confidence:"explicit",updatedAt:now},
+ {id:"bad-owner",field:"service",value:"Owner verified",source:"owner",confidence:"verified",updatedAt:now},
+ {id:"ok-workspace",field:"price",value:"Workspace verified",source:"workspace",confidence:"verified",updatedAt:now},
+ {id:"bad-workspace",field:"price",value:"Workspace explicit",source:"workspace",confidence:"explicit",updatedAt:now},
+]})
+assert.deepEqual(trustPairs.payload.items.map(x=>x.id),["ok-owner","ok-workspace"])
+assert.throws(()=>mod.buildBusinessKnowledgeMemoryRecord({...base,items:[
+ {id:"secret",field:"business-rule",value:"API key: abc123",source:"owner",confidence:"explicit",updatedAt:now},
+]}),/prohibited-data/)
 assert.equal(created.type,"workspace")
 assert.equal(created.retention,"workspace-lifetime")
 assert.equal(created.sensitivity,"internal")
