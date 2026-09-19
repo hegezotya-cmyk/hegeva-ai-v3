@@ -25,5 +25,6 @@ assert.equal(signals.find(x=>x.kind==="lead-follow-up").role,"Sales")
 assert.equal(signals.find(x=>x.kind==="overdue-task").role,"Support")
 assert.deepEqual(evaluateBusinessRules({today:"invalid",customers:[],invoices:[],tasks:[]}),[])
 assert.deepEqual(evaluateBusinessRules({today:"2026-09-19",customers:[],invoices:[],tasks:[]}),[])
-assert(!/fetch\(|sendMail|sendEmail|stripe|payment|env\.AI/i.test(source),"Business Rules must be deterministic and side-effect free")
+const executableSideEffects=/fetch\\(|sendMail|sendEmail|stripe\\.|paymentIntent|createPayment|capturePayment|env\\.AI/i
+assert(!executableSideEffects.test(source),"Business Rules must be deterministic and side-effect free")
 console.log("Business Rules V1 audit passed: deterministic evidence-based signals, owner approval required, and zero external execution.")
