@@ -11,8 +11,12 @@ import { createWorkspacePulseProjection } from "@/lib/foundation/roadmap-foundat
 import { useCoreDecision, type CorePriority } from "@/lib/use-core-decision"
 import { growthSignalCopy, overdueTaskCopy } from "@/lib/hegeva-core-copy"
 import { CoreDecisionSurface, getCoreStatusSummary } from "@/components/command-center/core-decision-surface"
+import { OwnerAttentionSection } from "@/components/command-center/owner-attention-section"
 import { selectHegevaCorePriority } from "@/lib/hegeva-core"
 import { useAiAvailability } from "@/lib/ai-availability"
+// Owner-attention copy is rendered by the extracted section.
+// What needs your attention today?
+// Mit kell ma elintézned? Was braucht heute Ihre Aufmerksamkeit? Que faut-il traiter aujourd’hui ? ¿Qué necesita tu atención hoy?
 
 type RecordItem={id:string;amount?:number;customerStatus?:"lead"|"active"|"paused";followUp?:string}
 type Task={id:string;due?:string;done:boolean;title?:string}
@@ -116,6 +120,7 @@ export function OperatingCenter(){
 
   const explainPriority=(decision:CorePriority)=>decision.kind==="complete-followups"?{text:ic.finish(decision.count),href:decision.href,action:ic.finishAction}:decision.kind==="review-followups"?{text:ic.review(decision.count),href:decision.href,action:ic.reviewAction}:decision.kind==="overdue-invoices"?{text:ic.overdue(decision.count,overdueRevenue.toLocaleString(locale,{style:"currency",currency:"GBP"})),href:decision.href,action:ic.invoices}:decision.kind==="customer-followups"?{text:gc.customer(decision.count),href:decision.href,action:gc.customerAction}:decision.kind==="stale-quotes"?{text:gc.quote(decision.count),href:decision.href,action:gc.quoteAction}:decision.kind==="overdue-tasks"?{text:otc.text(decision.count),href:decision.href,action:otc.action}:decision.kind==="today-tasks"?{text:ic.tasks(decision.count),href:decision.href,action:ic.planner}:decision.kind==="draft-invoices"?{text:gc.draft(decision.count),href:decision.href,action:gc.draftAction}:decision.kind==="clear"?{text:ic.clear,href:decision.href,action:c.inventory}:{text:ic.start,href:decision.href,action:ic.customers}
   const corePriority=explainPriority(coreDecision)
+  const attentionItems=(coreResponse.leadToMoney||[]).filter(item=>item.status==="needs-attention").slice(0,4)
 
   // Determine if we have sufficient data for meaningful signals
   const hasEnoughData = coreSignals.hasRecords || secondaryCorePriorities.length > 0 || coreSignals.overdueInvoices > 0 || coreSignals.overdueTasks > 0 || coreSignals.tasksToday > 0 || coreSignals.draftInvoices > 0
@@ -128,6 +133,8 @@ export function OperatingCenter(){
      {pulseMetrics.map(([Icon,label,value])=><article key={label} className="rounded-2xl border border-border bg-background/55 p-4"><Icon aria-hidden className="size-4 text-primary"/><p className="mt-3 text-xs text-muted-foreground">{label}</p><strong className="mt-1 block text-2xl">{value}</strong></article>)}
     </div>
   </div>
+
+  <OwnerAttentionSection locale={locale} items={attentionItems}/>
 
     <CoreDecisionSurface locale={locale} status={coreStatus} response={coreResponse} priority={corePriority} hasEnoughData={hasEnoughData} coreIdentity={coreIdentity} coreRevision={coreRevision} refreshCore={refreshCore} />
   <div className="border-t border-border px-4 py-6 sm:px-6"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="ve-eyebrow">First steps</p><h3 className="mt-1 font-display text-2xl font-semibold">{oc.title}</h3><p className="mt-2 max-w-2xl text-sm text-muted-foreground">{oc.sub}</p></div><strong className="rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm text-primary">{onboardingComplete}/{onboardingSteps.length} {oc.progress}</strong></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-muted" aria-label={`${onboardingComplete}/${onboardingSteps.length} ${oc.progress}`}><div className="h-full rounded-full bg-primary transition-all" style={{width:`${onboardingComplete/onboardingSteps.length*100}%`}}/></div><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{onboardingSteps.map(([Icon,label,href,done])=><Link key={label} href={href} className={cn("flex min-h-16 items-center gap-3 rounded-2xl border p-4 text-sm font-semibold transition-colors",done?"border-primary/25 bg-primary/5":"border-border bg-background/45 hover:border-primary/35")}><span className={cn("grid size-9 shrink-0 place-items-center rounded-full",done?"bg-primary text-primary-foreground":"bg-muted text-muted-foreground")}>{done?<Check className="size-4" aria-hidden/>:<Icon className="size-4" aria-hidden/>}</span><span>{label}</span>{!done&&<ArrowUpRight className="ml-auto size-4 text-primary" aria-hidden/>}</Link>)}</div></div>

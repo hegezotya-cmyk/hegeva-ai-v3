@@ -496,8 +496,99 @@ export function computeCoreDecision(workspaceData, cloudEnabled) {
 }
 
 // =========================================
+// BUSINESS RULES V1
+// Deterministic, evidence-backed signals only. No external execution.
+// =========================================
+
+const validRuleDay = (value) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : null;
+const uniqueRuleSourceIds = (values) => [...new Set(values.filter(Boolean))];
+
+export function evaluateBusinessRules(workspaceData, today = new Date().toISOString().slice(0, 10)) {
+  const ruleToday = validRuleDay(today);
+  if (!ruleToday) return [];
+  const customers = Array.isArray(workspaceData?.customers) ? workspaceData.customers : [];
+  const invoices = Array.isArray(workspaceData?.invoices) ? workspaceData.invoices : [];
+  const tasks = Array.isArray(workspaceData?.tasks) ? workspaceData.tasks : [];
+  const rules = [];
+
+  const overdueInvoices = invoices.filter((item) => item?.type === "invoice" && item?.status !== "paid" && validRuleDay(item?.dueDate) && item.dueDate.slice(0, 10) < ruleToday);
+  if (overdueInvoices.length) rules.push({ ruleId:"overdue-invoice", kind:"overdue-invoices", sourceIds:uniqueRuleSourceIds(overdueInvoices.map((item)=>item.id)), count:overdueInvoices.length, severity:"high", role:"Finance", href:"/business/intelligence#customer-follow-up", requiresApproval:true });
+
+  const staleQuotes = invoices.filter((item) => item?.type === "quote" && item?.status !== "paid" && validRuleDay(item?.dueDate) && item.dueDate.slice(0, 10) < ruleToday);
+  if (staleQuotes.length) rules.push({ ruleId:"stale-quote", kind:"stale-quotes", sourceIds:uniqueRuleSourceIds(staleQuotes.map((item)=>item.id)), count:staleQuotes.length, severity:"high", role:"Sales", href:"/business/intelligence#customer-follow-up", requiresApproval:true });
+
+  const leads = customers.filter((item) => item?.customerStatus === "lead" && validRuleDay(item?.followUp) && item.followUp.slice(0, 10) <= ruleToday);
+  if (leads.length) rules.push({ ruleId:"lead-follow-up", kind:"customer-followups", sourceIds:uniqueRuleSourceIds(leads.map((item)=>item.id)), count:leads.length, severity:"high", role:"Sales", href:"/business/customers", requiresApproval:true });
+
+  const cutoff = new Date(ruleToday + "T00:00:00Z"); cutoff.setUTCDate(cutoff.getUTCDate() - 90); const dormantBefore = cutoff.toISOString().slice(0, 10);
+  const dormantCustomers = customers.filter((item) => { if (item?.customerStatus !== "active") return false; const activityDay=validRuleDay(item?.updatedAt || item?.createdAt); return Boolean(activityDay && activityDay < dormantBefore); });
+  if (dormantCustomers.length) rules.push({ ruleId:"dormant-customer", kind:"dormant-customers", sourceIds:uniqueRuleSourceIds(dormantCustomers.map((item)=>item.id)), count:dormantCustomers.length, severity:"medium", role:"Sales", href:"/business/customers", requiresApproval:true });
+
+  const overdueTasks = tasks.filter((item) => !item?.done && validRuleDay(item?.due) && item.due.slice(0, 10) < ruleToday);
+  if (overdueTasks.length) rules.push({ ruleId:"overdue-task", kind:"overdue-tasks", sourceIds:uniqueRuleSourceIds(overdueTasks.map((item)=>item.id)), count:overdueTasks.length, severity:"medium", role:"Support", href:"/business/planner", requiresApproval:true });
+  return rules;
+}
+
+// =========================================
+// LEAD-TO-MONEY V1
+// Evidence-only projection. No external execution.
+// =========================================
+
+export function projectLeadToMoney(workspaceData) {
+  const customers = Array.isArray(workspaceData?.customers) ? workspaceData.customers : [];
+  const documents = Array.isArray(workspaceData?.invoices) ? workspaceData.invoices : [];
+  const messages = Array.isArray(workspaceData?.messages) ? workspaceData.messages : [];
+  const out = [];
+  const uniqueIds = (values) => [...new Set(values.filter(Boolean))];
+
+  for (const customer of customers) {
+    const docs = documents.filter((item) => item?.customerId === customer.id || item?.sourceId === customer.id);
+    const quotes = docs.filter((item) => item?.type === "quote");
+    const invoices = docs.filter((item) => item?.type === "invoice");
+    const relatedIds = uniqueIds([customer.id, ...docs.map((item) => item.id)]);
+    const relatedMessages = messages.filter((item) => item?.sourceId && relatedIds.includes(item.sourceId));
+    const paidInvoices = invoices.filter((item) => item?.status === "paid");
+    const openInvoices = invoices.filter((item) => item?.status !== "paid");
+    const hasFollowup = relatedMessages.some((item) => ["draft", "approved", "completed"].includes(item?.workflowStatus)) || Boolean(customer?.followUp);
+
+    if (customer?.customerStatus === "lead") {
+      out.push({ id:`ltm:${customer.id}:lead`, stage:"lead", sourceIds:[customer.id], status:"observed", reason:"Lead exists in workspace.", nextStage:"qualified", targetHref:"/business/customers" });
+      if (!quotes.length) out.push({ id:`ltm:${customer.id}:qualification`, stage:"qualified", sourceIds:[customer.id], status:"needs-attention", reason:"Lead has no linked quote yet; review qualification before preparing an offer.", nextStage:"quote", targetHref:"/business/customers" });
+    }
+    if (customer?.customerStatus === "active") out.push({ id:`ltm:${customer.id}:customer`, stage:"customer", sourceIds:[customer.id], status:"complete", reason:"Customer is active.", nextStage:quotes.length ? "follow-up" : "quote", targetHref:"/business/customers" });
+    if (quotes.length) out.push({ id:`ltm:${customer.id}:quote`, stage:"quote", sourceIds:uniqueIds([customer.id,...quotes.map((item)=>item.id)]), status:"complete", reason:"Linked quote exists.", nextStage:"follow-up", targetHref:"/business/invoices" });
+    if (quotes.length && !hasFollowup && !openInvoices.length && !paidInvoices.length) out.push({ id:`ltm:${customer.id}:follow-up`, stage:"follow-up", sourceIds:uniqueIds([customer.id,...quotes.map((item)=>item.id)]), status:"needs-attention", reason:"Quote exists without recorded follow-up or invoice.", nextStage:"invoice", targetHref:"/business/messages" });
+    if (openInvoices.length) out.push({ id:`ltm:${customer.id}:invoice`, stage:"invoice", sourceIds:uniqueIds([customer.id,...openInvoices.map((item)=>item.id)]), status:"needs-attention", reason:"Invoice exists and payment is not recorded as paid.", nextStage:"payment", targetHref:"/business/invoices" });
+    if (paidInvoices.length) out.push({ id:`ltm:${customer.id}:payment`, stage:"payment", sourceIds:uniqueIds([customer.id,...paidInvoices.map((item)=>item.id)]), status:"complete", reason:"Paid invoice is recorded.", nextStage:"repeat-business", targetHref:"/business/invoices" });
+    if (paidInvoices.length && customer?.customerStatus === "active") out.push({ id:`ltm:${customer.id}:repeat`, stage:"repeat-business", sourceIds:relatedIds, status:"observed", reason:"Active customer has completed paid work; repeat-business review is supported.", targetHref:"/business/customers" });
+  }
+  return out;
+}
+
+// =========================================
 // ACTION PREPARATION (DRAFT ONLY)
 // =========================================
+
+function getBusinessKnowledgeValue(workspaceData, field) {
+  const items = Array.isArray(workspaceData?.businessKnowledge?.items) ? workspaceData.businessKnowledge.items : [];
+  const item = items.find((candidate) =>
+    candidate?.field === field &&
+    ((candidate?.source === "owner" && candidate?.confidence === "explicit") ||
+      (candidate?.source === "workspace" && candidate?.confidence === "verified")) &&
+    typeof candidate?.value === "string" &&
+    candidate.value.trim()
+  );
+  return item?.value?.trim() || "";
+}
+
+function businessKnowledgeNote(workspaceData, { includePaymentTerm = false } = {}) {
+  const tone = getBusinessKnowledgeValue(workspaceData, "communication-tone");
+  const paymentTerm = includePaymentTerm ? getBusinessKnowledgeValue(workspaceData, "payment-term") : "";
+  const parts = [];
+  if (tone) parts.push(`Use the owner's communication tone: ${tone}`);
+  if (paymentTerm) parts.push(`Respect the verified payment terms: ${paymentTerm}`);
+  return parts.length ? ` Business context: ${parts.join(". ")}.` : "";
+}
 
 function prepareFollowupMessageDraft(signal, workspaceData, locale = "en") {
   const customer = workspaceData.customers.find(c => signal.sourceIds?.includes(c.id));
@@ -514,11 +605,67 @@ function prepareFollowupMessageDraft(signal, workspaceData, locale = "en") {
     kind: "followup-message",
     status: "prepared",
     title: `Follow up: ${customer?.title || "Customer"}`,
-    content: t(customer, message),
+    content: t(customer, message) + businessKnowledgeNote(workspaceData),
     sourceIds: signal.sourceIds,
     targetType: "messages",
     targetHref: "/business/messages",
     reason: "followup-approval-pending",
+    preparedAt: new Date().toISOString(),
+  };
+}
+
+function prepareLeadQualificationDraft(signal, workspaceData, locale = "en") {
+  const customer = workspaceData.customers.find(c => signal.sourceIds?.includes(c.id) && c?.customerStatus === "lead");
+  if (!customer) return null;
+  const templates = {
+    en: (c) => `Review and qualify lead ${c?.title || "Lead"} before preparing a quote. Confirm the need, scope and contact details; do not send or create a quote yet.`,
+    hu: (c) => `${c?.title || "Lead"} lead áttekintése és minősítése ajánlat előkészítése előtt. Ellenőrizd az igényt, a munkakört és a kapcsolati adatokat; még ne küldj és ne hozz létre ajánlatot.`,
+    de: (c) => `Lead ${c?.title || "Lead"} vor der Angebotserstellung prüfen und qualifizieren. Bedarf, Umfang und Kontaktdaten bestätigen; noch kein Angebot senden oder erstellen.`,
+    fr: (c) => `Examiner et qualifier le prospect ${c?.title || "Lead"} avant de préparer un devis. Confirmer le besoin, le périmètre et les coordonnées; ne pas encore envoyer ni créer de devis.`,
+    es: (c) => `Revisar y calificar el lead ${c?.title || "Lead"} antes de preparar un presupuesto. Confirmar necesidad, alcance y datos de contacto; todavía no enviar ni crear un presupuesto.`,
+  };
+  const t = templates[locale] || templates.en;
+  return {
+    kind: "lead-qualification",
+    status: "prepared",
+    title: `Qualify lead: ${customer?.title || "Lead"}`,
+    content: t(customer) + businessKnowledgeNote(workspaceData),
+    sourceIds: signal.sourceIds,
+    targetType: "customers",
+    targetHref: "/business/customers",
+    reason: "lead-qualification-approval-pending",
+    preparedAt: new Date().toISOString(),
+  };
+}
+
+function prepareQuoteBriefDraft(signal, workspaceData, locale = "en") {
+  const customer = workspaceData.customers.find(c => signal.sourceIds?.includes(c.id));
+  if (!customer) return null;
+  const service = getBusinessKnowledgeValue(workspaceData, "service");
+  const price = getBusinessKnowledgeValue(workspaceData, "price");
+  const paymentTerm = getBusinessKnowledgeValue(workspaceData, "payment-term");
+  const context = [
+    service ? `Service: ${service}` : "",
+    price ? `Verified price context: ${price}` : "",
+    paymentTerm ? `Payment terms: ${paymentTerm}` : "",
+  ].filter(Boolean).join(". ");
+  const templates = {
+    en: (c) => `Prepare an owner-review quote brief for ${c?.title || "customer"}. Use only verified workspace/business knowledge; confirm scope and pricing before creating any quote document.`,
+    hu: (c) => `Tulajdonosi ellenőrzésre szánt ajánlati vázlat előkészítése ${c?.title || "ügyfél"} részére. Csak ellenőrzött workspace/business knowledge adatot használj; az ajánlati dokumentum létrehozása előtt ellenőrizd a munkakört és az árat.`,
+    de: (c) => `Einen Angebotsentwurf zur Inhaberprüfung für ${c?.title || "Kunde"} vorbereiten. Nur verifizierte Workspace-/Business-Knowledge-Daten verwenden; Umfang und Preis vor Erstellung eines Angebotsdokuments bestätigen.`,
+    fr: (c) => `Préparer un brouillon de devis pour validation du propriétaire pour ${c?.title || "client"}. Utiliser uniquement des données Workspace/Business Knowledge vérifiées; confirmer le périmètre et le prix avant de créer un devis.`,
+    es: (c) => `Preparar un borrador de presupuesto para revisión del propietario para ${c?.title || "cliente"}. Usar solo datos verificados de Workspace/Business Knowledge; confirmar alcance y precio antes de crear el presupuesto.`,
+  };
+  const t = templates[locale] || templates.en;
+  return {
+    kind: "quote-brief",
+    status: "prepared",
+    title: `Quote brief: ${customer?.title || "Customer"}`,
+    content: t(customer) + (context ? ` Business context: ${context}.` : "") + businessKnowledgeNote(workspaceData),
+    sourceIds: signal.sourceIds,
+    targetType: "invoices",
+    targetHref: "/business/invoices",
+    reason: "quote-brief-owner-review-pending",
     preparedAt: new Date().toISOString(),
   };
 }
@@ -540,11 +687,36 @@ function prepareInvoiceFollowupDraft(signal, workspaceData, locale = "en") {
     kind: "invoice-followup",
     status: "prepared",
     title: `Payment reminder: ${invoice.number || "Invoice"}`,
-    content: t(invoice, total.toFixed(2)),
+    content: t(invoice, total.toFixed(2)) + businessKnowledgeNote(workspaceData, { includePaymentTerm: true }),
     sourceIds: signal.sourceIds,
     targetType: "messages",
     targetHref: "/business/messages",
     reason: "overdue-invoice-followup",
+    preparedAt: new Date().toISOString(),
+  };
+}
+
+function prepareQuoteFollowupDraft(signal, workspaceData, locale = "en") {
+  const quote = workspaceData.invoices.find(i => signal.sourceIds?.includes(i.id));
+  if (!quote || quote.type !== "quote") return null;
+  const customer = workspaceData.customers.find(c => c.id === quote.customerId || signal.sourceIds?.includes(c.id));
+  const templates = {
+    en: (q, c) => `Prepare a quote follow-up draft for ${c?.title || "customer"} regarding quote ${q.number || q.id}`,
+    hu: (q, c) => `Ajánlat-utánkövetési vázlat előkészítése ${c?.title || "ügyfél"} részére: ${q.number || q.id}`,
+    de: (q, c) => `Angebots-Nachfassentwurf für ${c?.title || "Kunde"} zu Angebot ${q.number || q.id} vorbereiten`,
+    fr: (q, c) => `Préparer un brouillon de relance pour ${c?.title || "client"} concernant le devis ${q.number || q.id}`,
+    es: (q, c) => `Preparar un borrador de seguimiento para ${c?.title || "cliente"} sobre el presupuesto ${q.number || q.id}`,
+  };
+  const t = templates[locale] || templates.en;
+  return {
+    kind: "followup-message",
+    status: "prepared",
+    title: `Quote follow-up: ${quote.number || "Quote"}`,
+    content: t(quote, customer) + businessKnowledgeNote(workspaceData),
+    sourceIds: signal.sourceIds,
+    targetType: "messages",
+    targetHref: "/business/messages",
+    reason: "quote-followup-approval-pending",
     preparedAt: new Date().toISOString(),
   };
 }
@@ -615,16 +787,18 @@ function prepareAIBotHandoffDraft(signal, workspaceData, locale = "en") {
 }
 
 const PREPARATION_DISPATCH = {
+  "lead-qualification": prepareLeadQualificationDraft,
+  "quote-brief": prepareQuoteBriefDraft,
   "complete-followups": prepareFollowupMessageDraft,
   "review-followups": prepareFollowupMessageDraft,
   "customer-followups": prepareFollowupMessageDraft,
   "overdue-invoices": prepareInvoiceFollowupDraft,
-  "stale-quotes": prepareInvoiceFollowupDraft,
+  "stale-quotes": prepareQuoteFollowupDraft,
   "draft-invoices": prepareInvoiceFollowupDraft,
   "overdue-tasks": prepareTaskDraft,
   "today-tasks": prepareTaskDraft,
   "payment-risk": prepareInvoiceFollowupDraft,
-  "quote-leakage": prepareInvoiceFollowupDraft,
+  "quote-leakage": prepareQuoteFollowupDraft,
   "workload-bottleneck": prepareTaskDraft,
   "dormant-customers": prepareFollowupMessageDraft,
   "followup-effectiveness": prepareFollowupMessageDraft,
@@ -660,12 +834,57 @@ export function prepareActionsForSignals(signals, workspaceData, locale = "en", 
     }
   }
 
+  // Business Rules signals preserve real workspace evidence and remain owner-approved.
+  for (const rule of signals.businessRules || []) {
+    if (rule.requiresApproval === true && PREPARATION_DISPATCH[rule.kind] && Array.isArray(rule.sourceIds) && rule.sourceIds.length > 0) {
+      allSignals.push({ kind: rule.kind, sourceIds: rule.sourceIds, severity: rule.severity, href: rule.href, evidenceBacked: true });
+    }
+  }
+
+  // Lead-to-Money prepares only owner-reviewable work from evidence-backed gaps.
+  // It never changes lead status, creates/sends quotes, creates invoices, records payments, or executes externally.
+  for (const item of signals.leadToMoney || []) {
+    if (!Array.isArray(item?.sourceIds) || item.sourceIds.length === 0 || item?.status !== "needs-attention") continue;
+    if (item.stage === "qualified" && item.nextStage === "quote") {
+      allSignals.push({
+        kind: "lead-qualification",
+        sourceIds: item.sourceIds,
+        severity: "attention",
+        href: item.targetHref,
+        evidenceBacked: true,
+        leadToMoney: true,
+      });
+      allSignals.push({
+        kind: "quote-brief",
+        sourceIds: item.sourceIds,
+        severity: "ready",
+        href: "/business/invoices",
+        evidenceBacked: true,
+        leadToMoney: true,
+      });
+    }
+    if (item.stage === "follow-up" && item.nextStage === "invoice") {
+      allSignals.push({
+        kind: "stale-quotes",
+        sourceIds: item.sourceIds,
+        severity: "attention",
+        href: item.targetHref,
+        evidenceBacked: true,
+        leadToMoney: true,
+      });
+    }
+  }
+
   // Deduplicate by kind, keep highest severity
   const byKind = new Map();
   for (const s of allSignals) {
     const existing = byKind.get(s.kind);
     const severityOrder = { critical: 3, attention: 2, ready: 1, high: 3, medium: 2, low: 1 };
-    if (!existing || (severityOrder[s.severity] || 0) > (severityOrder[existing.severity] || 0)) {
+    const candidateSeverity = severityOrder[s.severity] || 0;
+    const existingSeverity = severityOrder[existing?.severity] || 0;
+    const candidateHasEvidence = Boolean(s.evidenceBacked && s.sourceIds?.length);
+    const existingHasEvidence = Boolean(existing?.evidenceBacked && existing?.sourceIds?.length);
+    if (!existing || candidateSeverity > existingSeverity || (candidateSeverity === existingSeverity && candidateHasEvidence && !existingHasEvidence)) {
       byKind.set(s.kind, s);
     }
   }
@@ -680,6 +899,9 @@ export function prepareActionsForSignals(signals, workspaceData, locale = "en", 
   return sorted.map(s => {
     const fn = PREPARATION_DISPATCH[s.kind];
     let actionSignal = s;
+    if (fn === prepareQuoteFollowupDraft && !workspaceData.invoices.some(item => item.type === "quote" && s.sourceIds?.includes(item.id))) {
+      return null;
+    }
     if (fn === prepareInvoiceFollowupDraft && !workspaceData.invoices.some(invoice => s.sourceIds?.includes(invoice.id))) {
       const today = new Date().toISOString().slice(0, 10);
       const invoice = workspaceData.invoices.find(item => item.type === "invoice" && item.status === "sent" && item.dueDate < today);
@@ -691,7 +913,7 @@ export function prepareActionsForSignals(signals, workspaceData, locale = "en", 
 }
 
 const EMPLOYEE_DELEGATION_RULES = [
-  { role: "Sales", kinds: ["followup-message", "x20-spec"] },
+  { role: "Sales", kinds: ["lead-qualification", "quote-brief", "followup-message", "x20-spec"] },
   { role: "Finance", kinds: ["invoice-followup"] },
   { role: "Marketing", kinds: ["creative-brief"] },
   { role: "Support", kinds: ["task"] },
@@ -749,8 +971,19 @@ export function prepareEmployeeDelegations(preparedActions, locale = "en") {
 // =========================================
 
 export function runCoreV1Decision(workspaceData, cloudEnabled, locale = "en") {
+  const businessKnowledge = workspaceData?.businessKnowledge?.items?.length
+    ? {
+        version: workspaceData.businessKnowledge.version || 1,
+        items: workspaceData.businessKnowledge.items.filter((item) =>
+          ["business-name", "service", "price", "payment-term", "communication-tone", "business-rule"].includes(item?.field)
+          && ["explicit", "verified"].includes(item?.confidence)
+        ),
+      }
+    : null;
   const decision = computeCoreDecision(workspaceData, cloudEnabled);
-  const preparedActions = prepareActionsForSignals(decision, workspaceData, locale, 3);
+  const businessRules = evaluateBusinessRules(workspaceData);
+  const leadToMoney = projectLeadToMoney(workspaceData);
+  const preparedActions = prepareActionsForSignals({ ...decision, businessRules, leadToMoney }, workspaceData, locale, 3);
   const employeeDelegations = prepareEmployeeDelegations(preparedActions, locale);
 
   return {
@@ -759,6 +992,9 @@ export function runCoreV1Decision(workspaceData, cloudEnabled, locale = "en") {
     coreDecision: decision.coreDecision,
     opportunityRadar: decision.opportunityRadar,
     fixMyBusiness: decision.fixMyBusiness,
+    businessRules,
+    leadToMoney,
+    businessKnowledge,
     goalMode: decision.goalMode,
     pulse: decision.pulse,
     companion: decision.companion,

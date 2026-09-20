@@ -45,6 +45,27 @@ export type FixMyBusinessSignal = {
   actionKey: string
 }
 
+export type BusinessRuleProjection = {
+  ruleId: string
+  kind: string
+  sourceIds: string[]
+  count: number
+  severity: "high" | "medium" | "low"
+  role: AIEmployeeRole
+  href: string
+  requiresApproval: true
+}
+
+export type LeadToMoneyProjection = {
+  id: string
+  stage: "lead" | "qualified" | "customer" | "quote" | "follow-up" | "invoice" | "payment" | "repeat-business"
+  sourceIds: string[]
+  status: "observed" | "needs-attention" | "complete"
+  reason: string
+  nextStage?: "lead" | "qualified" | "customer" | "quote" | "follow-up" | "invoice" | "payment" | "repeat-business"
+  targetHref: string
+}
+
 export type GoalModeProjection = {
   plan: any
   outcome: any
@@ -102,6 +123,8 @@ export type CoreDecisionResponse = {
   coreDecision: CorePriority
   opportunityRadar: OpportunityRadarFinding[]
   fixMyBusiness: FixMyBusinessSignal[]
+  businessRules: BusinessRuleProjection[]
+  leadToMoney: LeadToMoneyProjection[]
   goalMode: GoalModeProjection
   pulse: PulseProjection
   companion: CompanionProjection
@@ -134,6 +157,8 @@ const FALLBACK: CoreDecisionResponse = {
   coreDecision: { kind: "start", count: 0, href: "/business/customers", severity: "ready" },
   opportunityRadar: [],
   fixMyBusiness: [{ kind: "foundation", severity: "ready", count: 0, sourceIds: [], actionKey: "buildFoundation" }],
+  businessRules: [],
+  leadToMoney: [],
   goalMode: null,
   pulse: { understood: "", continuity: [], nextActions: [] },
   companion: { context: [], suggestions: [], scope: "authenticated-cloud", userControlled: true },

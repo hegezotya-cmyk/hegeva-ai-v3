@@ -27,6 +27,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
 import { OperatingCenter } from "@/components/command-center/operating-center"
+import { PreparedWorkReviewBoard } from "@/components/command-center/prepared-work-review-board"
 import { COMMAND_OVERVIEW_COPY } from "@/lib/i18n/command-overview-copy"
 import { AICore, SectionHeading } from "@/components/visual-engine"
 import { OutcomeLauncher } from "@/components/outcome-launcher"
@@ -100,6 +101,7 @@ export function CommandCenterView() {
       <ExternalIntelligenceLayer />
       <LiveCorePriority />
       <OperatingCenter />
+        <PreparedWorkReviewBoard locale={locale} />
       <IntelligenceAutopilot />
 
       <SectionHeading className="mt-12" eyebrow={layers.intelligence} title={copy.aiModules} description={layers.description} />
