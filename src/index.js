@@ -16,7 +16,13 @@ import { createPortalShare, readPortalShare, revokePortalShare } from "./client-
 import { completeOAuth, disconnectIntegration, listConnections, readIntegrationIntelligence, readIntegrationSignals, startOAuth } from "./integrations.js";
 import { creativeProviderCapability, invokeCreativeProvider, isCreativeCanaryOwner, readCreativeCredits, reserveCreativeCredits, settleCreativeCredits, validateCreativeGeneration } from "./creative-provider.js";
 import { createDurableMemoryD1Adapter } from "./durable-memory-d1-adapter.js";
+import { readBusinessKnowledgeMemory, saveBusinessKnowledgeMemory } from "./business-knowledge-memory.js";
 import { runCoreV1Decision } from "./core-v1-decision.js";
+import { prepareOverdueInvoiceEmailDraft } from "./email-draft-action.js";
+import { prepareQuoteEmailDraft } from "./quote-email-draft-action.js";
+import { approveGovernedExternalAction, markGovernedExternalActionReady } from "./external-action-governance.js";
+import { applyEmailDeliveryState, canConfirmEmailDelivery, emailContentDigest } from "./email-delivery-governance.js";
+import { synchronizePreparedWork, transitionPreparedWork } from "./prepared-work-review.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -3212,6 +3218,460 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
     }
 
     // =========================================
+    // GOVERNED EXTERNAL ACTIONS: EMAIL DRAFTS
+    // =========================================
+
+    if (url.pathname === "/api/external-actions/email-draft") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) {
+          return Response.json({ error: "Authentication required." }, { status: 401 });
+        }
+
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: "Invalid JSON body." }, { status: 400 });
+        }
+
+        const invoiceId = typeof body?.invoiceId === "string" ? body.invoiceId.trim() : "";
+        const locale = typeof body?.locale === "string" ? body.locale.trim() : "en";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(invoiceId)) {
+          return Response.json({ error: "A valid invoice is required." }, { status: 400 });
+        }
+
+        const dataTypes = ["invoice_documents", "customers", "messages"];
+        const stored = {};
+        for (const dataType of dataTypes) {
+          const row = await env.DB.prepare(
+            "SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1",
+          ).bind(user.id, dataType).first();
+          if (!row?.data) {
+            stored[dataType] = [];
+            continue;
+          }
+          try {
+            const value = JSON.parse(row.data);
+            stored[dataType] = Array.isArray(value) ? value : [];
+          } catch {
+            return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+          }
+        }
+
+        const invoice = stored.invoice_documents.find((document) => document?.id === invoiceId);
+        if (!invoice) {
+          return Response.json({ error: "Invoice not found." }, { status: 404 });
+        }
+
+        const result = prepareOverdueInvoiceEmailDraft({
+          invoice,
+          customers: stored.customers,
+          messages: stored.messages,
+          locale,
+        });
+        if (!result.ok) {
+          const status = result.reason === "customer-not-authorized" ? 403 : 422;
+          return Response.json({ error: "The available workspace evidence cannot support this email draft." }, { status });
+        }
+
+        if (result.created || result.updated) {
+          const now = new Date().toISOString();
+          await env.DB.prepare(`
+            INSERT INTO workspace_data (id, userId, dataType, data, createdAt, updatedAt)
+            VALUES (?1, ?2, 'messages', ?3, ?4, ?4)
+            ON CONFLICT(userId, dataType) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt
+          `).bind(
+            crypto.randomUUID(),
+            user.id,
+            JSON.stringify([result.draft, ...stored.messages]),
+            now,
+          ).run();
+          emitMonitor("email_draft_action", result.created ? "prepared" : "upgraded", { actionType: result.draft.actionType });
+        } else {
+          emitMonitor("email_draft_action", "reused", { actionType: result.draft.actionType });
+        }
+
+        return Response.json(
+          { draft: result.draft, created: result.created, state: "awaiting-approval", sent: false },
+          { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } },
+        );
+      } catch (error) {
+        logFailure("email_draft_action_failed", error);
+        return Response.json({ error: "Email draft preparation is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/external-actions/quote-email-draft") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) {
+          return Response.json({ error: "Authentication required." }, { status: 401 });
+        }
+
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: "Invalid JSON body." }, { status: 400 });
+        }
+
+        const quoteId = typeof body?.quoteId === "string" ? body.quoteId.trim() : "";
+        const locale = typeof body?.locale === "string" ? body.locale.trim() : "en";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(quoteId)) {
+          return Response.json({ error: "A valid quote is required." }, { status: 400 });
+        }
+
+        const dataTypes = ["invoice_documents", "customers", "messages"];
+        const stored = {};
+        for (const dataType of dataTypes) {
+          const row = await env.DB.prepare(
+            "SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1",
+          ).bind(user.id, dataType).first();
+          if (!row?.data) {
+            stored[dataType] = [];
+            continue;
+          }
+          try {
+            const value = JSON.parse(row.data);
+            stored[dataType] = Array.isArray(value) ? value : [];
+          } catch {
+            return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+          }
+        }
+
+        const quote = stored.invoice_documents.find((document) => document?.id === quoteId);
+        if (!quote) {
+          return Response.json({ error: "Quote not found." }, { status: 404 });
+        }
+
+        const result = prepareQuoteEmailDraft({
+          quote,
+          customers: stored.customers,
+          messages: stored.messages,
+          locale,
+        });
+        if (!result.ok) {
+          const status = result.reason === "customer-not-authorized" ? 403 : 422;
+          return Response.json({ error: "The available workspace evidence cannot support this quote email draft." }, { status });
+        }
+
+        if (result.created) {
+          const now = new Date().toISOString();
+          await env.DB.prepare(`
+            INSERT INTO workspace_data (id, userId, dataType, data, createdAt, updatedAt)
+            VALUES (?1, ?2, 'messages', ?3, ?4, ?4)
+            ON CONFLICT(userId, dataType) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt
+          `).bind(
+            crypto.randomUUID(),
+            user.id,
+            JSON.stringify([result.draft, ...stored.messages]),
+            now,
+          ).run();
+          emitMonitor("quote_email_draft_action", "prepared", { actionType: result.draft.actionType });
+        } else {
+          emitMonitor("quote_email_draft_action", "reused", { actionType: result.draft.actionType });
+        }
+
+        return Response.json(
+          { draft: result.draft, created: result.created, state: "awaiting-approval", sent: false },
+          { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } },
+        );
+      } catch (error) {
+        logFailure("quote_email_draft_action_failed", error);
+        return Response.json({ error: "Quote email draft preparation is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/external-actions/approve") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: "Invalid JSON body." }, { status: 400 });
+        }
+        const actionId = typeof body?.actionId === "string" ? body.actionId.trim() : "";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(actionId)) {
+          return Response.json({ error: "A valid action is required." }, { status: 400 });
+        }
+
+        const row = await env.DB.prepare(
+          "SELECT data, updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1",
+        ).bind(user.id, "messages").first();
+        let messages;
+        try {
+          messages = row?.data ? JSON.parse(row.data) : [];
+        } catch {
+          return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+        }
+        if (!Array.isArray(messages)) return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+
+        const current = messages.find((message) => message?.id === actionId);
+        if (!current) return Response.json({ error: "Action not found." }, { status: 404 });
+        const now = new Date().toISOString();
+        const approved = approveGovernedExternalAction(current, { actorHash: await sha256Hex(user.id), now });
+        if (!approved.ok) return Response.json({ error: "This action cannot be approved in its current state." }, { status: 409 });
+        if (approved.idempotent) {
+          emitMonitor("external_action_approval", "reused", { actionType: current.actionType });
+          return Response.json({ state: approved.action.approvalState, action: approved.action, idempotent: true }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+        }
+
+        const nextMessages = messages.map((message) => message?.id === actionId ? approved.action : message);
+        const update = await env.DB.prepare(
+          "UPDATE workspace_data SET data = ?1, updatedAt = ?2 WHERE userId = ?3 AND dataType = 'messages' AND updatedAt = ?4",
+        ).bind(JSON.stringify(nextMessages), now, user.id, row?.updatedAt).run();
+        if (Number(update?.meta?.changes || 0) !== 1) {
+          return Response.json({ error: "The action changed; reload and try again." }, { status: 409 });
+        }
+        emitMonitor("external_action_approval", "approved", { actionType: approved.action.actionType });
+        return Response.json({ state: "approved", action: approved.action, idempotent: false }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+      } catch (error) {
+        logFailure("external_action_approval_failed", error);
+        return Response.json({ error: "Owner approval is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/external-actions/ready") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: "Invalid JSON body." }, { status: 400 });
+        }
+        const actionId = typeof body?.actionId === "string" ? body.actionId.trim() : "";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(actionId)) {
+          return Response.json({ error: "A valid action is required." }, { status: 400 });
+        }
+
+        const row = await env.DB.prepare(
+          "SELECT data, updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1",
+        ).bind(user.id, "messages").first();
+        let messages;
+        try {
+          messages = row?.data ? JSON.parse(row.data) : [];
+        } catch {
+          return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+        }
+        if (!Array.isArray(messages)) return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+
+        const current = messages.find((message) => message?.id === actionId);
+        if (!current) return Response.json({ error: "Action not found." }, { status: 404 });
+        const now = new Date().toISOString();
+        const ready = markGovernedExternalActionReady(current, { actorHash: await sha256Hex(user.id), now });
+        if (!ready.ok) return Response.json({ error: "This action cannot be marked ready in its current state." }, { status: 409 });
+        if (ready.idempotent) {
+          emitMonitor("external_action_ready", "reused", { actionType: current.actionType });
+          return Response.json({ state: "ready-to-execute", action: ready.action, idempotent: true }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+        }
+
+        const nextMessages = messages.map((message) => message?.id === actionId ? ready.action : message);
+        const update = await env.DB.prepare(
+          "UPDATE workspace_data SET data = ?1, updatedAt = ?2 WHERE userId = ?3 AND dataType = 'messages' AND updatedAt = ?4",
+        ).bind(JSON.stringify(nextMessages), now, user.id, row?.updatedAt).run();
+        if (Number(update?.meta?.changes || 0) !== 1) {
+          return Response.json({ error: "The action changed; reload and try again." }, { status: 409 });
+        }
+        emitMonitor("external_action_ready", "ready", { actionType: ready.action.actionType });
+        return Response.json({ state: "ready-to-execute", action: ready.action, idempotent: false }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+      } catch (error) {
+        logFailure("external_action_ready_failed", error);
+        return Response.json({ error: "Preparing the action for execution is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/external-actions/email-delivery/test/preview") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      const user = await getLoggedInUserFn(request, env, ctx);
+      if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+      if (env.EMAIL_DELIVERY_ENABLED !== "enabled" || env.EMAIL_DELIVERY_TEST_MODE_ENABLED !== "enabled") return Response.json({ error: "Email delivery test mode is disabled." }, { status: 503 });
+      const action = ownerEmailDeliveryTestAction(user);
+      if (!action) return Response.json({ error: "A verified account email is required." }, { status: 403 });
+      return Response.json({ action }, { headers: { "Cache-Control": "private, no-store" } });
+    }
+
+    if (url.pathname === "/api/external-actions/email-delivery/confirm") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      let deliveryLimiter = null;
+      let deliveryLease = null;
+      let deliveryUserId = null;
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        if (env.EMAIL_DELIVERY_ENABLED !== "enabled") return Response.json({ error: "Email delivery is disabled." }, { status: 503 });
+        deliveryUserId = user.id;
+        deliveryLimiter = env.RATE_LIMITER?.getByName(`email-delivery-rate-limit:${user.id}`);
+        if (!deliveryLimiter) return Response.json({ error: "Email delivery is temporarily unavailable." }, { status: 503 });
+        try {
+          deliveryLease = await deliveryLimiter.admit();
+        } catch (error) {
+          logFailure("email_delivery_rate_limit_failed", error);
+          return Response.json({ error: "Email delivery is temporarily unavailable." }, { status: 503 });
+        }
+        if (!deliveryLease?.allowed) return Response.json({ error: "Email delivery rate limit reached. Please try again later." }, { status: 429, headers: { "Retry-After": String(Math.max(1, Math.ceil((Number(deliveryLease?.retryAfterMs) || 1000) / 1000))) } });
+        let body;
+        try { body = await request.json(); } catch { return Response.json({ error: "Invalid JSON body." }, { status: 400 }); }
+        const actionId = typeof body?.actionId === "string" ? body.actionId.trim() : "";
+        const confirmationDigest = typeof body?.confirmationDigest === "string" ? body.confirmationDigest : "";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(actionId) || !/^[a-f0-9]{64}$/.test(confirmationDigest)) return Response.json({ error: "A valid final confirmation is required." }, { status: 400 });
+        const isOwnerTest = actionId === OWNER_EMAIL_DELIVERY_TEST_ACTION_ID;
+        if (isOwnerTest && env.EMAIL_DELIVERY_TEST_MODE_ENABLED !== "enabled") return Response.json({ error: "Email delivery test mode is disabled." }, { status: 503 });
+        const row = isOwnerTest ? null : await env.DB.prepare("SELECT data, updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'messages' LIMIT 1").bind(user.id).first();
+        let messages; try { messages = row?.data ? JSON.parse(row.data) : []; } catch { return Response.json({ error: "Workspace data is unavailable." }, { status: 503 }); }
+        if (!Array.isArray(messages)) return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+        const current = isOwnerTest ? ownerEmailDeliveryTestAction(user) : messages.find((message) => message?.id === actionId);
+        const digest = await emailContentDigest(current);
+        if (!canConfirmEmailDelivery(current, confirmationDigest) || digest !== confirmationDigest) return Response.json({ error: "This exact ready email must be reviewed again." }, { status: 409 });
+        const actorHash = await sha256Hex(user.id), now = new Date().toISOString(), operationId = crypto.randomUUID();
+        try {
+          await env.DB.batch([
+            env.DB.prepare("INSERT INTO email_delivery_operations (operationId,userId,actionId,readyVersion,contentDigest,status,confirmedByActorHash,confirmedAt,createdAt,updatedAt) VALUES (?1,?2,?3,?4,?5,'sending',?6,?7,?7,?7)").bind(operationId, user.id, actionId, current.readyVersion, digest, actorHash, now),
+            env.DB.prepare("INSERT INTO email_delivery_history (id,operationId,userId,event,status,actorHash,occurredAt) VALUES (?1,?2,?3,'final-confirmed','sending',?4,?5)").bind(crypto.randomUUID(), operationId, user.id, actorHash, now),
+          ]);
+        } catch {
+          const existing = await env.DB.prepare("SELECT status FROM email_delivery_operations WHERE userId=?1 AND actionId=?2 AND readyVersion=?3 LIMIT 1").bind(user.id, actionId, current.readyVersion).first();
+          return Response.json({ error: existing?.status === "sent" ? "This email was already sent." : "A delivery operation already exists for this email." }, { status: 409 });
+        }
+        const sending = applyEmailDeliveryState(current, "sending", { now, actorHash });
+        if (!isOwnerTest) {
+          const update = await env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='messages' AND updatedAt=?4").bind(JSON.stringify(messages.map((message) => message?.id === actionId ? sending : message)), now, user.id, row.updatedAt).run();
+          if (Number(update?.meta?.changes || 0) !== 1) return Response.json({ error: "The email changed; reload and try again." }, { status: 409 });
+        }
+        try {
+          const result = await sendResendEmail(env, { to: current.recipient, subject: current.subject, text: current.body, html: `<div style="white-space:pre-wrap">${current.body.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</div>`, idempotencyKey: operationId });
+          const providerMessageId = typeof result?.id === "string" ? result.id : "";
+          if (!providerMessageId) throw new Error("provider-response-invalid");
+          const sentAt = new Date().toISOString(), sent = applyEmailDeliveryState(sending, "sent", { now: sentAt, actorHash, providerMessageId });
+          await env.DB.batch([env.DB.prepare("UPDATE email_delivery_operations SET status='sent',providerMessageId=?1,updatedAt=?2 WHERE operationId=?3 AND userId=?4 AND status='sending'").bind(providerMessageId, sentAt, operationId, user.id), env.DB.prepare("INSERT INTO email_delivery_history (id,operationId,userId,event,status,providerMessageId,actorHash,occurredAt) VALUES (?1,?2,?3,'sent','sent',?4,?5,?6)").bind(crypto.randomUUID(), operationId, user.id, providerMessageId, actorHash, sentAt), ...(!isOwnerTest ? [env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='messages'").bind(JSON.stringify(messages.map((message) => message?.id === actionId ? sent : message)), sentAt, user.id)] : [])]);
+          return Response.json({ action: sent, status: "sent" }, { headers: { "Cache-Control": "private, no-store" } });
+        } catch (error) {
+          const uncertain = error?.name === "AbortError" || error?.message === "provider-response-invalid";
+          const finalStatus = uncertain ? "uncertain" : "failed", completedAt = new Date().toISOString(), failed = applyEmailDeliveryState(sending, finalStatus, { now: completedAt, actorHash, failureCode: uncertain ? "provider-outcome-uncertain" : "provider-failure" });
+          await env.DB.batch([env.DB.prepare("UPDATE email_delivery_operations SET status=?1,failureCode=?2,updatedAt=?3 WHERE operationId=?4 AND userId=?5 AND status='sending'").bind(finalStatus, uncertain ? "provider-outcome-uncertain" : "provider-failure", completedAt, operationId, user.id), env.DB.prepare("INSERT INTO email_delivery_history (id,operationId,userId,event,status,failureCode,actorHash,occurredAt) VALUES (?1,?2,?3,?4,?4,?5,?6,?7)").bind(crypto.randomUUID(), operationId, user.id, finalStatus, uncertain ? "provider-outcome-uncertain" : "provider-failure", actorHash, completedAt), ...(!isOwnerTest ? [env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='messages'").bind(JSON.stringify(messages.map((message) => message?.id === actionId ? failed : message)), completedAt, user.id)] : [])]);
+          return Response.json({ error: uncertain ? "Delivery outcome is uncertain; no retry is available." : "Email delivery failed.", status: finalStatus }, { status: 503 });
+        }
+      } catch (error) {
+        logFailure("email_delivery_failed", error);
+        return Response.json({ error: "Email delivery is temporarily unavailable." }, { status: 503 });
+      } finally {
+        if (deliveryLease?.allowed && deliveryLease?.token && deliveryLimiter && deliveryUserId) {
+          try {
+            await deliveryLimiter.release(deliveryLease.token);
+          } catch (error) {
+            logFailure("email_delivery_rate_limit_release_failed", error);
+          }
+        }
+      }
+    }
+
+    if (url.pathname === "/api/prepared-work/sync" || url.pathname === "/api/prepared-work/review") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        const row = await env.DB.prepare("SELECT data, updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'prepared_work' LIMIT 1").bind(user.id).first();
+        let records;
+        try { records = row?.data ? JSON.parse(row.data) : []; } catch { return Response.json({ error: "Prepared work is unavailable." }, { status: 503 }); }
+        if (!Array.isArray(records)) return Response.json({ error: "Prepared work is unavailable." }, { status: 503 });
+        const now = new Date().toISOString();
+        let next;
+        if (url.pathname === "/api/prepared-work/sync") {
+          const workspaceData = {};
+          for (const [dataType, coreKey] of [["customers", "customers"], ["invoice_documents", "invoices"], ["planner", "tasks"], ["messages", "messages"], ["documents", "documents"], ["expenses", "expenses"], ["goals", "goals"]]) {
+            const source = await env.DB.prepare("SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1").bind(user.id, dataType).first();
+            try { workspaceData[coreKey] = source?.data ? JSON.parse(source.data) : []; } catch { workspaceData[coreKey] = []; }
+          }
+          next = synchronizePreparedWork(records, runCoreV1Decision(workspaceData, true, "en").employeeDelegations, now);
+          if (!next.ok) return Response.json({ error: "Prepared work is unavailable." }, { status: 503 });
+        } else {
+          let body;
+          try { body = await request.json(); } catch { return Response.json({ error: "Invalid JSON body." }, { status: 400 }); }
+          const actionId = typeof body?.actionId === "string" ? body.actionId : "";
+          const action = typeof body?.action === "string" ? body.action : "";
+          next = transitionPreparedWork(records, actionId, action, { actorHash: await sha256Hex(user.id), now });
+          if (!next.ok) return Response.json({ error: "This review action is unavailable." }, { status: next.reason === "not-found" ? 404 : 409 });
+          next.created = 0;
+        }
+        if (next.created === 0 && url.pathname === "/api/prepared-work/sync") return Response.json({ records: next.records, created: 0 }, { headers: { "Cache-Control": "private, no-store" } });
+        const data = JSON.stringify(next.records);
+        const update = row
+          ? await env.DB.prepare("UPDATE workspace_data SET data = ?1, updatedAt = ?2 WHERE userId = ?3 AND dataType = 'prepared_work' AND updatedAt = ?4").bind(data, now, user.id, row.updatedAt).run()
+          : await env.DB.prepare("INSERT INTO workspace_data (id, userId, dataType, data, createdAt, updatedAt) VALUES (?1, ?2, 'prepared_work', ?3, ?4, ?4) ON CONFLICT(userId, dataType) DO NOTHING").bind(crypto.randomUUID(), user.id, data, now).run();
+        if (Number(update?.meta?.changes || 0) !== 1) return Response.json({ error: "Prepared work changed; reload and try again." }, { status: 409 });
+        return Response.json({ records: next.records, created: next.created || 0, ...(next.record ? { record: next.record } : {}) }, { headers: { "Cache-Control": "private, no-store" } });
+      } catch (error) {
+        logFailure("prepared_work_review_failed", error);
+        return Response.json({ error: "Prepared work is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    // =========================================
+    // BUSINESS KNOWLEDGE V1 — DURABLE MEMORY
+    // Authenticated, workspace-scoped, owner-controlled.
+    // =========================================
+
+    if (url.pathname === "/api/business-knowledge") {
+      if (!["GET", "PUT"].includes(request.method)) {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+
+        // The current HEGEVA workspace is owner-scoped by userId.
+        const workspaceId = user.id;
+        const adapter = createDurableMemoryD1Adapter({ DB: env.DB });
+
+        if (request.method === "GET") {
+          const record = await readBusinessKnowledgeMemory(adapter, { userId: user.id, workspaceId });
+          return Response.json(
+            { profile: record?.payload || { version: 1, workspaceId, items: [] } },
+            { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } }
+          );
+        }
+
+        const body = await request.json();
+        const items = Array.isArray(body?.items) ? body.items : [];
+        const now = new Date().toISOString();
+        const record = await saveBusinessKnowledgeMemory(adapter, {
+          userId: user.id,
+          workspaceId,
+          items,
+          now,
+          correlationId: crypto.randomUUID(),
+        });
+        return Response.json(
+          { profile: record.payload },
+          { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } }
+        );
+      } catch (error) {
+        logFailure("business_knowledge_failed", error);
+        return Response.json({ error: "Business knowledge is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    // =========================================
     // HEGEVA CORE V1 DECIDE
     // =========================================
 
@@ -3282,6 +3742,20 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           workspaceData.goals = goalRow?.data ? JSON.parse(goalRow.data) : [];
         } catch {
           workspaceData.goals = [];
+        }
+
+        // Read workspace-scoped Business Knowledge as context only.
+        // Missing/unavailable memory must never block Core decisions.
+        try {
+          const memoryAdapter = createDurableMemoryD1Adapter({ DB: env.DB });
+          const knowledgeRecord = await readBusinessKnowledgeMemory(memoryAdapter, {
+            userId,
+            workspaceId: userId,
+          });
+          workspaceData.businessKnowledge = knowledgeRecord?.payload || null;
+        } catch (error) {
+          workspaceData.businessKnowledge = null;
+          logFailure("core_business_knowledge_read_failed", error);
         }
 
         const cloudEnabled = true; // authenticated user
