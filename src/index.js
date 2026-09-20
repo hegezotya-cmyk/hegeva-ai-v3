@@ -16,8 +16,10 @@ import { createPortalShare, previewPortalShare, readPortalShare, revokePortalSha
 import { completeOAuth, disconnectIntegration, listConnections, readIntegrationIntelligence, readIntegrationSignals, startOAuth } from "./integrations.js";
 import { creativeProviderCapability, invokeCreativeProvider, isCreativeCanaryOwner, readCreativeCredits, reserveCreativeCredits, settleCreativeCredits, validateCreativeGeneration } from "./creative-provider.js";
 import { createDurableMemoryD1Adapter } from "./durable-memory-d1-adapter.js";
+import { readBusinessKnowledgeMemory, saveBusinessKnowledgeMemory } from "./business-knowledge-memory.js";
 import { runCoreV1Decision } from "./core-v1-decision.js";
 import { prepareOverdueInvoiceEmailDraft } from "./email-draft-action.js";
+import { prepareQuoteEmailDraft } from "./quote-email-draft-action.js";
 import { approveGovernedExternalAction, markGovernedExternalActionReady } from "./external-action-governance.js";
 import { applyEmailDeliveryState, canConfirmEmailDelivery, emailContentDigest } from "./email-delivery-governance.js";
 import { synchronizePreparedWork, transitionPreparedWork } from "./prepared-work-review.js";
@@ -3318,6 +3320,91 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
       }
     }
 
+    if (url.pathname === "/api/external-actions/quote-email-draft") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) {
+          return Response.json({ error: "Authentication required." }, { status: 401 });
+        }
+
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: "Invalid JSON body." }, { status: 400 });
+        }
+
+        const quoteId = typeof body?.quoteId === "string" ? body.quoteId.trim() : "";
+        const locale = typeof body?.locale === "string" ? body.locale.trim() : "en";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(quoteId)) {
+          return Response.json({ error: "A valid quote is required." }, { status: 400 });
+        }
+
+        const dataTypes = ["invoice_documents", "customers", "messages"];
+        const stored = {};
+        for (const dataType of dataTypes) {
+          const row = await env.DB.prepare(
+            "SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1",
+          ).bind(user.id, dataType).first();
+          if (!row?.data) {
+            stored[dataType] = [];
+            continue;
+          }
+          try {
+            const value = JSON.parse(row.data);
+            stored[dataType] = Array.isArray(value) ? value : [];
+          } catch {
+            return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+          }
+        }
+
+        const quote = stored.invoice_documents.find((document) => document?.id === quoteId);
+        if (!quote) {
+          return Response.json({ error: "Quote not found." }, { status: 404 });
+        }
+
+        const result = prepareQuoteEmailDraft({
+          quote,
+          customers: stored.customers,
+          messages: stored.messages,
+          locale,
+        });
+        if (!result.ok) {
+          const status = result.reason === "customer-not-authorized" ? 403 : 422;
+          return Response.json({ error: "The available workspace evidence cannot support this quote email draft." }, { status });
+        }
+
+        if (result.created) {
+          const now = new Date().toISOString();
+          await env.DB.prepare(`
+            INSERT INTO workspace_data (id, userId, dataType, data, createdAt, updatedAt)
+            VALUES (?1, ?2, 'messages', ?3, ?4, ?4)
+            ON CONFLICT(userId, dataType) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt
+          `).bind(
+            crypto.randomUUID(),
+            user.id,
+            JSON.stringify([result.draft, ...stored.messages]),
+            now,
+          ).run();
+          emitMonitor("quote_email_draft_action", "prepared", { actionType: result.draft.actionType });
+        } else {
+          emitMonitor("quote_email_draft_action", "reused", { actionType: result.draft.actionType });
+        }
+
+        return Response.json(
+          { draft: result.draft, created: result.created, state: "awaiting-approval", sent: false },
+          { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } },
+        );
+      } catch (error) {
+        logFailure("quote_email_draft_action_failed", error);
+        return Response.json({ error: "Quote email draft preparation is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
     if (url.pathname === "/api/external-actions/approve") {
       if (request.method !== "POST") {
         return Response.json({ error: "Method not allowed." }, { status: 405 });
@@ -3554,6 +3641,51 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
     }
 
     // =========================================
+    // BUSINESS KNOWLEDGE V1 — DURABLE MEMORY
+    // Authenticated, workspace-scoped, owner-controlled.
+    // =========================================
+
+    if (url.pathname === "/api/business-knowledge") {
+      if (!["GET", "PUT"].includes(request.method)) {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+
+        // The current HEGEVA workspace is owner-scoped by userId.
+        const workspaceId = user.id;
+        const adapter = createDurableMemoryD1Adapter({ DB: env.DB });
+
+        if (request.method === "GET") {
+          const record = await readBusinessKnowledgeMemory(adapter, { userId: user.id, workspaceId });
+          return Response.json(
+            { profile: record?.payload || { version: 1, workspaceId, items: [] } },
+            { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } }
+          );
+        }
+
+        const body = await request.json();
+        const items = Array.isArray(body?.items) ? body.items : [];
+        const now = new Date().toISOString();
+        const record = await saveBusinessKnowledgeMemory(adapter, {
+          userId: user.id,
+          workspaceId,
+          items,
+          now,
+          correlationId: crypto.randomUUID(),
+        });
+        return Response.json(
+          { profile: record.payload },
+          { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } }
+        );
+      } catch (error) {
+        logFailure("business_knowledge_failed", error);
+        return Response.json({ error: "Business knowledge is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    // =========================================
     // HEGEVA CORE V1 DECIDE
     // =========================================
 
@@ -3624,6 +3756,20 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           workspaceData.goals = goalRow?.data ? JSON.parse(goalRow.data) : [];
         } catch {
           workspaceData.goals = [];
+        }
+
+        // Read workspace-scoped Business Knowledge as context only.
+        // Missing/unavailable memory must never block Core decisions.
+        try {
+          const memoryAdapter = createDurableMemoryD1Adapter({ DB: env.DB });
+          const knowledgeRecord = await readBusinessKnowledgeMemory(memoryAdapter, {
+            userId,
+            workspaceId: userId,
+          });
+          workspaceData.businessKnowledge = knowledgeRecord?.payload || null;
+        } catch (error) {
+          workspaceData.businessKnowledge = null;
+          logFailure("core_business_knowledge_read_failed", error);
         }
 
         const cloudEnabled = true; // authenticated user
