@@ -14,6 +14,7 @@ export function AuthPanel() {
   const { locale } = useI18n()
   const c = AUTH_COPY[locale]
   const { data: session, isPending } = useSession()
+  const [hydrated, setHydrated] = useState(false)
   const [mode, setMode] = useState<"login" | "register" | "forgot">("login")
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -23,6 +24,10 @@ export function AuthPanel() {
   const [success, setSuccess] = useState("")
   const [verificationPending, setVerificationPending] = useState(false)
   const [passwordRecoveryAvailable, setPasswordRecoveryAvailable] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    setHydrated(true)
+  }, [])
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("mode") === "register") setMode("register")
@@ -168,7 +173,7 @@ export function AuthPanel() {
     }
   }
 
-  if (isPending) {
+  if (!hydrated || isPending) {
     return <SkeletonSurface lines={4} className="min-h-64" />
   }
 

@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import {
   BarChart3,
   CalendarClock,
@@ -59,6 +60,13 @@ export function CommandCenterView() {
     es: { intelligence: "Capa de inteligencia", description: "Pasa de una pregunta a un resultado verificado con el espacio HEGEVA adecuado.", operations: "Capa operativa", pricing: "Precios" },
   }[locale]
   const { data: session, isPending } = authClient.useSession()
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    setHydrated(true)
+  }, [])
+
+  const displaySession = hydrated && !isPending ? session : null
 
   // Real AI availability from runtime
   const aiAvailability = useAiAvailability()
@@ -92,7 +100,7 @@ export function CommandCenterView() {
 
   return (
 <div className="v4-command-center mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <section className="command-crown"><div><p>HEGEVA / MISSION CONTROL</p><h1>{t.commandCenter.title}</h1><span>{t.commandCenter.subtitle}</span><div className="command-connection">{session?.user ? <Cloud aria-hidden /> : <Info aria-hidden />}<p>{isPending ? t.commandCenter.checking : session?.user ? t.commandCenter.connected : t.commandCenter.previewNote}</p></div><Link href={session?.user ? "/assistant" : "/login?mode=register"} className={cn(buttonVariants({ size: "lg" }), "hegeva-primary mt-7 h-12 px-6")}>{session?.user ? t.commandCenter.openAssistant : t.dashboard.connect}</Link></div><div className="command-radar" aria-hidden><span/><span/><span/><AICore state={session?.user?"ready":"warning"}/><b>MISSION<br/>CONTROL</b></div></section>
+      <section className="command-crown"><div><p>HEGEVA / MISSION CONTROL</p><h1>{t.commandCenter.title}</h1><span>{t.commandCenter.subtitle}</span><div className="command-connection">{displaySession?.user ? <Cloud aria-hidden /> : <Info aria-hidden />}<p>{!hydrated || isPending ? t.commandCenter.checking : displaySession?.user ? t.commandCenter.connected : t.commandCenter.previewNote}</p></div><Link href={displaySession?.user ? "/assistant" : "/login?mode=register"} className={cn(buttonVariants({ size: "lg" }), "hegeva-primary mt-7 h-12 px-6")}>{displaySession?.user ? t.commandCenter.openAssistant : t.dashboard.connect}</Link></div><div className="command-radar" aria-hidden><span/><span/><span/><AICore state={displaySession?.user?"ready":"warning"}/><b>MISSION<br/>CONTROL</b></div></section>
 
       <OutcomeLauncher compact />
       <GoalMode />
