@@ -18,10 +18,10 @@ const C={
 
 const TODAY={
  en:{label:"HEGEVA TODAY",pulse:"Owner pulse",good:"Good",attention:"Needs attention",critical:"Critical",priorities:"Today's top 3 priorities",best:"Best opportunity today",why:"Why it matters",next:"Next action",none:"Not enough supported workspace data yet to identify a best opportunity."},
- hu:{label:"HEGEVA MA",pulse:"Tulajdonosi pulzus",good:"J?",attention:"Figyelmet ig?nyel",critical:"Kritikus",priorities:"A mai 3 legfontosabb priorit?s",best:"A mai legjobb lehet?s?g",why:"Mi?rt fontos",next:"K?vetkez? l?p?s",none:"M?g nincs elegend? al?t?masztott munkater?leti adat a legjobb lehet?s?g meghat?roz?s?hoz."},
- de:{label:"HEGEVA HEUTE",pulse:"Inhaber-Puls",good:"Gut",attention:"Aufmerksamkeit n?tig",critical:"Kritisch",priorities:"Die 3 wichtigsten Priorit?ten heute",best:"Beste Chance heute",why:"Warum es wichtig ist",next:"N?chster Schritt",none:"Noch nicht gen?gend belegte Workspace-Daten f?r eine beste Chance."},
- fr:{label:"HEGEVA AUJOURD'HUI",pulse:"Pouls du dirigeant",good:"Bon",attention:"? surveiller",critical:"Critique",priorities:"Les 3 priorit?s du jour",best:"Meilleure opportunit? du jour",why:"Pourquoi c'est important",next:"Prochaine ?tape",none:"Pas encore assez de donn?es ?tay?es pour identifier la meilleure opportunit?."},
- es:{label:"HEGEVA HOY",pulse:"Pulso del propietario",good:"Bien",attention:"Necesita atenci?n",critical:"Cr?tico",priorities:"Las 3 prioridades de hoy",best:"Mejor oportunidad de hoy",why:"Por qu? importa",next:"Siguiente paso",none:"A?n no hay suficientes datos respaldados para identificar la mejor oportunidad."}
+ hu:{label:"HEGEVA MA",pulse:"Tulajdonosi pulzus",good:"Jó",attention:"Figyelmet igényel",critical:"Kritikus",priorities:"A mai 3 legfontosabb prioritás",best:"A mai legjobb lehetőség",why:"Miért fontos",next:"Következő lépés",none:"Még nincs elegendő alátámasztott munkaterületi adat a legjobb lehetőség meghatározásához."},
+ de:{label:"HEGEVA HEUTE",pulse:"Inhaber-Puls",good:"Gut",attention:"Aufmerksamkeit nötig",critical:"Kritisch",priorities:"Die 3 wichtigsten Prioritäten heute",best:"Beste Chance heute",why:"Warum es wichtig ist",next:"Nächster Schritt",none:"Noch nicht genügend belegte Workspace-Daten für eine beste Chance."},
+ fr:{label:"HEGEVA AUJOURD'HUI",pulse:"Pouls du dirigeant",good:"Bon",attention:"À surveiller",critical:"Critique",priorities:"Les 3 priorités du jour",best:"Meilleure opportunité du jour",why:"Pourquoi c'est important",next:"Prochaine étape",none:"Pas encore assez de données étayées pour identifier la meilleure opportunité."},
+ es:{label:"HEGEVA HOY",pulse:"Pulso del propietario",good:"Bien",attention:"Necesita atención",critical:"Crítico",priorities:"Las 3 prioridades de hoy",best:"Mejor oportunidad de hoy",why:"Por qué importa",next:"Siguiente paso",none:"Aún no hay suficientes datos respaldados para identificar la mejor oportunidad."}
 } as const
 
 const DETAIL={
