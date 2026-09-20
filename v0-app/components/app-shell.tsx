@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/site-header"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="hegeva-atmosphere relative flex min-h-dvh flex-col">
+    <div className="hegeva-atmosphere v4-app-shell relative flex min-h-dvh flex-col">
       <DesktopCommandRail />
       {/* Subtle technical grid overlay */}
       <div className="pointer-events-none absolute inset-0 hegeva-grid opacity-60" aria-hidden />

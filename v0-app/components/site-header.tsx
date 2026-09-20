@@ -88,7 +88,7 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/80 bg-background/80 shadow-[0_12px_40px_-32px_rgba(0,0,0,.9)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/65">
+    <header className="v4-site-header sticky top-0 z-50 border-b border-border/80 shadow-[0_12px_40px_-32px_rgba(0,0,0,.9)] backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6">
           <span className="site-header-brand min-w-0 shrink-0"><HegevaLogo variant="header" className="h-10 max-w-[168px] sm:h-10 sm:max-w-[164px]" /></span>

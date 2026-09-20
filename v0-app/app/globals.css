@@ -108,6 +108,17 @@
   --motion-base: 240ms;
   --motion-slow: 520ms;
 
+  /* Visual System V4: one shared premium surface contract for the app shell. */
+  --v4-ink: oklch(0.075 0.009 86);
+  --v4-ink-raised: oklch(0.105 0.012 92);
+  --v4-surface: oklch(0.14 0.016 96 / 0.94);
+  --v4-surface-strong: oklch(0.18 0.02 100 / 0.98);
+  --v4-border: oklch(0.82 0.11 85 / 0.22);
+  --v4-gold: var(--gold);
+  --v4-bronze: var(--sunset);
+  --v4-cyan: var(--cyan);
+  --v4-shadow: 0 28px 70px -48px oklch(0 0 0 / 0.94);
+
   /* HEGEVA AAA contract aliases for every current and future surface. */
   --aaa-ink: var(--background);
   --aaa-ink-raised: var(--surface-0);
@@ -221,6 +232,35 @@
 }
 
 @layer utilities {
+  /* Visual System V4 foundation. These shell primitives deliberately exclude print and document views. */
+  .v4-app-shell.hegeva-atmosphere {
+    background-color: var(--v4-ink);
+    background-image:
+      radial-gradient(58rem 28rem at 8% -12%, color-mix(in oklab, var(--v4-gold) 12%, transparent), transparent 65%),
+      radial-gradient(52rem 30rem at 102% 18%, color-mix(in oklab, var(--v4-bronze) 10%, transparent), transparent 68%),
+      radial-gradient(44rem 32rem at 84% 92%, color-mix(in oklab, var(--v4-cyan) 6%, transparent), transparent 72%),
+      linear-gradient(145deg, var(--v4-ink), oklch(0.09 0.011 92) 48%, oklch(0.075 0.01 100));
+  }
+  .v4-app-shell .v4-surface,
+  .v4-app-shell :where(.glass-panel, .ve-panel) {
+    border-color: var(--v4-border);
+    background:
+      linear-gradient(145deg, oklch(1 0 0 / 0.05), transparent 36%),
+      linear-gradient(165deg, color-mix(in oklab, var(--v4-surface-strong) 92%, var(--v4-gold) 8%), var(--v4-ink-raised));
+    box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.08), var(--v4-shadow);
+  }
+  .v4-elevated { box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.1), 0 34px 86px -56px oklch(0 0 0 / 0.98), 0 0 34px color-mix(in oklab, var(--v4-gold) 8%, transparent); }
+  .v4-core-zone { border-color: color-mix(in oklab, var(--v4-gold) 34%, var(--v4-border)); background: linear-gradient(145deg, color-mix(in oklab, var(--v4-gold) 9%, transparent), transparent 40%), var(--v4-surface); }
+  .v4-priority-1 { border-color: color-mix(in oklab, var(--v4-gold) 58%, var(--v4-border)); background: linear-gradient(135deg, color-mix(in oklab, var(--v4-gold) 15%, transparent), color-mix(in oklab, var(--v4-bronze) 7%, transparent)); }
+  .v4-priority-2 { border-color: color-mix(in oklab, var(--v4-cyan) 42%, var(--v4-border)); background: linear-gradient(135deg, color-mix(in oklab, var(--v4-cyan) 9%, transparent), var(--v4-surface)); }
+  .v4-status-ready { color: var(--emerald); }
+  .v4-status-review { color: var(--v4-gold); }
+  .v4-status-info { color: var(--v4-cyan); }
+  .v4-brand-lockup { display: inline-flex; min-width: 0; max-width: 100%; align-items: center; justify-content: center; border: 1px solid color-mix(in oklab, var(--v4-gold) 26%, transparent); border-radius: .9rem; background: radial-gradient(circle at 50% 25%, color-mix(in oklab, var(--v4-gold) 9%, transparent), transparent 65%), linear-gradient(165deg, oklch(.075 .008 84 / .96), oklch(.045 .005 80 / .98)); box-shadow: inset 0 1px 0 oklch(1 0 0 / .1), 0 12px 30px -22px color-mix(in oklab, var(--v4-gold) 42%, transparent); }
+  .v4-brand-lockup img { display: block; width: auto; max-width: 100%; height: auto; object-fit: contain; }
+  .v4-command-rail { border-right-color: color-mix(in oklab, var(--v4-gold) 30%, var(--border)); }
+  .v4-site-header { border-bottom-color: color-mix(in oklab, var(--v4-gold) 19%, var(--border)); background: linear-gradient(90deg, oklch(.08 .009 88 / .94), oklch(.11 .014 94 / .94), oklch(.075 .011 100 / .94)); }
+
   /* Cinematic black-gold atmosphere, with deep green only as a controlled accent. */
   .hegeva-atmosphere {
     background-color: var(--background);
@@ -257,8 +297,8 @@
 
   .desktop-command-rail{position:fixed;z-index:55;inset:0 auto 0 0;display:none;width:15rem;overflow:hidden;border-right:1px solid color-mix(in oklab,var(--gold) 24%,var(--border));background:radial-gradient(120% 24% at 10% 0,color-mix(in oklab,var(--gold) 12%,transparent),transparent 56%),radial-gradient(92% 18% at 100% 100%,color-mix(in oklab,var(--emerald) 5%,transparent),transparent 62%),linear-gradient(180deg,#080706 0%,#050504 55%,#030303 100%);box-shadow:22px 0 68px -52px color-mix(in oklab,var(--gold) 48%,transparent)}
   .command-rail-core{display:flex;align-items:center;gap:.65rem;margin:0 .75rem .85rem;border:1px solid oklch(.82 .13 85/.23);border-radius:1rem;padding:.65rem;background:linear-gradient(135deg,oklch(.82 .13 85/.1),oklch(.74 .165 158/.05))}.command-rail-core .ve-core{width:2rem;height:2rem;flex:none}.command-rail-core strong,.command-rail-core small{display:block;overflow-wrap:anywhere}.command-rail-core strong{font-family:var(--font-mono);font-size:.57rem;letter-spacing:.12em;color:var(--gold-light)}.command-rail-core small{margin-top:.2rem;font-size:.58rem;color:var(--muted-foreground)}
-  .site-header-brand{display:inline-flex;align-items:center;border:1px solid color-mix(in oklab,var(--gold) 20%,transparent);border-radius:.8rem;background:radial-gradient(circle at 50% 35%,color-mix(in oklab,var(--gold) 8%,transparent),transparent 70%),color-mix(in oklab,#050403 88%,transparent);padding:.2rem .45rem;box-shadow:0 8px 24px -18px color-mix(in oklab,var(--gold) 45%,transparent),inset 0 1px 0 oklch(1 0 0/.08)}
-  .command-rail-brand{display:flex;min-height:6.45rem;align-items:center;justify-content:center;border-bottom:1px solid color-mix(in oklab,var(--gold) 25%,var(--border));padding:.85rem .9rem .7rem;background:radial-gradient(80% 90% at 50% 35%,color-mix(in oklab,var(--sunset) 7%,transparent),transparent 72%),linear-gradient(180deg,#090806,#050403)}.command-rail-brand>a{display:inline-flex;max-width:100%;align-items:center;justify-content:center;border:1px solid color-mix(in oklab,var(--gold) 22%,transparent);border-radius:.75rem;background:color-mix(in oklab,#050403 78%,var(--gold) 4%);padding:.2rem .35rem;box-shadow:0 10px 28px -20px color-mix(in oklab,var(--gold) 55%,transparent),inset 0 1px 0 oklch(1 0 0/.08)}.command-rail-brand img{display:block;width:auto;max-width:11.5rem;height:auto;max-height:3.8rem;object-fit:contain;filter:drop-shadow(0 7px 15px color-mix(in oklab,var(--gold) 20%,transparent))}
+  .site-header-brand{display:inline-flex;align-items:center;border:0;border-radius:.9rem;background:transparent;padding:0;box-shadow:none}
+  .command-rail-brand{display:flex;min-height:6.45rem;align-items:center;justify-content:center;border-bottom:1px solid color-mix(in oklab,var(--gold) 25%,var(--border));padding:.85rem .9rem .7rem;background:radial-gradient(80% 90% at 50% 35%,color-mix(in oklab,var(--sunset) 7%,transparent),transparent 72%),linear-gradient(180deg,#090806,#050403)}.command-rail-brand>a.v4-brand-lockup{display:inline-flex;max-width:100%;align-items:center;justify-content:center;border:1px solid color-mix(in oklab,var(--gold) 26%,transparent);border-radius:.9rem;background:radial-gradient(circle at 50% 25%,color-mix(in oklab,var(--gold) 9%,transparent),transparent 65%),linear-gradient(165deg,oklch(.075 .008 84/.96),oklch(.045 .005 80/.98));padding:.2rem .35rem;box-shadow:0 10px 28px -20px color-mix(in oklab,var(--gold) 48%,transparent),inset 0 1px 0 oklch(1 0 0/.08)}.command-rail-brand img{display:block;width:auto;max-width:11.5rem;height:auto;max-height:3.8rem;object-fit:contain;filter:drop-shadow(0 7px 15px color-mix(in oklab,var(--gold) 20%,transparent))}
   .desktop-command-rail nav{overflow-y:auto;height:calc(100dvh - 10.2rem);padding:1rem .65rem;scrollbar-width:none}.desktop-command-rail nav section+section{margin-top:1.4rem}.desktop-command-rail nav section>p{padding:0 .65rem .45rem;font-size:.55rem;font-weight:800;letter-spacing:.17em;text-transform:uppercase;color:var(--muted-foreground)}
   .desktop-command-rail nav a{position:relative;display:grid;grid-template-columns:2rem 1fr .35rem;align-items:center;gap:.6rem;min-height:2.65rem;border-radius:.7rem;padding:.25rem .6rem;color:var(--muted-foreground);transition:background var(--motion-fast),color var(--motion-fast),transform var(--motion-fast)}.desktop-command-rail nav a:hover{background:color-mix(in oklab,var(--gold) 6%,transparent);color:var(--foreground);transform:translateX(2px)}.desktop-command-rail nav a>span{display:grid;width:2rem;height:2rem;place-items:center;border:1px solid transparent;border-radius:.55rem}.desktop-command-rail nav a svg{width:.9rem;height:.9rem}.desktop-command-rail nav a b{font-size:.72rem;font-weight:600}.desktop-command-rail nav a i{width:.3rem;height:.3rem;border-radius:50%}.desktop-command-rail nav a.is-active{background:linear-gradient(90deg,color-mix(in oklab,var(--gold) 14%,transparent),color-mix(in oklab,var(--gold) 3%,transparent) 66%,transparent);color:var(--gold-light)}.desktop-command-rail nav a.is-active>span{border-color:color-mix(in oklab,var(--gold) 28%,transparent);background:color-mix(in oklab,var(--gold) 8%,transparent);box-shadow:inset 0 0 16px color-mix(in oklab,var(--gold) 8%,transparent)}.desktop-command-rail nav a.is-active i{background:var(--gold);box-shadow:0 0 12px color-mix(in oklab,var(--gold) 78%,transparent)}.desktop-command-rail nav a.is-active::before{content:"";position:absolute;left:-.1rem;width:2px;height:50%;border-radius:99px;background:var(--gold);box-shadow:0 0 12px color-mix(in oklab,var(--gold) 75%,transparent)}
   .desktop-command-rail>footer{position:absolute;right:0;bottom:0;left:0;display:flex;align-items:center;justify-content:space-between;gap:.75rem;border-top:1px solid var(--border);padding:1rem}.desktop-command-rail>footer>div{display:flex;min-width:0;align-items:center;gap:.65rem}.rail-live{width:.42rem;height:.42rem;flex:none;border-radius:50%;background:var(--primary);box-shadow:0 0 12px var(--primary)}.desktop-command-rail footer b,.desktop-command-rail footer small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.desktop-command-rail footer b{font-size:.65rem}.desktop-command-rail footer small{max-width:8.5rem;margin-top:.15rem;font-size:.55rem;color:var(--muted-foreground)}.desktop-command-rail footer>a{display:grid;width:2.25rem;height:2.25rem;place-items:center;border:1px solid var(--border);color:var(--muted-foreground)}.desktop-command-rail footer svg{width:.85rem}
@@ -703,11 +743,3 @@
 .pricing-hero{position:relative;padding:clamp(2rem,5vw,4rem) 1rem;border:1px solid color-mix(in oklab,var(--gold) 28%,transparent);background:radial-gradient(circle at 50% 0,color-mix(in oklab,var(--gold) 18%,transparent),transparent 48%),linear-gradient(150deg,color-mix(in oklab,var(--surface-1) 92%,var(--gold) 8%),var(--surface-0));box-shadow:0 32px 90px -58px color-mix(in oklab,var(--gold) 58%,transparent)}
 .brand-footer{background:radial-gradient(70% 90% at 50% 120%,color-mix(in oklab,var(--gold) 11%,transparent),transparent 60%),linear-gradient(180deg,color-mix(in oklab,var(--surface-1) 85%,transparent),var(--background))!important}
 .brand-footer li>span:first-child{border-color:color-mix(in oklab,var(--gold) 38%,transparent)!important;background:color-mix(in oklab,var(--gold) 10%,transparent)!important}.brand-footer li svg{color:var(--gold)!important}
-
-/* Keep the shell out of the earlier blue/cyan visual language. */
-.hegeva-atmosphere{background:radial-gradient(circle at 54% -8%,oklch(.82 .13 85/.16),transparent 34rem),radial-gradient(circle at 94% 30%,oklch(.74 .165 158/.1),transparent 30rem),radial-gradient(circle at 4% 90%,oklch(.43 .085 75/.16),transparent 30rem),linear-gradient(145deg,oklch(.055 .007 84),oklch(.085 .011 96) 46%,oklch(.06 .009 105))!important}
-.hegeva-atmosphere::before{background:radial-gradient(circle at 12% 8%,oklch(.82 .13 85/.12),transparent 28rem),radial-gradient(circle at 90% 22%,oklch(.74 .165 158/.08),transparent 28rem),radial-gradient(circle at 18% 88%,oklch(.43 .085 75/.12),transparent 26rem)!important}
-
-@media (max-width:640px){
-  .hegeva-atmosphere main:not(.cinematic-hero)>section{background-image:linear-gradient(155deg,oklch(.11 .012 97/.98),oklch(.075 .009 91/.99))!important}
-}

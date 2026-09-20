@@ -125,12 +125,12 @@ export function OperatingCenter(){
   // Determine if we have sufficient data for meaningful signals
   const hasEnoughData = coreSignals.hasRecords || secondaryCorePriorities.length > 0 || coreSignals.overdueInvoices > 0 || coreSignals.overdueTasks > 0 || coreSignals.tasksToday > 0 || coreSignals.draftInvoices > 0
 
-  return <section className="mt-8 overflow-hidden border-y border-border bg-background/35">
+  return <section className="v4-surface mt-8 overflow-hidden border-y border-border">
   <div className="control-room-head"><div><p className="ve-eyebrow">{c.eyebrow}</p><h2>{c.title}</h2><p>{c.sub}</p></div><div className="flex items-center gap-3"><AICore state={syncState==="saving"?"working":syncState==="error"?"warning":"ready"}/><div><strong className="block text-sm">{c.sync}</strong><span className="text-xs capitalize text-muted-foreground">{syncState}</span></div></div></div>
-  <div className="border-t border-border bg-primary/[0.035] px-4 py-6 sm:px-6">
+  <div className="v4-core-zone border-t border-border px-4 py-6 sm:px-6">
    <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="ve-eyebrow">{pc.pulse}</p><h3 className="mt-1 font-display text-2xl font-semibold">{pc.todaySummary}</h3></div><p className="text-xs text-muted-foreground">{new Intl.DateTimeFormat(locale,{dateStyle:"full"}).format(new Date())}</p></div>
 <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-     {pulseMetrics.map(([Icon,label,value])=><article key={label} className="rounded-2xl border border-border bg-background/55 p-4"><Icon aria-hidden className="size-4 text-primary"/><p className="mt-3 text-xs text-muted-foreground">{label}</p><strong className="mt-1 block text-2xl">{value}</strong></article>)}
+  {pulseMetrics.map(([Icon,label,value])=><article key={label} className="v4-surface rounded-2xl border p-4"><Icon aria-hidden className="size-4 text-primary"/><p className="mt-3 text-xs text-muted-foreground">{label}</p><strong className="mt-1 block text-2xl">{value}</strong></article>)}
     </div>
   </div>
 

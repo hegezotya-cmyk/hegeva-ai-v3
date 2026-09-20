@@ -33,7 +33,7 @@ export function HegevaLogo({
   if (href === null) return mark
 
   return (
-    <Link href={href} aria-label="HEGEVA AI" className="inline-flex items-center">
+    <Link href={href} aria-label="HEGEVA AI" className="v4-brand-lockup inline-flex min-w-0 max-w-full items-center">
       {mark}
     </Link>
   )

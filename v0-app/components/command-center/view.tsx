@@ -91,7 +91,7 @@ export function CommandCenterView() {
   ]
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+<div className="v4-command-center mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <section className="command-crown"><div><p>HEGEVA / MISSION CONTROL</p><h1>{t.commandCenter.title}</h1><span>{t.commandCenter.subtitle}</span><div className="command-connection">{session?.user ? <Cloud aria-hidden /> : <Info aria-hidden />}<p>{isPending ? t.commandCenter.checking : session?.user ? t.commandCenter.connected : t.commandCenter.previewNote}</p></div><Link href={session?.user ? "/assistant" : "/login?mode=register"} className={cn(buttonVariants({ size: "lg" }), "hegeva-primary mt-7 h-12 px-6")}>{session?.user ? t.commandCenter.openAssistant : t.dashboard.connect}</Link></div><div className="command-radar" aria-hidden><span/><span/><span/><AICore state={session?.user?"ready":"warning"}/><b>MISSION<br/>CONTROL</b></div></section>
 
       <OutcomeLauncher compact />
@@ -105,7 +105,7 @@ export function CommandCenterView() {
       <IntelligenceAutopilot />
 
       <SectionHeading className="mt-12" eyebrow={layers.intelligence} title={copy.aiModules} description={layers.description} />
-      <div className="module-ledger mt-4">
+<div className="v4-surface v4-elevated module-ledger mt-4">
         {aiModules.map(({ icon: Icon, title, desc, status, href }) => (
           <Link key={title} href={href} className="group"><span><Icon aria-hidden /></span><div><h3>{title}</h3><p>{desc}</p></div><StatusBadge status={status} />
           </Link>
@@ -113,7 +113,7 @@ export function CommandCenterView() {
       </div>
 
       <SectionHeading className="mt-16" eyebrow={layers.operations} title={copy.businessModules} action={<Link href="/pricing" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-2")}>{layers.pricing}</Link>} />
-      <div className="operation-index mt-4">
+<div className="v4-surface operation-index mt-4">
         {modules.map(({ icon: Icon, title, desc, status, href, tone }) => (
           <Link key={title} href={href} className={`operation-card operation-card-${tone}`}>
             <div className="operation-card-head"><span className="operation-card-icon"><Icon aria-hidden /></span><StatusBadge status={status} /></div>
