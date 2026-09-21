@@ -201,6 +201,9 @@ function getCurrentPeriod() {
 
 const AI_BOT_OPERATION_ID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const AI_BOT_PROFILE_ID = /^bot-[A-Za-z0-9._:-]{1,95}$/;
+const OWNER_PROFILE_SETUP_FIELDS = ["name", "purpose", "instructions", "knowledgeScope", "permittedTools"];
+const OWNER_PROFILE_SETUP_LIMITS = { name: 80, purpose: 240, instructions: 1200, knowledgeScope: 240 };
+const OWNER_PROFILE_SETUP_UNSAFE = /<\/?[a-z][^>]*>|(?:javascript|data|https?):\/\/|\b(?:eval|new\s+Function|import\s*\(|dangerouslySetInnerHTML|tool\s*call|deploy|execute\s+code)\b/i;
 const OWNER_EMAIL_DELIVERY_TEST_ACTION_ID = "owner-email-delivery-test-v1";
 const OWNER_EMAIL_DELIVERY_TEST_SUBJECT = "HEGEVA AI — Email Delivery Test";
 const OWNER_EMAIL_DELIVERY_TEST_BODY = "This is a controlled HEGEVA AI email delivery test. No customer action is required.";
@@ -322,6 +325,46 @@ async function loadStoredAIBotProfile(env, userId, profileId) {
     const profile = records.find((item) => item && item.id === profileId);
     return profile && typeof profile === "object" ? { row, records, profile } : null;
   } catch { return null; }
+}
+
+function configuredAIBotCanaryOwner(env) {
+  const email = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
+}
+
+function parseOwnerProfileSetupRequest(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const keys = Object.keys(body);
+  if (keys.length !== OWNER_PROFILE_SETUP_FIELDS.length || keys.some((key) => !OWNER_PROFILE_SETUP_FIELDS.includes(key))) return null;
+  if (!Array.isArray(body.permittedTools) || body.permittedTools.length !== 1 || body.permittedTools[0] !== "none") return null;
+  const profile = { permittedTools: ["none"] };
+  for (const [key, limit] of Object.entries(OWNER_PROFILE_SETUP_LIMITS)) {
+    const value = typeof body[key] === "string" ? body[key].trim() : "";
+    if (!value || value.length > limit || OWNER_PROFILE_SETUP_UNSAFE.test(value)) return null;
+    profile[key] = value;
+  }
+  return profile;
+}
+
+async function evaluateOwnerProfileSetup(env, user) {
+  const userEmail = typeof user?.email === "string" ? user.email.trim().toLowerCase() : "";
+  if (!user?.id || !userEmail) return { ok: false, status: 401, reason: "authentication-required", profileExists: false };
+  const configuredOwner = configuredAIBotCanaryOwner(env);
+  if (!configuredOwner) return { ok: false, status: 503, reason: "internal-unavailable", profileExists: false };
+  if (userEmail !== configuredOwner) return { ok: false, status: 403, reason: "owner-identity-mismatch", profileExists: false };
+  if (!parseProviderFlags(env).ownerProfileSetupEnabled) return { ok: false, status: 503, reason: "setup-disabled", profileExists: false };
+  const row = await env.DB.prepare("SELECT data,updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(user.id).first();
+  if (!row) return { ok: true, row: null, records: [] };
+  if (typeof row.data !== "string") return { ok: false, status: 503, reason: "profile-data-invalid", profileExists: false };
+  let records;
+  try { records = JSON.parse(row.data); } catch { return { ok: false, status: 503, reason: "profile-data-invalid", profileExists: false }; }
+  if (!Array.isArray(records) || records.some((item) => !item || typeof item !== "object" || Array.isArray(item))) return { ok: false, status: 503, reason: "profile-data-invalid", profileExists: false };
+  if (records.length > 0) return { ok: false, status: 409, reason: "profile-exists", profileExists: true };
+  return { ok: true, row, records };
+}
+
+function ownerProfileSetupFailure(result) {
+  return Response.json({ setupEligible: false, profileExists: result.profileExists === true, reason: result.reason }, { status: result.status });
 }
 
 async function reserveAIBotOperation(env, { operationId, userId, profileId, period, limit, approvedAt, approvalExpiresAt, approvalVersion, approvedByActorHash }) {
@@ -4285,6 +4328,42 @@ QUALITY RULES:
       }
     }
 
+    if (url.pathname === "/api/ai-bot/owner-setup-capability") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        if (!request.headers.get("cookie")) return ownerProfileSetupFailure({ status: 401, reason: "authentication-required", profileExists: false });
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return ownerProfileSetupFailure({ status: 401, reason: "authentication-required", profileExists: false });
+        const result = await evaluateOwnerProfileSetup(env, user);
+        if (result.ok) return Response.json({ setupEligible: true, profileExists: false }, { headers: { "Cache-Control": "private, no-store" } });
+        if (result.reason === "profile-exists") return Response.json({ setupEligible: false, profileExists: true, reason: "profile-exists" }, { headers: { "Cache-Control": "private, no-store" } });
+        return ownerProfileSetupFailure(result);
+      } catch { return ownerProfileSetupFailure({ status: 503, reason: "internal-unavailable", profileExists: false }); }
+    }
+
+    if (url.pathname === "/api/ai-bot/owner-setup-profile") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        if (!request.headers.get("cookie")) return ownerProfileSetupFailure({ status: 401, reason: "authentication-required", profileExists: false });
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return ownerProfileSetupFailure({ status: 401, reason: "authentication-required", profileExists: false });
+        const result = await evaluateOwnerProfileSetup(env, user);
+        if (!result.ok) return ownerProfileSetupFailure(result);
+        let body;
+        try { body = await request.json(); } catch { return Response.json({ error: "A valid disabled AI Bot profile is required." }, { status: 400 }); }
+        const input = parseOwnerProfileSetupRequest(body);
+        if (!input) return Response.json({ error: "A valid disabled AI Bot profile is required." }, { status: 400 });
+        const now = new Date().toISOString();
+        const profile = { id: `bot-${crypto.randomUUID()}`, schemaVersion: "0.1", ...input, enabled: false, approvalState: "not-requested", executionState: "not-started", approvedAt: null, approvalExpiresAt: null, approvedByActorHash: null, approvalVersion: 1, approvalRevision: null, createdAt: now, updatedAt: now };
+        const records = [...result.records, profile];
+        const write = result.row
+          ? await env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='ai-bot-profiles' AND updatedAt=?4").bind(JSON.stringify(records), now, user.id, result.row.updatedAt).run()
+          : await env.DB.prepare("INSERT INTO workspace_data (id,userId,dataType,data,createdAt,updatedAt) VALUES (?1,?2,'ai-bot-profiles',?3,?4,?4) ON CONFLICT(userId,dataType) DO NOTHING").bind(crypto.randomUUID(), user.id, JSON.stringify(records), now).run();
+        if (Number(write?.meta?.changes || 0) !== 1) return Response.json({ error: "The profile changed; reload and try again." }, { status: 409 });
+        return Response.json({ status: "created", profile: { id: profile.id, enabled: false, approvalState: "not-requested", executionState: "not-started", approvalVersion: 1 } }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
+      } catch { return ownerProfileSetupFailure({ status: 503, reason: "internal-unavailable", profileExists: false }); }
+    }
+
     if (url.pathname === "/api/ai-bot/approve") {
       if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
       try {
@@ -4403,6 +4482,7 @@ QUALITY RULES:
         const providerEnabled = flags.providerEnabled === true;
         const globalKillSwitch = flags.killSwitchActive === true;
         const publicAssistantEnabled = flags.publicAssistantEnabled === true;
+        const ownerProfileSetupEnabled = flags.ownerProfileSetupEnabled === true;
         const ownerCanaryEnabled = flags.ownerCanaryEnabled === true;
         const nonX20ProviderActive = providerEnabled && !globalKillSwitch;
         return Response.json({
@@ -4410,6 +4490,7 @@ QUALITY RULES:
           globalKillSwitch,
           x20Enabled: true,
           assistantEnabled: publicAssistantEnabled && nonX20ProviderActive,
+          ownerProfileSetupEnabled,
           x10Enabled: nonX20ProviderActive,
           aiBotsEnabled: ownerCanaryEnabled && nonX20ProviderActive,
           x30Enabled: x30ProviderEnabled(env),
