@@ -4376,8 +4376,19 @@ QUALITY RULES:
         const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
         if (!configuredOwner || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredOwner) || !userEmail || userEmail !== configuredOwner) return Response.json({ error: "Owner approval is unavailable." }, { status: 403 });
         const stored = await loadStoredAIBotProfile(env, user.id, profileId);
-        if (!stored || stored.profile.enabled !== true) return Response.json({ error: "This AI Bot profile is unavailable." }, { status: 404 });
+        if (!stored) return Response.json({ error: "This AI Bot profile is unavailable." }, { status: 404 });
         const current = stored.profile;
+        const isOwnerSetupProfile = current.enabled === false
+          && current.approvalState === "not-requested"
+          && current.executionState === "not-started"
+          && Array.isArray(current.permittedTools)
+          && current.permittedTools.length === 1
+          && current.permittedTools[0] === "none"
+          && current.approvedAt === null
+          && current.approvalExpiresAt === null
+          && current.approvedByActorHash === null
+          && current.approvalRevision === null;
+        if (!isOwnerSetupProfile) return Response.json({ error: "This AI Bot profile is not awaiting owner approval." }, { status: 409 });
         const now = new Date(); const approvedAt = now.toISOString(); const approvalExpiresAt = new Date(now.getTime() + 30 * 60 * 1000).toISOString();
         const approvalVersion = Number.isSafeInteger(current.approvalVersion) && current.approvalVersion > 0 ? current.approvalVersion + 1 : 1;
         const approvedByActorHash = await sha256Hex(user.id);
