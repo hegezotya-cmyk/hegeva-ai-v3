@@ -51,7 +51,7 @@ export function getWorkersAiCanaryConfig(env = {}) {
 }
 
 export function getWorkersAiConfig(env = {}) {
-  const canaryMode = env.AI_BOT_CANARY_ENABLED === "enabled"
+  const canaryMode = env.AI_OWNER_CANARY_ENABLED === "enabled"
   const freeAllocation = boundedInt(env.AI_DOCUMENTED_DAILY_NEURON_ALLOCATION, 0, 10_000_000)
   const appCeiling = Math.min(
     boundedInt(env.AI_DAILY_NEURON_CEILING, Math.floor(freeAllocation * 0.7), 10_000_000),
@@ -81,7 +81,12 @@ export function buildWorkersAiProjection({ operation, locale, prompt }) {
 }
 
 export function parseProviderFlags(env = {}) {
-  return Object.freeze({ providerEnabled: env.AI_PROVIDER_ENABLED === "enabled", killSwitchActive: env.AI_GLOBAL_KILL_SWITCH !== "disabled", canaryEnabled: env.AI_BOT_CANARY_ENABLED === "enabled" })
+  return Object.freeze({
+    providerEnabled: env.AI_PROVIDER_ENABLED === "enabled",
+    killSwitchActive: env.AI_GLOBAL_KILL_SWITCH !== "disabled",
+    publicAssistantEnabled: env.AI_PUBLIC_ASSISTANT_ENABLED === "enabled",
+    ownerCanaryEnabled: env.AI_OWNER_CANARY_ENABLED === "enabled",
+  })
 }
 
 export function classifyAllocation(usedNeurons, ceiling) {

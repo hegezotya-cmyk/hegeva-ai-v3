@@ -293,7 +293,7 @@ async function evaluateAIBotCanaryPreflight(env, request, user, profileId) {
   const flags = parseProviderFlags(env);
   if (!flags.providerEnabled) return fail("provider-disabled", 503);
   if (flags.killSwitchActive) return fail("kill-switch-active", 503);
-  if (!flags.canaryEnabled) return fail("canary-disabled", 503);
+  if (!flags.ownerCanaryEnabled) return fail("canary-disabled", 503);
   if (env.FINANCIAL_GUARD_ENABLED !== "enabled") return fail("financial-guard-disabled", 503);
   if (!env.AI || typeof env.AI.run !== "function") return fail("ai-binding-unavailable", 503);
   const providerConfig = getWorkersAiCanaryConfig(env);
@@ -3844,6 +3844,20 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           );
         }
 
+        const body =
+          await request.json();
+
+        const isX20Action = body.actionKind === "x20";
+        if (!isX20Action) {
+          const flags = parseProviderFlags(env);
+          if (!flags.publicAssistantEnabled || !flags.providerEnabled || flags.killSwitchActive) {
+            return Response.json(
+              { error: "HEGEVA Assistant is currently unavailable." },
+              { status: 503 }
+            );
+          }
+        }
+
         const planInfo =
           await getUserPlan(
             env,
@@ -3852,9 +3866,6 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
 
         const period =
           getCurrentPeriod();
-
-        const body =
-          await request.json();
 
         const message =
           typeof body.message ===
@@ -4070,7 +4081,6 @@ QUALITY RULES:
               lastRequest: new Map()
             });
 
-          const isX20Action = body.actionKind === "x20";
           const isX10StudioProfile = !isX20Action && body.appStudioProfile === "x10";
           let x20Action = null;
           let x20Attempt = null;
@@ -4370,7 +4380,7 @@ QUALITY RULES:
         const canaryEmail = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
         const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
         const flags = parseProviderFlags(env);
-        if (!flags.canaryEnabled || !canaryEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(canaryEmail) || userEmail !== canaryEmail) return Response.json({ error: "AI Bot approval is required." }, { status: 403 });
+        if (!flags.ownerCanaryEnabled || !canaryEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(canaryEmail) || userEmail !== canaryEmail) return Response.json({ error: "AI Bot approval is required." }, { status: 403 });
         const providerConfig = getWorkersAiConfig(env);
         if (!providerConfig.enabled || providerConfig.globalKillSwitch || providerConfig.freeAllocationSource !== "configured" || env.FINANCIAL_GUARD_ENABLED !== "enabled" || !env.AI) return Response.json({ error: "AI Bot provider is currently unavailable." }, { status: 503 });
         const prompt = typeof body?.prompt === "string" ? body.prompt.slice(0, CANARY_BOUNDS.maxInputTokens) : "";
@@ -4392,15 +4402,16 @@ QUALITY RULES:
         const flags = parseProviderFlags(env);
         const providerEnabled = flags.providerEnabled === true;
         const globalKillSwitch = flags.killSwitchActive === true;
-        const canaryMode = flags.canaryEnabled === true;
+        const publicAssistantEnabled = flags.publicAssistantEnabled === true;
+        const ownerCanaryEnabled = flags.ownerCanaryEnabled === true;
         const nonX20ProviderActive = providerEnabled && !globalKillSwitch;
         return Response.json({
           providerEnabled,
           globalKillSwitch,
           x20Enabled: true,
-          assistantEnabled: nonX20ProviderActive,
+          assistantEnabled: publicAssistantEnabled && nonX20ProviderActive,
           x10Enabled: nonX20ProviderActive,
-          aiBotsEnabled: canaryMode && nonX20ProviderActive,
+          aiBotsEnabled: ownerCanaryEnabled && nonX20ProviderActive,
           x30Enabled: x30ProviderEnabled(env),
           videoEnabled:
             env?.CREATIVE_VIDEO_PROVIDER_ENABLED === "enabled",
