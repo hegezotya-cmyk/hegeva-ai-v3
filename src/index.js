@@ -3869,7 +3869,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
 
       try {
         const user =
-          await getLoggedInUser(
+          await getLoggedInUserFn(
             request,
             env,
             ctx
@@ -3891,11 +3891,18 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           await request.json();
 
         const isX20Action = body.actionKind === "x20";
+        const isX10StudioProfile = !isX20Action && body.appStudioProfile === "x10";
         if (!isX20Action) {
           const flags = parseProviderFlags(env);
           if (!flags.publicAssistantEnabled || !flags.providerEnabled || flags.killSwitchActive) {
             return Response.json(
               { error: "HEGEVA Assistant is currently unavailable." },
+              { status: 503 }
+            );
+          }
+          if (isX10StudioProfile && (!flags.x10Enabled || !flags.providerEnabled || flags.killSwitchActive)) {
+            return Response.json(
+              { error: "HEGEVA X10 is currently unavailable." },
               { status: 503 }
             );
           }
@@ -4124,7 +4131,6 @@ QUALITY RULES:
               lastRequest: new Map()
             });
 
-          const isX10StudioProfile = !isX20Action && body.appStudioProfile === "x10";
           let x20Action = null;
           let x20Attempt = null;
           let assistantOperationId = null;
@@ -4596,7 +4602,7 @@ QUALITY RULES:
           x20Enabled: true,
           assistantEnabled: publicAssistantEnabled && nonX20ProviderActive,
           ownerProfileSetupEnabled,
-          x10Enabled: nonX20ProviderActive,
+          x10Enabled: flags.x10Enabled && nonX20ProviderActive,
           aiBotsEnabled: ownerCanaryEnabled && nonX20ProviderActive,
           x30Enabled: x30ProviderEnabled(env),
           videoEnabled:

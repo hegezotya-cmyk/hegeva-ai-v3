@@ -85,6 +85,7 @@ export function parseProviderFlags(env = {}) {
     providerEnabled: env.AI_PROVIDER_ENABLED === "enabled",
     killSwitchActive: env.AI_GLOBAL_KILL_SWITCH !== "disabled",
     publicAssistantEnabled: env.AI_PUBLIC_ASSISTANT_ENABLED === "enabled",
+    x10Enabled: env.AI_X10_ENABLED === "enabled",
     ownerProfileSetupEnabled: env.AI_OWNER_PROFILE_SETUP_ENABLED === "enabled",
     ownerCanaryEnabled: env.AI_OWNER_CANARY_ENABLED === "enabled",
   })
