@@ -42,6 +42,7 @@ export function captureReferralAttribution() {
     if (SAFE_REFERRAL.test(direct)) {
       const value = { code: direct, at: Date.now() }
       sessionStorage.setItem(referralKey, JSON.stringify(value))
+      void fetch("/api/referrals/touch", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: direct, consentState: localStorage.getItem("hegeva:analytics-consent:v1") === "granted" ? "granted" : "essential" }) }).catch(() => null)
       return { ...value, fresh: true as const }
     }
     const saved = JSON.parse(sessionStorage.getItem(referralKey) || "null")

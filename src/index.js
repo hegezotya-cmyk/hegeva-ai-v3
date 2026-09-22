@@ -24,6 +24,7 @@ import { approveGovernedExternalAction, markGovernedExternalActionReady } from "
 import { applyEmailDeliveryState, canConfirmEmailDelivery, emailContentDigest } from "./email-delivery-governance.js";
 import { synchronizePreparedWork, transitionPreparedWork } from "./prepared-work-review.js";
 import { BUSINESS_SCORE_METHODOLOGY, deriveBusinessScoreShare, hashBusinessScoreToken, newBusinessScoreToken, normalizeShareExpiry } from "./business-score-share.js";
+import { createReferralCode, revokeReferralCode, recordReferralTouch, attributeReferral, listReferralAttributions } from "./referral-attribution.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -1516,6 +1517,11 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
       if (!row) return Response.json({ error: "Share unavailable." }, { status: 404, headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" } });
       return Response.json({ scoreBand: row.scoreBand, methodologyVersion: row.methodologyVersion, expiresAt: row.expiresAt }, { headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" } });
     }
+    if (url.pathname === "/api/referrals/code" && request.method === "POST") { const user=await getLoggedInUser(request,env,ctx); if(!user)return Response.json({error:"Authentication required."},{status:401}); const r=await createReferralCode(env.DB,user.id); return Response.json(r.data||{error:r.error},{status:r.status,headers:{"Cache-Control":"no-store"}}); }
+    if (url.pathname.startsWith("/api/referrals/code/") && request.method === "DELETE") { const user=await getLoggedInUser(request,env,ctx); if(!user)return Response.json({error:"Authentication required."},{status:401}); const r=await revokeReferralCode(env.DB,user.id,url.pathname.split("/").pop()||""); return Response.json(r.data||{error:r.error},{status:r.status,headers:{"Cache-Control":"no-store"}}); }
+    if (url.pathname === "/api/referrals/touch" && request.method === "POST") { let body;try{body=await request.json()}catch{return Response.json({error:"Invalid JSON body."},{status:400})}; const raw=typeof body?.code==="string"?body.code:""; const r=await recordReferralTouch(env.DB,raw,crypto.randomUUID(),body?.consentState==="granted"?"granted":"essential"); return new Response(null,{status:r.status,headers:{"Cache-Control":"no-store"}}); }
+    if (url.pathname === "/api/referrals/attribute" && request.method === "POST") { const user=await getLoggedInUser(request,env,ctx); if(!user)return Response.json({error:"Authentication required."},{status:401}); let body;try{body=await request.json()}catch{return Response.json({error:"Invalid JSON body."},{status:400})}; const r=await attributeReferral(env.DB,body?.code,user.id); return Response.json(r.data||{error:r.error},{status:r.status,headers:{"Cache-Control":"no-store"}}); }
+    if (url.pathname === "/api/referrals/attributions" && request.method === "GET") { const user=await getLoggedInUser(request,env,ctx); if(!user)return Response.json({error:"Authentication required."},{status:401}); const r=await listReferralAttributions(env.DB,user.id); return Response.json({items:r.results||[]},{headers:{"Cache-Control":"private, no-store"}}); }
     if (url.pathname === "/api/integrations" && request.method === "GET") {
       const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
       return Response.json({providers:await listConnections(env.DB,env,user.id)},{headers:{"Cache-Control":"no-store"}});

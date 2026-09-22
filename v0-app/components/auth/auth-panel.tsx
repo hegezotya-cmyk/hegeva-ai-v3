@@ -104,6 +104,7 @@ export function AuthPanel() {
         }
         const referral = captureReferralAttribution()
         if (referral) {
+          await fetch("/api/referrals/attribute", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: referral.code }) }).catch(() => null)
           window.dispatchEvent(new CustomEvent("hegeva:analytics-event", {
             detail: { event: "referral_signup", path: "/login", params: { referral_code: referral.code } },
           }))
