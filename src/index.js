@@ -4129,6 +4129,7 @@ QUALITY RULES:
           let x20Attempt = null;
           let assistantOperationId = null;
           let assistantOperationReserved = false;
+          let assistantOperationSettlementAttempted = false;
 
           const result =
             await handleAiChatAdmission({
@@ -4142,7 +4143,17 @@ QUALITY RULES:
               reserve: async (userId, usagePeriod, limit) => {
                 if (!isX20Action) {
                   assistantOperationId = body.assistantOperationId || null;
-                  const operation = await startAssistantOperation(env, { operationId: assistantOperationId, userId, period: usagePeriod, planLimit: limit });
+                  const providerConfig = getWorkersAiConfig(env);
+                  const operation = await startAssistantOperation(env, {
+                    operationId: assistantOperationId,
+                    userId,
+                    workspaceId: userId,
+                    period: usagePeriod,
+                    planLimit: limit,
+                    plan: planInfo.plan,
+                    provider: "workers-ai",
+                    model: providerConfig.model,
+                  });
                   if (operation.duplicate) return { reserved: false, reason: "duplicate_assistant_operation" };
                   assistantOperationReserved = Boolean(operation.reserved);
                   return operation;
@@ -4186,14 +4197,41 @@ QUALITY RULES:
                 if (isX20Action) logX20Lifecycle("x20_provider_started", { actionId: x20Action?.actionId, attemptId: x20Attempt?.attemptId, attemptNumber: x20Attempt?.attemptNumber });
                 if (!isX20Action) {
                   const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage });
-                  const adapted = await invokeWorkersAiText(env, projection);
-                  if (!adapted.ok) {
-                    const unavailable = new Error("Workers AI unavailable");
-                    unavailable.name = adapted.reason === "timeout" ? "HEGEVA_AI_TIMEOUT" : "HEGEVA_PROVIDER_UNAVAILABLE";
-                    throw unavailable;
+                  const startedAt = Date.now();
+                  let adapted = null;
+                  try {
+                    adapted = await invokeWorkersAiText(env, projection);
+                    const timedOut = adapted.reason === "timeout";
+                    assistantOperationSettlementAttempted = true;
+                    const settlement = await finishAssistantOperation(env, {
+                      operationId: assistantOperationId,
+                      status: adapted.ok ? "succeeded" : timedOut ? "timed_out" : "failed",
+                      metrics: adapted.metrics,
+                      elapsedMs: adapted.metrics?.durationMs ?? Math.max(0, Date.now() - startedAt),
+                      httpStatus: adapted.ok ? 200 : 500,
+                    });
+                    if (!settlement.settled) throw new Error("HEGEVA_ASSISTANT_SETTLEMENT_UNAVAILABLE");
+                    if (!adapted.ok) {
+                      const unavailable = new Error("Workers AI unavailable");
+                      unavailable.name = timedOut ? "HEGEVA_AI_TIMEOUT" : "HEGEVA_PROVIDER_UNAVAILABLE";
+                      throw unavailable;
+                    }
+                    return { response: adapted.response };
+                  } catch (error) {
+                    if (assistantOperationReserved && !assistantOperationSettlementAttempted) {
+                      assistantOperationSettlementAttempted = true;
+                      const timedOut = error?.name === "AbortError" || error?.message === "HEGEVA_AI_TIMEOUT";
+                      const settlement = await finishAssistantOperation(env, {
+                        operationId: assistantOperationId,
+                        status: timedOut ? "timed_out" : "failed",
+                        metrics: adapted?.metrics || null,
+                        elapsedMs: adapted?.metrics?.durationMs ?? Math.max(0, Date.now() - startedAt),
+                        httpStatus: 500,
+                      });
+                      if (!settlement.settled) throw new Error("HEGEVA_ASSISTANT_SETTLEMENT_UNAVAILABLE");
+                    }
+                    throw error;
                   }
-                  await finishAssistantOperation(env, { operationId: assistantOperationId, status: "succeeded" });
-                  return { response: adapted.response };
                 }
                 const aiPromise =
                   env.AI.run(

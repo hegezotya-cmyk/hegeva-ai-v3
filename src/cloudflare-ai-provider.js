@@ -99,6 +99,31 @@ export function classifyAllocation(usedNeurons, ceiling) {
   return "ok"
 }
 
+function providerCount(value) {
+  if (Number.isSafeInteger(value) && value >= 0) return value
+  if (typeof value === "string" && /^(?:0|[1-9][0-9]*)$/.test(value)) {
+    const parsed = Number(value)
+    return Number.isSafeInteger(parsed) ? parsed : null
+  }
+  return null
+}
+
+function providerMetric(usage, primary, alternate) {
+  if (!usage || typeof usage !== "object") return null
+  // Canonical provider fields take precedence even when explicitly null.
+  const key = Object.prototype.hasOwnProperty.call(usage, primary) ? primary : alternate
+  return providerCount(usage[key])
+}
+
+export function normalizeWorkersAiUsage(usage) {
+  return {
+    inputTokens: providerMetric(usage, "prompt_tokens", "input_tokens"),
+    outputTokens: providerMetric(usage, "completion_tokens", "output_tokens"),
+    totalTokens: providerMetric(usage, "total_tokens", "totalTokens"),
+    neuronUsage: providerMetric(usage, "neurons", "neuron_usage"),
+  }
+}
+
 /**
  * Shared ordering contract. Callers provide existing auth/quota/ledger
  * functions; no provider call is possible until every reservation succeeds.
@@ -149,21 +174,15 @@ export async function invokeWorkersAiText(env, projection, { signal } = {}) {
       stream: false,
     }, { signal: signal || controller.signal })
     const response = await Promise.race([providerPromise, timeoutPromise])
-    if (!response || typeof response.response !== "string") return { ok: false, reason: "missing-response" }
-    const rawUsage = response.usage && typeof response.usage === "object" ? response.usage : {}
-    const integer = (...values) => {
-      const value = values.find((candidate) => Number.isSafeInteger(Number(candidate)) && Number(candidate) >= 0)
-      return value === undefined ? null : Number(value)
-    }
-    const inputTokens = integer(rawUsage.prompt_tokens, rawUsage.input_tokens)
-    const outputTokens = integer(rawUsage.completion_tokens, rawUsage.output_tokens)
-    const totalTokens = integer(rawUsage.total_tokens, inputTokens !== null && outputTokens !== null ? inputTokens + outputTokens : undefined)
-    return {
-      ok: true,
-      response: response.response.slice(0, 12_000),
-      metrics: { inputTokens, outputTokens, totalTokens, durationMs: Math.max(0, Date.now() - startedAt) },
-    }
+    const providerUsage = normalizeWorkersAiUsage(response?.usage)
+    const metrics = { ...providerUsage, durationMs: Math.max(0, Date.now() - startedAt) }
+    if (!response || typeof response.response !== "string") return { ok: false, reason: "missing-response", metrics }
+    return { ok: true, response: response.response.slice(0, 12_000), metrics }
   } catch (error) {
-    return { ok: false, reason: error?.name === "AbortError" ? "timeout" : "provider-failure" }
+    return {
+      ok: false,
+      reason: error?.name === "AbortError" ? "timeout" : "provider-failure",
+      metrics: { inputTokens: null, outputTokens: null, totalTokens: null, neuronUsage: null, durationMs: Math.max(0, Date.now() - startedAt) },
+    }
   } finally { clearTimeout(timeoutId) }
 }

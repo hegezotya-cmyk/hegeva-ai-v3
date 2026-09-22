@@ -3,12 +3,20 @@ import { DatabaseSync } from "node:sqlite"
 import { mkdtempSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { startAssistantOperation, finishAssistantOperation } from "../../src/assistant-quota.js"
+import { startAssistantOperation as startAssistantOperationRaw, finishAssistantOperation } from "../../src/assistant-quota.js"
 
 const migration = readFileSync(new URL("../../migrations/0009_assistant_ai_usage.sql", import.meta.url), "utf8")
+const settlementMigration = readFileSync(new URL("../../migrations/0022_assistant_usage_settlement.sql", import.meta.url), "utf8")
 const productionSource = readFileSync(new URL("../../src/index.js", import.meta.url), "utf8")
 const uuid = () => crypto.randomUUID()
 const period = "2026-08"
+const startAssistantOperation = (env, input) => startAssistantOperationRaw(env, {
+  workspaceId: input.userId,
+  plan: "basic",
+  provider: "workers-ai",
+  model: "@cf/meta/llama-3.1-8b-instruct-fast",
+  ...input,
+})
 
 function envFor() {
   const dir = mkdtempSync(join(tmpdir(), "hegeva-assistant-quota-"))
@@ -18,21 +26,35 @@ function envFor() {
       return { bind(...values) {
         const statement = db.prepare(sql)
         return {
+          sql,
+          values,
           async run() { const result = statement.run(...values); return { meta: { changes: Number(result.changes) } } },
           async first() { return statement.get(...values) || null },
         }
       } }
     },
+    async batch(statements) {
+      db.exec("BEGIN IMMEDIATE")
+      try {
+        const results = statements.map(({ sql, values }) => {
+          const result = db.prepare(sql).run(...values)
+          return { meta: { changes: Number(result.changes) } }
+        })
+        db.exec("COMMIT")
+        return results
+      } catch (error) { db.exec("ROLLBACK"); throw error }
+    },
     _db: db,
   }
   db.exec(`CREATE TABLE ai_usage (userId TEXT NOT NULL, period TEXT NOT NULL, aiMessages INTEGER NOT NULL DEFAULT 0, createdAt TEXT NOT NULL, updatedAt TEXT NOT NULL, PRIMARY KEY(userId, period));`)
   db.exec(migration)
-  db.exec(migration)
+  db.exec(settlementMigration)
+  db.exec(settlementMigration)
   return { DB, close() { db.close(); rmSync(dir, { recursive: true, force: true }) } }
 }
 
 async function main() {
-  assert.match(productionSource, /startAssistantOperation\(env, \{ operationId: assistantOperationId, userId, period: usagePeriod, planLimit: limit \}\)/)
+  assert.match(productionSource, /startAssistantOperation\(env,\s*\{[\s\S]*?operationId: assistantOperationId,[\s\S]*?planLimit: limit,[\s\S]*?\}\)/)
   assert.doesNotMatch(productionSource, /body\.planLimit|body\.aiLimit|body\.userId/)
   const env = envFor()
   const firstId = uuid()
@@ -91,6 +113,8 @@ async function main() {
   await finishAssistantOperation(env, { operationId: firstId, status: "failed" })
   const status = env.DB._db.prepare("SELECT status FROM assistant_operations WHERE operationId=?").get(firstId).status
   assert.equal(status, "failed")
+  const finalCountAfterRefund = env.DB._db.prepare("SELECT aiMessages FROM assistant_ai_usage WHERE userId='u1' AND period='2026-08'").get().aiMessages
+  assert.equal(finalCountAfterRefund, 49, "failed operation refunds its message reservation once")
   env.close(); parallel.close()
   console.log("Assistant quota executable audit: PASS")
   console.log("cases: atomic reservation, duplicate operation, concurrent duplicate starts, exact limit, cross-user rejection, UUID validation, failure accounting, X20 counter independence")
