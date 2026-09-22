@@ -6,6 +6,7 @@ import { ArrowRight, CheckCircle2, Clock3, FileText, Gauge, Share2, ShieldCheck,
 import { useI18n } from "@/lib/i18n/provider"
 import { calculateBusinessScore, DEMO_SCORE_SIGNALS } from "@/lib/business-score"
 import { recordAnalyticsEvent, saveDemoRegistrationContext } from "@/components/acquisition/acquisition-attribution"
+import { WorkspaceBusinessCheck } from "@/components/growth/workspace-business-check"
 
 type Stage = "intro" | "select" | "analysing" | "results"
 type BusinessType = "electrician" | "builder" | "plumber" | "cleaner" | "property_maintenance" | "consultant" | "show_me"
@@ -430,6 +431,7 @@ export function SixtySecondChallenge() {
           )}
         </div>
       </section>
+      <WorkspaceBusinessCheck />
     </main>
   )
 }
