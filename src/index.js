@@ -4400,6 +4400,62 @@ QUALITY RULES:
       } catch { emitMonitor("ai_bot_create", "approval_failed"); return Response.json({ error: "Owner approval is temporarily unavailable." }, { status: 503 }); }
     }
 
+    if (url.pathname === "/api/ai-bot/renew-approval") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user || typeof user.id !== "string" || !user.id.trim()) return Response.json({ error: "Authentication required." }, { status: 401 });
+        let body;
+        try { body = await request.json(); } catch { return Response.json({ error: "A valid AI Bot profile is required." }, { status: 400 }); }
+        const keys = body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body) : [];
+        const profileId = typeof body?.profileId === "string" ? body.profileId : "";
+        if (keys.length !== 1 || keys[0] !== "profileId" || !AI_BOT_PROFILE_ID.test(profileId)) return Response.json({ error: "A valid AI Bot profile is required." }, { status: 400 });
+        if (profileId !== "bot-b2083aff-69ef-4902-93bd-2c792c3cb0c9") return Response.json({ error: "This AI Bot profile is unavailable." }, { status: 404 });
+
+        const configuredOwner = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
+        const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+        if (!configuredOwner || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredOwner) || userEmail !== configuredOwner) return Response.json({ error: "Owner approval renewal is unavailable." }, { status: 403 });
+
+        const stored = await loadStoredAIBotProfile(env, user.id, profileId);
+        if (!stored) return Response.json({ error: "This AI Bot profile is unavailable." }, { status: 404 });
+        const matches = stored.records.filter((item) => item && item.id === profileId);
+        if (matches.length !== 1) return Response.json({ error: "This AI Bot profile is unavailable." }, { status: 404 });
+        const current = stored.profile;
+        const nowMs = Date.now();
+        const approvedAtMs = typeof current.approvedAt === "string" ? Date.parse(current.approvedAt) : NaN;
+        const expiresAtMs = typeof current.approvalExpiresAt === "string" ? Date.parse(current.approvalExpiresAt) : NaN;
+        const actorHash = await sha256Hex(user.id);
+        const eligible = current.enabled === false
+          && current.executionState === "not-started"
+          && Array.isArray(current.permittedTools)
+          && current.permittedTools.length === 1
+          && current.permittedTools[0] === "none"
+          && current.approvalState === "owner-approved"
+          && Number.isFinite(approvedAtMs)
+          && Number.isFinite(expiresAtMs)
+          && approvedAtMs <= expiresAtMs
+          && expiresAtMs <= nowMs
+          && typeof current.approvedByActorHash === "string"
+          && current.approvedByActorHash === actorHash
+          && Number.isSafeInteger(current.approvalVersion)
+          && current.approvalVersion > 0
+          && typeof current.approvalRevision === "string"
+          && Number.isFinite(Date.parse(current.approvalRevision))
+          && current.approvalRevision === current.approvedAt
+          && current.approvalRevision === stored.row.updatedAt;
+        if (!eligible) return Response.json({ error: "This AI Bot profile is not eligible for approval renewal." }, { status: 409 });
+
+        const renewedAt = new Date(nowMs).toISOString();
+        const approvalExpiresAt = new Date(nowMs + 30 * 60 * 1000).toISOString();
+        const approvalVersion = current.approvalVersion + 1;
+        const next = { ...current, approvedAt: renewedAt, approvalExpiresAt, approvedByActorHash: actorHash, approvalVersion, approvalRevision: renewedAt, updatedAt: renewedAt };
+        const records = stored.records.map((item) => item && item.id === profileId ? next : item);
+        const result = await env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='ai-bot-profiles' AND updatedAt=?4").bind(JSON.stringify(records), renewedAt, user.id, stored.row.updatedAt).run();
+        if (Number(result?.meta?.changes || 0) !== 1) return Response.json({ error: "The profile changed; reload and try again." }, { status: 409 });
+        return Response.json({ status: "owner-reapproved", profileId, approvalExpiresAt, approvalVersion }, { status: 200, headers: { "Cache-Control": "private, no-store" } });
+      } catch { emitMonitor("ai_bot_create", "approval_renewal_failed"); return Response.json({ error: "Owner approval renewal is temporarily unavailable." }, { status: 503 }); }
+    }
+
     if (url.pathname === "/api/ai-bot/canary-readiness") {
       if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
       try {
