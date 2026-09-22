@@ -23,6 +23,7 @@ import { prepareQuoteEmailDraft } from "./quote-email-draft-action.js";
 import { approveGovernedExternalAction, markGovernedExternalActionReady } from "./external-action-governance.js";
 import { applyEmailDeliveryState, canConfirmEmailDelivery, emailContentDigest } from "./email-delivery-governance.js";
 import { synchronizePreparedWork, transitionPreparedWork } from "./prepared-work-review.js";
+import { BUSINESS_SCORE_METHODOLOGY, deriveBusinessScoreShare, hashBusinessScoreToken, newBusinessScoreToken, normalizeShareExpiry } from "./business-score-share.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -1479,6 +1480,41 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
     }
     if (url.pathname.startsWith("/api/client-portal/public/") && request.method === "GET") {
       const result=await readPortalShare(env.DB,url.pathname.split("/").pop()||"");return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow"}});
+    }
+    if (url.pathname === "/api/business-score/share" && request.method === "POST") {
+      const user = await getLoggedInUser(request, env, ctx);
+      if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+      const rows = await env.DB.batch(["invoice_documents", "customers", "planner"].map((type) => env.DB.prepare("SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1").bind(user.id, type)));
+      const source = (index) => { try { const value = JSON.parse(rows[index]?.results?.[0]?.data || "[]"); return Array.isArray(value) ? value : []; } catch { return []; } };
+      const derived = deriveBusinessScoreShare({ invoices: source(0), customers: source(1), tasks: source(2) });
+      if (derived.state !== "ready") return Response.json({ error: "Insufficient workspace data." }, { status: 422, headers: { "Cache-Control": "no-store" } });
+      const token = newBusinessScoreToken();
+      const tokenHash = await hashBusinessScoreToken(token);
+      const now = new Date().toISOString();
+      const expiresAt = normalizeShareExpiry(null, Date.now());
+      const id = crypto.randomUUID();
+      try {
+        await env.DB.batch([
+          env.DB.prepare("UPDATE business_score_shares SET revokedAt = ?1 WHERE ownerUserId = ?2 AND revokedAt IS NULL").bind(now, user.id),
+          env.DB.prepare("INSERT INTO business_score_shares (id,ownerUserId,tokenHash,scoreBand,methodologyVersion,expiresAt,createdAt) VALUES (?1,?2,?3,?4,?5,?6,?7)").bind(id, user.id, tokenHash, derived.scoreBand, BUSINESS_SCORE_METHODOLOGY, expiresAt, now),
+        ]);
+      } catch {
+        return Response.json({ error: "Share unavailable." }, { status: 409, headers: { "Cache-Control": "no-store" } });
+      }
+      return Response.json({ shareId: id, token, scoreBand: derived.scoreBand, methodologyVersion: BUSINESS_SCORE_METHODOLOGY, expiresAt }, { headers: { "Cache-Control": "no-store" } });
+    }
+    if (url.pathname.startsWith("/api/business-score/share/") && request.method === "DELETE") {
+      const user = await getLoggedInUser(request, env, ctx);
+      if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+      const id = url.pathname.split("/").pop() || "";
+      const result = await env.DB.prepare("UPDATE business_score_shares SET revokedAt = ?1 WHERE id = ?2 AND ownerUserId = ?3 AND revokedAt IS NULL").bind(new Date().toISOString(), id, user.id).run();
+      return Response.json({ revoked: Number(result.meta?.changes || 0) === 1 }, { headers: { "Cache-Control": "no-store" } });
+    }
+    if (url.pathname.startsWith("/api/business-score/public/") && request.method === "GET") {
+      const tokenHash = await hashBusinessScoreToken(url.pathname.split("/").pop() || "");
+      const row = await env.DB.prepare("SELECT scoreBand,methodologyVersion,expiresAt FROM business_score_shares WHERE tokenHash = ?1 AND revokedAt IS NULL AND expiresAt > ?2 LIMIT 1").bind(tokenHash, new Date().toISOString()).first();
+      if (!row) return Response.json({ error: "Share unavailable." }, { status: 404, headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" } });
+      return Response.json({ scoreBand: row.scoreBand, methodologyVersion: row.methodologyVersion, expiresAt: row.expiresAt }, { headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" } });
     }
     if (url.pathname === "/api/integrations" && request.method === "GET") {
       const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});

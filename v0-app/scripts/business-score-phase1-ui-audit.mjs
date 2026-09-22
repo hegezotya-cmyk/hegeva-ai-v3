@@ -13,7 +13,7 @@ assert.match(panel, /=== "cloud"/, "authenticated score must wait for cloud-scop
 assert.doesNotMatch(panel, /customerSync === "cloud" && invoiceSync === "cloud" && taskSync === "cloud"/, "two cloud-backed categories must not wait for a third source")
 assert.match(panel, /const canRenderScore = scoreResult\.state === "ready"/, "panel must render once two supported cloud-backed categories are evidenced")
 assert.doesNotMatch(panel, /setItems\s*\(/, "Business Check must not mutate workspace records")
-assert.doesNotMatch(panel, /fetch\s*\(/, "Business Check must reuse the existing authenticated workspace hook")
+assert.doesNotMatch(panel, /fetch\s*\(\s*[`\"]\/api\/workspace/, "Business Check must not bypass the existing authenticated workspace hook")
 for (const locale of ["en:", "hu:", "de:", "fr:", "es:"]) assert.ok(panel.includes(locale), `missing visible locale: ${locale}`)
 assert.match(panel, /not enough supported workspace data/i, "truthful incomplete-data state must be visible")
 assert.match(challenge, /WorkspaceBusinessCheck/, "Challenge must mount the authenticated score panel")

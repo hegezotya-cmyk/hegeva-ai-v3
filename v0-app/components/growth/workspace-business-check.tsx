@@ -24,6 +24,7 @@ const COPY = {
     coverage: "Observed categories",
     noDeductions: "No supported deduction is present in this category.",
     boundary: "Aggregate evidence only · no customer names or document references are shown here · no action is executed.",
+    explanation: "Your score reflects only observed workspace categories and the deductions shown below.", share: "Create redacted share", shareReady: "Share link active for 24 hours", revoke: "Revoke share", nextSteps: "Evidence-based next steps",
     categories: { payments: "Payments", sales: "Sales follow-up", customers: "Customer attention", admin: "Admin control" },
     reasons: {
       overdue_invoice: "An invoice is overdue",
@@ -52,6 +53,7 @@ const COPY = {
     coverage: "Megfigyelt kategóriák",
     noDeductions: "Ebben a kategóriában nincs alátámasztott levonás.",
     boundary: "Csak összesített bizonyíték · itt nincs ügyfélnév vagy dokumentumhivatkozás · nincs végrehajtott művelet.",
+    explanation: "A pontszám csak a megfigyelt munkaterületi kategóriákat és az alább látható levonásokat tükrözi.", share: "Redaktált megosztás létrehozása", shareReady: "A megosztási link 24 órán át aktív", revoke: "Megosztás visszavonása", nextSteps: "Bizonyíték-alapú következő lépések",
     categories: { payments: "Fizetések", sales: "Értékesítési utánkövetés", customers: "Ügyfélfigyelem", admin: "Admin kontroll" },
     reasons: {
       overdue_invoice: "Van lejárt számla",
@@ -80,6 +82,7 @@ const COPY = {
     coverage: "Beobachtete Kategorien",
     noDeductions: "In dieser Kategorie liegt kein gestützter Abzug vor.",
     boundary: "Nur aggregierte Nachweise · keine Kundennamen oder Dokumentreferenzen · keine Aktion wird ausgeführt.",
+    explanation: "Der Score basiert nur auf beobachteten Workspace-Kategorien und den unten gezeigten Abzügen.", share: "Redigierten Link erstellen", shareReady: "Link 24 Stunden aktiv", revoke: "Link widerrufen", nextSteps: "Belegbasierte nächste Schritte",
     categories: { payments: "Zahlungen", sales: "Vertriebsnachfassung", customers: "Kundenaufmerksamkeit", admin: "Admin-Kontrolle" },
     reasons: {
       overdue_invoice: "Eine Rechnung ist überfällig",
@@ -108,6 +111,7 @@ const COPY = {
     coverage: "Catégories observées",
     noDeductions: "Aucune déduction étayée dans cette catégorie.",
     boundary: "Preuves agrégées uniquement · aucun nom de client ni référence de document · aucune action exécutée.",
+    explanation: "Le score reflète uniquement les catégories observées et les déductions affichées ci-dessous.", share: "Créer un partage redigé", shareReady: "Lien actif pendant 24 heures", revoke: "Révoquer le lien", nextSteps: "Prochaines étapes fondées sur les preuves",
     categories: { payments: "Paiements", sales: "Suivi commercial", customers: "Attention client", admin: "Contrôle administratif" },
     reasons: {
       overdue_invoice: "Une facture est en retard",
@@ -136,6 +140,7 @@ const COPY = {
     coverage: "Categorías observadas",
     noDeductions: "No hay ninguna deducción respaldada en esta categoría.",
     boundary: "Solo evidencia agregada · sin nombres de clientes ni referencias de documentos · no se ejecuta ninguna acción.",
+    explanation: "La puntuación refleja solo las categorías observadas y las deducciones mostradas abajo.", share: "Crear enlace redactado", shareReady: "Enlace activo durante 24 horas", revoke: "Revocar enlace", nextSteps: "Próximos pasos basados en evidencia",
     categories: { payments: "Pagos", sales: "Seguimiento comercial", customers: "Atención al cliente", admin: "Control administrativo" },
     reasons: {
       overdue_invoice: "Hay una factura vencida",
@@ -153,6 +158,7 @@ const COPY = {
 } as const
 
 const CATEGORY_ORDER: BusinessScoreCategory[] = ["payments", "sales", "customers", "admin"]
+const NEXT_STEP_LINKS: Record<string, { href: string; kind: string }> = { overdue_invoice: { href: "/business/invoices", kind: "overdue-invoices" }, invoice_14_days: { href: "/business/invoices", kind: "overdue-invoices" }, invoice_1000_plus: { href: "/business/invoices", kind: "overdue-invoices" }, quote_7_days: { href: "/business/invoices", kind: "stale-quotes" }, quote_10_days: { href: "/business/invoices", kind: "stale-quotes" }, quote_500_plus: { href: "/business/invoices", kind: "stale-quotes" }, customer_followup_due: { href: "/business/customers", kind: "customer-followups" }, overdue_high_priority: { href: "/business/planner", kind: "overdue-tasks" }, due_today_unresolved: { href: "/business/planner", kind: "today-tasks" } }
 
 export function WorkspaceBusinessCheck() {
   const { locale } = useI18n()
@@ -161,6 +167,8 @@ export function WorkspaceBusinessCheck() {
   const { items: invoices, syncState: invoiceSync } = useWorkspaceData<BusinessScoreWorkspaceDocument>("invoice_documents")
   const { items: tasks, syncState: taskSync } = useWorkspaceData<BusinessScoreWorkspaceTask>("planner")
   const [mounted, setMounted] = useState(false)
+  const [share, setShare] = useState<{ id: string; token: string; expiresAt: string } | null>(null)
+  const [shareBusy, setShareBusy] = useState(false)
   const tracked = useRef(false)
   const c = COPY[locale as keyof typeof COPY] ?? COPY.en
   const cloudCustomers = customerSync === "cloud" ? customers : []
@@ -221,6 +229,12 @@ export function WorkspaceBusinessCheck() {
             <Gauge className="size-16 text-gold/70" aria-hidden />
           </div>
           <p className="mt-5 text-sm font-semibold">{c.coverage}: {scoreResult.observedCategories.map((category) => c.categories[category]).join(" · ")}</p>
+          <p className="mt-3 text-sm text-muted-foreground">{c.explanation}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button type="button" disabled={shareBusy} onClick={async () => { setShareBusy(true); try { const response = await fetch("/api/business-score/share", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: "{}" }); const data = await response.json(); if (response.ok) { setShare({ id: data.shareId, token: data.token, expiresAt: data.expiresAt }); recordAnalyticsEvent("share_click", "/challenge", { share_type: "business_score", score_band: score.overall < 50 ? "0-49" : score.overall < 75 ? "50-74" : "75-100" }) } } finally { setShareBusy(false) } }} className="inline-flex min-h-10 items-center rounded-xl border border-primary/30 px-3 text-xs font-semibold text-primary">{share ? c.shareReady : c.share}</button>
+            {share && <><Link href={`/score/share/${share.token}`} target="_blank" className="inline-flex min-h-10 items-center rounded-xl border border-border px-3 text-xs font-semibold">{c.shareReady}</Link><button type="button" onClick={async () => { await fetch(`/api/business-score/share/${share.id}`, { method: "DELETE", credentials: "include" }); setShare(null) }} className="inline-flex min-h-10 items-center rounded-xl border border-border px-3 text-xs font-semibold">{c.revoke}</button></>}
+          </div>
+          <h3 className="mt-6 font-semibold">{c.nextSteps}</h3>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {CATEGORY_ORDER.filter((category) => scoreResult.observedCategories.includes(category)).map((category) => (
               <div key={category} className="rounded-2xl border border-border bg-background/45 p-4"><span className="text-xs text-muted-foreground">{c.categories[category]}</span><strong className="mt-1 block text-2xl">{score.categories[category].score}/100</strong></div>
@@ -231,7 +245,7 @@ export function WorkspaceBusinessCheck() {
             <div className="mt-3 grid gap-3 lg:grid-cols-2">
               {scoreResult.observedCategories.map((category) => {
                 const deductions = score.categories[category].deductions
-                return <article key={category} className="rounded-2xl border border-border bg-background/35 p-4"><div className="flex justify-between gap-3"><strong>{c.categories[category]}</strong><b>{score.categories[category].score}/100</b></div>{deductions.length ? <ul className="mt-3 space-y-2 text-sm text-muted-foreground">{deductions.map((deduction) => <li key={deduction.code} className="flex justify-between gap-4"><span>{c.reasons[deduction.code as keyof typeof c.reasons]}</span><span>-{deduction.points}</span></li>)}</ul> : <p className="mt-3 text-sm text-muted-foreground">{c.noDeductions}</p>}</article>
+                return <article key={category} className="rounded-2xl border border-border bg-background/35 p-4"><div className="flex justify-between gap-3"><strong>{c.categories[category]}</strong><b>{score.categories[category].score}/100</b></div>{deductions.length ? <ul className="mt-3 space-y-2 text-sm text-muted-foreground">{deductions.map((deduction) => { const next = NEXT_STEP_LINKS[deduction.code]; return <li key={deduction.code} className="flex justify-between gap-4"><span>{c.reasons[deduction.code as keyof typeof c.reasons]}{next && <Link href={next.href} aria-label={c.nextSteps} className="ml-2 text-primary underline">→</Link>}</span><span>-{deduction.points}</span></li> })}</ul> : <p className="mt-3 text-sm text-muted-foreground">{c.noDeductions}</p>}</article>
               })}
             </div>
           </section>

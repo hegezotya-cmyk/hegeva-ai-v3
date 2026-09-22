@@ -14,7 +14,8 @@ for (const expected of [
   /invoiceSync === "cloud" \? invoices : \[\]/,
   /taskSync === "cloud" \? tasks : \[\]/,
 ]) assert.match(panel, expected, "Business Check must pass only cloud-backed source data to the score")
-assert.doesNotMatch(panel, /\bfetch\s*\(|\bsetItems\s*\(/, "Business Check must not add a request or mutation path")
+assert.doesNotMatch(panel, /fetch\s*\(\s*[`\"]\/api\/workspace/, "Business Check must not bypass the workspace hook")
+assert.doesNotMatch(panel, /setItems\s*\(/, "Business Check must not mutate workspace records")
 assert.match(hook, /fetch\(`\/api\/workspace\/\$\{encodeURIComponent\(type\)\}`/, "workspace hook must use the typed workspace endpoint")
 assert.match(hook, /credentials:\s*"include"/, "workspace hook must require the normal authenticated session")
 assert.match(worker, /if \(!user\)[\s\S]{0,350}status:\s*401/, "workspace API must reject unauthenticated access")
