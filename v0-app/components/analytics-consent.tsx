@@ -98,19 +98,6 @@ export function AnalyticsConsent() {
   }, [])
 
   useEffect(() => {
-    if (consent !== "granted" || !window.gtag) return
-    if (!PUBLIC_ANALYTICS_PATHS.includes(pathname) || lastPageView.current === pathname) return
-    lastPageView.current = pathname
-    window.gtag("event", "page_view", {
-      page_path: pathname,
-      page_location: analyticsPageLocation(pathname),
-      page_title: "HEGEVA AI",
-      page_referrer: "",
-      ...campaignAttribution(),
-    })
-  }, [consent, pathname])
-
-  useEffect(() => {
     const receive = (event: Event) => {
       if (consent !== "granted" || !window.gtag) return
       const detail = (event as CustomEvent<{ event?: string; path?: string; params?: Record<string, string | number | boolean> }>).detail
@@ -133,6 +120,19 @@ export function AnalyticsConsent() {
 
   useEffect(() => {
     if (consent !== "granted") return
+    // Keep the standard GA4 page_view in the same consented lifecycle that emits
+    // the proven acquisition events. This avoids a first-consent effect race.
+    enableAnalytics()
+    if (PUBLIC_ANALYTICS_PATHS.includes(pathname) && lastPageView.current !== pathname) {
+      lastPageView.current = pathname
+      window.gtag?.("event", "page_view", {
+        page_path: pathname,
+        page_location: analyticsPageLocation(pathname),
+        page_title: "HEGEVA AI",
+        page_referrer: "",
+        ...campaignAttribution(),
+      })
+    }
     // Native static-page navigation replaces dataLayer. Consume the consented CTA
     // on its destination, once, rather than dispatching from an unloading document.
     try {
