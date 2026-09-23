@@ -1,11 +1,11 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 import { AppShell } from "@/components/app-shell"
 import { Hero } from "@/components/home/hero"
 import { ContactCta } from "@/components/home/contact-cta"
 import { FlagshipSections } from "@/components/home/flagship-sections"
 import { OutcomeLauncher } from "@/components/outcome-launcher"
 import { AcquisitionAttribution } from "@/components/acquisition/acquisition-attribution"
+import { GrowthLoopPromo } from "@/components/home/growth-loop-promo"
 
 export default function HomePage() {
   const jsonLd = [
@@ -31,33 +31,7 @@ export default function HomePage() {
       <main>
         <Hero />
         <OutcomeLauncher />
-        <section className="mx-auto max-w-[94rem] px-4 pb-10 sm:px-6 lg:px-10" aria-labelledby="hegeva-demo-title">
-          <div className="rounded-3xl border border-gold/25 bg-gold/[.04] p-6 sm:p-8">
-            <p className="ve-eyebrow text-gold">GIVE HEGEVA 60 SECONDS</p>
-            <h2 id="hegeva-demo-title" className="mt-2 font-display text-3xl font-semibold">See what your business could be missing.</h2>
-            <p className="mt-3 max-w-2xl text-muted-foreground">Start with clearly labelled fictional sample data. No signup, no card, and nothing is sent without your approval.</p>
-            <div className="mt-5 flex flex-wrap gap-2 text-sm text-muted-foreground"><span>Customers</span><span>→ Quotes</span><span>→ Follow-ups</span><span>→ Invoices</span><span>→ Payments</span></div>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link data-acquisition-event="demo_entry_click" data-demo-analytics="entry" href="/challenge" className="hegeva-primary inline-flex min-h-11 items-center rounded-xl px-5 py-2 font-semibold">Start 60-second challenge</Link>
-              <Link href="/get-started" className="inline-flex min-h-11 items-center rounded-xl border border-border px-5 py-2 font-semibold">Start your business</Link>
-            </div>
-          </div>
-        </section>
-        <section className="mx-auto max-w-[94rem] px-4 pb-16 sm:px-6 lg:px-10" aria-labelledby="uk-business-links-title">
-          <div className="rounded-2xl border border-border bg-card/50 px-5 py-5 sm:flex sm:items-center sm:justify-between sm:gap-8">
-            <div>
-              <p className="section-kicker">Built for UK small businesses</p>
-              <h2 id="uk-business-links-title" className="mt-1 font-display text-xl font-semibold text-foreground">Explore HEGEVA workflows for your business</h2>
-            </div>
-            <nav className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm sm:mt-0" aria-label="UK small business workflows">
-              <Link href="/ai-for-small-business" className="text-primary hover:underline">AI for small businesses</Link>
-              <Link href="/ai-for-trades" className="text-primary hover:underline">AI for trades</Link>
-              <Link href="/ai-for-electricians" className="text-primary hover:underline">AI for electricians</Link>
-              <Link href="/quote-and-invoice-software" className="text-primary hover:underline">Quote &amp; invoice software</Link>
-              <Link href="/ai-business-assistant" className="text-primary hover:underline">Business AI assistant</Link>
-            </nav>
-          </div>
-        </section>
+        <GrowthLoopPromo />
         <FlagshipSections />
         <ContactCta />
       </main>
