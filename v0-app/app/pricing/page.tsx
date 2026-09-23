@@ -72,6 +72,7 @@ export default function PricingPage() {
   const expansion = EXPANSION_COPY[locale]
   const value = CONVERSION_VALUE_COPY[locale]
   const { data: session, isPending } = authClient.useSession()
+  const [authHydrated, setAuthHydrated] = useState(false)
   const [opening, setOpening] = useState<PaidPlan | null>(null)
   const [error, setError] = useState("")
   const [currentPlan, setCurrentPlan] = useState<string | null>(null)
@@ -82,6 +83,10 @@ export default function PricingPage() {
   const [publicBillingStatus, setPublicBillingStatus] = useState<BillingStatus | null>(null)
 
   const effectiveMode = billingStatus?.mode ?? publicBillingStatus?.mode ?? "live"
+
+  useEffect(() => {
+    setAuthHydrated(true)
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -228,7 +233,7 @@ export default function PricingPage() {
           <div className="mt-5 flex items-end gap-2"><strong className="text-4xl font-bold">{plan.price}</strong>{plan.key !== "basic" && <span className="pb-1 text-sm text-muted-foreground">/ {c.month}</span>}</div>
           {plan.annualPrice ? <p className="mt-2 text-sm font-medium text-primary">{plan.annualPrice} / {expansion.annual}</p> : <div className="h-7" />}
           <ul className="mt-7 space-y-3">{plan.features.map((feature) => <li key={feature} className="flex gap-3 text-sm text-muted-foreground"><Check className="mt-0.5 size-4 shrink-0 text-primary"/><span>{feature}</span></li>)}</ul>
-          {plan.key === "basic" ? <button type="button" disabled className="mt-auto rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground">{currentPlan === "basic" ? c.current : c.free}</button> : plan.key === "enterprise" ? <Link prefetch={false} href="/contact" className="mt-auto rounded-xl border border-primary/40 bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary">{expansion.contact}</Link> : hasPaidPlan ? <Link prefetch={false} href="/account" className="mt-auto rounded-xl border border-primary/40 bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary">{currentPlan === plan.key ? c.current : PLAN_CHANGE_COPY[locale]}</Link> : <button type="button" disabled={opening !== null || isPending || planLoading || billingStatusLoading || (Boolean(session?.user) && !billingReady) || currentPlan === plan.key} onClick={() => void checkout(plan.key)} className="mt-auto rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-60">{currentPlan === plan.key ? c.current : opening === plan.key ? c.opening : !session?.user && !isPending ? c.signIn : c.choose}</button>}
+          {plan.key === "basic" ? <button type="button" disabled className="mt-auto rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground">{currentPlan === "basic" ? c.current : c.free}</button> : plan.key === "enterprise" ? <Link prefetch={false} href="/contact" className="mt-auto rounded-xl border border-primary/40 bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary">{expansion.contact}</Link> : hasPaidPlan ? <Link prefetch={false} href="/account" className="mt-auto rounded-xl border border-primary/40 bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary">{currentPlan === plan.key ? c.current : PLAN_CHANGE_COPY[locale]}</Link> : <button type="button" disabled={!authHydrated || opening !== null || isPending || planLoading || billingStatusLoading || (Boolean(session?.user) && !billingReady) || currentPlan === plan.key} onClick={() => void checkout(plan.key)} className="mt-auto rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-60">{currentPlan === plan.key ? c.current : opening === plan.key ? c.opening : authHydrated && !session?.user && !isPending ? c.signIn : c.choose}</button>}
         </div>
       </IntelligenceCard>)}
     </div>
