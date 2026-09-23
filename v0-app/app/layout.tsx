@@ -72,6 +72,9 @@ export default function RootLayout({
       lang="en"
       className={`dark bg-background ${geistSans.variable} ${geistMono.variable}`}
     >
+      <head>
+        <ConsentModeBootstrap />
+      </head>
       <body className="antialiased font-sans">
         <I18nProvider>
           <WorkspaceLocalPrivacyGuard />
