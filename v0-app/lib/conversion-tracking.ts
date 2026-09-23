@@ -1,9 +1,9 @@
 // Only public campaign labels, never arbitrary URL values or workspace identifiers.
 const allowed = {
-  utm_source: ["facebook", "instagram", "tiktok", "linkedin", "reddit", "youtube", "snapchat", "chatgpt", "share"],
-  utm_medium: ["social", "paid_social", "organic_social", "organic", "referral"],
-  utm_campaign: ["less_admin", "grow_business", "hegeva_launch", "hegeva_growth_2026"],
-  utm_content: ["video_1", "video_2", "video_3", "text_post_1", "challenge_share", "v2_challenge", "v2_consultants", "v2_free_tools", "v2_electricians", "v2_builders", "v2_plumbers", "v2_cleaners", "v2_property"],
+  utm_source: ["facebook", "instagram", "tiktok", "linkedin", "reddit", "youtube", "snapchat", "chatgpt", "share", "cold_email"],
+  utm_medium: ["social", "paid_social", "organic_social", "organic", "referral", "email"],
+  utm_campaign: ["less_admin", "grow_business", "hegeva_launch", "hegeva_growth_2026", "electricians_sep26", "plumbers_sep26", "property_maintenance_sep26", "builders_sep26", "roofers_sep26"],
+  utm_content: ["video_1", "video_2", "video_3", "text_post_1", "challenge_share", "v2_challenge", "v2_consultants", "v2_free_tools", "v2_electricians", "v2_builders", "v2_plumbers", "v2_cleaners", "v2_property", "initial", "followup_1", "followup_2"],
 } as const
 const campaignKey = "hegeva:campaign:v1"
 const referralKey = "hegeva:referral:v1"
