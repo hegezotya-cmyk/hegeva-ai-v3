@@ -87,6 +87,7 @@ export function AnalyticsConsent() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const sent = useRef(new Set<string>())
+  const lastPageView = useRef<string | null>(null)
 
   useEffect(() => {
     queueConsentDefault()
@@ -95,6 +96,19 @@ export function AnalyticsConsent() {
     else if (saved === "denied") setConsent("denied")
     else setOpen(true)
   }, [])
+
+  useEffect(() => {
+    if (consent !== "granted" || !window.gtag) return
+    if (!PUBLIC_ANALYTICS_PATHS.includes(pathname) || lastPageView.current === pathname) return
+    lastPageView.current = pathname
+    window.gtag("event", "page_view", {
+      page_path: pathname,
+      page_location: analyticsPageLocation(pathname),
+      page_title: "HEGEVA AI",
+      page_referrer: "",
+      ...campaignAttribution(),
+    })
+  }, [consent, pathname])
 
   useEffect(() => {
     const receive = (event: Event) => {
