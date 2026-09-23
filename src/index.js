@@ -3824,20 +3824,11 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         }
 
         const userId = user.id;
-        const period = getCurrentPeriod();
 
-        // Reuse AI quota admission for Core V1 (separate from X20)
-        const planInfo = await getUserPlan(env, userId);
-        const limit = PLAN_LIMITS[planInfo.plan] || PLAN_LIMITS.basic;
-        const reservation = await reserveAIUsage(env, userId, period, limit);
-
-        if (!reservation.reserved) {
-          emitMonitor("core_v1", "quota_exhausted", { plan: planInfo.plan, limit });
-          return Response.json(
-            { error: "Monthly AI message limit reached. Core V1 decision requires quota." },
-            { status: 429 }
-          );
-        }
+        // Core V1 is deterministic and does not invoke an AI provider.
+        // Do not consume or require the user's monthly Assistant quota for
+        // workspace signal computation. Core remains authenticated and
+        // preparation-only; external actions still require owner approval.
 
         // Load workspace data for signal computation
         const workspaceTypes = [
