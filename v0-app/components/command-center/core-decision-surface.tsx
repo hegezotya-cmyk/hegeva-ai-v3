@@ -74,6 +74,7 @@ export function CoreDecisionSurface({ locale, status, response, priority, hasEno
   const hasActivationRecords = activationCustomers.length > 0 && activationDocuments.some((document) => document.type === "quote" || document.type === "invoice")
   const requiredCoreRevision = useRef(0)
   const refreshRequestedFor = useRef("")
+  const rewardActivationAcknowledgedFor = useRef("")
   const [preparingInvoiceId, setPreparingInvoiceId] = useState<string | null>(null)
   const [emailDraftNotice, setEmailDraftNotice] = useState("")
   const activationSaveGeneration = `${customerSaveVersion}:${documentSaveVersion}`
@@ -90,6 +91,13 @@ export function CoreDecisionSurface({ locale, status, response, priority, hasEno
       if (hasActivationRecords) trackActivationEvent("activation_completed", "/command-center", workspaceIdentity)
     }
   }, [hasActivationRecords, hasCurrentCorePriority, hasEnoughData, workspaceIdentity])
+  useEffect(() => {
+    if (!workspaceIdentity || !hasCurrentCorePriority || !hasEnoughData || !hasActivationRecords) return
+    const acknowledgementKey = `${workspaceIdentity}:${coreRevision}`
+    if (rewardActivationAcknowledgedFor.current === acknowledgementKey) return
+    rewardActivationAcknowledgedFor.current = acknowledgementKey
+    void fetch("/api/referrals/activation", { method: "POST", credentials: "include", headers: { Accept: "application/json" } }).catch(() => null)
+  }, [coreRevision, hasActivationRecords, hasCurrentCorePriority, hasEnoughData, workspaceIdentity])
   const copy = CORE_COPY[locale]
   const emailDraftCopy = EMAIL_DRAFT_COPY[locale]
   const ready = status === "ready"

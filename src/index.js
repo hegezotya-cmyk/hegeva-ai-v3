@@ -25,6 +25,7 @@ import { applyEmailDeliveryState, canConfirmEmailDelivery, emailContentDigest } 
 import { synchronizePreparedWork, transitionPreparedWork } from "./prepared-work-review.js";
 import { BUSINESS_SCORE_METHODOLOGY, deriveBusinessScoreShare, hashBusinessScoreToken, newBusinessScoreToken, normalizeShareExpiry } from "./business-score-share.js";
 import { createReferralCode, revokeReferralCode, recordReferralTouch, attributeReferral, listReferralAttributions } from "./referral-attribution.js";
+import { reconcileReferralRewardForUser, listReferralRewardReviews, reviewReferralReward } from "./referral-reward-review.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -1522,6 +1523,33 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
     if (url.pathname === "/api/referrals/touch" && request.method === "POST") { let body;try{body=await request.json()}catch{return Response.json({error:"Invalid JSON body."},{status:400})}; const raw=typeof body?.code==="string"?body.code:""; const r=await recordReferralTouch(env.DB,raw,crypto.randomUUID(),body?.consentState==="granted"?"granted":"essential"); return new Response(null,{status:r.status,headers:{"Cache-Control":"no-store"}}); }
     if (url.pathname === "/api/referrals/attribute" && request.method === "POST") { const user=await getLoggedInUser(request,env,ctx); if(!user)return Response.json({error:"Authentication required."},{status:401}); let body;try{body=await request.json()}catch{return Response.json({error:"Invalid JSON body."},{status:400})}; const r=await attributeReferral(env.DB,body?.code,user.id); return Response.json(r.data||{error:r.error},{status:r.status,headers:{"Cache-Control":"no-store"}}); }
     if (url.pathname === "/api/referrals/attributions" && request.method === "GET") { const user=await getLoggedInUser(request,env,ctx); if(!user)return Response.json({error:"Authentication required."},{status:401}); const r=await listReferralAttributions(env.DB,user.id); return Response.json({items:r.results||[]},{headers:{"Cache-Control":"private, no-store"}}); }
+    if (url.pathname === "/api/referrals/activation" && request.method === "POST") {
+      const user=await getLoggedInUserFn(request,env,ctx);
+      if(!user)return Response.json({error:"Authentication required."},{status:401,headers:{"Cache-Control":"no-store"}});
+      const result=await reconcileReferralRewardForUser(env.DB,user.id);
+      return Response.json({activationAcknowledged:true,rewardReviewCreated:result.created,reason:result.reason},{headers:{"Cache-Control":"private, no-store"}});
+    }
+    if (url.pathname === "/api/referrals/reward-reviews" && request.method === "GET") {
+      const user=await getLoggedInUserFn(request,env,ctx);
+      if(!user)return Response.json({error:"Authentication required."},{status:401,headers:{"Cache-Control":"no-store"}});
+      const adminEmail=typeof env.ADMIN_EMAIL==="string"?env.ADMIN_EMAIL.trim().toLowerCase():"";
+      const isOwnerReviewer=Boolean(adminEmail&&user.email&&user.email.trim().toLowerCase()===adminEmail);
+      const items=await listReferralRewardReviews(env.DB,user.id,isOwnerReviewer);
+      return Response.json({items},{headers:{"Cache-Control":"private, no-store"}});
+    }
+    if (url.pathname.startsWith("/api/referrals/reward-reviews/") && request.method === "POST") {
+      const user=await getLoggedInUserFn(request,env,ctx);
+      if(!user)return Response.json({error:"Authentication required."},{status:401,headers:{"Cache-Control":"no-store"}});
+      const adminEmail=typeof env.ADMIN_EMAIL==="string"?env.ADMIN_EMAIL.trim().toLowerCase():"";
+      if(!adminEmail||!user.email||user.email.trim().toLowerCase()!==adminEmail)return Response.json({error:"Owner access required."},{status:403,headers:{"Cache-Control":"no-store"}});
+      let body;try{body=await request.json()}catch{return Response.json({error:"Invalid JSON body."},{status:400})}
+      const reviewId=url.pathname.split("/").pop()||"";
+      if(!/^[A-Za-z0-9_-]{8,100}$/.test(reviewId))return Response.json({error:"Review unavailable."},{status:404});
+      const decision=body?.decision;
+      const reason=typeof body?.reason==="string"?body.reason.trim().slice(0,160):"owner-reviewed-v1";
+      const result=await reviewReferralReward(env.DB,{reviewId,reviewerUserId:user.id,decision,reason,actorHash:await sha256Hex(user.id)});
+      return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"private, no-store"}});
+    }
     if (url.pathname === "/api/integrations" && request.method === "GET") {
       const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
       return Response.json({providers:await listConnections(env.DB,env,user.id)},{headers:{"Cache-Control":"no-store"}});

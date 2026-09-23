@@ -1,4 +1,5 @@
 import hegevaWorker, { emitMonitor } from "./index.js";
+import { reconcileReferralRewardForUser, reverseApprovedReferralRewards } from "./referral-reward-review.js";
 export { UserRateLimiter } from "./user-rate-limiter-do.js";
 
 const STRIPE_WEBHOOK_BODY_LIMIT = 512 * 1024;
@@ -690,6 +691,7 @@ async function handleStripeWebhook(request, env, ctx) {
 
     if (terminalSubscriptionResult) {
       await finalizeStripeEvent(env, claim.eventId, terminalSubscriptionResult);
+      await reverseApprovedReferralRewards(env.DB, claim.userId, "entitlement-invalid");
       return Response.json(terminalSubscriptionResult);
     }
   } catch (error) {
@@ -730,6 +732,10 @@ async function handleStripeWebhook(request, env, ctx) {
   try {
     const responseData = await responseCopy.json().catch(() => null);
     await finalizeStripeEvent(env, claim.eventId, responseData);
+    if (claim.userId && responseData?.entitlementChanged === true) {
+      if (["premium", "pro"].includes(responseData?.resultingPlan)) await reconcileReferralRewardForUser(env.DB, claim.userId);
+      if (responseData?.resultingPlan === "basic") await reverseApprovedReferralRewards(env.DB, claim.userId, "entitlement-invalid");
+    }
   } catch (error) {
     console.error("HEGEVA_REQUEST_FAILURE", {
       reason: "stripe_event_finalize_failed",
