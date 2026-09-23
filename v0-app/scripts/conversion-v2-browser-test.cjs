@@ -75,7 +75,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `overflow at ${width}`)
     }
     await page.screenshot({path: 'conversion-v2-desktop.png', fullPage: true})
-    for (const [locale, headline] of [['en','Less admin.'],['hu','Kevesebb admin.'],['de','Weniger Verwaltung.'],['fr','Moins dâ€™administratif.'],['es','Menos papeleo.']]) {
+    for (const [locale, headline] of [['en','Less admin.'],['hu','Kevesebb admin.'],['de','Weniger Verwaltung.'],['fr','Moins d’administratif.'],['es','Menos papeleo.']]) {
       await page.evaluate(locale => localStorage.setItem('hegeva.locale', locale), locale)
       await page.setViewportSize({width: 390, height: 844})
       await page.reload()
