@@ -62,7 +62,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
     await page.goto(base + '/pricing')
     await page.waitForFunction(() => window.dataLayer?.some(x => x[1] === 'pricing_view'))
     assert.equal((await events()).filter(x => x[1] === 'pricing_view').length, 1)
-    assert.equal((await events()).find(x => x[1] === 'pricing_view')[2].campaign_source, 'facebook')
+    assert.equal((await events()).find(x => x[1] === 'pricing_view')[2].campaign_source, 'cold_email')
     await page.getByRole('button', {name: 'Privacy choices', exact: true}).click()
     await page.getByRole('button', {name: 'Essential only', exact: true}).click()
     const count = (await events()).length
