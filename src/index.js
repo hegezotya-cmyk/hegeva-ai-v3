@@ -8,6 +8,8 @@ import { createAuthRateLimiter, clientIpKey } from "./auth-rate-limiter.js";
 import { handleAiChatAdmission } from "./ai-chat-admission.js";
 import { isX20RequestId, registerX20Attempt, startX20Action, finishX20Attempt } from "./x20-ledger.js";
 import { readAssistantUsage, startAssistantOperation, finishAssistantOperation } from "./assistant-quota.js";
+import { readAssistantTopUpBalance, reserveAssistantTopUpCredit, finishAssistantTopUpCredit, grantAssistantTopUpPurchase } from "./assistant-topup.js";
+import { readAssistantCostGuardConfig, reserveAssistantCostGuard, settleAssistantCostGuard } from "./assistant-cost-guard.js";
 import { isX30OperationId, startX30Generation, finishX30Generation, X30_MONTHLY_LIMIT, X30_WORKSPACE_LIMIT } from "./x30-generation-ledger.js";
 import { validateX30ProviderBrief, x30ProviderEnabled, isX30CanaryOwner } from "./x30-generation.js";
 import { invokeX30Provider } from "./x30-provider.js";
@@ -1374,6 +1376,52 @@ async function createStripeCheckoutSession(
   };
 }
 
+function getAssistantTopUpPack(env, packCode) {
+  const code = String(packCode || "").trim().toLowerCase();
+  const suffix = { small: "SMALL", medium: "MEDIUM", large: "LARGE" }[code];
+  if (!suffix) return null;
+  const priceId = String(env[`STRIPE_TOPUP_${suffix}_PRICE_ID`] || "").trim();
+  const credits = Number(env[`ASSISTANT_TOPUP_${suffix}_CREDITS`]);
+  const amount = Number(env[`ASSISTANT_TOPUP_${suffix}_AMOUNT`]);
+  const currency = String(env[`ASSISTANT_TOPUP_${suffix}_CURRENCY`] || "gbp").trim().toLowerCase();
+  if (!priceId.startsWith("price_") || !Number.isSafeInteger(credits) || credits <= 0 || !Number.isSafeInteger(amount) || amount <= 0 || !/^[a-z]{3}$/.test(currency)) return null;
+  return { code, priceId, credits, amount, currency };
+}
+
+async function createStripeTopUpCheckoutSession(request, env, user, pack) {
+  const secretKey = String(env.STRIPE_SECRET_KEY || "").trim();
+  const paymentMode = getPaymentMode(env);
+  if (!isStripeSecretForMode(secretKey, paymentMode)) return { ok: false, status: 503, error: "Stripe billing is not configured for the active payment mode." };
+  if (!pack) return { ok: false, status: 503, error: "This AI Top-Up pack is not configured." };
+
+  const form = new URLSearchParams();
+  form.set("mode", "payment");
+  form.set("line_items[0][price]", pack.priceId);
+  form.set("line_items[0][quantity]", "1");
+  form.set("client_reference_id", String(user.id));
+  const customer = await env.DB.prepare("SELECT stripeCustomerId FROM stripe_customers WHERE userId = ?1 LIMIT 1").bind(String(user.id)).first();
+  if (customer?.stripeCustomerId) form.set("customer", customer.stripeCustomerId);
+  else if (user.email) form.set("customer_email", user.email);
+  const appUrl = getPublicAppUrl(request, env);
+  form.set("success_url", `${appUrl}/account?topup=success&session_id={CHECKOUT_SESSION_ID}`);
+  form.set("cancel_url", `${appUrl}/account?topup=cancelled`);
+  form.set("metadata[userId]", String(user.id));
+  form.set("metadata[hegevaPurchaseType]", "assistant_topup");
+  form.set("metadata[topUpPack]", pack.code);
+
+  const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/x-www-form-urlencoded" },
+    body: form.toString(),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.id || !data?.url) {
+    console.error("HEGEVA_PROVIDER_FAILURE", { provider: "stripe", operation: "assistant_topup_checkout", reason: "provider_rejected", status: response.status });
+    return { ok: false, status: response.status || 502, error: "Stripe AI Top-Up checkout could not be created." };
+  }
+  return { ok: true, status: 200, id: data.id, url: data.url };
+}
+
 async function createStripePortalSession(request, env, user) {
   const secretKey =
     typeof env.STRIPE_SECRET_KEY === "string"
@@ -2119,6 +2167,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           );
 
         const x20Actions = await readX20Usage(env, user.id, period);
+        const assistantTopUpCredits = await readAssistantTopUpBalance(env, user.id);
 
         return Response.json({
           plan:
@@ -2129,6 +2178,9 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
 
           aiLimit:
             planInfo.limit,
+
+          aiRemaining: Math.max(0, planInfo.limit - usage),
+          assistantTopUpCredits,
 
           period,
           x20Actions,
@@ -2354,6 +2406,32 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
 
       try {
         if (
+          event.type === "checkout.session.completed" &&
+          metadata?.hegevaPurchaseType === "assistant_topup"
+        ) {
+          const pack = getAssistantTopUpPack(env, metadata?.topUpPack);
+          const paymentComplete = object?.mode === "payment" && object?.payment_status === "paid";
+          const amountMatches = pack && Number(object?.amount_total) === pack.amount;
+          const currencyMatches = pack && String(object?.currency || "").toLowerCase() === pack.currency;
+          if (userId && pack && paymentComplete && amountMatches && currencyMatches && typeof event.id === "string" && typeof object?.id === "string") {
+            const grant = await grantAssistantTopUpPurchase(env, {
+              purchaseId: `topup-${object.id}`,
+              userId,
+              stripeCheckoutSessionId: object.id,
+              stripePaymentIntentId: typeof object?.payment_intent === "string" ? object.payment_intent : null,
+              stripeEventId: event.id,
+              packCode: pack.code,
+              credits: pack.credits,
+              amountTotal: pack.amount,
+              currency: pack.currency,
+            });
+            entitlementChanged = Boolean(grant.granted);
+          } else {
+            ignored = true;
+          }
+        }
+
+        else if (
           event.type ===
           "checkout.session.completed"
         ) {
@@ -2751,6 +2829,38 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           { error: "Billing portal is temporarily unavailable." },
           { status: 500 }
         );
+      }
+    }
+
+    // =========================================
+    // ASSISTANT PREPAID TOP-UP CHECKOUT
+    // =========================================
+    if (url.pathname === "/api/billing/topup/checkout") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        let body;
+        try { body = await request.json(); } catch { return Response.json({ error: "Invalid JSON body." }, { status: 400 }); }
+        const pack = getAssistantTopUpPack(env, body?.pack);
+        if (!pack) return Response.json({ error: "Invalid or unavailable AI Top-Up pack." }, { status: 400 });
+        const checkout = await createStripeTopUpCheckoutSession(request, env, user, pack);
+        if (!checkout.ok) return Response.json({ ok: false, error: checkout.error }, { status: checkout.status });
+        return Response.json({
+          ok: true,
+          provider: "Stripe",
+          mode: getPaymentMode(env),
+          purchaseType: "assistant_topup",
+          pack: pack.code,
+          credits: pack.credits,
+          sessionId: checkout.id,
+          url: checkout.url,
+          creditGranted: false,
+          message: "AI Top-Up credits are added only after Stripe confirms the payment by verified webhook.",
+        });
+      } catch (error) {
+        logFailure("stripe_topup_checkout_failed", error);
+        return Response.json({ error: "AI Top-Up checkout is temporarily unavailable." }, { status: 500 });
       }
     }
 
@@ -4197,6 +4307,9 @@ QUALITY RULES:
           let assistantOperationId = null;
           let assistantOperationReserved = false;
           let assistantOperationSettlementAttempted = false;
+          let assistantCreditSource = null;
+          let assistantGlobalReservation = null;
+          let assistantGlobalSettlementAttempted = false;
 
           const result =
             await handleAiChatAdmission({
@@ -4258,25 +4371,61 @@ QUALITY RULES:
                 logX20Lifecycle("x20_attempt_reserved", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber });
                 return { reserved: true, reason: "x20_attempt_reserved" };
               },
+              reserveTopUp: isX20Action ? null : async (userId) => {
+                assistantOperationId = body.assistantOperationId || null;
+                const operation = await reserveAssistantTopUpCredit(env, { operationId: assistantOperationId, userId });
+                if (operation.reserved) assistantOperationReserved = true;
+                return operation;
+              },
+              reserveGlobal: isX20Action ? null : async ({ creditSource, operationId, period: usagePeriod }) => {
+                const guard = await reserveAssistantCostGuard(env, {
+                  operationId,
+                  period: usagePeriod,
+                  fundingClass: creditSource === "topup" ? "prepaid" : "included",
+                  config: readAssistantCostGuardConfig(env),
+                });
+                if (guard.reserved) assistantGlobalReservation = guard;
+                return guard;
+              },
+              releaseReservation: isX20Action ? null : async ({ creditSource }) => {
+                if (!assistantOperationReserved || assistantOperationSettlementAttempted) return { settled: true, duplicate: true };
+                assistantOperationSettlementAttempted = true;
+                const settlement = creditSource === "topup"
+                  ? await finishAssistantTopUpCredit(env, { operationId: assistantOperationId, status: "failed" })
+                  : await finishAssistantOperation(env, { operationId: assistantOperationId, status: "failed", metrics: null, elapsedMs: 0, httpStatus: 503 });
+                return settlement;
+              },
+              readTopUpBalance: isX20Action ? null : (userId) => readAssistantTopUpBalance(env, userId),
               readUsage: (userId, usagePeriod) =>
                 isX20Action ? readAIUsage(env, userId, usagePeriod) : readAssistantUsage(env, userId, usagePeriod),
-              execute: async ({ message: admittedMessage, safeHistory: admittedHistory }) => {
+              execute: async ({ message: admittedMessage, safeHistory: admittedHistory, creditSource, globalReservation }) => {
+                if (!isX20Action) assistantCreditSource = creditSource || "monthly";
                 if (isX20Action) logX20Lifecycle("x20_provider_started", { actionId: x20Action?.actionId, attemptId: x20Attempt?.attemptId, attemptNumber: x20Attempt?.attemptNumber });
                 if (!isX20Action) {
-                  const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage });
                   const startedAt = Date.now();
                   let adapted = null;
                   try {
+                    const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage });
                     adapted = await invokeWorkersAiText(env, projection);
+                    if (globalReservation && !assistantGlobalSettlementAttempted) {
+                      assistantGlobalSettlementAttempted = true;
+                      const globalSettlement = await settleAssistantCostGuard(env, { operationId: globalReservation.operationId, status: "settled" });
+                      if (!globalSettlement.settled && !globalSettlement.duplicate) throw new Error("HEGEVA_ASSISTANT_COST_GUARD_SETTLEMENT_UNAVAILABLE");
+                    }
                     const timedOut = adapted.reason === "timeout";
                     assistantOperationSettlementAttempted = true;
-                    const settlement = await finishAssistantOperation(env, {
-                      operationId: assistantOperationId,
-                      status: adapted.ok ? "succeeded" : timedOut ? "timed_out" : "failed",
-                      metrics: adapted.metrics,
-                      elapsedMs: adapted.metrics?.durationMs ?? Math.max(0, Date.now() - startedAt),
-                      httpStatus: adapted.ok ? 200 : 500,
-                    });
+                    const settlement = assistantCreditSource === "topup"
+                      ? await finishAssistantTopUpCredit(env, {
+                          operationId: assistantOperationId,
+                          status: adapted.ok ? "succeeded" : timedOut ? "timed_out" : "failed",
+                        })
+                      : await finishAssistantOperation(env, {
+                          operationId: assistantOperationId,
+                          status: adapted.ok ? "succeeded" : timedOut ? "timed_out" : "failed",
+                          metrics: adapted.metrics,
+                          elapsedMs: adapted.metrics?.durationMs ?? Math.max(0, Date.now() - startedAt),
+                          httpStatus: adapted.ok ? 200 : 500,
+                        });
                     if (!settlement.settled) throw new Error("HEGEVA_ASSISTANT_SETTLEMENT_UNAVAILABLE");
                     if (!adapted.ok) {
                       const unavailable = new Error("Workers AI unavailable");
@@ -4285,16 +4434,25 @@ QUALITY RULES:
                     }
                     return { response: adapted.response };
                   } catch (error) {
+                    if (globalReservation && !assistantGlobalSettlementAttempted) {
+                      assistantGlobalSettlementAttempted = true;
+                      await settleAssistantCostGuard(env, { operationId: globalReservation.operationId, status: "settled" }).catch(() => {});
+                    }
                     if (assistantOperationReserved && !assistantOperationSettlementAttempted) {
                       assistantOperationSettlementAttempted = true;
                       const timedOut = error?.name === "AbortError" || error?.message === "HEGEVA_AI_TIMEOUT";
-                      const settlement = await finishAssistantOperation(env, {
-                        operationId: assistantOperationId,
-                        status: timedOut ? "timed_out" : "failed",
-                        metrics: adapted?.metrics || null,
-                        elapsedMs: adapted?.metrics?.durationMs ?? Math.max(0, Date.now() - startedAt),
-                        httpStatus: 500,
-                      });
+                      const settlement = assistantCreditSource === "topup"
+                        ? await finishAssistantTopUpCredit(env, {
+                            operationId: assistantOperationId,
+                            status: timedOut ? "timed_out" : "failed",
+                          })
+                        : await finishAssistantOperation(env, {
+                            operationId: assistantOperationId,
+                            status: timedOut ? "timed_out" : "failed",
+                            metrics: adapted?.metrics || null,
+                            elapsedMs: adapted?.metrics?.durationMs ?? Math.max(0, Date.now() - startedAt),
+                            httpStatus: 500,
+                          });
                       if (!settlement.settled) throw new Error("HEGEVA_ASSISTANT_SETTLEMENT_UNAVAILABLE");
                     }
                     throw error;

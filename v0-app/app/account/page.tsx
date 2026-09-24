@@ -12,7 +12,7 @@ import { LEADS_COPY } from "@/lib/i18n/leads-copy"
 import { trackSubscriptionSuccess } from "@/lib/conversion-tracking"
 import { ReferralReview } from "@/components/growth/referral-review"
 
-type PlanStatus = { plan:string; aiMessages:number; aiLimit:number; period:string }
+type PlanStatus = { plan:string; aiMessages:number; aiLimit:number; aiRemaining:number; assistantTopUpCredits:number; period:string }
 type BillingStatus = { customerPortalReady:boolean; subscriptionStatus:string | null; cancelAtPeriodEnd:boolean; currentPeriodEnd:string | null }
 
 const BILLING_COPY = {
@@ -44,10 +44,15 @@ export default function AccountPage() {
   const [billing, setBilling] = useState<BillingStatus | null>(null)
   const [billingLoading, setBillingLoading] = useState(false)
   const [billingStatusError, setBillingStatusError] = useState(false)
+  const [buyingTopUp, setBuyingTopUp] = useState<string | null>(null)
+  const [topUpError, setTopUpError] = useState(false)
+  const [topUpReturn, setTopUpReturn] = useState<"success" | "cancelled" | null>(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     setBillingReturn(params.get("billing") === "success")
+    const topup = params.get("topup")
+    setTopUpReturn(topup === "success" || topup === "cancelled" ? topup : null)
   }, [])
 
   const loginCallbackHref = useMemo(() => {
@@ -77,6 +82,8 @@ export default function AccountPage() {
           plan: typeof data.plan === "string" ? data.plan : "basic",
           aiMessages: Number(data.aiMessages) || 0,
           aiLimit: Number(data.aiLimit) || 0,
+          aiRemaining: Number(data.aiRemaining) || 0,
+          assistantTopUpCredits: Number(data.assistantTopUpCredits) || 0,
           period: typeof data.period === "string" ? data.period : "",
         } satisfies PlanStatus
       } finally {
@@ -180,6 +187,26 @@ export default function AccountPage() {
     }
   }
 
+  async function buyTopUp(pack: "small" | "medium" | "large") {
+    if (buyingTopUp) return
+    setBuyingTopUp(pack)
+    setTopUpError(false)
+    try {
+      const response = await fetch("/api/billing/topup/checkout", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ pack }),
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok || typeof data?.url !== "string" || !data.url.startsWith("https://checkout.stripe.com/")) throw new Error("topup")
+      window.location.assign(data.url)
+    } catch {
+      setTopUpError(true)
+      setBuyingTopUp(null)
+    }
+  }
+
   if (isPending) return <AppShell><main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8"><div className="glass-panel rounded-3xl p-8 text-sm text-muted-foreground">{c.checking}</div></main></AppShell>
 
   if (!session?.user) return <AppShell><main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8"><PageHeader eyebrow={c.eyebrow} title={c.signInTitle} subtitle={c.signInBody}/>{billingReturn && <p role="status" className="mt-6 rounded-xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground">{c.billingSignIn}</p>}<Link href={loginCallbackHref} className="mt-8 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">{c.signIn}</Link></main></AppShell>
@@ -212,6 +239,20 @@ export default function AccountPage() {
             <p className="mt-3 text-xs leading-5 text-muted-foreground">{billingCopy.usageNote}</p>
           </div>}
           {planError && <p className="mt-5 rounded-xl border border-gold/30 bg-gold/10 p-3 text-sm text-muted-foreground">{c.unavailable}</p>}
+          {plan && <div id="assistant-topup" className="mt-6 rounded-2xl border border-primary/25 bg-primary/[.06] p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div><h3 className="font-semibold">Extra AI credits</h3><p className="mt-1 text-sm text-muted-foreground">Top-Up credits stay on your account until you use them.</p></div>
+              <div className="rounded-xl border border-primary/25 bg-background/60 px-4 py-2 text-right"><span className="block text-xs text-muted-foreground">Top-Up balance</span><strong className="text-lg text-primary">{plan.assistantTopUpCredits}</strong></div>
+            </div>
+            {topUpReturn === "success" && <p role="status" className="mt-4 text-sm text-muted-foreground">Payment received. Your credits appear after Stripe confirms the payment. Refresh shortly if the balance has not updated yet.</p>}
+            {topUpReturn === "cancelled" && <p role="status" className="mt-4 text-sm text-muted-foreground">Top-Up purchase cancelled. No credits were charged.</p>}
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              {(["small","medium","large"] as const).map((pack) => <button key={pack} type="button" disabled={Boolean(buyingTopUp)} onClick={() => void buyTopUp(pack)} className="min-h-11 rounded-xl border border-border px-4 py-3 text-sm font-semibold capitalize transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60">{buyingTopUp === pack ? c.checking : `Buy ${pack} Top-Up`}</button>)}
+            </div>
+            <p className="mt-3 text-xs leading-5 text-muted-foreground">Your monthly Assistant allowance is used first. Top-Up credits are used only after the monthly allowance runs out.</p>
+            {topUpError && <p role="alert" className="mt-3 text-sm text-destructive">Top-Up checkout is temporarily unavailable. No charge was made.</p>}
+          </div>}
+
           {plan && PAID_PLANS.has(plan.plan) && <div className="mt-6 rounded-2xl border border-border bg-secondary/20 p-5">
             <h3 className="font-semibold">{billingCopy.title}</h3>
             {billingLoading ? <p className="mt-3 text-sm text-muted-foreground">{billingCopy.loading}</p> : billingStatusError ? <p role="alert" className="mt-3 text-sm text-muted-foreground">{billingCopy.unavailable}</p> : !subscriptionStatus ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{billingCopy.notLinked}</p> : <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">

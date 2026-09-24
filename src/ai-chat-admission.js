@@ -6,6 +6,10 @@ export async function handleAiChatAdmission({
   body,
   runtime,
   reserve,
+  reserveTopUp = null,
+  readTopUpBalance = null,
+  reserveGlobal = null,
+  releaseReservation = null,
   readUsage,
   execute,
   distributed,
@@ -86,7 +90,20 @@ export async function handleAiChatAdmission({
     }
     distributedToken = distributedResult.token
     distributedAcquired = true
-    const reservation = await reserve(user.id, period, planInfo.limit)
+    let reservation = await reserve(user.id, period, planInfo.limit)
+    let creditSource = "monthly"
+    if (!reservation.reserved && reservation.reason === "assistant_quota_unavailable" && typeof reserveTopUp === "function") {
+      const topUpReservation = await reserveTopUp(user.id)
+      if (topUpReservation?.reserved) {
+        reservation = topUpReservation
+        creditSource = "topup"
+      } else if (topUpReservation?.reason === "duplicate_topup_operation") {
+        return Response.json({ error: "This Assistant request was already received." }, { status: 409 })
+      } else if (topUpReservation?.reason && topUpReservation.reason !== "topup_credit_unavailable") {
+        console.error("HEGEVA_AI_ADMISSION_FAILURE", { reason: "topup_reservation_failed" })
+        return Response.json({ error: "AI service is temporarily unavailable." }, { status: 503 })
+      }
+    }
     if (!reservation.reserved) {
       if (input.actionKind === "x20") {
         console.info("HEGEVA_X20_LIFECYCLE", {
@@ -124,6 +141,7 @@ export async function handleAiChatAdmission({
         return Response.json({ error }, { status })
       }
       const used = await readUsage(user.id, period)
+      const topUpBalance = typeof readTopUpBalance === "function" ? await readTopUpBalance(user.id) : 0
       if (input.actionKind !== "x20") {
         console.error("HEGEVA_MONITOR", {
           scope: "ai_quota",
@@ -132,12 +150,41 @@ export async function handleAiChatAdmission({
         })
       }
       return Response.json(
-        { error: "Monthly AI message limit reached.", plan: planInfo.plan, limit: planInfo.limit, used },
+        {
+          error: "Monthly AI message limit reached.",
+          code: "ASSISTANT_CREDITS_EXHAUSTED",
+          plan: planInfo.plan,
+          limit: planInfo.limit,
+          used,
+          topUpBalance,
+          upgradeRequired: true,
+          upgradePath: "/pricing",
+          message: "You've used your monthly AI allowance. Upgrade your plan to continue using the AI Assistant now, or wait until your allowance resets next month.",
+        },
         { status: 429 },
       )
     }
+    let globalReservation = null
+    // The public Assistant uses the global cost guard. X20 remains on its
+    // existing independent action/credit accounting path.
+    if (typeof reserveGlobal === "function" && input.actionKind !== "x20") {
+      try {
+        globalReservation = await reserveGlobal({ creditSource, operationId: input.assistantOperationId, period })
+      } catch (error) {
+        console.error("HEGEVA_AI_ADMISSION_FAILURE", { reason: "cost_guard_reservation_failed", errorName: error instanceof Error ? error.name : "Unknown" })
+        globalReservation = { reserved: false, reason: "cost_guard_unavailable" }
+      }
+      if (!globalReservation?.reserved) {
+        console.info("HEGEVA_COST_GUARD", { outcome: "denied", reason: globalReservation?.reason || "cost_guard_unavailable", fundingClass: creditSource })
+        if (typeof releaseReservation === "function") {
+          const released = await releaseReservation({ creditSource, reason: globalReservation?.reason || "cost_guard_unavailable" })
+          if (!released?.settled) throw new Error("HEGEVA_ASSISTANT_QUOTA_RELEASE_UNAVAILABLE")
+        }
+        return Response.json({ error: "AI service is temporarily unavailable.", code: "ASSISTANT_COST_GUARD_UNAVAILABLE" }, { status: 503 })
+      }
+    }
     runtime.lastRequest.set(aiUserKey, current)
-    return await execute({ input, message, safeHistory, user, planInfo, period })
+    return await execute({ input, message, safeHistory, user, planInfo, period, creditSource, globalReservation })
   } finally {
     if (distributed && distributedAcquired) {
       try { await distributed.release(distributedToken) } catch {}
