@@ -8,7 +8,7 @@ import { createAuthRateLimiter, clientIpKey } from "./auth-rate-limiter.js";
 import { handleAiChatAdmission } from "./ai-chat-admission.js";
 import { isX20RequestId, registerX20Attempt, startX20Action, finishX20Attempt } from "./x20-ledger.js";
 import { readAssistantUsage, startAssistantOperation, finishAssistantOperation } from "./assistant-quota.js";
-import { readAssistantTopUpBalance, reserveAssistantTopUpCredit, finishAssistantTopUpCredit, grantAssistantTopUpPurchase } from "./assistant-topup.js";
+import { readAssistantTopUpBalance, reserveAssistantTopUpCredit, finishAssistantTopUpCredit, grantAssistantTopUpPurchase, reconcileAssistantTopUpFinancialEvent } from "./assistant-topup.js";
 import { readAssistantCostGuardConfig, reserveAssistantCostGuard, settleAssistantCostGuard } from "./assistant-cost-guard.js";
 import { isX30OperationId, startX30Generation, finishX30Generation, X30_MONTHLY_LIMIT, X30_WORKSPACE_LIMIT } from "./x30-generation-ledger.js";
 import { validateX30ProviderBrief, x30ProviderEnabled, isX30CanaryOwner } from "./x30-generation.js";
@@ -1396,6 +1396,7 @@ async function createStripeTopUpCheckoutSession(request, env, user, pack) {
 
   const form = new URLSearchParams();
   form.set("mode", "payment");
+  form.set("payment_method_types[0]", "card");
   form.set("line_items[0][price]", pack.priceId);
   form.set("line_items[0][quantity]", "1");
   form.set("client_reference_id", String(user.id));
@@ -2419,6 +2420,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
               userId,
               stripeCheckoutSessionId: object.id,
               stripePaymentIntentId: typeof object?.payment_intent === "string" ? object.payment_intent : null,
+              stripeChargeId: typeof object?.charges?.data?.[0]?.id === "string" ? object.charges.data[0].id : null,
               stripeEventId: event.id,
               packCode: pack.code,
               credits: pack.credits,
@@ -2429,6 +2431,30 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           } else {
             ignored = true;
           }
+        }
+
+        else if (["charge.refunded", "refund.created", "charge.dispute.created", "charge.dispute.updated", "charge.dispute.closed"].includes(event.type)) {
+          const eventType = event.type === "charge.refunded" || event.type === "refund.created"
+            ? "refund"
+            : event.type === "charge.dispute.created"
+              ? "dispute_created"
+              : event.type === "charge.dispute.updated"
+                ? "dispute_updated"
+                : "dispute_closed";
+          const identifiers = {
+            paymentIntentId: typeof object?.payment_intent === "string" ? object.payment_intent : null,
+            chargeId: typeof object?.charge === "string" ? object.charge : typeof object?.id === "string" && event.type.startsWith("charge.") ? object.id : null,
+            checkoutSessionId: typeof object?.metadata?.checkoutSessionId === "string" ? object.metadata.checkoutSessionId : null,
+          };
+          const reconciliation = await reconcileAssistantTopUpFinancialEvent(env, {
+            eventId: event.id,
+            eventType,
+            eventState: object?.status || event.type,
+            identifiers,
+            amount: Number.isSafeInteger(Number(event.type === "charge.refunded" ? object?.amount_refunded : object?.amount)) ? Number(event.type === "charge.refunded" ? object.amount_refunded : object.amount) : null,
+            currency: typeof object?.currency === "string" ? object.currency.toLowerCase() : null,
+          });
+          ignored = !reconciliation.reconciled && !reconciliation.duplicate;
         }
 
         else if (

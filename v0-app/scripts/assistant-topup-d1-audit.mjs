@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite"
 import { readAssistantTopUpBalance, reserveAssistantTopUpCredit, finishAssistantTopUpCredit, grantAssistantTopUpPurchase } from "../../src/assistant-topup.js"
 
 const root = path.resolve(import.meta.dirname, "../..")
-const migration = fs.readFileSync(path.join(root, "migrations/0026_assistant_topup_credits.sql"), "utf8")
+const migration = fs.readFileSync(path.join(root, "migrations/0026_assistant_topup_credits.sql"), "utf8") + "\n" + fs.readFileSync(path.join(root, "migrations/0028_assistant_topup_purchase_lots.sql"), "utf8")
 
 function adapter(db) {
   return { DB: {

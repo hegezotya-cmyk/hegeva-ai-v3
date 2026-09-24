@@ -57,6 +57,7 @@
     "audit:ai-runtime": "node scripts/ai-canary-runtime-lifecycle-audit.mjs && node scripts/ai-canary-financial-admission-audit.mjs && node scripts/ai-quota-request-order-test.mjs && node scripts/ai-quota-reservation-audit.mjs && node scripts/ai-quota-reservation-d1-test.mjs && node scripts/assistant-quota-audit.mjs && node scripts/cloudflare-workers-ai-runtime-integration-audit.mjs && node scripts/cloudflare-workers-ai-safe-provider-audit.mjs && node scripts/durable-rate-limit-audit.mjs && node scripts/frontend-assistant-operation-contract-audit.mjs && node scripts/rate-limit-policy-audit.mjs",
     "audit:assistant-usage-settlement": "node scripts/assistant-usage-settlement-audit.mjs",
     "audit:assistant-topup": "node scripts/assistant-topup-d1-audit.mjs",
+    "audit:assistant-topup-lots": "node scripts/assistant-topup-purchase-lot-audit.mjs",
     "audit:assistant-cost-guard": "node scripts/assistant-global-cost-guard-audit.mjs",
     "audit:quality-contracts": "node scripts/foundation-contracts-audit.mjs && node scripts/semantic-fidelity-audit.mjs && node scripts/x10-first-pass-quality-audit.mjs && node scripts/x10-output-budget-audit.mjs && node scripts/homepage-visual-contract-audit.mjs && node scripts/commercial-config-audit.mjs",
     "audit:core-runtime": "npm run audit:foundation && npm run audit:brain && npm run audit:memory && npm run audit:durable-memory",
