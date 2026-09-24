@@ -9,6 +9,7 @@ import { handleAiChatAdmission } from "./ai-chat-admission.js";
 import { isX20RequestId, registerX20Attempt, startX20Action, finishX20Attempt } from "./x20-ledger.js";
 import { readAssistantUsage, startAssistantOperation, finishAssistantOperation } from "./assistant-quota.js";
 import { readAssistantTopUpBalance, reserveAssistantTopUpCredit, finishAssistantTopUpCredit, grantAssistantTopUpPurchase } from "./assistant-topup.js";
+import { readAssistantCostGuardConfig, reserveAssistantCostGuard, settleAssistantCostGuard } from "./assistant-cost-guard.js";
 import { isX30OperationId, startX30Generation, finishX30Generation, X30_MONTHLY_LIMIT, X30_WORKSPACE_LIMIT } from "./x30-generation-ledger.js";
 import { validateX30ProviderBrief, x30ProviderEnabled, isX30CanaryOwner } from "./x30-generation.js";
 import { invokeX30Provider } from "./x30-provider.js";
@@ -4307,6 +4308,8 @@ QUALITY RULES:
           let assistantOperationReserved = false;
           let assistantOperationSettlementAttempted = false;
           let assistantCreditSource = null;
+          let assistantGlobalReservation = null;
+          let assistantGlobalSettlementAttempted = false;
 
           const result =
             await handleAiChatAdmission({
@@ -4374,18 +4377,41 @@ QUALITY RULES:
                 if (operation.reserved) assistantOperationReserved = true;
                 return operation;
               },
+              reserveGlobal: isX20Action ? null : async ({ creditSource, operationId, period: usagePeriod }) => {
+                const guard = await reserveAssistantCostGuard(env, {
+                  operationId,
+                  period: usagePeriod,
+                  fundingClass: creditSource === "topup" ? "prepaid" : "included",
+                  config: readAssistantCostGuardConfig(env),
+                });
+                if (guard.reserved) assistantGlobalReservation = guard;
+                return guard;
+              },
+              releaseReservation: isX20Action ? null : async ({ creditSource }) => {
+                if (!assistantOperationReserved || assistantOperationSettlementAttempted) return { settled: true, duplicate: true };
+                assistantOperationSettlementAttempted = true;
+                const settlement = creditSource === "topup"
+                  ? await finishAssistantTopUpCredit(env, { operationId: assistantOperationId, status: "failed" })
+                  : await finishAssistantOperation(env, { operationId: assistantOperationId, status: "failed", metrics: null, elapsedMs: 0, httpStatus: 503 });
+                return settlement;
+              },
               readTopUpBalance: isX20Action ? null : (userId) => readAssistantTopUpBalance(env, userId),
               readUsage: (userId, usagePeriod) =>
                 isX20Action ? readAIUsage(env, userId, usagePeriod) : readAssistantUsage(env, userId, usagePeriod),
-              execute: async ({ message: admittedMessage, safeHistory: admittedHistory, creditSource }) => {
+              execute: async ({ message: admittedMessage, safeHistory: admittedHistory, creditSource, globalReservation }) => {
                 if (!isX20Action) assistantCreditSource = creditSource || "monthly";
                 if (isX20Action) logX20Lifecycle("x20_provider_started", { actionId: x20Action?.actionId, attemptId: x20Attempt?.attemptId, attemptNumber: x20Attempt?.attemptNumber });
                 if (!isX20Action) {
-                  const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage });
                   const startedAt = Date.now();
                   let adapted = null;
                   try {
+                    const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage });
                     adapted = await invokeWorkersAiText(env, projection);
+                    if (globalReservation && !assistantGlobalSettlementAttempted) {
+                      assistantGlobalSettlementAttempted = true;
+                      const globalSettlement = await settleAssistantCostGuard(env, { operationId: globalReservation.operationId, status: "settled" });
+                      if (!globalSettlement.settled && !globalSettlement.duplicate) throw new Error("HEGEVA_ASSISTANT_COST_GUARD_SETTLEMENT_UNAVAILABLE");
+                    }
                     const timedOut = adapted.reason === "timeout";
                     assistantOperationSettlementAttempted = true;
                     const settlement = assistantCreditSource === "topup"
@@ -4408,6 +4434,10 @@ QUALITY RULES:
                     }
                     return { response: adapted.response };
                   } catch (error) {
+                    if (globalReservation && !assistantGlobalSettlementAttempted) {
+                      assistantGlobalSettlementAttempted = true;
+                      await settleAssistantCostGuard(env, { operationId: globalReservation.operationId, status: "settled" }).catch(() => {});
+                    }
                     if (assistantOperationReserved && !assistantOperationSettlementAttempted) {
                       assistantOperationSettlementAttempted = true;
                       const timedOut = error?.name === "AbortError" || error?.message === "HEGEVA_AI_TIMEOUT";

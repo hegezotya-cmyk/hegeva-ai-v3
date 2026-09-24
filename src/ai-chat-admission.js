@@ -8,6 +8,8 @@ export async function handleAiChatAdmission({
   reserve,
   reserveTopUp = null,
   readTopUpBalance = null,
+  reserveGlobal = null,
+  releaseReservation = null,
   readUsage,
   execute,
   distributed,
@@ -162,8 +164,27 @@ export async function handleAiChatAdmission({
         { status: 429 },
       )
     }
+    let globalReservation = null
+    // The public Assistant uses the global cost guard. X20 remains on its
+    // existing independent action/credit accounting path.
+    if (typeof reserveGlobal === "function" && input.actionKind !== "x20") {
+      try {
+        globalReservation = await reserveGlobal({ creditSource, operationId: input.assistantOperationId, period })
+      } catch (error) {
+        console.error("HEGEVA_AI_ADMISSION_FAILURE", { reason: "cost_guard_reservation_failed", errorName: error instanceof Error ? error.name : "Unknown" })
+        globalReservation = { reserved: false, reason: "cost_guard_unavailable" }
+      }
+      if (!globalReservation?.reserved) {
+        console.info("HEGEVA_COST_GUARD", { outcome: "denied", reason: globalReservation?.reason || "cost_guard_unavailable", fundingClass: creditSource })
+        if (typeof releaseReservation === "function") {
+          const released = await releaseReservation({ creditSource, reason: globalReservation?.reason || "cost_guard_unavailable" })
+          if (!released?.settled) throw new Error("HEGEVA_ASSISTANT_QUOTA_RELEASE_UNAVAILABLE")
+        }
+        return Response.json({ error: "AI service is temporarily unavailable.", code: "ASSISTANT_COST_GUARD_UNAVAILABLE" }, { status: 503 })
+      }
+    }
     runtime.lastRequest.set(aiUserKey, current)
-    return await execute({ input, message, safeHistory, user, planInfo, period, creditSource })
+    return await execute({ input, message, safeHistory, user, planInfo, period, creditSource, globalReservation })
   } finally {
     if (distributed && distributedAcquired) {
       try { await distributed.release(distributedToken) } catch {}
