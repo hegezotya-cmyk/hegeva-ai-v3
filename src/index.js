@@ -8,6 +8,7 @@ import { createAuthRateLimiter, clientIpKey } from "./auth-rate-limiter.js";
 import { handleAiChatAdmission } from "./ai-chat-admission.js";
 import { isX20RequestId, registerX20Attempt, startX20Action, finishX20Attempt } from "./x20-ledger.js";
 import { readAssistantUsage, startAssistantOperation, finishAssistantOperation } from "./assistant-quota.js";
+import { readAssistantTopUpBalance, reserveAssistantTopUpCredit, finishAssistantTopUpCredit } from "./assistant-topup.js";
 import { isX30OperationId, startX30Generation, finishX30Generation, X30_MONTHLY_LIMIT, X30_WORKSPACE_LIMIT } from "./x30-generation-ledger.js";
 import { validateX30ProviderBrief, x30ProviderEnabled, isX30CanaryOwner } from "./x30-generation.js";
 import { invokeX30Provider } from "./x30-provider.js";
@@ -4197,6 +4198,7 @@ QUALITY RULES:
           let assistantOperationId = null;
           let assistantOperationReserved = false;
           let assistantOperationSettlementAttempted = false;
+          let assistantCreditSource = null;
 
           const result =
             await handleAiChatAdmission({
@@ -4258,9 +4260,17 @@ QUALITY RULES:
                 logX20Lifecycle("x20_attempt_reserved", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber });
                 return { reserved: true, reason: "x20_attempt_reserved" };
               },
+              reserveTopUp: isX20Action ? null : async (userId) => {
+                assistantOperationId = body.assistantOperationId || null;
+                const operation = await reserveAssistantTopUpCredit(env, { operationId: assistantOperationId, userId });
+                if (operation.reserved) assistantOperationReserved = true;
+                return operation;
+              },
+              readTopUpBalance: isX20Action ? null : (userId) => readAssistantTopUpBalance(env, userId),
               readUsage: (userId, usagePeriod) =>
                 isX20Action ? readAIUsage(env, userId, usagePeriod) : readAssistantUsage(env, userId, usagePeriod),
-              execute: async ({ message: admittedMessage, safeHistory: admittedHistory }) => {
+              execute: async ({ message: admittedMessage, safeHistory: admittedHistory, creditSource }) => {
+                if (!isX20Action) assistantCreditSource = creditSource || "monthly";
                 if (isX20Action) logX20Lifecycle("x20_provider_started", { actionId: x20Action?.actionId, attemptId: x20Attempt?.attemptId, attemptNumber: x20Attempt?.attemptNumber });
                 if (!isX20Action) {
                   const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage });
@@ -4270,13 +4280,18 @@ QUALITY RULES:
                     adapted = await invokeWorkersAiText(env, projection);
                     const timedOut = adapted.reason === "timeout";
                     assistantOperationSettlementAttempted = true;
-                    const settlement = await finishAssistantOperation(env, {
-                      operationId: assistantOperationId,
-                      status: adapted.ok ? "succeeded" : timedOut ? "timed_out" : "failed",
-                      metrics: adapted.metrics,
-                      elapsedMs: adapted.metrics?.durationMs ?? Math.max(0, Date.now() - startedAt),
-                      httpStatus: adapted.ok ? 200 : 500,
-                    });
+                    const settlement = assistantCreditSource === "topup"
+                      ? await finishAssistantTopUpCredit(env, {
+                          operationId: assistantOperationId,
+                          status: adapted.ok ? "succeeded" : timedOut ? "timed_out" : "failed",
+                        })
+                      : await finishAssistantOperation(env, {
+                          operationId: assistantOperationId,
+                          status: adapted.ok ? "succeeded" : timedOut ? "timed_out" : "failed",
+                          metrics: adapted.metrics,
+                          elapsedMs: adapted.metrics?.durationMs ?? Math.max(0, Date.now() - startedAt),
+                          httpStatus: adapted.ok ? 200 : 500,
+                        });
                     if (!settlement.settled) throw new Error("HEGEVA_ASSISTANT_SETTLEMENT_UNAVAILABLE");
                     if (!adapted.ok) {
                       const unavailable = new Error("Workers AI unavailable");
@@ -4288,13 +4303,18 @@ QUALITY RULES:
                     if (assistantOperationReserved && !assistantOperationSettlementAttempted) {
                       assistantOperationSettlementAttempted = true;
                       const timedOut = error?.name === "AbortError" || error?.message === "HEGEVA_AI_TIMEOUT";
-                      const settlement = await finishAssistantOperation(env, {
-                        operationId: assistantOperationId,
-                        status: timedOut ? "timed_out" : "failed",
-                        metrics: adapted?.metrics || null,
-                        elapsedMs: adapted?.metrics?.durationMs ?? Math.max(0, Date.now() - startedAt),
-                        httpStatus: 500,
-                      });
+                      const settlement = assistantCreditSource === "topup"
+                        ? await finishAssistantTopUpCredit(env, {
+                            operationId: assistantOperationId,
+                            status: timedOut ? "timed_out" : "failed",
+                          })
+                        : await finishAssistantOperation(env, {
+                            operationId: assistantOperationId,
+                            status: timedOut ? "timed_out" : "failed",
+                            metrics: adapted?.metrics || null,
+                            elapsedMs: adapted?.metrics?.durationMs ?? Math.max(0, Date.now() - startedAt),
+                            httpStatus: 500,
+                          });
                       if (!settlement.settled) throw new Error("HEGEVA_ASSISTANT_SETTLEMENT_UNAVAILABLE");
                     }
                     throw error;
