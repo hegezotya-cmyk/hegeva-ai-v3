@@ -24,6 +24,13 @@ const BILLING_COPY = {
 } as const
 
 const PAID_PLANS = new Set(["premium", "pro"])
+const TOPUP_PACKS = {
+  en: { small:"Small · 100 credits · £1.99", medium:"Medium · 300 credits · £3.99", large:"Large · 1,000 credits · £7.99" },
+  hu: { small:"Kicsi · 100 kredit · £1.99", medium:"Közepes · 300 kredit · £3.99", large:"Nagy · 1,000 kredit · £7.99" },
+  de: { small:"Klein · 100 Guthaben · £1.99", medium:"Mittel · 300 Guthaben · £3.99", large:"Groß · 1.000 Guthaben · £7.99" },
+  fr: { small:"Petit · 100 crédits · £1.99", medium:"Moyen · 300 crédits · £3.99", large:"Grand · 1 000 crédits · £7.99" },
+  es: { small:"Pequeño · 100 créditos · £1.99", medium:"Mediano · 300 créditos · £3.99", large:"Grande · 1.000 créditos · £7.99" },
+} as const
 
 export default function AccountPage() {
   const router = useRouter()
@@ -31,6 +38,7 @@ export default function AccountPage() {
   const c = ACCOUNT_COPY[locale]
   const leadsCopy = LEADS_COPY[locale]
   const billingCopy = BILLING_COPY[locale]
+  const topUpPacks = TOPUP_PACKS[locale]
   const [isOwner, setIsOwner] = useState(false)
   const { data: session, isPending } = authClient.useSession()
   const [plan, setPlan] = useState<PlanStatus | null>(null)
@@ -247,7 +255,7 @@ export default function AccountPage() {
             {topUpReturn === "success" && <p role="status" className="mt-4 text-sm text-muted-foreground">Payment received. Your credits appear after Stripe confirms the payment. Refresh shortly if the balance has not updated yet.</p>}
             {topUpReturn === "cancelled" && <p role="status" className="mt-4 text-sm text-muted-foreground">Top-Up purchase cancelled. No credits were charged.</p>}
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              {(["small","medium","large"] as const).map((pack) => <button key={pack} type="button" disabled={Boolean(buyingTopUp)} onClick={() => void buyTopUp(pack)} className="min-h-11 rounded-xl border border-border px-4 py-3 text-sm font-semibold capitalize transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60">{buyingTopUp === pack ? c.checking : `Buy ${pack} Top-Up`}</button>)}
+              {(["small","medium","large"] as const).map((pack) => <button key={pack} type="button" disabled={Boolean(buyingTopUp)} onClick={() => void buyTopUp(pack)} className="min-h-11 rounded-xl border border-border px-4 py-3 text-sm font-semibold transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60">{buyingTopUp === pack ? c.checking : topUpPacks[pack]}</button>)}
             </div>
             <p className="mt-3 text-xs leading-5 text-muted-foreground">Your monthly Assistant allowance is used first. Top-Up credits are used only after the monthly allowance runs out.</p>
             {topUpError && <p role="alert" className="mt-3 text-sm text-destructive">Top-Up checkout is temporarily unavailable. No charge was made.</p>}

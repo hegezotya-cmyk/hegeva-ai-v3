@@ -9,6 +9,9 @@ import { invokeWorkersAiText } from "../../src/cloudflare-ai-provider.js"
 const root = new URL("../../", import.meta.url)
 const baseMigration = readFileSync(new URL("migrations/0009_assistant_ai_usage.sql", root), "utf8")
 const settlementMigration = readFileSync(new URL("migrations/0022_assistant_usage_settlement.sql", root), "utf8")
+const topUpMigration = readFileSync(new URL("migrations/0026_assistant_topup_credits.sql", root), "utf8")
+const purchaseLotMigration = readFileSync(new URL("migrations/0028_assistant_topup_purchase_lots.sql", root), "utf8")
+const weightedCreditMigration = readFileSync(new URL("migrations/0030_assistant_weighted_credits.sql", root), "utf8")
 const source = readFileSync(new URL("src/index.js", root), "utf8")
 const uuid = () => crypto.randomUUID()
 const period = "2026-09"
@@ -46,6 +49,9 @@ function makeEnv() {
   db.exec("CREATE TABLE ai_usage (userId TEXT NOT NULL, period TEXT NOT NULL, aiMessages INTEGER NOT NULL DEFAULT 0, createdAt TEXT NOT NULL, updatedAt TEXT NOT NULL, PRIMARY KEY(userId, period));")
   db.exec(baseMigration)
   db.exec(settlementMigration)
+  db.exec(topUpMigration)
+  db.exec(purchaseLotMigration)
+  db.exec(weightedCreditMigration)
   return { DB, close() { db.close(); rmSync(dir, { recursive: true, force: true }) } }
 }
 

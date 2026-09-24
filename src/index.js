@@ -8,7 +8,7 @@ import { createAuthRateLimiter, clientIpKey } from "./auth-rate-limiter.js";
 import { handleAiChatAdmission } from "./ai-chat-admission.js";
 import { isX20RequestId, registerX20Attempt, startX20Action, finishX20Attempt } from "./x20-ledger.js";
 import { readAssistantUsage, startAssistantOperation, finishAssistantOperation } from "./assistant-quota.js";
-import { readAssistantTopUpBalance, reserveAssistantTopUpCredit, finishAssistantTopUpCredit, grantAssistantTopUpPurchase, reconcileAssistantTopUpFinancialEvent } from "./assistant-topup.js";
+import { ASSISTANT_TOPUP_PACKS, readAssistantTopUpBalance, reserveAssistantTopUpCredit, finishAssistantTopUpCredit, grantAssistantTopUpPurchase, reconcileAssistantTopUpFinancialEvent } from "./assistant-topup.js";
 import { readAssistantCostGuardConfig, reserveAssistantCostGuard, settleAssistantCostGuard } from "./assistant-cost-guard.js";
 import { readAssistantDailyAdmissionConfig, reserveAssistantDailyAdmission, settleAssistantDailyAdmission, releaseAssistantDailyAdmission } from "./assistant-daily-admission.js";
 import { isX30OperationId, startX30Generation, finishX30Generation, X30_MONTHLY_LIMIT, X30_WORKSPACE_LIMIT } from "./x30-generation-ledger.js";
@@ -1381,12 +1381,17 @@ function getAssistantTopUpPack(env, packCode) {
   const code = String(packCode || "").trim().toLowerCase();
   const suffix = { small: "SMALL", medium: "MEDIUM", large: "LARGE" }[code];
   if (!suffix) return null;
+  const approved = ASSISTANT_TOPUP_PACKS[code];
+  if (!approved) return null;
   const priceId = String(env[`STRIPE_TOPUP_${suffix}_PRICE_ID`] || "").trim();
-  const credits = Number(env[`ASSISTANT_TOPUP_${suffix}_CREDITS`]);
-  const amount = Number(env[`ASSISTANT_TOPUP_${suffix}_AMOUNT`]);
-  const currency = String(env[`ASSISTANT_TOPUP_${suffix}_CURRENCY`] || "gbp").trim().toLowerCase();
-  if (!priceId.startsWith("price_") || !Number.isSafeInteger(credits) || credits <= 0 || !Number.isSafeInteger(amount) || amount <= 0 || !/^[a-z]{3}$/.test(currency)) return null;
-  return { code, priceId, credits, amount, currency };
+  const configuredCredits = env[`ASSISTANT_TOPUP_${suffix}_CREDITS`];
+  const configuredAmount = env[`ASSISTANT_TOPUP_${suffix}_AMOUNT`];
+  const configuredCurrency = env[`ASSISTANT_TOPUP_${suffix}_CURRENCY`];
+  if (!priceId.startsWith("price_") ||
+    (configuredCredits != null && Number(configuredCredits) !== approved.credits) ||
+    (configuredAmount != null && Number(configuredAmount) !== approved.amount) ||
+    (configuredCurrency != null && String(configuredCurrency).trim().toLowerCase() !== approved.currency)) return null;
+  return { ...approved, priceId };
 }
 
 async function createStripeTopUpCheckoutSession(request, env, user, pack) {
@@ -4354,7 +4359,7 @@ QUALITY RULES:
                 return boundAssistantProviderPayload(tier, projection);
               },
               distributed: env.RATE_LIMITER?.getByName(`chat-rate-limit:${user.id}`),
-              reserve: async (userId, usagePeriod, limit) => {
+              reserve: async (userId, usagePeriod, limit, tier) => {
                 if (!isX20Action) {
                   assistantOperationId = body.assistantOperationId || null;
                   const selectedTier = resolveAssistantModelTier({ tier: body.tier, plan: planInfo.plan, env });
@@ -4368,6 +4373,7 @@ QUALITY RULES:
                     plan: planInfo.plan,
                     provider: "workers-ai",
                     model: selectedTier.tier.model,
+                    creditCost: tier.customerCreditCost,
                   });
                   if (operation.duplicate) return { reserved: false, reason: "duplicate_assistant_operation" };
                   assistantOperationReserved = Boolean(operation.reserved);
@@ -4406,9 +4412,9 @@ QUALITY RULES:
                 logX20Lifecycle("x20_attempt_reserved", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber });
                 return { reserved: true, reason: "x20_attempt_reserved" };
               },
-              reserveTopUp: isX20Action ? null : async (userId) => {
+              reserveTopUp: isX20Action ? null : async (userId, tier) => {
                 assistantOperationId = body.assistantOperationId || null;
-                const operation = await reserveAssistantTopUpCredit(env, { operationId: assistantOperationId, userId });
+                const operation = await reserveAssistantTopUpCredit(env, { operationId: assistantOperationId, userId, credits: tier.customerCreditCost });
                 if (operation.reserved) assistantOperationReserved = true;
                 return operation;
               },

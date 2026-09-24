@@ -34,7 +34,7 @@ export const ASSISTANT_MODEL_TIERS = Object.freeze({
     outputNeuronsPerMillion: 68_182,
     inputUsdPerMillion: 0.35,
     outputUsdPerMillion: 0.75,
-    customerCreditCost: null,
+    customerCreditCost: 8,
     maxRequestNeurons: 201,
   }),
 })
@@ -59,8 +59,8 @@ export function resolveAssistantModelTier({ tier, plan, env = {} }) {
   if (requested === "advanced") {
     if (!(plan === "premium" || plan === "pro")) return { ok: false, reason: "advanced-plan-required" }
     const creditCost = positiveConfigInt(env.AI_ADVANCED_ASSISTANT_CREDIT_COST)
-    if (!creditCost) return { ok: false, reason: "advanced-credit-cost-unconfigured" }
-    return { ok: true, tier: Object.freeze({ ...selected, customerCreditCost: creditCost, reservation: tierReservation(selected) }) }
+    if (creditCost !== selected.customerCreditCost) return { ok: false, reason: "advanced-credit-cost-unconfigured" }
+    return { ok: true, tier: Object.freeze({ ...selected, reservation: tierReservation(selected) }) }
   }
   return { ok: true, tier: Object.freeze({ ...selected, reservation: tierReservation(selected) }) }
 }

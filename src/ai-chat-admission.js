@@ -119,11 +119,11 @@ export async function handleAiChatAdmission({
     }
     distributedToken = distributedResult.token
     distributedAcquired = true
-    const reservation = await reserve(user.id, period, planInfo.limit)
+    const reservation = await reserve(user.id, period, planInfo.limit, tierSelection.tier)
     let activeReservation = reservation
     let creditSource = "monthly"
     if (!reservation.reserved && reservation.reason === "assistant_quota_unavailable" && typeof reserveTopUp === "function") {
-      const topUpReservation = await reserveTopUp(user.id)
+      const topUpReservation = await reserveTopUp(user.id, tierSelection.tier)
       if (topUpReservation?.reserved) {
         activeReservation = topUpReservation
         creditSource = "topup"

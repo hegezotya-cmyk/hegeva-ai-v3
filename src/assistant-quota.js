@@ -34,15 +34,15 @@ function iso(value) {
   return (value instanceof Date ? value : new Date(value)).toISOString()
 }
 
-export async function startAssistantOperation(env, { operationId, userId, workspaceId, period, planLimit, plan, provider, model, now = new Date() }) {
+export async function startAssistantOperation(env, { operationId, userId, workspaceId, period, planLimit, plan, provider, model, creditCost = 1, now = new Date() }) {
   if (!isAssistantOperationId(operationId)) return { reserved: false, reason: "invalid_assistant_operation" }
   if (!isAssistantPlanLimit(planLimit)) return { reserved: false, reason: "invalid_assistant_plan_limit" }
-  if (!userId || !workspaceId || !period || !PLANS.has(plan) || !PROVIDERS.has(provider) || typeof model !== "string" || !model || model.length > 160) return { reserved: false, reason: "invalid_assistant_operation_metadata" }
+  if (!userId || !workspaceId || !period || !PLANS.has(plan) || !PROVIDERS.has(provider) || typeof model !== "string" || !model || model.length > 160 || !Number.isSafeInteger(creditCost) || creditCost <= 0) return { reserved: false, reason: "invalid_assistant_operation_metadata" }
   const createdAt = iso(now)
   const operationExpiresAt = new Date(new Date(now).getTime() + 30 * 60_000).toISOString()
   const purgeAfter = new Date(new Date(now).getTime() + 90 * 24 * 60 * 60_000).toISOString()
   try {
-    const operation = env.DB.prepare(`INSERT INTO assistant_operations (operationId,userId,period,planLimit,reserved,status,operationExpiresAt,purgeAfter,createdAt,updatedAt) VALUES (?1,?2,?3,?4,0,'reserved',?5,?6,?7,?7)`).bind(operationId, userId, period, planLimit, operationExpiresAt, purgeAfter, createdAt)
+    const operation = env.DB.prepare(`INSERT INTO assistant_operations (operationId,userId,period,planLimit,creditCost,reserved,status,operationExpiresAt,purgeAfter,createdAt,updatedAt) VALUES (?1,?2,?3,?4,?5,0,'reserved',?6,?7,?8,?8)`).bind(operationId, userId, period, planLimit, creditCost, operationExpiresAt, purgeAfter, createdAt)
     const settlement = env.DB.prepare(`INSERT INTO assistant_usage_settlements (operationId,userId,workspaceId,plan,provider,model,elapsedMs,quotaSettlementState,createdAt,updatedAt) VALUES (?1,?2,?3,?4,?5,?6,0,'reserved',?7,?7)`).bind(operationId, userId, workspaceId, plan, provider, model, createdAt)
     await env.DB.batch([operation, settlement])
     return { reserved: true, duplicate: false, operationId, status: "reserved" }

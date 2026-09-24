@@ -1,4 +1,9 @@
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+export const ASSISTANT_TOPUP_PACKS = Object.freeze({
+  small: Object.freeze({ code: "small", credits: 100, amount: 199, currency: "gbp" }),
+  medium: Object.freeze({ code: "medium", credits: 300, amount: 399, currency: "gbp" }),
+  large: Object.freeze({ code: "large", credits: 1000, amount: 799, currency: "gbp" }),
+})
 function iso(value = new Date()) { return (value instanceof Date ? value : new Date(value)).toISOString() }
 async function fifoLot(env, userId) {
   return env.DB.prepare(`SELECT lotId FROM assistant_topup_credit_lots WHERE userId=?1 AND remainingCredits>0 AND paymentState='paid' ORDER BY createdAt, lotId LIMIT 1`).bind(userId).first()
@@ -9,14 +14,14 @@ export async function readAssistantTopUpBalance(env, userId) {
   const value = Number(row?.availableCredits)
   return Number.isSafeInteger(value) && value >= 0 ? value : 0
 }
-export async function reserveAssistantTopUpCredit(env, { operationId, userId, now = new Date() }) {
-  if (!UUID_V4.test(String(operationId || "")) || !userId) return { reserved:false, reason:"invalid_topup_operation" }
+export async function reserveAssistantTopUpCredit(env, { operationId, userId, credits = 1, now = new Date() }) {
+  if (!UUID_V4.test(String(operationId || "")) || !userId || !Number.isSafeInteger(credits) || credits <= 0) return { reserved:false, reason:"invalid_topup_operation" }
   const lot = await fifoLot(env, userId)
   if (!lot?.lotId) return { reserved:false, reason:"topup_credit_unavailable" }
   const createdAt = iso(now)
   try {
-    await env.DB.prepare("INSERT INTO assistant_topup_operations (operationId,userId,purchaseSource,credits,status,createdAt,updatedAt,lotId) VALUES (?1,?2,'prepaid-topup',1,'reserved',?3,?3,?4)").bind(operationId,userId,createdAt,lot.lotId).run()
-    return { reserved:true, operationId, creditSource:"topup", lotId:lot.lotId }
+    await env.DB.prepare("INSERT INTO assistant_topup_operations (operationId,userId,purchaseSource,credits,status,createdAt,updatedAt,lotId) VALUES (?1,?2,'prepaid-topup',?3,'reserved',?4,?4,?5)").bind(operationId,userId,credits,createdAt,lot.lotId).run()
+    return { reserved:true, operationId, creditSource:"topup", lotId:lot.lotId, credits }
   } catch (error) {
     const existing = await env.DB.prepare("SELECT operationId,userId,status,lotId FROM assistant_topup_operations WHERE operationId=?1 LIMIT 1").bind(operationId).first()
     if (existing) { if (existing.userId !== userId) throw new Error("assistant topup operation ownership mismatch"); return { reserved:false, reason:"duplicate_topup_operation", lotId:existing.lotId || null } }

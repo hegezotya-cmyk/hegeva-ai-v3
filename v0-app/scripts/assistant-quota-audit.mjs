@@ -7,6 +7,9 @@ import { startAssistantOperation as startAssistantOperationRaw, finishAssistantO
 
 const migration = readFileSync(new URL("../../migrations/0009_assistant_ai_usage.sql", import.meta.url), "utf8")
 const settlementMigration = readFileSync(new URL("../../migrations/0022_assistant_usage_settlement.sql", import.meta.url), "utf8")
+const topUpMigration = readFileSync(new URL("../../migrations/0026_assistant_topup_credits.sql", import.meta.url), "utf8")
+const purchaseLotMigration = readFileSync(new URL("../../migrations/0028_assistant_topup_purchase_lots.sql", import.meta.url), "utf8")
+const weightedCreditMigration = readFileSync(new URL("../../migrations/0030_assistant_weighted_credits.sql", import.meta.url), "utf8")
 const productionSource = readFileSync(new URL("../../src/index.js", import.meta.url), "utf8")
 const uuid = () => crypto.randomUUID()
 const period = "2026-08"
@@ -49,7 +52,9 @@ function envFor() {
   db.exec(`CREATE TABLE ai_usage (userId TEXT NOT NULL, period TEXT NOT NULL, aiMessages INTEGER NOT NULL DEFAULT 0, createdAt TEXT NOT NULL, updatedAt TEXT NOT NULL, PRIMARY KEY(userId, period));`)
   db.exec(migration)
   db.exec(settlementMigration)
-  db.exec(settlementMigration)
+  db.exec(topUpMigration)
+  db.exec(purchaseLotMigration)
+  db.exec(weightedCreditMigration)
   return { DB, close() { db.close(); rmSync(dir, { recursive: true, force: true }) } }
 }
 
