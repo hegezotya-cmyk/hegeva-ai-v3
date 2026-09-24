@@ -132,7 +132,16 @@ export async function handleAiChatAdmission({
         })
       }
       return Response.json(
-        { error: "Monthly AI message limit reached.", plan: planInfo.plan, limit: planInfo.limit, used },
+        {
+          error: "Monthly AI message limit reached.",
+          code: "MONTHLY_ASSISTANT_LIMIT_REACHED",
+          plan: planInfo.plan,
+          limit: planInfo.limit,
+          used,
+          upgradeRequired: true,
+          upgradePath: "/pricing",
+          message: "You've used your monthly AI allowance. Upgrade your plan to continue using the AI Assistant now, or wait until your allowance resets next month.",
+        },
         { status: 429 },
       )
     }
