@@ -24,6 +24,8 @@ type PlanStatus = {
   aiMessages: number
   aiLimit: number
   period: string
+  aiRemaining: number
+  assistantTopUpCredits: number
 }
 
 type SupportedLanguage = "en" | "hu" | "de" | "fr" | "es"
@@ -177,6 +179,8 @@ export function AssistantChat() {
           plan: typeof data.plan === "string" ? data.plan : "basic",
           aiMessages: Number(data.aiMessages) || 0,
           aiLimit: Number(data.aiLimit) || 0,
+          aiRemaining: Number(data.aiRemaining) || 0,
+          assistantTopUpCredits: Number(data.assistantTopUpCredits) || 0,
           period: typeof data.period === "string" ? data.period : "",
         })
       }
@@ -275,6 +279,10 @@ export function AssistantChat() {
           throw new Error(copy.tooLarge)
         }
         if (response.status === 429) {
+          if (data?.code === "ASSISTANT_CREDITS_EXHAUSTED") {
+            clearPendingOnError = true
+            throw new Error("Your monthly AI allowance and Top-Up balance are empty. Buy extra AI credits or upgrade your plan to continue.")
+          }
           throw new Error(copy.rate(safeRetryAfterSeconds(response)))
         }
         if (response.status === 503) {
@@ -356,7 +364,7 @@ export function AssistantChat() {
         <div><p className="ve-eyebrow">{p.context}</p><h2>{p.continuity}</h2><p>{p.continuityText}</p><small className="text-xs text-muted-foreground">{companion.context.slice(0, 2).join(" · ")}</small></div>
         <dl><div><dt><Users aria-hidden/>{p.customers}</dt><dd>{customers.length}</dd></div><div><dt><ListChecks aria-hidden/>{p.tasks}</dt><dd>{tasks.filter(item=>!item.done).length}</dd></div><div><dt><FileText aria-hidden/>{p.documents}</dt><dd>{documents.length}</dd></div><div><dt><Receipt aria-hidden/>{p.overdue}</dt><dd>{overdueInvoices}</dd></div><div><dt><Check aria-hidden/>{p.followups}</dt><dd>{activeFollowUps}</dd></div></dl>
         {recommendedAction&&<div className="rounded-xl border border-primary/25 bg-primary/[.07] p-3"><p className="text-[.65rem] font-semibold uppercase tracking-[.14em] text-primary">{p.next}</p><Link href={recommendedAction.href} className="mt-2 flex min-h-11 items-center gap-2 text-sm font-semibold text-foreground">{recommendedAction.label}<ArrowUpRight aria-hidden className="ml-auto size-4 text-primary"/></Link></div>}
-        <div className="partner-state"><span/><div><strong>{syncState==="cloud"?t.assistant.synced:syncState==="saving"?t.assistant.saving:t.assistant.loading}</strong><small>{usage?`${usage.plan} · ${usage.aiMessages}/${usage.aiLimit}`:"HEGEVA workspace"}</small></div></div>
+        <div className="partner-state"><span/><div><strong>{syncState==="cloud"?t.assistant.synced:syncState==="saving"?t.assistant.saving:t.assistant.loading}</strong><small>{usage?`${usage.plan} · ${usage.aiMessages}/${usage.aiLimit} · Top-Up ${usage.assistantTopUpCredits}`:"HEGEVA workspace"}</small></div></div>
       </aside>
       <section className="partner-conversation">
       <div className="partner-conversation-head">
@@ -428,7 +436,8 @@ export function AssistantChat() {
 
         {error && (
           <div role="alert" aria-live="assertive" className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {error}
+            <p>{error}</p>
+            {usage && usage.aiRemaining <= 0 && usage.assistantTopUpCredits <= 0 && <div className="mt-3 flex flex-wrap gap-2"><Link href="/account?topup=assistant#assistant-topup" className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground">Buy extra AI credits</Link><Link href="/pricing" className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground">View plans</Link></div>}
           </div>
         )}
         <div ref={messagesEndRef} />
