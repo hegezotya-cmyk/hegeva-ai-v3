@@ -2166,6 +2166,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           );
 
         const x20Actions = await readX20Usage(env, user.id, period);
+        const assistantTopUpCredits = await readAssistantTopUpBalance(env, user.id);
 
         return Response.json({
           plan:
@@ -2176,6 +2177,9 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
 
           aiLimit:
             planInfo.limit,
+
+          aiRemaining: Math.max(0, planInfo.limit - usage),
+          assistantTopUpCredits,
 
           period,
           x20Actions,
