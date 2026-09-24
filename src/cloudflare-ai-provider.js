@@ -1,6 +1,87 @@
 // Provider-neutral Workers AI boundary. Disabled unless every gate is
 // explicitly configured; this module never falls back to another provider.
 export const WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast"
+const encoder = new TextEncoder()
+const ASSISTANT_SYSTEM_PROMPT = "Return a concise, practical business answer. Do not call tools or execute actions."
+const positiveConfigInt = (value, max = 10_000) => {
+  const parsed = Number(value)
+  return Number.isSafeInteger(parsed) && parsed > 0 && parsed <= max ? parsed : null
+}
+
+// These are the only models the public Assistant may invoke. The browser
+// supplies a tier, never a provider model identifier.
+export const ASSISTANT_MODEL_TIERS = Object.freeze({
+  standard: Object.freeze({
+    id: "standard",
+    model: "@cf/qwen/qwen3-30b-a3b-fp8",
+    maxInputTokens: 2_048,
+    maxOutputTokens: 512,
+    inputNeuronsPerMillion: 4_625,
+    outputNeuronsPerMillion: 30_475,
+    // Conservative operational bound used for request admission (not a live
+    // billing estimate). It deliberately rounds above the documented rate.
+    inputUsdPerMillion: 0.05125,
+    outputUsdPerMillion: 0.335,
+    customerCreditCost: 1,
+    maxRequestNeurons: 26,
+  }),
+  advanced: Object.freeze({
+    id: "advanced",
+    model: "@cf/openai/gpt-oss-120b",
+    maxInputTokens: 4_096,
+    maxOutputTokens: 1_024,
+    inputNeuronsPerMillion: 31_818,
+    outputNeuronsPerMillion: 68_182,
+    inputUsdPerMillion: 0.35,
+    outputUsdPerMillion: 0.75,
+    customerCreditCost: null,
+    maxRequestNeurons: 201,
+  }),
+})
+
+function tierReservation(tier) {
+  const inputNeurons = Math.ceil((tier.maxInputTokens * tier.inputNeuronsPerMillion) / 1_000_000)
+  const outputNeurons = Math.ceil((tier.maxOutputTokens * tier.outputNeuronsPerMillion) / 1_000_000)
+  return Object.freeze({
+    inputNeurons,
+    outputNeurons,
+    neurons: inputNeurons + outputNeurons,
+    inputUsd: (tier.maxInputTokens * tier.inputUsdPerMillion) / 1_000_000,
+    outputUsd: (tier.maxOutputTokens * tier.outputUsdPerMillion) / 1_000_000,
+    usd: ((tier.maxInputTokens * tier.inputUsdPerMillion) + (tier.maxOutputTokens * tier.outputUsdPerMillion)) / 1_000_000,
+  })
+}
+
+export function resolveAssistantModelTier({ tier, plan, env = {} }) {
+  const requested = tier == null || tier === "" ? "standard" : tier
+  if (!(requested === "standard" || requested === "advanced")) return { ok: false, reason: "invalid-tier" }
+  const selected = ASSISTANT_MODEL_TIERS[requested]
+  if (requested === "advanced") {
+    if (!(plan === "premium" || plan === "pro")) return { ok: false, reason: "advanced-plan-required" }
+    const creditCost = positiveConfigInt(env.AI_ADVANCED_ASSISTANT_CREDIT_COST)
+    if (!creditCost) return { ok: false, reason: "advanced-credit-cost-unconfigured" }
+    return { ok: true, tier: Object.freeze({ ...selected, customerCreditCost: creditCost, reservation: tierReservation(selected) }) }
+  }
+  return { ok: true, tier: Object.freeze({ ...selected, reservation: tierReservation(selected) }) }
+}
+
+export function boundAssistantProviderPayload(tier, projection) {
+  if (!tier || !projection || projection.operation !== "assistant" || typeof projection.prompt !== "string") return { ok: false, reason: "invalid-projection" }
+  const messages = [
+    { role: "system", content: ASSISTANT_SYSTEM_PROMPT },
+    { role: "user", content: projection.prompt.trim() },
+  ]
+  if (!messages[1].content) return { ok: false, reason: "invalid-projection" }
+  // UTF-8 byte length is a conservative token upper bound for this plain-text,
+  // JSON-serialized request. It covers system text and every transmitted field.
+  const inputTokens = encoder.encode(JSON.stringify({ messages, max_tokens: tier.maxOutputTokens })).byteLength
+  if (inputTokens > tier.maxInputTokens) return { ok: false, reason: "provider-input-too-large" }
+  return {
+    ok: true,
+    request: Object.freeze({ model: tier.model, messages, max_tokens: tier.maxOutputTokens, temperature: 0.2, stream: false }),
+    reservation: Object.freeze({ ...tier.reservation, inputTokens, outputTokens: tier.maxOutputTokens }),
+  }
+}
 export const WORKERS_AI_DEFAULTS = Object.freeze({
   enabled: false,
   maxInputTokens: 1200,
@@ -184,6 +265,44 @@ export async function invokeWorkersAiText(env, projection, { signal } = {}) {
       ok: false,
       reason: error?.name === "AbortError" ? "timeout" : "provider-failure",
       metrics: { inputTokens: null, outputTokens: null, totalTokens: null, neuronUsage: null, durationMs: Math.max(0, Date.now() - startedAt) },
+    }
+  } finally { clearTimeout(timeoutId) }
+}
+
+export async function invokeAssistantWorkersAiText(env, projection, { tier, signal } = {}) {
+  const config = getWorkersAiConfig(env)
+  if (!config.enabled || config.globalKillSwitch || !env?.AI || typeof env.AI.run !== "function") return { ok: false, reason: "provider-disabled" }
+  const bounded = boundAssistantProviderPayload(tier, projection)
+  if (!bounded.ok) return { ok: false, reason: bounded.reason }
+  const controller = new AbortController()
+  const startedAt = Date.now()
+  let timeoutId
+  const timeoutError = new DOMException("Workers AI request timed out", "AbortError")
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      controller.abort()
+      reject(timeoutError)
+    }, config.timeoutMs)
+  })
+  try {
+    const response = await Promise.race([
+      env.AI.run(bounded.request.model, {
+        messages: bounded.request.messages,
+        max_tokens: bounded.request.max_tokens,
+        temperature: bounded.request.temperature,
+        stream: false,
+      }, { signal: signal || controller.signal }),
+      timeoutPromise,
+    ])
+    const providerUsage = normalizeWorkersAiUsage(response?.usage)
+    const metrics = { ...providerUsage, durationMs: Math.max(0, Date.now() - startedAt), reservation: bounded.reservation }
+    if (!response || typeof response.response !== "string") return { ok: false, reason: "missing-response", metrics }
+    return { ok: true, response: response.response.slice(0, 12_000), metrics }
+  } catch (error) {
+    return {
+      ok: false,
+      reason: error?.name === "AbortError" ? "timeout" : "provider-failure",
+      metrics: { inputTokens: null, outputTokens: null, totalTokens: null, neuronUsage: null, durationMs: Math.max(0, Date.now() - startedAt), reservation: bounded.reservation },
     }
   } finally { clearTimeout(timeoutId) }
 }

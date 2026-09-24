@@ -7,6 +7,10 @@ export async function handleAiChatAdmission({
   runtime,
   reserve,
   reserveTopUp = null,
+  resolveTier = null,
+  validateProviderInput = null,
+  reserveDaily = null,
+  releaseDaily = null,
   readTopUpBalance = null,
   reserveGlobal = null,
   releaseReservation = null,
@@ -24,6 +28,31 @@ export async function handleAiChatAdmission({
   const message = typeof input.message === "string" ? input.message.trim() : ""
   if (!message) return Response.json({ error: "Please enter a message." }, { status: 400 })
   if (message.length > 2500) return Response.json({ error: "Message is too long." }, { status: 400 })
+  // Existing non-public callers retain their established Standard-only
+  // contract. The public route always supplies the authoritative resolver.
+  const tierSelection = typeof resolveTier === "function"
+    ? resolveTier({ tier: input.tier, plan: planInfo.plan })
+    : { ok: true, tier: { id: "standard", reservation: { neurons: 1 } } }
+  if (!tierSelection?.ok) {
+    const advanced = input.tier === "advanced"
+    return Response.json(
+      { error: advanced ? "Advanced Assistant requires an eligible Premium or Pro plan and configured access." : "AI service is temporarily unavailable." },
+      { status: advanced ? 403 : 400 },
+    )
+  }
+  // Validate the fully bounded tier payload before any customer credit, daily
+  // capacity, or global-cost reservation. This prevents invalid input from
+  // becoming a charge/refund lifecycle at all.
+  if (typeof validateProviderInput === "function") {
+    const providerInput = validateProviderInput({ message, tier: tierSelection.tier })
+    if (!providerInput?.ok) {
+      const tooLarge = providerInput?.reason === "provider-input-too-large"
+      return Response.json(
+        { error: tooLarge ? "Message is too long for this Assistant mode." : "AI service is temporarily unavailable." },
+        { status: tooLarge ? 413 : 400 },
+      )
+    }
+  }
 
   const rawHistory = Array.isArray(input.history) ? input.history.slice(-10) : []
   let totalChars = 0
@@ -90,12 +119,13 @@ export async function handleAiChatAdmission({
     }
     distributedToken = distributedResult.token
     distributedAcquired = true
-    let reservation = await reserve(user.id, period, planInfo.limit)
+    const reservation = await reserve(user.id, period, planInfo.limit)
+    let activeReservation = reservation
     let creditSource = "monthly"
     if (!reservation.reserved && reservation.reason === "assistant_quota_unavailable" && typeof reserveTopUp === "function") {
       const topUpReservation = await reserveTopUp(user.id)
       if (topUpReservation?.reserved) {
-        reservation = topUpReservation
+        activeReservation = topUpReservation
         creditSource = "topup"
       } else if (topUpReservation?.reason === "duplicate_topup_operation") {
         return Response.json({ error: "This Assistant request was already received." }, { status: 409 })
@@ -104,26 +134,26 @@ export async function handleAiChatAdmission({
         return Response.json({ error: "AI service is temporarily unavailable." }, { status: 503 })
       }
     }
-    if (!reservation.reserved) {
+    if (!reservation.reserved && !activeReservation.reserved) {
       if (input.actionKind === "x20") {
         console.info("HEGEVA_X20_LIFECYCLE", {
           event: "x20_reservation_denied",
           reason: typeof reservation.reason === "string" ? reservation.reason : "unknown",
         })
       }
-      if (reservation.reason === "duplicate_attempt") {
+      if (activeReservation.reason === "duplicate_attempt") {
         return Response.json({ error: "This X20 attempt was already received." }, { status: 409 })
       }
-      if (reservation.reason === "duplicate_assistant_operation") {
+      if (activeReservation.reason === "duplicate_assistant_operation") {
         return Response.json({ error: "This Assistant request was already received." }, { status: 409 })
       }
-      if (reservation.reason === "invalid_assistant_operation") {
+      if (activeReservation.reason === "invalid_assistant_operation") {
         return Response.json({ error: "A valid Assistant operation is required." }, { status: 400 })
       }
-      if (reservation.reason === "expired_assistant_operation") {
+      if (activeReservation.reason === "expired_assistant_operation") {
         return Response.json({ error: "This Assistant request has expired. Please start a new request." }, { status: 409 })
       }
-      if (reservation.reason === "invalid_assistant_plan_limit") {
+      if (activeReservation.reason === "invalid_assistant_plan_limit") {
         return Response.json({ error: "AI service is temporarily unavailable." }, { status: 503 })
       }
       if (input.actionKind === "x20") {
@@ -137,7 +167,7 @@ export async function handleAiChatAdmission({
           invalid_attempt_request: ["A valid X20 attempt is required.", 400],
           x20_allowance_unavailable: ["X20 service is temporarily unavailable.", 503],
         }
-        const [error, status] = x20Messages[reservation.reason] || ["X20 action could not be admitted.", 429]
+        const [error, status] = x20Messages[activeReservation.reason] || ["X20 action could not be admitted.", 429]
         return Response.json({ error }, { status })
       }
       const used = await readUsage(user.id, period)
@@ -146,7 +176,7 @@ export async function handleAiChatAdmission({
         console.error("HEGEVA_MONITOR", {
           scope: "ai_quota",
           outcome: "monthly_ai_limit",
-          reason: typeof reservation.reason === "string" ? reservation.reason : "quota_unavailable",
+          reason: typeof activeReservation.reason === "string" ? activeReservation.reason : "quota_unavailable",
         })
       }
       return Response.json(
@@ -164,12 +194,23 @@ export async function handleAiChatAdmission({
         { status: 429 },
       )
     }
+    let dailyReservation = null
+    if (typeof reserveDaily === "function") {
+      dailyReservation = await reserveDaily({ operationId: input.assistantOperationId, tier: tierSelection.tier })
+      if (!dailyReservation?.reserved) {
+        if (typeof releaseReservation === "function") {
+          const released = await releaseReservation({ creditSource, reason: dailyReservation?.reason || "daily_admission_unavailable" })
+          if (!released?.settled) throw new Error("HEGEVA_ASSISTANT_QUOTA_RELEASE_UNAVAILABLE")
+        }
+        return Response.json({ error: "AI service is temporarily unavailable.", code: "ASSISTANT_DAILY_LIMIT_UNAVAILABLE" }, { status: 429 })
+      }
+    }
     let globalReservation = null
     // The public Assistant uses the global cost guard. X20 remains on its
     // existing independent action/credit accounting path.
     if (typeof reserveGlobal === "function" && input.actionKind !== "x20") {
       try {
-        globalReservation = await reserveGlobal({ creditSource, operationId: input.assistantOperationId, period })
+        globalReservation = await reserveGlobal({ creditSource, operationId: input.assistantOperationId, period, tier: tierSelection.tier })
       } catch (error) {
         console.error("HEGEVA_AI_ADMISSION_FAILURE", { reason: "cost_guard_reservation_failed", errorName: error instanceof Error ? error.name : "Unknown" })
         globalReservation = { reserved: false, reason: "cost_guard_unavailable" }
@@ -180,11 +221,15 @@ export async function handleAiChatAdmission({
           const released = await releaseReservation({ creditSource, reason: globalReservation?.reason || "cost_guard_unavailable" })
           if (!released?.settled) throw new Error("HEGEVA_ASSISTANT_QUOTA_RELEASE_UNAVAILABLE")
         }
+        if (dailyReservation && typeof releaseDaily === "function") {
+          const released = await releaseDaily({ operationId: dailyReservation.operationId })
+          if (!released?.settled) throw new Error("HEGEVA_ASSISTANT_DAILY_RELEASE_UNAVAILABLE")
+        }
         return Response.json({ error: "AI service is temporarily unavailable.", code: "ASSISTANT_COST_GUARD_UNAVAILABLE" }, { status: 503 })
       }
     }
     runtime.lastRequest.set(aiUserKey, current)
-    return await execute({ input, message, safeHistory, user, planInfo, period, creditSource, globalReservation })
+    return await execute({ input, message, safeHistory, user, planInfo, period, creditSource, tier: tierSelection.tier, dailyReservation, globalReservation })
   } finally {
     if (distributed && distributedAcquired) {
       try { await distributed.release(distributedToken) } catch {}

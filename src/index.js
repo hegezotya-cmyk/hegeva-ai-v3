@@ -10,10 +10,11 @@ import { isX20RequestId, registerX20Attempt, startX20Action, finishX20Attempt } 
 import { readAssistantUsage, startAssistantOperation, finishAssistantOperation } from "./assistant-quota.js";
 import { readAssistantTopUpBalance, reserveAssistantTopUpCredit, finishAssistantTopUpCredit, grantAssistantTopUpPurchase, reconcileAssistantTopUpFinancialEvent } from "./assistant-topup.js";
 import { readAssistantCostGuardConfig, reserveAssistantCostGuard, settleAssistantCostGuard } from "./assistant-cost-guard.js";
+import { readAssistantDailyAdmissionConfig, reserveAssistantDailyAdmission, settleAssistantDailyAdmission, releaseAssistantDailyAdmission } from "./assistant-daily-admission.js";
 import { isX30OperationId, startX30Generation, finishX30Generation, X30_MONTHLY_LIMIT, X30_WORKSPACE_LIMIT } from "./x30-generation-ledger.js";
 import { validateX30ProviderBrief, x30ProviderEnabled, isX30CanaryOwner } from "./x30-generation.js";
 import { invokeX30Provider } from "./x30-provider.js";
-import { buildWorkersAiProjection, getWorkersAiConfig, getWorkersAiCanaryConfig, invokeWorkersAiText, parseProviderFlags, CANARY_BOUNDS } from "./cloudflare-ai-provider.js";
+import { boundAssistantProviderPayload, buildWorkersAiProjection, getWorkersAiConfig, getWorkersAiCanaryConfig, invokeWorkersAiText, invokeAssistantWorkersAiText, parseProviderFlags, resolveAssistantModelTier, CANARY_BOUNDS } from "./cloudflare-ai-provider.js";
 import { createPortalShare, previewPortalShare, readPortalShare, revokePortalShare } from "./client-portal.js";
 import { completeOAuth, disconnectIntegration, listConnections, readIntegrationIntelligence, readIntegrationSignals, startOAuth } from "./integrations.js";
 import { creativeProviderCapability, invokeCreativeProvider, isCreativeCanaryOwner, readCreativeCredits, reserveCreativeCredits, settleCreativeCredits, validateCreativeGeneration } from "./creative-provider.js";
@@ -4336,6 +4337,8 @@ QUALITY RULES:
           let assistantCreditSource = null;
           let assistantGlobalReservation = null;
           let assistantGlobalSettlementAttempted = false;
+          let assistantDailyReservation = null;
+          let assistantDailySettlementAttempted = false;
 
           const result =
             await handleAiChatAdmission({
@@ -4345,11 +4348,17 @@ QUALITY RULES:
               period,
               body,
               runtime: aiRuntime,
+              resolveTier: ({ tier, plan }) => resolveAssistantModelTier({ tier, plan, env }),
+              validateProviderInput: ({ message, tier }) => {
+                const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: message });
+                return boundAssistantProviderPayload(tier, projection);
+              },
               distributed: env.RATE_LIMITER?.getByName(`chat-rate-limit:${user.id}`),
               reserve: async (userId, usagePeriod, limit) => {
                 if (!isX20Action) {
                   assistantOperationId = body.assistantOperationId || null;
-                  const providerConfig = getWorkersAiConfig(env);
+                  const selectedTier = resolveAssistantModelTier({ tier: body.tier, plan: planInfo.plan, env });
+                  if (!selectedTier.ok) return { reserved: false, reason: "assistant_tier_unavailable" };
                   const operation = await startAssistantOperation(env, {
                     operationId: assistantOperationId,
                     userId,
@@ -4358,7 +4367,7 @@ QUALITY RULES:
                     planLimit: limit,
                     plan: planInfo.plan,
                     provider: "workers-ai",
-                    model: providerConfig.model,
+                    model: selectedTier.tier.model,
                   });
                   if (operation.duplicate) return { reserved: false, reason: "duplicate_assistant_operation" };
                   assistantOperationReserved = Boolean(operation.reserved);
@@ -4403,12 +4412,28 @@ QUALITY RULES:
                 if (operation.reserved) assistantOperationReserved = true;
                 return operation;
               },
-              reserveGlobal: isX20Action ? null : async ({ creditSource, operationId, period: usagePeriod }) => {
+              reserveDaily: isX20Action ? null : async ({ operationId, tier }) => {
+                const admission = await reserveAssistantDailyAdmission(env, {
+                  operationId,
+                  day: new Date().toISOString().slice(0, 10),
+                  tier: tier.id,
+                  reservationNeurons: tier.reservation.neurons,
+                  config: readAssistantDailyAdmissionConfig(env),
+                });
+                if (admission.reserved) assistantDailyReservation = admission;
+                return admission;
+              },
+              releaseDaily: isX20Action ? null : async ({ operationId }) => {
+                if (!assistantDailyReservation || assistantDailySettlementAttempted) return { settled: true, duplicate: true };
+                assistantDailySettlementAttempted = true;
+                return releaseAssistantDailyAdmission(env, { operationId });
+              },
+              reserveGlobal: isX20Action ? null : async ({ creditSource, operationId, period: usagePeriod, tier }) => {
                 const guard = await reserveAssistantCostGuard(env, {
                   operationId,
                   period: usagePeriod,
                   fundingClass: creditSource === "topup" ? "prepaid" : "included",
-                  config: readAssistantCostGuardConfig(env),
+                  config: { ...readAssistantCostGuardConfig(env), requestUnits: tier.reservation.neurons },
                 });
                 if (guard.reserved) assistantGlobalReservation = guard;
                 return guard;
@@ -4424,7 +4449,7 @@ QUALITY RULES:
               readTopUpBalance: isX20Action ? null : (userId) => readAssistantTopUpBalance(env, userId),
               readUsage: (userId, usagePeriod) =>
                 isX20Action ? readAIUsage(env, userId, usagePeriod) : readAssistantUsage(env, userId, usagePeriod),
-              execute: async ({ message: admittedMessage, safeHistory: admittedHistory, creditSource, globalReservation }) => {
+              execute: async ({ message: admittedMessage, safeHistory: admittedHistory, creditSource, tier, dailyReservation, globalReservation }) => {
                 if (!isX20Action) assistantCreditSource = creditSource || "monthly";
                 if (isX20Action) logX20Lifecycle("x20_provider_started", { actionId: x20Action?.actionId, attemptId: x20Attempt?.attemptId, attemptNumber: x20Attempt?.attemptNumber });
                 if (!isX20Action) {
@@ -4432,7 +4457,12 @@ QUALITY RULES:
                   let adapted = null;
                   try {
                     const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage });
-                    adapted = await invokeWorkersAiText(env, projection);
+                    adapted = await invokeAssistantWorkersAiText(env, projection, { tier });
+                    if (dailyReservation && !assistantDailySettlementAttempted) {
+                      assistantDailySettlementAttempted = true;
+                      const dailySettlement = await settleAssistantDailyAdmission(env, { operationId: dailyReservation.operationId, actualNeurons: adapted.metrics?.neuronUsage });
+                      if (!dailySettlement.settled && !dailySettlement.duplicate) throw new Error("HEGEVA_ASSISTANT_DAILY_SETTLEMENT_UNAVAILABLE");
+                    }
                     if (globalReservation && !assistantGlobalSettlementAttempted) {
                       assistantGlobalSettlementAttempted = true;
                       const globalSettlement = await settleAssistantCostGuard(env, { operationId: globalReservation.operationId, status: "settled" });
@@ -4460,6 +4490,10 @@ QUALITY RULES:
                     }
                     return { response: adapted.response };
                   } catch (error) {
+                    if (dailyReservation && !assistantDailySettlementAttempted) {
+                      assistantDailySettlementAttempted = true;
+                      await settleAssistantDailyAdmission(env, { operationId: dailyReservation.operationId, actualNeurons: adapted?.metrics?.neuronUsage }).catch(() => {});
+                    }
                     if (globalReservation && !assistantGlobalSettlementAttempted) {
                       assistantGlobalSettlementAttempted = true;
                       await settleAssistantCostGuard(env, { operationId: globalReservation.operationId, status: "settled" }).catch(() => {});
@@ -4841,11 +4875,14 @@ QUALITY RULES:
         const ownerProfileSetupEnabled = flags.ownerProfileSetupEnabled === true;
         const ownerCanaryEnabled = flags.ownerCanaryEnabled === true;
         const nonX20ProviderActive = providerEnabled && !globalKillSwitch;
+        const advancedAssistantEnabled = nonX20ProviderActive && publicAssistantEnabled &&
+          resolveAssistantModelTier({ tier: "advanced", plan: "premium", env }).ok;
         return Response.json({
           providerEnabled,
           globalKillSwitch,
           x20Enabled: true,
           assistantEnabled: publicAssistantEnabled && nonX20ProviderActive,
+          advancedAssistantEnabled,
           ownerProfileSetupEnabled,
           x10Enabled: flags.x10Enabled && nonX20ProviderActive,
           aiBotsEnabled: ownerCanaryEnabled && nonX20ProviderActive,

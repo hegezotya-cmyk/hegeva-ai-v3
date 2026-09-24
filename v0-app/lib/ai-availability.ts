@@ -7,6 +7,7 @@ export type AiFeatureFlags = {
   globalKillSwitch: boolean
   x20Enabled: boolean
   assistantEnabled: boolean
+  advancedAssistantEnabled: boolean
   x10Enabled: boolean
   aiBotsEnabled: boolean
   x30Enabled: boolean
@@ -18,6 +19,7 @@ const FALLBACK: AiFeatureFlags = {
   globalKillSwitch: true,
   x20Enabled: true,
   assistantEnabled: false,
+  advancedAssistantEnabled: false,
   x10Enabled: false,
   aiBotsEnabled: false,
   x30Enabled: false,

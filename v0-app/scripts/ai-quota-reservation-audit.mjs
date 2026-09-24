@@ -1,5 +1,6 @@
 import fs from "node:fs"
 import assert from "node:assert/strict"
+import { handleAiChatAdmission } from "../../src/ai-chat-admission.js"
 
 const source = fs.readFileSync(new URL("../../src/index.js", import.meta.url), "utf8")
 const reservation = fs.readFileSync(new URL("../../src/ai-quota-reservation.js", import.meta.url), "utf8")
@@ -9,8 +10,8 @@ const schema = fs.readFileSync(new URL("../../migrations/0001_v47_plans_usage.sq
 assert.match(schema, /PRIMARY KEY \(userId, period\)/, "ai_usage must have a unique user/period key")
 assert.match(reservation, /INSERT INTO ai_usage[\s\S]*?ON CONFLICT\(userId, period\)[\s\S]*?WHERE aiMessages < \?4[\s\S]*?\.run\(\)/, "quota reservation must use a conditional atomic upsert")
 assert.match(source, /handleAiChatAdmission\(/, "chat must call the production admission function")
-assert.match(admission, /const reservation\s*=\s*await reserve\(/, "admission must reserve through its injected production boundary")
-assert.match(admission, /if \(!reservation\.reserved\)[\s\S]*?Monthly AI message limit reached\./, "reservation failure must retain the truthful 429 response")
+assert.match(admission, /reserveTopUp[\s\S]*?assistant_quota_unavailable/, "Top-Up fallback must remain conditional on exhausted included quota")
+assert.match(admission, /reserveDaily[\s\S]*?reserveGlobal[\s\S]*?return await execute/, "daily and global admission must precede provider execution")
 assert.doesNotMatch(source, /async function incrementAIUsage|await incrementAIUsage/, "old post-response increment must be removed")
 const reservationIndex = source.indexOf("handleAiChatAdmission(")
 const providerIndex = source.indexOf("env.AI.run(")
@@ -84,4 +85,54 @@ const concurrent = await Promise.all(Array.from({ length: 20 }, () => admit({ qu
 assert.equal(concurrent.filter((item) => item.status === 200).length, 5, "concurrent reservations must not exceed the limit")
 assert.equal(concurrentQuota.used, 5)
 
-console.log("AI quota reservation audit passed: atomic ordering, zero-cost rejection paths, bounded concurrency, failure accounting and no post-response increment")
+async function exerciseFunding({ monthly, topup = null, daily = { reserved: true }, global = { reserved: true }, providerInput = { ok: true } }) {
+  const events = []
+  let providerCalls = 0
+  let released = 0
+  const response = await handleAiChatAdmission({
+    request: new Request("https://local/api/chat", { method: "POST" }),
+    user: { id: "user-1" }, planInfo: { plan: "premium", limit: 300 }, period: "2026-09",
+    body: { message: "safe test", assistantOperationId: "77777777-7777-4777-8777-777777777777" },
+    runtime: { inFlight: new Set(), lastRequest: new Map() },
+    distributed: { async admit() { return { allowed: true, token: "token" } }, async release() {} },
+    resolveTier: () => ({ ok: true, tier: { id: "standard", reservation: { neurons: 26 } } }),
+    validateProviderInput: () => providerInput,
+    reserve: async () => { events.push("monthly"); return monthly },
+    reserveTopUp: topup ? async () => { events.push("topup"); return topup } : null,
+    reserveDaily: async () => { events.push("daily"); return daily },
+    releaseDaily: async () => { events.push("release-daily"); return { settled: true } },
+    reserveGlobal: async () => { events.push("global"); return global },
+    releaseReservation: async () => { released += 1; events.push("release-funding"); return { settled: true } },
+    readUsage: async () => 300,
+    readTopUpBalance: async () => 0,
+    execute: async () => { providerCalls += 1; events.push("provider"); return Response.json({ ok: true }) },
+  })
+  return { response, events, providerCalls, released }
+}
+
+const monthlyFunding = { reserved: true, operationId: "77777777-7777-4777-8777-777777777777" }
+const missingMonthly = { reserved: false, reason: "assistant_quota_unavailable" }
+const topupFunding = { reserved: true, operationId: "77777777-7777-4777-8777-777777777777" }
+let funding = await exerciseFunding({ monthly: monthlyFunding })
+assert.deepEqual(funding.events, ["monthly", "daily", "global", "provider"], "monthly funding must be retained through admission")
+assert.equal(funding.providerCalls, 1)
+funding = await exerciseFunding({ monthly: missingMonthly, topup: topupFunding })
+assert.deepEqual(funding.events, ["monthly", "topup", "daily", "global", "provider"], "Top-Up may follow only exhausted monthly funding")
+assert.equal(funding.providerCalls, 1)
+funding = await exerciseFunding({ monthly: missingMonthly })
+assert.equal(funding.response.status, 429)
+assert.equal(funding.providerCalls, 0)
+funding = await exerciseFunding({ monthly: monthlyFunding, providerInput: { ok: false, reason: "provider-input-too-large" } })
+assert.equal(funding.response.status, 413)
+assert.equal(funding.providerCalls, 0)
+assert.deepEqual(funding.events, [], "invalid bounded provider input must be rejected before customer funding")
+funding = await exerciseFunding({ monthly: monthlyFunding, daily: { reserved: false, reason: "daily_capacity_exhausted" } })
+assert.equal(funding.response.status, 429)
+assert.equal(funding.providerCalls, 0)
+assert.equal(funding.released, 1, "pre-provider daily rejection must release customer funding")
+funding = await exerciseFunding({ monthly: missingMonthly, topup: topupFunding, global: { reserved: false, reason: "included_budget_exhausted" } })
+assert.equal(funding.providerCalls, 0)
+assert.equal(funding.released, 1, "pre-provider global rejection must release customer funding")
+assert.deepEqual(funding.events, ["monthly", "topup", "daily", "global", "release-funding", "release-daily"])
+
+console.log("AI quota reservation audit passed: funding-first ordering, Top-Up fallback, zero-cost rejection paths, bounded concurrency, failure accounting and no post-response increment")

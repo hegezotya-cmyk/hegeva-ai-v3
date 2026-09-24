@@ -29,6 +29,7 @@ type PlanStatus = {
 }
 
 type SupportedLanguage = "en" | "hu" | "de" | "fr" | "es"
+type AssistantTier = "standard" | "advanced"
 type FailureCopy = {
   session: string
   conflict: string
@@ -131,6 +132,7 @@ export function AssistantChat() {
   const {items:invoices}=useWorkspaceData<{id:string;type?:string;status?:string;dueDate?:string}>("invoice_documents")
   const {items:drafts}=useWorkspaceData<{id:string;sourceId?:string;workflowStatus?:string}>("messages")
   const [message, setMessage] = useState("")
+  const [tier, setTier] = useState<AssistantTier>("standard")
   const [sending, setSending] = useState(false)
   const [error, setError] = useState("")
   const [usage, setUsage] = useState<PlanStatus | null>(null)
@@ -139,6 +141,8 @@ export function AssistantChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const pendingOperationRef = useRef<{ message: string; operationId: string } | null>(null)
   const aiAvailability = useAiAvailability()
+  const advancedEntitled = usage ? ["premium", "pro"].includes(usage.plan.toLowerCase()) : true
+  const advancedAvailable = advancedEntitled && aiAvailability.status.advancedAssistantEnabled
 
   useEffect(() => {
     setHydrated(true)
@@ -256,6 +260,7 @@ export function AssistantChat() {
           history: recentHistory,
           language: detectMessageLanguage(cleanMessage, locale),
           mode: "general",
+          tier,
           assistantOperationId: operationId,
         }),
       })
@@ -277,6 +282,10 @@ export function AssistantChat() {
         if (response.status === 413) {
           clearPendingOnError = true
           throw new Error(copy.tooLarge)
+        }
+        if (response.status === 403) {
+          clearPendingOnError = true
+          throw new Error(typeof data?.error === "string" ? data.error : copy.unavailable)
         }
         if (response.status === 429) {
           if (data?.code === "ASSISTANT_CREDITS_EXHAUSTED") {
@@ -444,6 +453,16 @@ export function AssistantChat() {
       </div>
 
       <form onSubmit={submit} className="partner-composer">
+        <fieldset className="mb-3 flex flex-wrap gap-2" aria-label="Assistant mode">
+          {(["standard", "advanced"] as AssistantTier[]).map((option) => (
+            <label key={option} className={`min-w-44 rounded-xl border p-3 text-xs ${tier === option ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground"}`}>
+              <input type="radio" name="assistant-tier" value={option} checked={tier === option} disabled={option === "advanced" && !advancedAvailable} onChange={() => setTier(option)} className="mr-2" />
+              <strong>{tierCopy[locale][option].label}</strong><span className="ml-1">· {tierCopy[locale][option].helper}</span>
+            </label>
+          ))}
+        </fieldset>
+        {!advancedEntitled && <p className="-mt-1 mb-3 text-xs text-muted-foreground">{tierCopy[locale].advanced.upgrade}</p>}
+        {advancedEntitled && !aiAvailability.status.advancedAssistantEnabled && <p className="-mt-1 mb-3 text-xs text-muted-foreground">{tierCopy[locale].advanced.unavailable}</p>}
         <div className="flex flex-col gap-3 sm:flex-row">
           <textarea
             value={message}
@@ -468,4 +487,12 @@ export function AssistantChat() {
       </form></section>
     </div>
   )
+}
+
+const tierCopy: Record<SupportedLanguage, Record<AssistantTier, { label: string; helper: string; upgrade?: string; unavailable?: string }>> = {
+  en: { standard: { label: "Standard", helper: "Fast everyday business help" }, advanced: { label: "Advanced", helper: "Deeper reasoning for complex business tasks", upgrade: "Advanced is available with Premium or Pro.", unavailable: "Advanced is not configured for use yet." } },
+  hu: { standard: { label: "Standard", helper: "Gyors segítség a mindennapi üzleti feladatokhoz" }, advanced: { label: "Advanced", helper: "Mélyebb gondolkodás összetett üzleti feladatokhoz", upgrade: "Az Advanced a Premium vagy Pro csomaggal érhető el.", unavailable: "Az Advanced még nincs használatra beállítva." } },
+  de: { standard: { label: "Standard", helper: "Schnelle Hilfe für den Geschäftsalltag" }, advanced: { label: "Advanced", helper: "Tieferes Denken für komplexe Geschäftsaufgaben", upgrade: "Advanced ist mit Premium oder Pro verfügbar.", unavailable: "Advanced ist noch nicht für die Nutzung konfiguriert." } },
+  fr: { standard: { label: "Standard", helper: "Aide rapide pour les tâches quotidiennes" }, advanced: { label: "Advanced", helper: "Analyse approfondie pour les tâches complexes", upgrade: "Advanced est disponible avec Premium ou Pro.", unavailable: "Advanced n’est pas encore configuré pour être utilisé." } },
+  es: { standard: { label: "Estándar", helper: "Ayuda rápida para las tareas cotidianas" }, advanced: { label: "Avanzado", helper: "Razonamiento más profundo para tareas complejas", upgrade: "Avanzado está disponible con Premium o Pro.", unavailable: "Avanzado aún no está configurado para su uso." } },
 }
