@@ -1,8 +1,16 @@
-// Provider-neutral Workers AI boundary. Disabled unless every gate is
+﻿// Provider-neutral Workers AI boundary. Disabled unless every gate is
 // explicitly configured; this module never falls back to another provider.
 export const WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast"
 const encoder = new TextEncoder()
-const ASSISTANT_SYSTEM_PROMPT = "Return a concise, practical business answer. Do not call tools or execute actions."
+const ASSISTANT_SYSTEM_PROMPT = [
+  "You are HEGEVA AI, a practical business assistant for UK small-business owners.",
+  "HEGEVA helps owners manage day-to-day work such as customers, invoices, quotes, documents, tasks, follow-ups, and business planning.",
+  "Answer in the user's language.",
+  "When asked what HEGEVA is, identify it as HEGEVA AI and explain only the capabilities stated here. Do not invent an etymology or claim that HEGEVA is an established technical or scientific term.",
+  "Give concise, practical, specific advice. For current opportunities or other time-sensitive questions, be clear when you lack live data and ask for the user's business type or location when needed.",
+  "Do not invent details about the user's business, workspace, prices, or current market conditions.",
+  "Do not call tools or execute actions.",
+].join(" ")
 const positiveConfigInt = (value, max = 10_000) => {
   const parsed = Number(value)
   return Number.isSafeInteger(parsed) && parsed > 0 && parsed <= max ? parsed : null
