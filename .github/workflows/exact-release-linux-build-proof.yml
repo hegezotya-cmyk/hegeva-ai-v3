@@ -1,0 +1,97 @@
+name: HEGEVA Exact Release Linux Build Proof
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hegeva-exact-release-linux-build-proof
+  cancel-in-progress: false
+
+env:
+  EXPECTED_RELEASE_SHA: 404205208c86be6577bc36044665dec6a7ae3526
+
+jobs:
+  build:
+    name: Linux build proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout approved release
+        id: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_RELEASE_SHA }}
+          persist-credentials: false
+
+      - name: Verify Linux runner and exact commit
+        id: verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD)"
+          printf 'Runner OS: %s\n' "$RUNNER_OS"
+          printf 'Kernel OS: %s\n' "$(uname -s)"
+          printf 'Checked-out SHA: %s\n' "$actual_sha"
+          test "$RUNNER_OS" = "Linux"
+          test "$actual_sha" = "$EXPECTED_RELEASE_SHA"
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+
+      - name: Install v0-app dependencies (npm ci)
+        id: npm_ci
+        working-directory: v0-app
+        run: npm ci
+
+      - name: TypeScript check
+        id: typescript
+        working-directory: v0-app
+        run: npx tsc --noEmit --incremental false
+
+      - name: OpenNext production build and CF build (npm run cf:build)
+        id: cf_build
+        working-directory: v0-app
+        run: npm run cf:build
+
+      - name: Write build proof summary
+        if: always()
+        shell: bash
+        env:
+          CHECKOUT_RESULT: ${{ steps.checkout.outcome }}
+          VERIFY_RESULT: ${{ steps.verify.outcome }}
+          NPM_CI_RESULT: ${{ steps.npm_ci.outcome }}
+          TYPESCRIPT_RESULT: ${{ steps.typescript.outcome }}
+          CF_BUILD_RESULT: ${{ steps.cf_build.outcome }}
+        run: |
+          set -u
+          result() {
+            case "$1" in
+              success) printf 'PASS' ;;
+              failure) printf 'FAIL' ;;
+              *) printf 'NOT RUN (%s)' "$1" ;;
+            esac
+          }
+          checked_out_sha="NOT PROVEN"
+          if git rev-parse HEAD >/dev/null 2>&1; then
+            checked_out_sha="$(git rev-parse HEAD)"
+          fi
+          {
+            printf '%s\n' '## Exact release Linux build proof'
+            printf '%s\n' "- Runner: $RUNNER_OS / $(uname -s)"
+            printf '%s\n' "- Expected SHA: $EXPECTED_RELEASE_SHA"
+            printf '%s\n' "- Checked-out SHA: $checked_out_sha"
+            printf '%s\n' "- Checkout: $(result "$CHECKOUT_RESULT")"
+            printf '%s\n' "- Exact SHA verification: $(result "$VERIFY_RESULT")"
+            printf '%s\n' "- npm ci: $(result "$NPM_CI_RESULT")"
+            printf '%s\n' "- TypeScript: $(result "$TYPESCRIPT_RESULT")"
+            printf '%s\n' "- OpenNext production build: $(result "$CF_BUILD_RESULT")"
+            printf '%s\n' "- npm run cf:build: $(result "$CF_BUILD_RESULT")"
+          } >> "$GITHUB_STEP_SUMMARY"
