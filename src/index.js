@@ -1394,6 +1394,35 @@ function getAssistantTopUpPack(env, packCode) {
   return { ...approved, priceId };
 }
 
+async function evaluateAIBotRenewalReadiness(env, user, profileId) {
+  if (!user || typeof user.id !== "string" || !user.id.trim()) return false;
+  const configuredOwner = configuredAIBotCanaryOwner(env);
+  const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+  if (!configuredOwner || userEmail !== configuredOwner) return false;
+  if (profileId !== "bot-b2083aff-69ef-4902-93bd-2c792c3cb0c9") return false;
+  const stored = await loadStoredAIBotProfile(env, user.id, profileId);
+  if (!stored) return false;
+  const current = stored.profile;
+  const now = Date.now();
+  const approvedAt = typeof current.approvedAt === "string" ? Date.parse(current.approvedAt) : NaN;
+  const expiresAt = typeof current.approvalExpiresAt === "string" ? Date.parse(current.approvalExpiresAt) : NaN;
+  const actorHash = await sha256Hex(user.id);
+  return current.enabled === false
+    && current.executionState === "not-started"
+    && Array.isArray(current.permittedTools)
+    && current.permittedTools.length === 1
+    && current.permittedTools[0] === "none"
+    && current.approvalState === "owner-approved"
+    && Number.isFinite(approvedAt)
+    && Number.isFinite(expiresAt)
+    && expiresAt <= now
+    && typeof current.approvedByActorHash === "string"
+    && current.approvedByActorHash === actorHash
+    && typeof current.approvalRevision === "string"
+    && current.approvalRevision === current.approvedAt
+    && current.approvalRevision === stored.row.updatedAt;
+}
+
 async function createStripeTopUpCheckoutSession(request, env, user, pack) {
   const secretKey = String(env.STRIPE_SECRET_KEY || "").trim();
   const paymentMode = getPaymentMode(env);
@@ -4727,6 +4756,17 @@ QUALITY RULES:
         if (Number(result?.meta?.changes || 0) !== 1) return Response.json({ error: "The profile changed; reload and try again." }, { status: 409 });
         return Response.json({ status: "owner-approved", approvalExpiresAt, approvalVersion }, { status: 200 });
       } catch { emitMonitor("ai_bot_create", "approval_failed"); return Response.json({ error: "Owner approval is temporarily unavailable." }, { status: 503 }); }
+    }
+
+    if (url.pathname === "/api/ai-bot/renewal-readiness") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        if (!request.headers.get("cookie")) return Response.json({ renewalAvailable: false }, { status: 401, headers: { "Cache-Control": "private, no-store" } });
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ renewalAvailable: false }, { status: 401, headers: { "Cache-Control": "private, no-store" } });
+        const ready = await evaluateAIBotRenewalReadiness(env, user, "bot-b2083aff-69ef-4902-93bd-2c792c3cb0c9");
+        return Response.json({ renewalAvailable: ready, ...(ready ? { profileId: "bot-b2083aff-69ef-4902-93bd-2c792c3cb0c9" } : {}) }, { headers: { "Cache-Control": "private, no-store" } });
+      } catch { return Response.json({ renewalAvailable: false }, { status: 503, headers: { "Cache-Control": "private, no-store" } }); }
     }
 
     if (url.pathname === "/api/ai-bot/renew-approval") {
