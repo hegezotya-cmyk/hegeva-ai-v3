@@ -73,7 +73,7 @@ try {
   assert.deepEqual({...refunded},{remainingCredits:0,consumedCredits:1,revokedCredits:1,paymentState:"refunded",reconciliationRequired:1});
   assert.equal(await readAssistantTopUpBalance(env,userId),0);
   const indexSource=fs.readFileSync(path.join(root,"src/index.js"),"utf8");
-  assert.match(indexSource,/payment_method_types\[0\].*card/);
+  assert.doesNotMatch(indexSource,/payment_method_types\[0\].*card/);
   assert.match(indexSource,/payment_status.*paid/);
   assert.match(indexSource,/amount_total.*pack\.amount/);
   assert.match(indexSource,/currency.*pack\.currency/);

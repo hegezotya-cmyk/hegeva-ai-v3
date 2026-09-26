@@ -1431,7 +1431,6 @@ async function createStripeTopUpCheckoutSession(request, env, user, pack) {
 
   const form = new URLSearchParams();
   form.set("mode", "payment");
-  form.set("payment_method_types[0]", "card");
   form.set("line_items[0][price]", pack.priceId);
   form.set("line_items[0][quantity]", "1");
   form.set("client_reference_id", String(user.id));
