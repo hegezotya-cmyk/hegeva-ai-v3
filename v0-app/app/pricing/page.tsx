@@ -11,6 +11,7 @@ import { PRICING_COPY } from "@/lib/i18n/pricing-copy"
 import { AICore, IntelligenceCard, SignalIcon } from "@/components/visual-engine"
 import { trackActivationEvent } from "@/lib/conversion-tracking"
 import { activationIdentity } from "@/lib/activation-measurement"
+import { AssistantTopUpPurchase } from "@/components/assistant/assistant-topup-purchase"
 
 type PaidPlan = "premium" | "pro"
 type BillingStatus = { checkoutEnabled?: boolean; webhookConfigured?: boolean; mode?: string }
@@ -76,6 +77,7 @@ export default function PricingPage() {
   const [opening, setOpening] = useState<PaidPlan | null>(null)
   const [error, setError] = useState("")
   const [currentPlan, setCurrentPlan] = useState<string | null>(null)
+  const [assistantTopUpCredits, setAssistantTopUpCredits] = useState(0)
   const [planLoading, setPlanLoading] = useState(false)
   const [billingCancelled, setBillingCancelled] = useState(false)
   const [billingStatus, setBillingStatus] = useState<BillingStatus | null>(null)
@@ -137,11 +139,15 @@ export default function PricingPage() {
       .then(async (response) => {
         const data = await response.json().catch(() => null)
         if (!response.ok || typeof data?.plan !== "string") throw new Error("plan")
-        if (active) setCurrentPlan(data.plan)
+        if (active) {
+          setCurrentPlan(data.plan)
+          setAssistantTopUpCredits(Number.isFinite(Number(data.assistantTopUpCredits)) ? Math.max(0, Number(data.assistantTopUpCredits)) : 0)
+        }
       })
       .catch(() => {
         if (active) {
           setCurrentPlan(null)
+          setAssistantTopUpCredits(0)
           setError(c.unavailable)
         }
       })
@@ -243,6 +249,7 @@ export default function PricingPage() {
     </div>
     {opening && <p className="mt-5 text-center text-sm text-muted-foreground">{c.starting}</p>}
     {error && <p role="alert" className="mt-5 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-center text-sm text-destructive">{error}</p>}
+    {session?.user && hasPaidPlan && <AssistantTopUpPurchase locale={locale} credits={assistantTopUpCredits} />}
     <p className="mt-8 flex items-center justify-center gap-2 text-center text-sm text-muted-foreground"><LockKeyhole className="size-4 text-primary"/>{c.secure}</p>
   </main></AppShell>
 }
