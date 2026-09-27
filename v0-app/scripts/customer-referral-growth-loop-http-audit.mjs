@@ -97,9 +97,20 @@ const touch = await call(null, "/api/referrals/touch", "POST", { code: createdPa
 assert.equal(touch.status, 204, "valid granted-consent touch is accepted")
 assert.equal(database.prepare("SELECT COUNT(*) AS count FROM referral_touches").get().count, 1)
 
+const laterOwnerCodeResponse = await call(otherOwner, "/api/referrals/code", "POST")
+assert.equal(laterOwnerCodeResponse.status, 201, "a second owner can provide a later referral touch")
+const laterOwnerCode = await laterOwnerCodeResponse.json()
+const laterTouch = await call(null, "/api/referrals/touch", "POST", { code: laterOwnerCode.code, consentState: "granted" })
+assert.equal(laterTouch.status, 204, "the later referral visit is recorded before signup")
+
 const attributed = await call(referred, "/api/referrals/attribute", "POST", { code: createdPayload.code })
 assert.equal(attributed.status, 201, "first authenticated signup attribution is accepted")
 assert.deepEqual(await attributed.json(), { attributed: true })
+assert.equal(
+  database.prepare("SELECT codeId FROM referral_attributions WHERE referredUserId = ?").get(referred.id).codeId,
+  createdPayload.id,
+  "A then B visits must attribute to the first captured A code when signup submits it",
+)
 
 const replay = await call(referred, "/api/referrals/attribute", "POST", { code: createdPayload.code })
 assert.equal(replay.status, 200, "replayed signup attribution is idempotent")
