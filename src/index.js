@@ -29,17 +29,12 @@ import { synchronizePreparedWork, transitionPreparedWork } from "./prepared-work
 import { BUSINESS_SCORE_METHODOLOGY, deriveBusinessScoreShare, hashBusinessScoreToken, newBusinessScoreToken, normalizeShareExpiry } from "./business-score-share.js";
 import { createReferralCode, revokeReferralCode, recordReferralTouch, attributeReferral, listReferralAttributions } from "./referral-attribution.js";
 import { reconcileReferralRewardForUser, listReferralRewardReviews, reviewReferralReward } from "./referral-reward-review.js";
+import { PLAN_LIMITS, resolveAssistantPlan } from "./assistant-plan.js";
 
 // =========================================
 // HEGEVA AI V35.0
 // ACCOUNT + PASSWORD RECOVERY BACKEND
 // =========================================
-
-const PLAN_LIMITS = {
-  basic: 50,
-  premium: 300,
-  pro: 1000
-};
 
 // =========================================
 // PAYMENT-FAILURE GRACE POLICY (P0-4)
@@ -452,25 +447,7 @@ async function getUserPlan(
       .bind(userId)
       .first();
 
-  const plan =
-    row?.plan &&
-    Object.prototype
-      .hasOwnProperty.call(
-        PLAN_LIMITS,
-        row.plan
-      )
-      ? row.plan
-      : "basic";
-
-  return {
-    plan,
-    limit:
-      PLAN_LIMITS[plan],
-    createdAt:
-      row?.createdAt || null,
-    updatedAt:
-      row?.updatedAt || null
-  };
+  return resolveAssistantPlan(row);
 }
 
 async function readAIUsage(
@@ -2214,13 +2191,19 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           aiLimit:
             planInfo.limit,
 
-          aiRemaining: Math.max(0, planInfo.limit - usage),
+          aiRemaining:
+            planInfo.limit === null
+              ? null
+              : Math.max(0, planInfo.limit - usage),
           assistantTopUpCredits,
 
           period,
           x20Actions,
           x20Limit: planInfo.limit,
-          x20Remaining: Math.max(0, planInfo.limit - x20Actions)
+          x20Remaining:
+            planInfo.limit === null
+              ? null
+              : Math.max(0, planInfo.limit - x20Actions)
         });
       } catch (error) {
         logFailure("plan_handler_failed", error);
@@ -4144,6 +4127,16 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
             env,
             user.id
           );
+
+        if (!planInfo.assistantAvailable) {
+          return Response.json(
+            {
+              error: "Assistant access requires a configured Enterprise entitlement.",
+              code: "ASSISTANT_CUSTOM_PLAN_UNAVAILABLE",
+            },
+            { status: 403 },
+          );
+        }
 
         const period =
           getCurrentPeriod();
