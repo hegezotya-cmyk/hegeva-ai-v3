@@ -55,6 +55,11 @@ export function SiteFooter() {
             <span>© {new Date().getFullYear()} HEGEVA AI</span>
           </div>
         </div>
+        <div className="mt-5 flex justify-center">
+          <a href="https://launchstag.com" target="_blank" rel="noopener" aria-label="Featured on Launchstag" className="inline-flex max-w-full rounded-lg transition-opacity hover:opacity-85">
+            <img src="https://launchstag.com/badge-dark.svg" alt="Featured on Launchstag" width={198} height={62} className="h-auto max-w-full" />
+          </a>
+        </div>
       </div>
     </footer>
   )
