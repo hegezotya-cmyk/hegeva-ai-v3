@@ -39,25 +39,36 @@ export function captureReferralAttribution() {
     if (localStorage.getItem("hegeva:analytics-consent:v1") !== "granted") return null
     const params = new URLSearchParams(window.location.search)
     const direct = params.get("ref") || ""
+    const rawSaved = sessionStorage.getItem(referralKey)
+    let stored: { code?: unknown; at?: unknown } | null = null
+    if (rawSaved) {
+      try { stored = JSON.parse(rawSaved) as { code?: unknown; at?: unknown } }
+      catch { sessionStorage.removeItem(referralKey) }
+    }
+
+    let saved: { code: string; at: number } | null = null
+    if (stored && typeof stored.code === "string" && SAFE_REFERRAL.test(stored.code)) {
+      const at = Number(stored.at)
+      const age = Date.now() - at
+      if (Number.isFinite(at) && age >= 0 && age <= 30 * 24 * 60 * 60 * 1000) {
+        saved = { code: stored.code, at }
+      }
+    }
+    if (!saved && rawSaved) sessionStorage.removeItem(referralKey)
+
     if (SAFE_REFERRAL.test(direct)) {
-      const value = { code: direct, at: Date.now() }
-      sessionStorage.setItem(referralKey, JSON.stringify(value))
+      const value = saved || { code: direct, at: Date.now() }
+      if (!saved) sessionStorage.setItem(referralKey, JSON.stringify(value))
       void fetch("/api/referrals/touch", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: direct, consentState: localStorage.getItem("hegeva:analytics-consent:v1") === "granted" ? "granted" : "essential" }) }).catch(() => null)
       return { ...value, fresh: true as const }
     }
-    const saved = JSON.parse(sessionStorage.getItem(referralKey) || "null")
-    if (!saved || !SAFE_REFERRAL.test(saved.code || "")) return null
-    const age = Date.now() - Number(saved.at || 0)
-    if (age < 0 || age > 30 * 24 * 60 * 60 * 1000) {
-      sessionStorage.removeItem(referralKey)
-      return null
-    }
-    return { code: saved.code as string, at: Number(saved.at), fresh: false as const }
+
+    if (!saved) return null
+    return { ...saved, fresh: false as const }
   } catch {
     return null
   }
 }
-
 export function clearReferralAttribution() {
   try { sessionStorage.removeItem(referralKey) } catch {}
 }
