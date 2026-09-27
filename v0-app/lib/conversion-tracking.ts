@@ -63,6 +63,15 @@ export function clearReferralAttribution() {
 }
 
 export function trackRegistrationCompleted() {
+  if (typeof window === "undefined") return
+  try {
+    if (localStorage.getItem("hegeva:analytics-consent:v1") !== "granted") return
+    const key = "hegeva:registration-completed:v1"
+    if (sessionStorage.getItem(key)) return
+    sessionStorage.setItem(key, "1")
+  } catch {
+    return
+  }
   window.dispatchEvent(new CustomEvent("hegeva:analytics-event", {
     detail: { event: "registration_completed", path: "/login" },
   }))

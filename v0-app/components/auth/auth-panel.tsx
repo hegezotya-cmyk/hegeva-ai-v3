@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { authClient, signIn, signUp, useSession } from "@/lib/auth-client"
 import { HEGEVA_EMAIL_VERIFICATION_CALLBACK } from "@/lib/auth-verification"
-import { captureReferralAttribution, clearReferralAttribution } from "@/lib/conversion-tracking"
+import { captureReferralAttribution, clearReferralAttribution, trackRegistrationCompleted } from "@/lib/conversion-tracking"
 import { useI18n } from "@/lib/i18n/provider"
 import { AUTH_COPY } from "@/lib/i18n/auth-copy"
 import { SkeletonSurface } from "@/components/visual-engine"
@@ -102,6 +102,7 @@ export function AuthPanel() {
           setError(c.authFailed)
           return
         }
+        trackRegistrationCompleted()
         const referral = captureReferralAttribution()
         if (referral) {
           await fetch("/api/referrals/attribute", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: referral.code }) }).catch(() => null)
