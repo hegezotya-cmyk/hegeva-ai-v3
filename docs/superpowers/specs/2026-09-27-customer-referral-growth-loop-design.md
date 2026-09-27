@@ -21,7 +21,7 @@ The Account-page Business Check relocation is an existing, separate change. This
 - The public demo route is `v0-app/app/challenge/page.tsx` and renders `SixtySecondChallenge`.
 - The demo contains the visible label `DEMO BUSINESS — FICTIONAL DATA`, hard-coded fictional signals, and no live business-data fetch.
 - The homepage is `v0-app/app/page.tsx`. It renders `GrowthLoopPromo`, which currently owns the localized Challenge entry (`/challenge`) and the `GIVE HEGEVA 60 SECONDS` copy.
-- `v0-app/scripts/growth-engine-v1-audit.mjs` currently reads `app/page.tsx` itself and requires the literal `/challenge` link and `GIVE HEGEVA 60 SECONDS` string in that file. The audit fails at the current baseline because those literals live in the imported component. The failure reproduces independently of the Account-page relocation and must not be “fixed” by weakening or deleting the assertion.
+- `v0-app/scripts/growth-engine-v1-audit.mjs` currently reads `app/page.tsx` itself and requires the literal `/challenge` link and `GIVE HEGEVA 60 SECONDS` string in that file. The audit fails at the current baseline because those literals live in the imported component. The implementation must therefore make the page-level homepage source contain the localized Challenge-entry contract and render exactly one Challenge entry, while removing any duplicate rendered CTA from the existing composition. The audit assertion remains unchanged; the rendered homepage, not just the imported component, must provide the one visible entry. This is independent of the authenticated Account Business Check, which remains private, and `/challenge`, which remains fictional.
 
 ### Authenticated source of a customer's score/share action
 
@@ -52,11 +52,11 @@ Migration `migrations/0031_referral_rewards.sql` defines the later reward ledger
 
 ## Proposed customer flow
 
-1. **Homepage entry.** The homepage shows a localized, truthful link to the already-fictional `/challenge`. The entry must remain visibly demo-oriented and retain the existing trust language. The minimal implementation may make the existing `GrowthLoopPromo` entry discoverable to the source audit by placing the explicit link/copy contract in the page-level source or by an equivalent source-level composition that leaves the audit assertion unchanged. It must not duplicate competing CTAs or imply that demo data is a customer's real data.
+1. **Homepage entry.** The page-level `v0-app/app/page.tsx` source must contain the localized Challenge-entry contract, including the `/challenge` destination and the existing `GIVE HEGEVA 60 SECONDS` meaning. It must render exactly one visible Challenge entry: reuse the existing localized `GrowthLoopPromo` presentation or move that single entry into the page-level composition, but remove any duplicate CTA. The entry must remain visibly demo-oriented and retain the existing trust language. It must not imply that demo data is a customer's real data. The existing Growth Engine audit is not weakened or deleted; it verifies both the page-level source and the rendered homepage entry.
 2. **Public demo.** The visitor can run the fictional Challenge without authentication, payment, or a provider call. The demo never reads or displays the referrer's Business Check.
 3. **Private customer surface.** An authenticated customer opens `/account`, views their own cloud-backed Business Check, and separately chooses the existing referral-link control. The referral control creates/replaces the owner's active opaque code. No score, deduction, workspace ID, customer data, invoice data, or raw payload is copied into the referral URL.
 4. **Visitor link.** The link is the canonical public origin plus `/r/<opaque-code>`. The repository's server canonical-host helper uses `PUBLIC_APP_URL` only when it is an HTTPS URL and otherwise falls back to `https://hegevaai.co.uk`; accepted production origins include `https://hegevaai.co.uk` and `https://www.hegevaai.co.uk`. `test.example` is test-only and is never a production host.
-5. **Visit/touch.** `/r/<code>` validates syntax and redirects generically to the fictional Challenge with `ref`. The client capture helper submits the code to `/api/referrals/touch`; server lookup uses the hash and active status. Touches are privacy-safe and may be recorded with essential consent state; no raw IP, email, name, workspace ID, customer data, or code is returned publicly.
+5. **Visit/touch.** `/r/<code>` validates syntax and redirects generically to the fictional Challenge with `ref`. With the current client contract, `captureReferralAttribution()` submits the code to `/api/referrals/touch` only when analytics consent is granted; consent denial does not claim a touch is recorded. Server lookup uses the hash and active status. Touches are privacy-safe; no raw IP, email, name, workspace ID, customer data, or code is returned publicly.
 6. **Signup.** The visitor may continue to registration from the Challenge or existing signup CTA. Successful registration remains subject to existing email-verification/session behavior. Referral context is one-shot and short-lived in browser session storage; it is not authoritative.
 7. **Attribution.** After the server-authenticated signup, the existing `/api/referrals/attribute` call establishes at most one first-touch attribution for that referred user. Attribution is idempotent. It does not grant a reward, credit, discount, paid entitlement, or upgrade.
 8. **Customer view.** The referrer can later see only the existing aggregate-safe attribution/review surface on Account. Public visitors see no attribution status, score, owner identity, or workspace information.
@@ -66,7 +66,7 @@ Migration `migrations/0031_referral_rewards.sql` defines the later reward ledger
 The following are existing behaviors and are preserved, not newly invented:
 
 - The active code is the only code eligible for a new touch; revocation makes lookup fail generically.
-- The current server window is 30 days (`30 * 86400000`) from the recorded touch. This is an implementation fact, not a new business policy; changing it requires a separate owner decision.
+- The attribution window is the previously approved 30 days (`30 * 86400000`) from the recorded touch. It is a fixed V1 rule for this flow; changing it requires a separately approved product decision and is not part of this implementation.
 - First touch is authoritative for the attribution row. Later touches may be recorded, but the current `attributeReferral` implementation only creates one attribution per referred user and does not replace the existing one.
 - A referred user can have only one attribution because `referredUserId` is unique and the server checks for an existing row before insert.
 - Self-referrals are rejected when the referral-code owner equals the authenticated referred user.
@@ -76,23 +76,23 @@ The following are existing behaviors and are preserved, not newly invented:
 
 ## Data and privacy boundaries
 
-Publicly observable referral responses may contain only generic redirect/error behavior. Authenticated owner responses may contain only the existing aggregate counts/statuses and safe timestamps already in the UI contract.
+Publicly observable referral responses may contain only generic redirect/error behavior. The authenticated, owner-scoped Account response may retain the existing attribution `id` solely as an internal React list key because the current UI uses it; that identifier must never be shown as visible copy, included in a public referral response/URL, or emitted to analytics. Other owner-visible fields remain aggregate-safe statuses/counts/timestamps already in the UI contract.
 
 Never expose in a public URL, public HTML, referral API response, redirect, analytics payload, or copied share text:
 
 - Business Score numbers/deductions or raw evidence;
 - customer names/contact details;
-- invoice, quote, task, workspace, user, attribution, payment, or Stripe IDs;
+- invoice, quote, task, workspace, user, attribution, payment, or Stripe IDs in public output, visible copy, or analytics;
 - raw referral code hashes, session cookies, credentials, or secrets;
 - entitlement, billing, Core, or reward internals.
 
-The referral code itself is opaque and short-lived by server status/window, but it is still a bearer value. Revoke must invalidate it server-side. No client-only storage value is authoritative.
+The referral code itself is opaque and is still a bearer value. An active code remains usable until server-side revocation; the 30-day window applies to attribution from a recorded touch, not automatic code expiry. Revoke must invalidate it server-side. No client-only storage value is authoritative.
 
 ## Localization and analytics
 
 All new or moved visible copy must follow the existing locale map for `en`, `hu`, `de`, `fr`, and `es`, including homepage entry, referral-link creation/copy/revoke, invalid/unavailable states, and signup continuation text. Dynamic customer/workspace data is never translated or copied into public output.
 
-Consent-gated analytics may retain the existing aggregate events `referral_visit`, `referral_signup`, and `referral_link_copy`. Event payloads must remain free of raw referral codes, names, emails, IDs, workspace data, score values, and payment data. Essential touch recording may continue without analytics consent according to the existing server contract; analytics denial must clear referral browser context as it does today.
+The current client behavior is consent-gated end to end: `captureReferralAttribution()` returns without storing referral context or calling `/api/referrals/touch` unless analytics consent is `granted`. Although the server endpoint accepts an `essential` consent state, this phase does not claim or add consent-without-analytics touch recording. Analytics may retain the existing aggregate events `referral_visit`, `referral_signup`, and `referral_link_copy`, but raw `referral_code` must never be present in an analytics payload. The current `referral_visit` event still includes that raw field and is therefore a required privacy fix, not a completed control. Analytics denial must clear referral browser context as it does today.
 
 ## Error and unavailable states
 
@@ -108,26 +108,32 @@ Consent-gated analytics may retain the existing aggregate events `referral_visit
 
 Use local mocks/isolated D1 only; do not query production or create real customer data.
 
-1. Source audit proves homepage Challenge entry remains present and localized, and the existing Growth Engine assertion is unchanged.
+1. Source audit proves `app/page.tsx` itself contains the localized `/challenge` entry contract, the existing Growth Engine assertion is unchanged, and rendered homepage inspection finds exactly one visible Challenge entry.
 2. Public `/challenge` renders fictional labels/data and performs no workspace fetch.
 3. Authenticated Account Business Check and referral control are mounted only after the existing session gate.
 4. Referral link generation returns the canonical application origin plus `/r/<opaque-code>`; no `test.example` or private fields appear.
 5. Valid `/r/<code>` redirects to `/challenge?ref=<encoded-safe-code>`; malformed/revoked/unknown values redirect generically.
 6. A valid touch creates one isolated `referral_touches` row with no raw IP/email/name/workspace data.
-7. Consent denied prevents analytics referral events while preserving safe essential touch behavior and clearing browser referral context.
+7. Consent denied prevents referral context/touch and analytics events under the current contract, and clears browser referral context. A separate test proves the `referral_visit` analytics payload contains no raw `referral_code` under granted consent.
 8. Successful synthetic signup performs one authenticated attribution; replay is idempotent.
 9. A second referral code cannot replace the first attribution; a self-referral is rejected; an expired touch is rejected.
-10. Owner list responses contain only aggregate-safe fields; unauthenticated access is `401`; another owner cannot read the list.
+10. Owner list responses remain owner-scoped; an `id` may exist only as a non-rendered internal UI key, never in public output or analytics. Unauthenticated access is `401`, and another owner cannot read the list.
 11. No test path creates `EXECUTED` reward state, payout, credit, discount, email, Stripe operation, provider call, or persistent production write.
-12. EN/HU/DE/FR/ES source assertions cover all visible referral/homepage copy.
+12. EN/HU/DE/FR/ES source assertions cover all visible referral/homepage copy, including the single page-level Challenge entry.
 
 ## Known blockers and unresolved owner decisions
 
-- The current Growth Engine audit fails at baseline because it expects homepage literals in `app/page.tsx` while the existing localized entry lives in `GrowthLoopPromo`. The implementation plan must address this truthful source-composition mismatch without weakening the assertion or removing the demo.
+- The current Growth Engine audit fails at baseline because it expects homepage literals in `app/page.tsx` while the existing localized entry lives in `GrowthLoopPromo`. The implementation must move or expose exactly one localized entry at page-level source and prove it in rendered output without weakening the assertion or removing the demo.
 - Local TypeScript/Next verification was previously blocked by missing dependencies and npm-cache EPERM; this documentation task does not repair that environment.
 - Production referral code generation, touch recording, signup attribution, and the canonical live URL have not been proven in this repository-only inspection. No production claim is made.
 - The exact canonical-host source fallback is verified as `https://hegevaai.co.uk`, with `https://www.hegevaai.co.uk` accepted for origin checks; deployment routing remains a separate release concern.
-- Owner decisions still required before implementation: whether to keep the current 30-day attribution window; whether later touches should be retained only as audit history or surfaced as aggregate counts; what, if any, future paid qualification means; and whether the referral CTA remains separate from the score-share CTA (recommended: keep them separate to prevent privacy/contract mixing).
+- Owner decisions still required before implementation: whether later touches should be retained only as audit history or surfaced as aggregate counts, and what (if any) future paid qualification means. The 30-day first-touch window and separation between score-share and referral-link controls are already approved for this scope.
+
+## Rollback and release safety
+
+For a source-only change, restore only the referral-growth feature files to the last reviewed source revision. Do not reset, clean, or overwrite unrelated Business Check changes, the approved plan, or `.superpowers/` data. Re-run the isolated referral, homepage, privacy, localization, and build checks before considering the source state safe.
+
+For a later, separately approved production release, record the immutable API and UI Worker versions immediately before deployment. If the release causes a homepage, referral, authentication, privacy, or billing regression, route traffic back independently to those recorded previous versions. Preserve the referral D1 schema and all referral data; do not drop tables, reverse migrations, delete rows, or use any data-loss rollback. Schema remediation, if ever required, must use a separately approved forward migration.
 
 ## Scope and release safety
 
