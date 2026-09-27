@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - business-check-account-page-spec-20260927
+      - final-production-readiness-20260928
 
 permissions:
   contents: read
