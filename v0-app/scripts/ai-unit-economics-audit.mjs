@@ -1,9 +1,9 @@
 import assert from "node:assert/strict"
 import fs from "node:fs"
+import { PLAN_LIMITS, resolveAssistantPlan } from "../../src/assistant-plan.js"
 
 const configSource = fs.readFileSync(new URL("../lib/commercial-config.ts", import.meta.url), "utf8")
 const workerSource = fs.readFileSync(new URL("../../src/cloudflare-ai-provider.js", import.meta.url), "utf8")
-const indexSource = fs.readFileSync(new URL("../../src/index.js", import.meta.url), "utf8")
 
 const assumptions = Object.freeze({
   inputTokens: 4000,
@@ -29,7 +29,10 @@ const costPerOperation =
   assumptions.outputTokens / 1_000_000 * assumptions.outputUsdPerMillion
 
 assert(workerSource.includes("4_000") && workerSource.includes("1_200"), "provider token ceilings changed; review unit economics")
-assert(indexSource.includes("basic: 50") && indexSource.includes("premium: 300") && indexSource.includes("pro: 1000"), "runtime plan limits changed; review unit economics")
+assert.deepEqual(PLAN_LIMITS, { basic: 50, premium: 300, pro: 1000 }, "runtime plan limits changed; review unit economics")
+const enterprisePlan = resolveAssistantPlan({ plan: "enterprise" })
+assert.equal(enterprisePlan.limit, null, "Enterprise must not inherit a numeric Assistant limit")
+assert.equal(enterprisePlan.assistantAvailable, false, "Enterprise must fail closed without explicit entitlement")
 for (const token of ["pricingVerifiedOn", "pricingSource", "stripeWorstCaseCardAndFxPct", "stripeBillingPct", "vatStressTestPct", "minimumPaidPlanContributionMarginPctAfterStressCosts"]) {
   assert(configSource.includes(token), `commercial cost guard missing ${token}`)
 }
