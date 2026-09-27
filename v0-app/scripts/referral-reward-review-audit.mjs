@@ -5,6 +5,7 @@ const root = new URL("../../", import.meta.url)
 const read = (path) => fs.readFileSync(new URL(path, root), "utf8")
 
 const migration = read("migrations/0025_referral_reward_reviews.sql")
+const v2Migration = read("migrations/0031_referral_rewards.sql")
 const rewards = read("src/referral-reward-review.js")
 const worker = read("src/index.js")
 const ledger = read("src/index-ledger.js")
@@ -20,6 +21,7 @@ function d1(database) {
   const prepare = (sql) => {
     let values = []
     const statement = {
+      sql,
       bind(...next) { values = next; return statement },
       async first() { return database.prepare(sql).get(...values) || null },
       async all() { return { results: database.prepare(sql).all(...values) } },
@@ -27,7 +29,7 @@ function d1(database) {
     }
     return statement
   }
-  return { prepare, async batch(statements) { return Promise.all(statements.map((statement) => statement.all())) } }
+    return { prepare, async batch(statements) { return Promise.all(statements.map((statement) => /^\s*(INSERT|UPDATE|DELETE)/i.test(statement.sql) ? statement.run() : statement.all())) } }
 }
 
 function rewardDatabase() {
@@ -41,6 +43,7 @@ function rewardDatabase() {
     CREATE TABLE referral_touches (id TEXT PRIMARY KEY, codeId TEXT NOT NULL, occurredAt TEXT NOT NULL);
     CREATE TABLE referral_attributions (id TEXT PRIMARY KEY, codeId TEXT NOT NULL, referredUserId TEXT NOT NULL UNIQUE, firstTouchAt TEXT NOT NULL, attributionState TEXT NOT NULL);
     ${migration}
+    ${v2Migration}
   `)
   return { database, db: d1(database) }
 }
@@ -81,6 +84,7 @@ for (const route of ["/api/referrals/activation", "/api/referrals/reward-reviews
 assert.ok(worker.includes("ADMIN_EMAIL"), "review decisions must use the existing owner authorization boundary")
 assert.ok(rewards.includes("creatorUserId === reviewerUserId"), "creators must not approve their own reward")
 assert.ok(rewards.includes("ON CONFLICT(attributionId) DO NOTHING"), "pending review creation must be idempotent")
+assert.ok(rewards.includes("ON CONFLICT(attributionId) DO UPDATE SET") && rewards.includes("status IN ('PENDING','ELIGIBLE')"), "reward ledger reconciliation must be status guarded")
 assert.ok(rewards.includes("status = 'approved'"), "reversal must be limited to approved reviews")
 assert.ok(ledger.includes("reconcileReferralRewardForUser") && ledger.includes("reverseApprovedReferralRewards"), "verified entitlement lifecycle must reconcile and reverse rewards")
 assert.ok(core.includes('fetch("/api/referrals/activation"'), "activation acknowledgement missing")
@@ -122,6 +126,22 @@ for (const [name,change,reason] of [
   assert.equal((await creatorOwner.fetch(request("/api/referrals/reward-reviews/review-0001", "POST", { decision: "approved" }), { DB: db, ADMIN_EMAIL: "owner@example.test" }, {})).status, 403)
 }
 
+// Owner approval updates only the non-executing review/reward states.
+{
+  const { database, db } = rewardDatabase()
+  seedReferral(database)
+  seedActivation(database, "referred-1")
+  seedEntitlement(database, "referred-1")
+  await reconcileReferralRewardForUser(db, "referred-1")
+  const owner = createRequestHandler({ getLoggedInUserFn: async () => ({ id: "owner-user", email: "owner@example.test" }) })
+  const reviewId = database.prepare("SELECT id FROM referral_reward_reviews LIMIT 1").get().id
+  const response = await owner.fetch(request(`/api/referrals/reward-reviews/${reviewId}`, "POST", { decision: "approved" }), { DB: db, ADMIN_EMAIL: "owner@example.test" }, {})
+  assert.equal(response.status, 200)
+  assert.equal(database.prepare("SELECT status FROM referral_reward_reviews WHERE id=?").get(reviewId).status, "approved")
+  assert.equal(database.prepare("SELECT status FROM referral_rewards WHERE attributionId=?").get("attr-1").status, "APPROVED")
+  assert.equal(database.prepare("SELECT COUNT(*) AS count FROM referral_rewards WHERE status='EXECUTED'").get().count, 0)
+}
+
 // Activation and payment can arrive in either order, and reconciliation stays idempotent.
 for (const order of ["activation-first", "payment-first"]) {
   const { database, db } = rewardDatabase()
@@ -138,15 +158,18 @@ for (const order of ["activation-first", "payment-first"]) {
   assert.equal((await reconcileReferralRewardForUser(db, "referred-1")).created, true, order)
   assert.equal((await reconcileReferralRewardForUser(db, "referred-1")).created, false, `${order} duplicate`)
   assert.equal(database.prepare("SELECT COUNT(*) AS count FROM referral_reward_reviews").get().count, 1)
+  assert.equal(database.prepare("SELECT status FROM referral_rewards WHERE attributionId=?").get("attr-1").status, "ELIGIBLE")
 }
 
 // Reversal affects an approved review exactly once.
 {
   const { database, db } = rewardDatabase()
   seedReferral(database, { reviewStatus: "approved" })
+  database.prepare("INSERT INTO referral_rewards(id,attributionId,referrerUserId,referredUserId,rewardType,status,eligibilityReason,createdAt,updatedAt) VALUES(?,?,?,?,?,?,?,?,?)").run("reward-1", "attr-1", "creator-1", "referred-1", "owner-reviewed", "APPROVED", "eligible", "2026-09-01T00:00:00.000Z", "2026-09-01T00:00:00.000Z")
   assert.equal((await reverseApprovedReferralRewards(db, "referred-1")).reversed, 1)
   assert.equal((await reverseApprovedReferralRewards(db, "referred-1")).reversed, 0)
   assert.equal(database.prepare("SELECT status FROM referral_reward_reviews WHERE id=?").get("review-0001").status, "reversed")
+  assert.equal(database.prepare("SELECT status FROM referral_rewards WHERE id=?").get("reward-1").status, "REJECTED")
 }
 
 // Creator reads are deliberately limited to aggregate status and touch count.
@@ -157,8 +180,9 @@ for (const order of ["activation-first", "payment-first"]) {
   const response = await creator.fetch(request("/api/referrals/reward-reviews"), { DB: db, ADMIN_EMAIL: "owner@example.test" }, {})
   assert.equal(response.status, 200)
   const payload = await response.json()
-  assert.deepEqual(Object.keys(payload), ["items"])
+  assert.deepEqual(Object.keys(payload).sort(), ["items", "summary"])
   assert.deepEqual(Object.keys(payload.items[0]).sort(), ["status", "touchCount"])
+  assert.deepEqual(Object.keys(payload.summary).sort(), ["eligibleRewards", "paidQualified", "pendingRewards", "total"])
 }
 
 // The reward analytics branch must emit exactly the approved three fields.

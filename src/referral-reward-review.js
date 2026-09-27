@@ -70,16 +70,34 @@ export async function evaluateReferralRewardEligibility(db, referredUserId) {
   return { ...evaluateReferralRewardEligibilitySnapshot({ attribution, activation, entitlement }), attribution, activation, entitlement };
 }
 
+async function syncReferralRewardLedger(db, eligibility, now) {
+  if (!eligibility?.eligible || !eligibility.attribution) return { created: false, status: null };
+  const { attributionId, creatorUserId, referredUserId } = eligibility.attribution;
+  const result = await db.prepare(`
+    INSERT INTO referral_rewards(
+      id,attributionId,referrerUserId,referredUserId,rewardType,status,
+      eligibilityReason,eligibleAt,createdAt,updatedAt
+    ) VALUES(?1,?2,?3,?4,'owner-reviewed','ELIGIBLE',?5,?6,?6,?6)
+    ON CONFLICT(attributionId) DO UPDATE SET
+      eligibilityReason=excluded.eligibilityReason,
+      eligibleAt=COALESCE(referral_rewards.eligibleAt, excluded.eligibleAt),
+      updatedAt=excluded.updatedAt
+    WHERE referral_rewards.status IN ('PENDING','ELIGIBLE')
+  `).bind(crypto.randomUUID(), attributionId, creatorUserId, referredUserId, eligibility.reason, now).run();
+  return { created: Number(result?.meta?.changes || 0) === 1, status: "ELIGIBLE" };
+}
+
 export async function reconcileReferralRewardForUser(db, referredUserId, now = new Date().toISOString()) {
   const eligibility = await evaluateReferralRewardEligibility(db, referredUserId);
-  if (!eligibility.eligible) return { created: false, reason: eligibility.reason };
+  if (!eligibility.eligible) return { created: false, reason: eligibility.reason, rewardStatus: null };
+  const reward = await syncReferralRewardLedger(db, eligibility, now);
   const { attributionId, creatorUserId } = eligibility.attribution;
   const result = await db.prepare(`
     INSERT INTO referral_reward_reviews(id,attributionId,creatorUserId,referredUserId,status,createdAt,updatedAt)
     VALUES(?1,?2,?3,?4,'pending',?5,?5)
     ON CONFLICT(attributionId) DO NOTHING
   `).bind(crypto.randomUUID(), attributionId, creatorUserId, referredUserId, now).run();
-  return { created: Number(result?.meta?.changes || 0) === 1, reason: "eligible" };
+  return { created: Number(result?.meta?.changes || 0) === 1, reason: "eligible", rewardStatus: reward.status };
 }
 
 export async function reverseApprovedReferralRewards(db, referredUserId, reason = "entitlement-invalid", actorHash = "system", now = new Date().toISOString()) {
@@ -87,7 +105,11 @@ export async function reverseApprovedReferralRewards(db, referredUserId, reason 
     UPDATE referral_reward_reviews SET status='reversed',reviewedBy=?1,reviewedAt=?2,decisionReason=?3,updatedAt=?2
     WHERE referredUserId=?4 AND status = 'approved'
   `).bind(actorHash, now, reason, referredUserId).run();
-  return { reversed: Number(result?.meta?.changes || 0) };
+  const reward = await db.prepare(`
+    UPDATE referral_rewards SET status='REJECTED',eligibilityReason=?1,updatedAt=?2
+    WHERE referredUserId=?3 AND status IN ('ELIGIBLE','APPROVED')
+  `).bind(reason, now, referredUserId).run();
+  return { reversed: Number(result?.meta?.changes || 0), rewardsReversed: Number(reward?.meta?.changes || 0) };
 }
 
 export async function listReferralRewardReviews(db, userId, isOwnerReviewer = false) {
@@ -105,9 +127,33 @@ export async function listReferralRewardReviews(db, userId, isOwnerReviewer = fa
   });
 }
 
+export async function listReferralRewardSummary(db, userId, isOwnerReviewer = false) {
+  const scope = isOwnerReviewer ? "1=1" : "c.ownerUserId=?1";
+  const attributionStatement = db.prepare(`SELECT COUNT(*) AS total FROM referral_attributions a JOIN referral_codes c ON c.id=a.codeId WHERE ${scope}`);
+  const rewardScope = isOwnerReviewer ? "1=1" : "r.referrerUserId=?1";
+  const rewardStatement = db.prepare(`
+    SELECT
+      SUM(CASE WHEN r.status IN ('ELIGIBLE','APPROVED') THEN 1 ELSE 0 END) AS paidQualified,
+      SUM(CASE WHEN r.status='ELIGIBLE' THEN 1 ELSE 0 END) AS eligibleRewards
+    FROM referral_rewards r
+    WHERE ${rewardScope}
+  `);
+  const reviewScope = isOwnerReviewer ? "1=1" : "r.creatorUserId=?1";
+  const reviewStatement = db.prepare(`SELECT SUM(CASE WHEN r.status='pending' THEN 1 ELSE 0 END) AS pendingRewards FROM referral_reward_reviews r WHERE ${reviewScope}`);
+  const row = await (isOwnerReviewer ? attributionStatement.first() : attributionStatement.bind(userId).first());
+  const rewards = await (isOwnerReviewer ? rewardStatement.first() : rewardStatement.bind(userId).first());
+  const reviews = await (isOwnerReviewer ? reviewStatement.first() : reviewStatement.bind(userId).first());
+  return {
+    total: Number(row?.total || 0),
+    paidQualified: Number(rewards?.paidQualified || 0),
+    pendingRewards: Number(reviews?.pendingRewards || 0),
+    eligibleRewards: Number(rewards?.eligibleRewards || 0),
+  };
+}
+
 export async function reviewReferralReward(db, { reviewId, reviewerUserId, decision, reason, actorHash }) {
   if (!new Set(["approved", "rejected"]).has(decision)) return { status: 400, error: "Invalid review decision." };
-  const current = await db.prepare("SELECT id,creatorUserId,referredUserId,status FROM referral_reward_reviews WHERE id=?1 LIMIT 1").bind(reviewId).first();
+  const current = await db.prepare("SELECT id,attributionId,creatorUserId,referredUserId,status FROM referral_reward_reviews WHERE id=?1 LIMIT 1").bind(reviewId).first();
   if (!current) return { status: 404, error: "Review unavailable." };
   if (current.creatorUserId === reviewerUserId) return { status: 403, error: "Creators cannot review their own reward." };
   if (current.status === decision) return { status: 200, data: { status: decision, unchanged: true } };
@@ -117,7 +163,12 @@ export async function reviewReferralReward(db, { reviewId, reviewerUserId, decis
     if (!eligibility.eligible) return { status: 409, error: "Reward eligibility is no longer verified." };
   }
   const now = new Date().toISOString();
-  const updated = await db.prepare("UPDATE referral_reward_reviews SET status=?1,reviewedBy=?2,reviewedAt=?3,decisionReason=?4,updatedAt=?3 WHERE id=?5 AND status='pending'").bind(decision, actorHash, now, reason, reviewId).run();
-  if (Number(updated?.meta?.changes || 0) !== 1) return { status: 409, error: "Review changed; reload and try again." };
+  const rewardStatus = decision.toUpperCase();
+  const statements = [db.prepare("UPDATE referral_reward_reviews SET status=?1,reviewedBy=?2,reviewedAt=?3,decisionReason=?4,updatedAt=?3 WHERE id=?5 AND status='pending'").bind(decision, actorHash, now, reason, reviewId)];
+  if (decision === "approved" || decision === "rejected") {
+    statements.push(db.prepare("UPDATE referral_rewards SET status=?1,approvedAt=CASE WHEN ?1='APPROVED' THEN ?2 ELSE approvedAt END,approvedBy=CASE WHEN ?1='APPROVED' THEN ?3 ELSE approvedBy END,eligibilityReason=?4,updatedAt=?2 WHERE attributionId=?5 AND status IN ('PENDING','ELIGIBLE')").bind(rewardStatus, now, actorHash, reason, current.attributionId));
+  }
+  const results = await db.batch(statements);
+  if (Number(results?.[0]?.meta?.changes || 0) !== 1) return { status: 409, error: "Review changed; reload and try again." };
   return { status: 200, data: { status: decision, reviewedAt: now } };
 }

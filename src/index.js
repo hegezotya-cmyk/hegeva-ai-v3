@@ -28,7 +28,7 @@ import { applyEmailDeliveryState, canConfirmEmailDelivery, emailContentDigest } 
 import { synchronizePreparedWork, transitionPreparedWork } from "./prepared-work-review.js";
 import { BUSINESS_SCORE_METHODOLOGY, deriveBusinessScoreShare, hashBusinessScoreToken, newBusinessScoreToken, normalizeShareExpiry } from "./business-score-share.js";
 import { createReferralCode, revokeReferralCode, recordReferralTouch, attributeReferral, listReferralAttributions } from "./referral-attribution.js";
-import { reconcileReferralRewardForUser, listReferralRewardReviews, reviewReferralReward } from "./referral-reward-review.js";
+import { reconcileReferralRewardForUser, listReferralRewardReviews, listReferralRewardSummary, reviewReferralReward } from "./referral-reward-review.js";
 import { PLAN_LIMITS, resolveAssistantPlan } from "./assistant-plan.js";
 
 // =========================================
@@ -1595,7 +1595,8 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
       const adminEmail=typeof env.ADMIN_EMAIL==="string"?env.ADMIN_EMAIL.trim().toLowerCase():"";
       const isOwnerReviewer=Boolean(adminEmail&&user.email&&user.email.trim().toLowerCase()===adminEmail);
       const items=await listReferralRewardReviews(env.DB,user.id,isOwnerReviewer);
-      return Response.json({items},{headers:{"Cache-Control":"private, no-store"}});
+      const summary=await listReferralRewardSummary(env.DB,user.id,isOwnerReviewer);
+      return Response.json({items,summary},{headers:{"Cache-Control":"private, no-store"}});
     }
     if (url.pathname.startsWith("/api/referrals/reward-reviews/") && request.method === "POST") {
       const user=await getLoggedInUserFn(request,env,ctx);
