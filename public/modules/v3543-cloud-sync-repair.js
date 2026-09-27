@@ -120,6 +120,30 @@
       return false;
     }
 
+    const localUpdated = (() => {
+      try{
+        return localStorage.getItem(
+          "hegeva_v3540_workspace_updated"
+        ) || "";
+      }catch(_error){
+        return "";
+      }
+    })();
+
+    const cloudUpdated = String(
+      cloud.hegeva_v3540_workspace_updated || ""
+    );
+
+    const localTime = Date.parse(localUpdated) || 0;
+    const cloudTime = Date.parse(cloudUpdated) || 0;
+
+    if(
+      localTime > 0 &&
+      (cloudTime === 0 || cloudTime <= localTime)
+    ){
+      return true;
+    }
+
     WORKSPACE_KEYS.forEach(key => {
       if(
         Object.prototype
