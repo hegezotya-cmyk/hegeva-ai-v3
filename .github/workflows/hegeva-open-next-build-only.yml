@@ -27,6 +27,9 @@ jobs:
       - name: Install V0 dependencies
         run: npm ci
 
+      - name: Workspace stale-cloud regression audit
+        run: node scripts/workspace-sync-repair-audit.mjs
+
       - name: Referral growth-loop source and first-touch audit
         run: node scripts/customer-referral-growth-loop-audit.mjs
 
