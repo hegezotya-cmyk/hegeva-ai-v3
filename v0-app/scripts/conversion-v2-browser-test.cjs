@@ -109,11 +109,13 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
       await testPage.locator('input[type="email"]').fill(user.email)
       await testPage.locator('input[type="password"]').fill('Local-fixture-only-123')
       await testPage.locator('button[type="submit"]').click()
-      if (['rejected','missing-session'].includes(outcome)) {
+      if (outcome === 'rejected') {
         await testPage.getByText('Authentication failed.', {exact:false}).waitFor()
+      } else if (outcome === 'missing-session') {
+        await testPage.getByText('Verify your email address before signing in.', {exact:false}).waitFor()
       } else { await testPage.waitForURL('**/pricing') }
       const emitted = await testPage.evaluate(() => (window.dataLayer || []).filter(x => x[0] === 'event' && x[1] === 'registration_completed'))
-      assert.equal(emitted.length, outcome === 'success' ? 1 : 0, outcome)
+      assert.equal(emitted.length, ['success', 'missing-session', 'mismatched-session'].includes(outcome) ? 1 : 0, outcome)
       assert.equal(JSON.stringify(await testPage.evaluate(() => window.dataLayer || [])).includes(user.email), false)
       await testContext.close()
     }
@@ -143,7 +145,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
       await testContext.route('**/*google-analytics.com/**', route => route.abort())
       const page = await testContext.newPage()
       await page.goto(base + '/account?billing=success', {waitUntil:'domcontentloaded'})
-      await page.waitForFunction(() => document.body.innerText.includes('Subscription'))
+      await page.waitForFunction(() => document.body.innerText.includes('Account details'))
       await page.waitForTimeout(100)
       await page.goto(base + '/account?billing=success', {waitUntil:'domcontentloaded'})
       await page.waitForTimeout(100)
