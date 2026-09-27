@@ -63,6 +63,14 @@ export function AuthPanel() {
     return value?.startsWith("/") && !value.startsWith("//") ? value : fallback
   }
 
+  async function attributeCapturedReferral() {
+    const referral = captureReferralAttribution()
+    if (!referral) return false
+    const response = await fetch("/api/referrals/attribute", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: referral.code }) }).catch(() => null)
+    if (response?.ok) clearReferralAttribution()
+    return true
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError("")
@@ -103,13 +111,11 @@ export function AuthPanel() {
           return
         }
         trackRegistrationCompleted()
-        const referral = captureReferralAttribution()
-        if (referral) {
-          await fetch("/api/referrals/attribute", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: referral.code }) }).catch(() => null)
+        const referralCaptured = await attributeCapturedReferral()
+        if (referralCaptured) {
           window.dispatchEvent(new CustomEvent("hegeva:analytics-event", {
-            detail: { event: "referral_signup", path: "/login", params: { referral_code: referral.code } },
+            detail: { event: "referral_signup", path: "/login" },
           }))
-          clearReferralAttribution()
         }
         setVerificationPending(true)
         setSuccess(c.verificationRequired)
@@ -138,6 +144,7 @@ export function AuthPanel() {
         return
       }
 
+      await attributeCapturedReferral()
       router.push(safeCallbackURL())
       router.refresh()
     } catch {

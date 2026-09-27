@@ -11,6 +11,7 @@ import { ACCOUNT_COPY } from "@/lib/i18n/account-copy"
 import { LEADS_COPY } from "@/lib/i18n/leads-copy"
 import { trackSubscriptionSuccess } from "@/lib/conversion-tracking"
 import { ReferralReview } from "@/components/growth/referral-review"
+import { WorkspaceBusinessCheck } from "@/components/growth/workspace-business-check"
 
 type PlanStatus = { plan:string; aiMessages:number; aiLimit:number; aiRemaining:number; assistantTopUpCredits:number; period:string }
 type BillingStatus = { customerPortalReady:boolean; subscriptionStatus:string | null; cancelAtPeriodEnd:boolean; currentPeriodEnd:string | null }
@@ -280,6 +281,7 @@ export default function AccountPage() {
           <button type="button" disabled={loggingOut} onClick={() => void logout()} className="mt-3 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60">{loggingOut ? c.checking : c.logout}</button>
         </aside>
       </div>
+      <WorkspaceBusinessCheck />
       <ReferralReview />
     </main>
   </AppShell>

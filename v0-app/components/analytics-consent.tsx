@@ -170,7 +170,7 @@ export function AnalyticsConsent() {
     const referral = captureReferralAttribution()
     if (!referral?.fresh) return
     window.dispatchEvent(new CustomEvent("hegeva:analytics-event", {
-      detail: { event: "referral_visit", path: "/challenge", params: { referral_code: referral.code } },
+      detail: { event: "referral_visit", path: "/challenge" },
     }))
   }, [consent, pathname])
 

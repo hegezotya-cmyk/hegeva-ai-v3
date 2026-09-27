@@ -192,7 +192,7 @@ export function WorkspaceBusinessCheck() {
     tracked.current = true
     const score = scoreResult.score?.overall ?? 0
     const scoreBand = score < 50 ? "0-49" : score < 75 ? "50-74" : "75-100"
-    recordAnalyticsEvent("own_business_result", "/challenge", { score_band: scoreBand, observed_categories: scoreResult.observedCategories.length })
+    recordAnalyticsEvent("own_business_result", "/account", { score_band: scoreBand, observed_categories: scoreResult.observedCategories.length })
   }, [canRenderScore, mounted, scoreResult, session?.user])
 
   if (!mounted || !session?.user) return null

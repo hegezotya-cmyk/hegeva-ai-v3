@@ -21,5 +21,10 @@ expect(consent.includes('"referral_visit"') && consent.includes('"referral_signu
 expect(consent.includes("clearReferralAttribution()"), "analytics denial must clear referral context")
 expect(auth.includes('"referral_signup"'), "successful referral registration event missing")
 expect(auth.includes("clearReferralAttribution()"), "referral context must be one-shot after signup")
+const referralVisitEvent = consent.match(/detail:\s*\{\s*event:\s*"referral_visit"[\s\S]*?\}\s*\}/)?.[0] || ""
+const referralSignupEvent = auth.match(/detail:\s*\{\s*event:\s*"referral_signup"[\s\S]*?\}\s*\}/)?.[0] || ""
+expect(referralVisitEvent && !referralVisitEvent.includes("referral_code"), "referral_visit analytics must not contain raw referral_code")
+expect(referralSignupEvent && !referralSignupEvent.includes("referral_code"), "referral_signup analytics must not contain raw referral_code")
+expect(auth.includes("body: JSON.stringify({ code: referral.code })"), "authenticated attribution must retain the one-shot referral code")
 expect(!route.includes("email") && !tracking.includes("customerName"), "referral flow must not contain customer identity")
 console.log("HEGEVA Referral V1 audit PASS")

@@ -32,7 +32,7 @@ for (const event of ["challenge_view", "challenge_start", "business_type_selecte
   expect(consent.includes(event), `consent allowlist missing: ${event}`)
 }
 expect(tracking.includes('"/challenge"'), "challenge public analytics path missing")
-expect(home.includes('href="/challenge"') && home.includes("GIVE HEGEVA 60 SECONDS"), "homepage challenge entry missing")
+expect(/HOMEPAGE_CHALLENGE_HREF\s*=\s*["']\/challenge["']/.test(home) && home.includes("GIVE HEGEVA 60 SECONDS"), "homepage challenge entry missing")
 expect(sitemap.includes("'/challenge'"), "challenge sitemap entry missing")
 for (const locale of ["en:", "hu:", "de:", "fr:", "es:"]) expect(challenge.includes(locale), `locale missing: ${locale}`)
 expect(!challenge.includes("window.gtag"), "challenge must not call GA4 directly")
