@@ -1,5 +1,7 @@
 import assert from "node:assert/strict"
 import fs from "node:fs"
+import vm from "node:vm"
+import ts from "typescript"
 
 const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), "utf8")
 const home = read("app/page.tsx")
@@ -12,6 +14,67 @@ const challenge = read("components/growth/sixty-second-challenge.tsx")
 const referralUi = read("components/growth/referral-review.tsx")
 const scorePanel = read("components/growth/workspace-business-check.tsx")
 const referralRoute = read("app/r/[code]/page.tsx")
+
+function assertReferralFirstTouchBehavior() {
+  const compiled = ts.transpileModule(tracking, {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+      esModuleInterop: true,
+    },
+  }).outputText
+  const touchBodies = []
+  let now = Date.parse("2026-09-27T00:00:00.000Z")
+  const makeStorage = (initial = {}) => {
+    const values = new Map(Object.entries(initial))
+    return {
+      getItem: (key) => values.has(key) ? values.get(key) : null,
+      setItem: (key, value) => values.set(key, String(value)),
+      removeItem: (key) => values.delete(key),
+    }
+  }
+  const moduleRecord = { exports: {} }
+  const sandbox = {
+    module: moduleRecord,
+    exports: moduleRecord.exports,
+    require: (specifier) => {
+      assert.equal(specifier, "./activation-measurement", "tracking module dependency must stay explicit")
+      return { activationStorageKey: () => null }
+    },
+    Date: class extends Date { static now() { return now } },
+    URLSearchParams,
+    window: { location: { search: "?ref=AAAAAAAAAAAAAAAAAAAAAAAA" } },
+    localStorage: makeStorage({ "hegeva:analytics-consent:v1": "granted" }),
+    sessionStorage: makeStorage(),
+    fetch: (_url, options) => {
+      touchBodies.push(JSON.parse(options.body))
+      return Promise.resolve({ ok: true })
+    },
+  }
+  vm.runInNewContext(compiled, sandbox, { filename: "conversion-tracking.ts" })
+  const capture = sandbox.module.exports.captureReferralAttribution
+  assert.equal(typeof capture, "function", "tracking module must export the referral capture helper")
+
+  const first = capture()
+  assert.equal(first?.code, "AAAAAAAAAAAAAAAAAAAAAAAA", "the first referral URL must be captured")
+  sandbox.window.location.search = "?ref=BBBBBBBBBBBBBBBBBBBBBBBB"
+  const second = capture()
+  assert.equal(second?.code, "AAAAAAAAAAAAAAAAAAAAAAAA", "a later referral URL must not replace the captured first touch")
+  assert.equal(
+    JSON.parse(sandbox.sessionStorage.getItem("hegeva:referral:v1")).code,
+    "AAAAAAAAAAAAAAAAAAAAAAAA",
+    "signup context must retain the first captured code",
+  )
+  assert.deepEqual(touchBodies.map((body) => body.code), ["AAAAAAAAAAAAAAAAAAAAAAAA", "BBBBBBBBBBBBBBBBBBBBBBBB"], "direct referral visits still reach the touch endpoint")
+  sandbox.window.location.search = ""
+  assert.equal(capture()?.code, "AAAAAAAAAAAAAAAAAAAAAAAA", "signup without a direct code must use the first captured touch")
+
+  now += 31 * 24 * 60 * 60 * 1000
+  sandbox.window.location.search = "?ref=BBBBBBBBBBBBBBBBBBBBBBBB"
+  assert.equal(capture()?.code, "BBBBBBBBBBBBBBBBBBBBBBBB", "an expired first touch must allow a new 30-day window")
+}
+
+assertReferralFirstTouchBehavior()
 
 assert.match(home, /HOMEPAGE_CHALLENGE_ENTRY/, "homepage must own the Challenge entry contract")
 assert.match(home, /HOMEPAGE_CHALLENGE_HREF\s*=\s*["']\/challenge["']/, "page-level source must define the executable /challenge href")
