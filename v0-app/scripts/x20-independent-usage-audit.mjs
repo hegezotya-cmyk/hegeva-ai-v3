@@ -7,7 +7,7 @@ import { startX20Action } from "../../src/x20-ledger.js"
 const indexSource = readFileSync(new URL("../../src/index.js", import.meta.url), "utf8")
 assert.match(indexSource, /SELECT x20Actions FROM x20_ai_usage/)
 assert.match(indexSource, /x20Limit: planInfo\.limit/)
-assert.match(indexSource, /x20Remaining: Math\.max/)
+assert.match(indexSource, /x20Remaining:\s*planInfo\.limit === null\s*\?\s*null\s*:\s*Math\.max\(0,\s*planInfo\.limit\s*-\s*x20Actions\)/)
 
 const migration = readFileSync(new URL("../../migrations/0008_x20_request_ledger.sql", import.meta.url), "utf8") + "\n" + readFileSync(new URL("../../migrations/0010_x20_independent_usage.sql", import.meta.url), "utf8")
 const period = "2026-08"
