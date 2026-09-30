@@ -1,8 +1,10 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect, useRef } from "react"
 import { useI18n } from "@/lib/i18n/provider"
 import { AUTH_COPY } from "@/lib/i18n/auth-copy"
+import { recordAnalyticsEvent } from "@/components/acquisition/acquisition-attribution"
 
 type EmailVerificationPanelProps = {
   status?: string
@@ -18,6 +20,21 @@ export function EmailVerificationPanel({
   const expired = error === "TOKEN_EXPIRED"
   const invalid = Boolean(error) && !expired
   const verified = status === "verified" && !error
+  const analyticsRecorded = useRef(false)
+
+  useEffect(() => {
+    if (!verified || analyticsRecorded.current) return
+    analyticsRecorded.current = true
+    recordAnalyticsEvent("email_verified", "/email-verification")
+  }, [verified])
+
+  const nextStep = {
+    en: "Next: sign in, then add your first real customer in your workspace.",
+    hu: "Következő lépés: lépj be, majd add hozzá az első valódi ügyfeledet a munkaterületedhez.",
+    de: "Nächster Schritt: Melden Sie sich an und fügen Sie dann Ihren ersten echten Kunden hinzu.",
+    fr: "Étape suivante : connectez-vous, puis ajoutez votre premier vrai client dans votre espace.",
+    es: "Siguiente paso: inicia sesión y añade tu primer cliente real a tu espacio.",
+  }[locale]
 
   const title = verified
     ? c.verificationSuccessful
@@ -38,6 +55,7 @@ export function EmailVerificationPanel({
     <section className="glass-panel rounded-2xl p-6 sm:p-8">
       <h1 className="text-2xl font-semibold">{title}</h1>
       <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{message}</p>
+      {verified && <p className="mt-3 rounded-xl border border-primary/25 bg-primary/5 px-3 py-2 text-sm text-foreground">{nextStep}</p>}
       <Link href={verified ? "/login?callbackURL=%2Fget-started" : "/login"} className="mt-6 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">
         {verified ? c.continueToLogin : c.returnLogin}
       </Link>
