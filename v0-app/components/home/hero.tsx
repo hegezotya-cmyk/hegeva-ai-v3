@@ -18,11 +18,11 @@ export function Hero() {
   const { locale } = useI18n()
   const copy = liveHeroCopy[locale]
   const conversion = {
-    en: { title: ["Less admin.", "More business."], description: "One workspace for small-business owners: customers, quotes, invoices and planning. HEGEVA Core helps you see what needs attention next.", cta: "Try HEGEVA AI", pricing: "View pricing" },
-    hu: { title: ["Kevesebb admin.", "Több üzlet."], description: "Egy munkatér kisvállalkozóknak: ügyfelek, ajánlatok, számlák és tervezés. A HEGEVA Core segít átlátni, mi igényel figyelmet.", cta: "Próbáld ki a HEGEVA AI-t", pricing: "Árak megtekintése" },
-    de: { title: ["Weniger Verwaltung.", "Mehr Geschäft."], description: "Ein Workspace für kleine Unternehmen: Kunden, Angebote, Rechnungen und Planung. HEGEVA Core zeigt, was als Nächstes Aufmerksamkeit braucht.", cta: "HEGEVA AI ausprobieren", pricing: "Preise ansehen" },
-    fr: { title: ["Moins d’administratif.", "Plus d’activité."], description: "Un espace pour les petites entreprises : clients, devis, factures et planification. HEGEVA Core vous aide à voir les prochaines priorités.", cta: "Essayer HEGEVA AI", pricing: "Voir les prix" },
-    es: { title: ["Menos papeleo.", "Más negocio."], description: "Un espacio para pequeñas empresas: clientes, presupuestos, facturas y planificación. HEGEVA Core te ayuda a ver qué necesita atención.", cta: "Prueba HEGEVA AI", pricing: "Ver precios" },
+    en: { title: ["Less admin.", "More business."], description: "One workspace for small-business owners: customers, quotes, invoices and planning. HEGEVA Core helps you see what needs attention next.", cta: "See what HEGEVA can do in 60 seconds", workspace: "Create your workspace", pricing: "View pricing" },
+    hu: { title: ["Kevesebb admin.", "Több üzlet."], description: "Egy munkatér kisvállalkozóknak: ügyfelek, ajánlatok, számlák és tervezés. A HEGEVA Core segít átlátni, mi igényel figyelmet.", cta: "Nézd meg 60 másodperc alatt, mit tud a HEGEVA", workspace: "Hozd létre a munkaterületed", pricing: "Árak megtekintése" },
+    de: { title: ["Weniger Verwaltung.", "Mehr Geschäft."], description: "Ein Workspace für kleine Unternehmen: Kunden, Angebote, Rechnungen und Planung. HEGEVA Core zeigt, was als Nächstes Aufmerksamkeit braucht.", cta: "Erleben Sie HEGEVA in 60 Sekunden", workspace: "Arbeitsbereich erstellen", pricing: "Preise ansehen" },
+    fr: { title: ["Moins d’administratif.", "Plus d’activité."], description: "Un espace pour les petites entreprises : clients, devis, factures et planification. HEGEVA Core vous aide à voir les prochaines priorités.", cta: "Découvrez HEGEVA en 60 secondes", workspace: "Créer votre espace", pricing: "Voir les prix" },
+    es: { title: ["Menos papeleo.", "Más negocio."], description: "Un espacio para pequeñas empresas: clientes, presupuestos, facturas y planificación. HEGEVA Core te ayuda a ver qué necesita atención.", cta: "Descubre HEGEVA en 60 segundos", workspace: "Crea tu espacio", pricing: "Ver precios" },
   }[locale]
 
   return (
@@ -61,16 +61,18 @@ export function Hero() {
           </p>
 
           <div className="hero-actions mt-8 flex flex-wrap items-center gap-3">
-            <Link href="/login?mode=register" data-acquisition-event="primary_cta_click" className={cn(buttonVariants({ size: "lg" }), "hegeva-primary group h-12 gap-2 px-6 text-sm")}>
+            <Link href="/challenge" data-acquisition-event="primary_cta_click" data-acquisition-cta="homepage_challenge" className={cn(buttonVariants({ size: "lg" }), "hegeva-primary group h-12 gap-2 px-6 text-sm")}>
               {conversion.cta}
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
             </Link>
             <Link
-              href="#operating-picture"
+              href="/login?mode=register"
+              data-acquisition-event="primary_cta_click"
+              data-acquisition-cta="homepage_workspace"
               className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-11 gap-2 px-5 text-sm")}
             >
               <MessageSquareText className="size-4 text-primary" aria-hidden />
-              {copy.secondary}
+              {conversion.workspace}
             </Link>
             <Link
               href="/pricing"

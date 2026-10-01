@@ -28,6 +28,7 @@ export type AnalyticsEvent =
   | "referral_visit"
   | "referral_signup"
   | "email_verified"
+  | "get_started_entry"
 
 export type AnalyticsParams = Record<string, string | number | boolean>
 
@@ -68,8 +69,10 @@ export function AcquisitionAttribution({ path }: { path: string }) {
     const click = (event: MouseEvent) => {
       const target = (event.target as Element | null)?.closest<HTMLElement>("[data-acquisition-event]")
       const name = target?.dataset.acquisitionEvent as AnalyticsEvent | undefined
+      const destination = target?.dataset.acquisitionDestination
       if (name === "registration_start" || name === "pricing_view") recordAnalyticsEvent(name, path)
-      if (name === "demo_entry_click") recordAnalyticsEvent(name, path, { source: "homepage", destination: "/demo" })
+      if (name === "demo_entry_click" && destination === "/challenge") recordAnalyticsEvent(name, path, { source: "homepage", destination })
+      if (name === "get_started_entry" && destination === "/get-started") recordAnalyticsEvent(name, path, { destination })
     }
     document.addEventListener("click", click)
     return () => document.removeEventListener("click", click)

@@ -101,7 +101,7 @@ export function AnalyticsConsent() {
     const receive = (event: Event) => {
       if (consent !== "granted" || !window.gtag) return
       const detail = (event as CustomEvent<{ event?: string; path?: string; params?: Record<string, string | number | boolean> }>).detail
-      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "email_verified", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click", "challenge_view", "challenge_start", "business_type_selected", "demo_loaded", "demo_analysis_complete", "priority_viewed", "prepare_action_click", "prepared_action_complete", "challenge_complete", "business_score_view", "try_my_business_click", "own_business_start", "own_business_result", "share_click", "free_tool_use", "free_tool_cta_click", "referral_visit", "referral_signup", "referral_link_copy", "referral_paid_qualified", "referral_reward_reviewed"].includes(detail.event || "")) return
+      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "email_verified", "get_started_entry", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click", "challenge_view", "challenge_start", "business_type_selected", "demo_loaded", "demo_analysis_complete", "priority_viewed", "prepare_action_click", "prepared_action_complete", "challenge_complete", "business_score_view", "try_my_business_click", "own_business_start", "own_business_result", "share_click", "free_tool_use", "free_tool_cta_click", "referral_visit", "referral_signup", "referral_link_copy", "referral_paid_qualified", "referral_reward_reviewed"].includes(detail.event || "")) return
       const activationPaths = ["/get-started", "/business/customers", "/business/invoices", "/command-center", "/pricing", "/account", "/demo", "/challenge"]
       if (!detail.path || (!PUBLIC_ANALYTICS_PATHS.includes(detail.path) && !activationPaths.includes(detail.path))) return
       const key = `${detail.event}:${detail.path}`
@@ -141,7 +141,7 @@ export function AnalyticsConsent() {
         sessionStorage.removeItem(PENDING_CTA_KEY)
         const age = Date.now() - pending.createdAt
         if (PUBLIC_ANALYTICS_PATHS.includes(pending.path) && age >= 0 && age < 60000) {
-          window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event: "primary_cta_click", path: pending.path } }))
+          window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event: "primary_cta_click", path: pending.path, params: { destination: pending.destination, cta: pending.cta || "unspecified" } } }))
         }
       }
     } catch { /* Storage must never prevent navigation or signup. */ }
@@ -155,7 +155,7 @@ export function AnalyticsConsent() {
       const destination = new URL(target.href)
       if (destination.origin !== window.location.origin || !PUBLIC_ANALYTICS_PATHS.includes(destination.pathname) || !PUBLIC_ANALYTICS_PATHS.includes(pathname)) return
       try {
-        sessionStorage.setItem(PENDING_CTA_KEY, JSON.stringify({path:pathname,destination:destination.pathname,createdAt:Date.now()}))
+        sessionStorage.setItem(PENDING_CTA_KEY, JSON.stringify({path:pathname,destination:destination.pathname,cta:target.dataset.acquisitionCta || "unspecified",createdAt:Date.now()}))
       } catch {
         // Best-effort only when storage is blocked; never delay the customer's navigation.
         window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event: "primary_cta_click", path: pathname } }))
