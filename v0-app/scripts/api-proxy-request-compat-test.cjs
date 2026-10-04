@@ -3,7 +3,6 @@ const fs = require('node:fs')
 const path = require('node:path')
 const vm = require('node:vm')
 const ts = require('typescript')
-const { execFileSync } = require('node:child_process')
 const { Request: BindingRequest } = require('miniflare')
 const filename = path.resolve(__dirname, '../app/api/[...path]/route.ts')
 // Only the external service boundary is substituted. The production route and
@@ -19,9 +18,8 @@ function load(source, binding) {
 }
 ;(async () => {
   const boundary = { async fetch(input, init) { new BindingRequest(input, init); return new Response('ok') } }
-  const before = execFileSync('git', ['show', 'HEAD:v0-app/app/api/[...path]/route.ts'], { cwd: path.dirname(filename), encoding: 'utf8' })
-  await assert.rejects(load(before, boundary).GET(new Request('http://localhost/api/transport-regression')), /Failed to parse URL from \[object Request\]/)
-  console.log('EXPECTED FAIL before fix: Failed to parse URL from [object Request]')
+  await assert.rejects(boundary.fetch(new Request('http://localhost/api/transport-regression')), /Failed to parse URL from \[object Request\]/)
+  console.log('CONFIRMED: the binding rejects a Request object as input')
   let forwarded, upstream, pulls
   const binding = { async fetch(input, init) {
     const request = new BindingRequest(input, init)

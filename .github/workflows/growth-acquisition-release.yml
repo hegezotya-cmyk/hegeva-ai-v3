@@ -1,0 +1,63 @@
+name: HEGEVA Growth Acquisition UI Release
+
+on:
+  push:
+    branches:
+      - growth-acquisition-conversion-sprint-03-20261001
+    paths:
+      - "v0-app/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hegeva-growth-acquisition-ui-release
+  cancel-in-progress: false
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  verify-and-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v0-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Enterprise and proxy regressions
+        run: |
+          node scripts/api-proxy-request-compat-test.cjs
+          node scripts/enterprise-guest-render-test.cjs
+
+      - name: TypeScript check
+        run: npx tsc --noEmit --incremental false
+
+      - name: Production build
+        run: npm run build
+
+      - name: Cloudflare OpenNext build
+        run: npm run cf:build
+
+      - name: Require Cloudflare credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN repository secret"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing CLOUDFLARE_ACCOUNT_ID repository secret"; exit 1; }
+
+      - name: Deploy verified UI Worker
+        run: npx opennextjs-cloudflare deploy
