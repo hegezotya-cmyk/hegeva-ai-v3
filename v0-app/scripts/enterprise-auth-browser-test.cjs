@@ -71,7 +71,10 @@ async function verifySignedIn(browser) {
 }
 
 ;(async () => {
-  const browser = await chromium.launch({ channel: "chrome", headless: true })
+  const browser = await chromium.launch({
+    ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}),
+    headless: true,
+  })
   try {
     await verifyGuest(browser)
     await verifySignedIn(browser)
