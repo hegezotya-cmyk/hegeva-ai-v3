@@ -1,4 +1,5 @@
 ﻿import assert from "node:assert/strict"
+import { readFile } from "node:fs/promises"
 import { boundAssistantProviderPayload, buildWorkersAiProjection, ASSISTANT_MODEL_TIERS } from "../../src/cloudflare-ai-provider.js"
 
 const projection = buildWorkersAiProjection({
@@ -19,5 +20,9 @@ assert.match(systemPrompt, /approval required/i, "external-effect proposals must
 assert.match(systemPrompt, /etymology/i, "system prompt must prevent invented explanations of the HEGEVA name")
 assert.match(systemPrompt, /live data/i, "system prompt must disclose lack of live data for current opportunities")
 assert.match(systemPrompt, /Do not call tools or execute actions/i, "existing no-tools/no-actions boundary must remain")
+
+const assistantChat = await readFile(new URL("../components/assistant/assistant-chat.tsx", import.meta.url), "utf8")
+assert.match(assistantChat, /Ashna · HEGEVA Core/, "Assistant UI must identify Ashna as the HEGEVA Core copilot")
+assert.match(assistantChat, /Prepared actions always require your approval/, "Assistant UI must disclose approval requirements")
 
 console.log("HEGEVA Assistant identity audit passed")
