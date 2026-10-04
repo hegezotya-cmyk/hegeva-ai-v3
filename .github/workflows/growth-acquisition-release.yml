@@ -77,3 +77,11 @@ jobs:
 
       - name: Deploy verified UI Worker
         run: npx opennextjs-cloudflare deploy
+
+      - name: Install API Worker dependencies
+        working-directory: .
+        run: npm ci
+
+      - name: Deploy verified API Worker
+        working-directory: .
+        run: npx wrangler deploy
