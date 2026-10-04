@@ -20,5 +20,6 @@ for (const directive of [
 assert.match(config, /https:\/\/www\.googletagmanager\.com/, "CSP must preserve consented analytics loading")
 assert.match(config, /https:\/\/www\.clarity\.ms/, "CSP must preserve optional consented Clarity loading")
 assert.match(config, /https:\/\/checkout\.stripe\.com/, "CSP must preserve Stripe Checkout framing")
+assert.match(config, /connect-src[^"]*https:\/\/hegevaai\.co\.uk/, "CSP must preserve the public auth client origin")
 
 console.log("Production surface audit passed: Enterprise sitemap and CSP contract")

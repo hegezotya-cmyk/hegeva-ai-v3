@@ -11,7 +11,7 @@ const user = {
 
 async function configureApi(context, signedIn) {
   await context.route("**/api/auth/get-session", async route => {
-    await new Promise(resolve => setTimeout(resolve, 50))
+    await new Promise(resolve => setTimeout(resolve, 300))
     return route.fulfill({
     status: 200,
     contentType: "application/json",
