@@ -50,6 +50,19 @@ jobs:
       - name: Production build
         run: npm run build
 
+      - name: Run Enterprise browser regression
+        shell: bash
+        run: |
+          npm run start -- --hostname 127.0.0.1 --port 3108 > /tmp/hegeva-next.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for attempt in {1..30}; do
+            curl --fail --silent http://127.0.0.1:3108/enterprise > /dev/null && break
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:3108/enterprise > /dev/null
+          TEST_BASE_URL=http://127.0.0.1:3108 node scripts/enterprise-auth-browser-test.cjs
+
       - name: Cloudflare OpenNext build
         run: npm run cf:build
 
