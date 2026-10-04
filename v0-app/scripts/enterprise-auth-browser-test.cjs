@@ -43,7 +43,7 @@ async function verifyGuest(browser) {
     const page = await context.newPage()
     const errors = []
     page.on("pageerror", error => errors.push(error.message))
-    await page.goto(`${baseUrl}/enterprise`, { waitUntil: "networkidle" })
+    await page.goto(`${baseUrl}/enterprise`, { waitUntil: "domcontentloaded" })
     await page.getByRole("link", { name: "Contact us" }).waitFor()
     await page.getByRole("link", { name: "View pricing" }).waitFor()
     assert.equal(await page.locator("input, select").count(), 0)
@@ -60,7 +60,7 @@ async function verifySignedIn(browser) {
     const page = await context.newPage()
     const errors = []
     page.on("pageerror", error => errors.push(error.message))
-    await page.goto(`${baseUrl}/enterprise`, { waitUntil: "networkidle" })
+    await page.goto(`${baseUrl}/enterprise`, { waitUntil: "domcontentloaded" })
     await page.getByRole("button", { name: "Save changes" }).waitFor()
     assert(await page.locator("input").count() > 0)
     assert(await page.locator("select").count() > 0)
