@@ -46,6 +46,7 @@ jobs:
         run: |
           node scripts/api-proxy-request-compat-test.cjs
           node scripts/enterprise-guest-render-test.cjs
+          node scripts/production-surface-audit.mjs
 
       - name: TypeScript check
         run: npx tsc --noEmit --incremental false
