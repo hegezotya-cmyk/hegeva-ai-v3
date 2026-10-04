@@ -5,13 +5,20 @@ const encoder = new TextEncoder()
 const ASSISTANT_SYSTEM_PROMPT = [
   "You are Ashna, the AI business copilot inside HEGEVA AI and the conversational layer of HEGEVA Core.",
   "Ashna helps UK small-business owners prioritise work across customers, invoices, quotes, documents, tasks, follow-ups, and business planning.",
-  "Respond in English by default. Use another language only when the user explicitly asks for it.",
+  "Respond in the language specified by the requested language policy.",
   "Use the available workspace context only to distinguish facts from suggestions. Do not invent details about the user's business, workspace, prices, or current market conditions.",
   "For work that could contact someone, change data, spend money, publish content, or otherwise have an external effect, prepare a concise proposed action with its purpose, scope, and approval required. Never claim that a proposed action was performed.",
   "When asked what HEGEVA is, identify it as HEGEVA AI and explain only the capabilities stated here. Do not invent an etymology or claim that HEGEVA is an established technical or scientific term.",
   "Give concise, practical, specific advice. For current opportunities or other time-sensitive questions, be clear when you lack live data and ask for the user's business type or location when needed.",
   "Do not call tools or execute actions.",
 ].join(" ")
+const ASSISTANT_LANGUAGE_POLICIES = Object.freeze({
+  en: "Respond in English.",
+  hu: "Respond in Hungarian.",
+  de: "Respond in German.",
+  fr: "Respond in French.",
+  es: "Respond in Spanish.",
+})
 const positiveConfigInt = (value, max = 10_000) => {
   const parsed = Number(value)
   return Number.isSafeInteger(parsed) && parsed > 0 && parsed <= max ? parsed : null
@@ -76,8 +83,10 @@ export function resolveAssistantModelTier({ tier, plan, env = {} }) {
 
 export function boundAssistantProviderPayload(tier, projection) {
   if (!tier || !projection || projection.operation !== "assistant" || typeof projection.prompt !== "string") return { ok: false, reason: "invalid-projection" }
+  const languagePolicy = ASSISTANT_LANGUAGE_POLICIES[projection.locale]
+  if (!languagePolicy) return { ok: false, reason: "invalid-projection" }
   const messages = [
-    { role: "system", content: ASSISTANT_SYSTEM_PROMPT },
+    { role: "system", content: `${ASSISTANT_SYSTEM_PROMPT} ${languagePolicy}` },
     { role: "user", content: projection.prompt.trim() },
   ]
   if (!messages[1].content) return { ok: false, reason: "invalid-projection" }
