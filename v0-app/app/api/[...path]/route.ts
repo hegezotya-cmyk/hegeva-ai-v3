@@ -219,14 +219,13 @@ async function proxyToHegevaApi(request: Request) {
     }
   }
 
-  const upstreamRequest = new Request(publicUrl, {
+  const upstreamResponse = await env.HEGEVA_API.fetch(publicUrl.toString(), {
     method: request.method,
     headers,
     body,
     redirect: "manual",
   })
 
-  const upstreamResponse = await env.HEGEVA_API.fetch(upstreamRequest)
   const responseHeaders = new Headers(upstreamResponse.headers)
 
   // Authentication, workspace and billing responses must never be retained
