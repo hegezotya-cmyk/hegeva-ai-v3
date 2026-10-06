@@ -21,6 +21,31 @@ const ASSISTANT_LANGUAGE_POLICIES = Object.freeze({
   fr: "Respond in French.",
   es: "Respond in Spanish.",
 })
+const ASSISTANT_INTERRUPTION_MESSAGES = Object.freeze({
+  en: "The answer was interrupted. Please ask again more briefly.",
+  hu: "A válasz generálása félbeszakadt. Kérlek, kérdezd újra rövidebben.",
+  de: "Die Antwort wurde unterbrochen. Bitte frage noch einmal kürzer.",
+  fr: "La réponse a été interrompue. Posez de nouveau la question plus brièvement.",
+  es: "La respuesta se interrumpió. Vuelve a preguntar de forma más breve.",
+})
+
+export function ensureCompleteAssistantResponse(value, locale = "en") {
+  const response = typeof value === "string" ? value.trim() : ""
+  const interruption = ASSISTANT_INTERRUPTION_MESSAGES[locale] || ASSISTANT_INTERRUPTION_MESSAGES.en
+  if (!response) return interruption
+  if (/[.!?…。！？][”’"')\]]*$/u.test(response)) return response
+
+  const lastSentenceEnd = Math.max(
+    response.lastIndexOf("."),
+    response.lastIndexOf("!"),
+    response.lastIndexOf("?"),
+    response.lastIndexOf("。"),
+    response.lastIndexOf("！"),
+    response.lastIndexOf("？"),
+  )
+  const completePrefix = lastSentenceEnd >= 0 ? response.slice(0, lastSentenceEnd + 1).trim() : ""
+  return `${completePrefix ? `${completePrefix} ` : ""}${interruption}`
+}
 const positiveConfigInt = (value, max = 10_000) => {
   const parsed = Number(value)
   return Number.isSafeInteger(parsed) && parsed > 0 && parsed <= max ? parsed : null
@@ -279,7 +304,7 @@ export async function invokeWorkersAiText(env, projection, { signal } = {}) {
     const providerUsage = normalizeWorkersAiUsage(response?.usage)
     const metrics = { ...providerUsage, durationMs: Math.max(0, Date.now() - startedAt) }
     if (!response || typeof response.response !== "string") return { ok: false, reason: "missing-response", metrics }
-    return { ok: true, response: response.response.slice(0, 12_000), metrics }
+    return { ok: true, response: ensureCompleteAssistantResponse(response.response, projection.locale).slice(0, 12_000), metrics }
   } catch (error) {
     return {
       ok: false,
