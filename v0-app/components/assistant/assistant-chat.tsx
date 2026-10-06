@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm"
 import { authClient } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
+import { hasAssistantWorkspaceData } from "@/lib/assistant-workspace-state.mjs"
 import { AICore, IntelligenceCard, SkeletonSurface } from "@/components/visual-engine"
 import { createCompanionProjection, createWorkspacePulseProjection } from "@/lib/foundation/roadmap-foundations"
 import { selectHegevaCorePriority } from "@/lib/hegeva-core"
@@ -152,7 +153,7 @@ export function AssistantChat() {
     () => messages.slice(-10),
     [messages]
   )
-  const workspaceHasRecords = customers.length + tasks.length + documents.length > 0
+  const workspaceHasRecords = hasAssistantWorkspaceData({ customers, tasks, documents, invoices, drafts })
   const today = new Date().toISOString().slice(0,10)
   const overdueInvoices = invoices.filter(item=>item.type==="invoice"&&item.status!=="paid"&&item.dueDate&&item.dueDate<today).length
   const customerFollowUpsDue = customers.filter(item=>item.followUp&&item.followUp<=today&&item.customerStatus!=="paused").length
