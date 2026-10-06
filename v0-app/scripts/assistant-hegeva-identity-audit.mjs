@@ -24,6 +24,8 @@ assert.match(systemPrompt, /You are Ashna/i, "system prompt must identify the as
 assert.match(systemPrompt, /HEGEVA AI/i, "system prompt must identify Ashna as part of HEGEVA AI")
 assert.match(systemPrompt, /HEGEVA Core/i, "system prompt must establish Ashna's Core role")
 assert.match(systemPrompt, /UK small.business/i, "system prompt must establish its UK small-business audience")
+assert.match(systemPrompt, /UK-focused small-business workspace/i, "system prompt must ground HEGEVA's actual product scope")
+assert.match(systemPrompt, /complete final sentence/i, "system prompt must require complete answers")
 assert.match(systemPrompt, /requested language policy/i, "system prompt must require the selected response language")
 assert.match(systemPrompt, /approval required/i, "external-effect proposals must require approval")
 assert.match(systemPrompt, /etymology/i, "system prompt must prevent invented explanations of the HEGEVA name")
