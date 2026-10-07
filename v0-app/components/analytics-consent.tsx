@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 import { analyticsPageLocation, campaignAttribution, captureReferralAttribution, clearReferralAttribution, PUBLIC_ANALYTICS_PATHS } from "@/lib/conversion-tracking"
+import { analyticsReferrerOrigin } from "@/lib/analytics-referrer.mjs"
 import { useI18n } from "@/lib/i18n/provider"
 
 const MEASUREMENT_ID = "G-TK99HP2BG7"
@@ -43,7 +44,7 @@ function queueConsentDefault() {
   window.__hegevaConsentDefaulted = true
 }
 
-function enableAnalytics() {
+function enableAnalytics(pageReferrer = analyticsReferrerOrigin(document.referrer, window.location.origin)) {
   queueConsentDefault()
   window.gtag?.("consent", "update", { analytics_storage: "granted" })
   window.gtag?.("js", new Date())
@@ -51,7 +52,7 @@ function enableAnalytics() {
     send_page_view: false,
     page_location: analyticsPageLocation(window.location.pathname),
     page_title: "HEGEVA AI",
-    page_referrer: "",
+    page_referrer: pageReferrer,
     ...campaignAttribution(),
     anonymize_ip: true,
     allow_google_signals: false,
@@ -88,6 +89,8 @@ export function AnalyticsConsent() {
   const pathname = usePathname()
   const sent = useRef(new Set<string>())
   const lastPageView = useRef<string | null>(null)
+  const firstPageReferrerSent = useRef(false)
+  const currentPageReferrer = useRef("")
 
   useEffect(() => {
     queueConsentDefault()
@@ -111,7 +114,7 @@ export function AnalyticsConsent() {
       const rewardParams = detail.event === "referral_reward_reviewed" && ["approved", "rejected"].includes(String(detail.params?.outcome || "")) && ["approved", "rejected"].includes(String(detail.params?.status || "")) && detail.params?.methodologyVersion === "referral-reward-review-v1"
         ? { outcome: detail.params.outcome, status: detail.params.status, methodologyVersion: "referral-reward-review-v1" }
         : ["referral_link_copy", "referral_paid_qualified"].includes(detail.event || "") ? {} : detail.params || {}
-      const analyticsParams = detail.event === "referral_reward_reviewed" ? rewardParams : { page_path: detail.path, page_location: analyticsPageLocation(detail.path), page_title: "HEGEVA AI", page_referrer: "", ...campaignAttribution(), ...rewardParams }
+      const analyticsParams = detail.event === "referral_reward_reviewed" ? rewardParams : { page_path: detail.path, page_location: analyticsPageLocation(detail.path), page_title: "HEGEVA AI", page_referrer: currentPageReferrer.current, ...campaignAttribution(), ...rewardParams }
       window.gtag("event", detail.event, analyticsParams)
     }
     window.addEventListener("hegeva:analytics-event", receive)
@@ -122,14 +125,19 @@ export function AnalyticsConsent() {
     if (consent !== "granted") return
     // Keep the standard GA4 page_view in the same consented lifecycle that emits
     // the proven acquisition events. This avoids a first-consent effect race.
-    enableAnalytics()
+    const pageReferrer = firstPageReferrerSent.current
+      ? ""
+      : analyticsReferrerOrigin(document.referrer, window.location.origin)
+    currentPageReferrer.current = pageReferrer
+    enableAnalytics(pageReferrer)
     if (PUBLIC_ANALYTICS_PATHS.includes(pathname) && lastPageView.current !== pathname) {
       lastPageView.current = pathname
+      firstPageReferrerSent.current = true
       window.gtag?.("event", "page_view", {
         page_path: pathname,
         page_location: analyticsPageLocation(pathname),
         page_title: "HEGEVA AI",
-        page_referrer: "",
+        page_referrer: pageReferrer,
         ...campaignAttribution(),
       })
     }
