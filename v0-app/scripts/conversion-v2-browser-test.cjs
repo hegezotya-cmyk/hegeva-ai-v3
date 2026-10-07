@@ -88,7 +88,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
       await page.reload()
       await page.getByRole('heading', {level: 1}).filter({hasText: headline}).waitFor()
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `locale overflow: ${locale}`)
-      assert.equal(await page.locator('[data-acquisition-event="primary_cta_click"]:visible').getAttribute('href'), '/login?mode=register')
+      assert.equal(await page.locator('[data-acquisition-cta="homepage_workspace"]:visible').getAttribute('href'), '/login?mode=register')
     }
     assert.deepEqual(errors, [])
     await context.close()
