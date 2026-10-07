@@ -69,6 +69,7 @@ jobs:
           done
           curl --fail --silent http://127.0.0.1:3108/enterprise > /dev/null
           TEST_BASE_URL=http://127.0.0.1:3108 node scripts/enterprise-auth-browser-test.cjs
+          TEST_BASE_URL=http://127.0.0.1:3108 node scripts/conversion-v2-browser-test.cjs
 
       - name: Cloudflare OpenNext build
         run: npm run cf:build

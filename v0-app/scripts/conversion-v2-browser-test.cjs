@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict')
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
 ;(async () => {
-  const browser = await chromium.launch({channel: 'chrome', headless: true})
+  const browser = await chromium.launch({headless: true})
   try {
     const context = await browser.newContext({viewport: {width: 390, height: 844}})
     // Keep evidence outside the document: production static navigation creates a new dataLayer.
