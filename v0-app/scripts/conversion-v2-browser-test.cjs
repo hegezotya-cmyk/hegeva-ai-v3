@@ -9,6 +9,10 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
     const recordedEvents = []
     await context.exposeBinding('recordConversionEvent', (_, event) => recordedEvents.push(event))
     await context.addInitScript(() => {
+      Object.defineProperty(Document.prototype, "referrer", {
+        configurable: true,
+        get: () => "https://search.example/results?search_term=private#top",
+      })
       window.dataLayer = []
       window.dataLayer.push = function (...items) {
         for (const item of items) if (item?.[0] === 'event') window.recordConversionEvent([item[0], item[1], JSON.parse(JSON.stringify(item[2] || {}))])
@@ -31,6 +35,9 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
     await page.waitForFunction(() => window.dataLayer?.some(x => x[0] === 'event' && x[1] === 'landing_page_view'))
     assert.equal((await events()).filter(x => x[1] === 'landing_page_view').length, 1)
     assert.equal((await events()).filter(x => x[1] === 'page_view').length, 1)
+    const firstPageView = (await events()).find(x => x[1] === 'page_view')
+    assert.equal(firstPageView[2].page_referrer, 'https://search.example/')
+    assert.equal(JSON.stringify(await page.evaluate(() => window.dataLayer)).includes('search_term=private'), false)
     assert.equal(await page.locator('#hegeva-google-analytics').count(), 1)
     assert.equal((await events())[0][2].campaign_content, 'video_1')
     assert.equal(JSON.stringify(await page.evaluate(() => window.dataLayer)).includes('do-not-collect'), false)

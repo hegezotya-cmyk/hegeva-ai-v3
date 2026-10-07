@@ -48,6 +48,9 @@ jobs:
           node scripts/enterprise-guest-render-test.cjs
           node scripts/production-surface-audit.mjs
 
+      - name: Analytics referrer privacy regression
+        run: node scripts/analytics-referrer-test.mjs
+
       - name: TypeScript check
         run: npx tsc --noEmit --incremental false
 
