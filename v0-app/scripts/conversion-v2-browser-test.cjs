@@ -153,9 +153,13 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
       const page = await testContext.newPage()
       await page.goto(base + '/account?billing=success', {waitUntil:'domcontentloaded'})
       await page.waitForFunction(() => document.body.innerText.includes('Account details'))
-      await page.waitForTimeout(100)
+      const waitForBillingReturn = () => page.waitForFunction(() => !new URL(window.location.href).searchParams.has('billing'))
+      await waitForBillingReturn()
+      if (consent === 'granted' && plan === 'premium') {
+        await page.waitForFunction(() => window.dataLayer?.some(x => x[0] === 'event' && x[1] === 'subscription_success'))
+      }
       await page.goto(base + '/account?billing=success', {waitUntil:'domcontentloaded'})
-      await page.waitForTimeout(100)
+      await waitForBillingReturn()
       await testContext.close()
       return recorded.filter(event => event[1] === 'subscription_success')
     }
