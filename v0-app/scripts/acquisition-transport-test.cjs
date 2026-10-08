@@ -40,7 +40,7 @@ const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:3096'
       if (mode === 'real-tag') {
         await page.waitForFunction(() => Boolean(window.google_tag_manager), {timeout:15000})
       }
-      const cta = page.locator('[data-acquisition-event="primary_cta_click"]:visible')
+      const cta = page.getByRole('link', {name: 'Create your workspace', exact: true})
       const box = await cta.boundingBox()
       assert(box.height >= 44 && box.y + box.height <= 844)
       const started = Date.now()
