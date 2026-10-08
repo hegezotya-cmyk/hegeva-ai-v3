@@ -47,6 +47,7 @@ jobs:
           node scripts/api-proxy-request-compat-test.cjs
           node scripts/enterprise-guest-render-test.cjs
           node scripts/production-surface-audit.mjs
+          node scripts/ashna-daily-brief-audit.mjs
 
       - name: Analytics referrer privacy regression
         run: node scripts/analytics-referrer-test.mjs
