@@ -9,7 +9,7 @@ const email = "hegezotya@gmx.com"
 
 const en: LegalSet = {
   privacyLink: "Privacy", termsLink: "Terms",
-  privacy: { eyebrow:"HEGEVA AI · LEGAL", title:"Privacy notice", updated:"Last updated: 6 September 2026",
+  privacy: { eyebrow:"HEGEVA AI · LEGAL", title:"Privacy notice", updated:"Last updated: 10 October 2026",
     intro:`HEGEVA AI is the data controller for this service. Controller: ${business}. Contact: ${email}. This notice explains what personal information we process, why, and your choices.`,
     sections:[
       {title:"Information we process",body:"We may process your name, email address, account and authentication records, subscription and transaction references, support messages, security and device information, usage records, AI prompts and responses, and content you save in your workspace. Payment card details are handled by the payment provider and are not stored by HEGEVA AI."},
@@ -37,7 +37,7 @@ const en: LegalSet = {
 
 const hu: LegalSet = {
   privacyLink:"Adatvédelem", termsLink:"Felhasználási feltételek",
-  privacy:{eyebrow:"HEGEVA AI · JOGI",title:"Adatvédelmi tájékoztató",updated:"Utolsó frissítés: 2026. szeptember 6.",
+  privacy:{eyebrow:"HEGEVA AI · JOGI",title:"Adatvédelmi tájékoztató",updated:"Utolsó frissítés: 2026. október 10.",
     intro:`A szolgáltatás adatkezelője: ${business}. Kapcsolat: ${email}. Ez a tájékoztató leírja, milyen személyes adatokat kezelünk, milyen célból, és milyen jogaid vannak.`,
     sections:[
       {title:"Kezelt adatok",body:"Kezelhetjük a nevedet, e-mail-címedet, fiók- és hitelesítési adatokat, előfizetési és tranzakciós hivatkozásokat, ügyfélszolgálati üzeneteket, biztonsági és eszközadatokat, használati adatokat, AI-kéréseket és válaszokat, valamint az általad mentett tartalmat. A bankkártyaadatokat a fizetési szolgáltató kezeli; a HEGEVA AI nem tárolja."},
@@ -73,7 +73,7 @@ function fallback(privacyLink:string, termsLink:string, privacyTitle:string, ter
 
 export const LEGAL_COPY: Record<Locale, LegalSet> = {
   en, hu,
-  de:fallback("Datenschutz","Nutzungsbedingungen","Datenschutzhinweis","Nutzungsbedingungen","Letzte Aktualisierung: 2. September 2026"),
-  fr:fallback("Confidentialité","Conditions d’utilisation","Avis de confidentialité","Conditions d’utilisation","Dernière mise à jour : 2 septembre 2026"),
-  es:fallback("Privacidad","Términos de uso","Aviso de privacidad","Términos de uso","Última actualización: 2 de septiembre de 2026"),
+  de:fallback("Datenschutz","Nutzungsbedingungen","Datenschutzhinweis","Nutzungsbedingungen","Letzte Aktualisierung: 10. Oktober 2026"),
+  fr:fallback("Confidentialité","Conditions d’utilisation","Avis de confidentialité","Conditions d’utilisation","Dernière mise à jour : 10 octobre 2026"),
+  es:fallback("Privacidad","Términos de uso","Aviso de privacidad","Términos de uso","Última actualización: 10 de octubre de 2026"),
 }

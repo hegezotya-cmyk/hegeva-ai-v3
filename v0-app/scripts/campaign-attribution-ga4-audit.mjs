@@ -49,4 +49,7 @@ assert.deepEqual(track(), {}, "campaign attribution must remain consent-gated")
 
 assert.match(legal, /only approved UTM source, medium, campaign and content labels[\s\S]*?raw URL query strings/, "English privacy copy must explain the allowlisted campaign labels and raw-query filtering")
 assert.match(legal, /csak az engedélyezett UTM-forrás[\s\S]*?teljes URL-lekérdezést/, "Hungarian privacy copy must explain the allowlisted campaign labels and raw-query filtering")
+for (const updated of ["Last updated: 10 October 2026", "Utolsó frissítés: 2026. október 10.", "Letzte Aktualisierung: 10. Oktober 2026", "Dernière mise à jour : 10 octobre 2026", "Última actualización: 10 de octubre de 2026"]) {
+  assert.ok(legal.includes(updated), `privacy copy must show the October 10, 2026 update date: ${updated}`)
+}
 console.log("Campaign attribution GA4 audit: PASS")
