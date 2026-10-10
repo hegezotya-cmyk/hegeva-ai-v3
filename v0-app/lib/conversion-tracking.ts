@@ -100,6 +100,7 @@ export function trackActivationEvent(event: ActivationEvent, path: string, ident
 // Account page has re-read a paid entitlement from the authenticated API.
 // Keep the local marker deliberately free of customer, checkout and Stripe IDs.
 export function trackSubscriptionSuccess(plan: string, period: string) {
+  if (typeof window === "undefined" || !["premium", "pro"].includes(plan)) return
   const key = `hegeva:subscription-success:v1:${plan}:${period || "current"}`
   try {
     if (sessionStorage.getItem(key)) return
@@ -109,6 +110,13 @@ export function trackSubscriptionSuccess(plan: string, period: string) {
     return
   }
   window.dispatchEvent(new CustomEvent("hegeva:analytics-event", {
-    detail: { event: "subscription_success", path: "/account" },
+    detail: {
+      event: "purchase",
+      path: "/account",
+      params: {
+        currency: "GBP",
+        items: [{ item_id: `hegeva_${plan}`, item_name: `HEGEVA ${plan}`, quantity: 1 }],
+      },
+    },
   }))
 }
