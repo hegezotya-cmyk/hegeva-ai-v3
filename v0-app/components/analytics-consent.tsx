@@ -46,7 +46,7 @@ function queueConsentDefault() {
 
 function enableAnalytics(pageReferrer = analyticsReferrerOrigin(document.referrer, window.location.origin)) {
   queueConsentDefault()
-  window.gtag?.("consent", "update", { analytics_storage: "granted" })
+  window.gtag?.("consent", "update", { analytics_storage: "granted", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" })
   window.gtag?.("js", new Date())
   window.gtag?.("config", MEASUREMENT_ID, {
     send_page_view: false,
@@ -70,7 +70,7 @@ function enableAnalytics(pageReferrer = analyticsReferrerOrigin(document.referre
       (window.clarity as unknown as { q?: unknown[] }).q = (window.clarity as unknown as { q?: unknown[] }).q || []
       ;(window.clarity as unknown as { q: unknown[] }).q.push(args)
     }
-    window.clarity("consentv2", { ad_Storage: "granted", analytics_Storage: "granted" })
+    window.clarity("consentv2", { ad_Storage: "denied", analytics_Storage: "granted" })
     if (!document.getElementById("hegeva-microsoft-clarity")) {
       const script = document.createElement("script")
       script.id = "hegeva-microsoft-clarity"
@@ -103,7 +103,7 @@ export function AnalyticsConsent() {
   useEffect(() => {
     const receive = (event: Event) => {
       if (consent !== "granted" || !window.gtag) return
-      const detail = (event as CustomEvent<{ event?: string; path?: string; params?: Record<string, string | number | boolean> }>).detail
+      const detail = (event as CustomEvent<{ event?: string; path?: string; params?: Record<string, unknown> }>).detail
       if (!detail || !["landing_page_view", "registration_start", "registration_completed", "email_verified", "get_started_entry", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click", "challenge_view", "challenge_start", "business_type_selected", "demo_loaded", "demo_analysis_complete", "priority_viewed", "prepare_action_click", "prepared_action_complete", "challenge_complete", "business_score_view", "try_my_business_click", "own_business_start", "own_business_result", "share_click", "free_tool_use", "free_tool_cta_click", "referral_visit", "referral_signup", "referral_link_copy", "referral_paid_qualified", "referral_reward_reviewed"].includes(detail.event || "")) return
       const activationPaths = ["/get-started", "/business/customers", "/business/invoices", "/command-center", "/pricing", "/account", "/demo", "/challenge"]
       if (!detail.path || (!PUBLIC_ANALYTICS_PATHS.includes(detail.path) && !activationPaths.includes(detail.path))) return
@@ -191,7 +191,7 @@ export function AnalyticsConsent() {
       sessionStorage.removeItem("hegeva:campaign:v1")
       sessionStorage.removeItem(PENDING_CTA_KEY)
       clearReferralAttribution()
-      window.gtag?.("consent", "update", { analytics_storage: "denied" })
+      window.gtag?.("consent", "update", { analytics_storage: "denied", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" })
       window.clarity?.("consentv2", { ad_Storage: "denied", analytics_Storage: "denied" })
     }
   }
