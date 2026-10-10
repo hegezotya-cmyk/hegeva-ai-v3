@@ -102,11 +102,9 @@ export function trackActivationEvent(event: ActivationEvent, path: string, ident
 export function trackSubscriptionSuccess(plan: string, period: string) {
   if (typeof window === "undefined" || !["premium", "pro"].includes(plan)) return
   const key = `hegeva:subscription-success:v1:${plan}:${period || "current"}`
-  let transactionId: string
   try {
     if (sessionStorage.getItem(key)) return
-    transactionId = window.crypto.randomUUID()
-    sessionStorage.setItem(key, transactionId)
+    sessionStorage.setItem(key, "1")
   } catch {
     // Without safe deduplication storage, prefer not to emit a conversion.
     return
@@ -117,7 +115,6 @@ export function trackSubscriptionSuccess(plan: string, period: string) {
       path: "/account",
       params: {
         currency: "GBP",
-        transaction_id: transactionId,
         items: [{ item_id: `hegeva_${plan}`, item_name: `HEGEVA ${plan}`, quantity: 1 }],
       },
     },
