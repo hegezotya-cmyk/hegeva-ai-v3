@@ -24,6 +24,12 @@ jobs:
           cache: npm
           cache-dependency-path: v0-app/package-lock.json
       - run: npm ci
+      - name: Install API Worker dependencies
+        working-directory: .
+        run: npm ci
+      - name: Release preflight (Worker, D1 local, Cloudflare dry-run, UI)
+        working-directory: .
+        run: npm run release:check
       - name: Release smoke syntax
         run: node --check ../scripts/release-smoke.mjs
       - name: GA4 consent and funnel regression
