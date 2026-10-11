@@ -23,3 +23,13 @@ test("challenge start and completion retain separate events", () => {
   assert.match(challenge, /recordAnalyticsEvent\("challenge_start", "\/challenge"/)
   assert.match(challenge, /recordAnalyticsEvent\("challenge_complete", "\/challenge"/)
 })
+
+test("each new Challenge attempt can be counted without re-emitting protected subscription conversions", () => {
+  const repeatable = analytics.match(/const repeatable = ([^\n]+)/)?.[1]
+  assert.ok(repeatable, "event deduplication rule must exist")
+  for (const event of ["challenge_start", "challenge_complete"]) {
+    assert.ok(repeatable.includes('detail.event === "' + event + '"'), event + " should count repeat attempts")
+  }
+  assert.ok(!repeatable.includes('detail.event === "subscription_success"'), "paid conversions must remain deduplicated")
+  assert.ok(!repeatable.includes('detail.event === "registration_completed"'), "completed registrations must remain deduplicated")
+})
