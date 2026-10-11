@@ -35,6 +35,6 @@ test("each new Challenge attempt can be counted without re-emitting protected su
 })
 
 test("analytics consent does not grant Clarity advertising storage", () => {
-  assert.match(analytics, /window\\.clarity\\("consentv2", \\{ ad_Storage: "denied", analytics_Storage: "granted" \\}\\)/)
-  assert.match(analytics, /window\\.clarity\\?\\.\\("consentv2", \\{ ad_Storage: "denied", analytics_Storage: "denied" \\}\\)/)
+  assert.ok(analytics.includes('window.clarity("consentv2", { ad_Storage: "denied", analytics_Storage: "granted" })'))
+  assert.ok(analytics.includes('window.clarity?.("consentv2", { ad_Storage: "denied", analytics_Storage: "denied" })'))
 })
