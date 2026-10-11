@@ -33,3 +33,8 @@ test("each new Challenge attempt can be counted without re-emitting protected su
   assert.ok(!repeatable.includes('detail.event === "subscription_success"'), "paid conversions must remain deduplicated")
   assert.ok(!repeatable.includes('detail.event === "registration_completed"'), "completed registrations must remain deduplicated")
 })
+
+test("analytics consent does not grant Clarity advertising storage", () => {
+  assert.ok(analytics.includes('window.clarity("consentv2", { ad_Storage: "denied", analytics_Storage: "granted" })'))
+  assert.ok(analytics.includes('window.clarity?.("consentv2", { ad_Storage: "denied", analytics_Storage: "denied" })'))
+})
