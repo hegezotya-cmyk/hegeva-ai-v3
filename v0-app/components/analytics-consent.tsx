@@ -70,7 +70,7 @@ function enableAnalytics(pageReferrer = analyticsReferrerOrigin(document.referre
       (window.clarity as unknown as { q?: unknown[] }).q = (window.clarity as unknown as { q?: unknown[] }).q || []
       ;(window.clarity as unknown as { q: unknown[] }).q.push(args)
     }
-    window.clarity("consentv2", { ad_Storage: "granted", analytics_Storage: "granted" })
+    window.clarity("consentv2", { ad_Storage: "denied", analytics_Storage: "granted" })
     if (!document.getElementById("hegeva-microsoft-clarity")) {
       const script = document.createElement("script")
       script.id = "hegeva-microsoft-clarity"
