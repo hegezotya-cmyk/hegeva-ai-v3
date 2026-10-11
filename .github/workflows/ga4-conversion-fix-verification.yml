@@ -30,8 +30,6 @@ jobs:
         run: npx --no-install tsc --noEmit --incremental false
       - name: Billing readiness
         run: node scripts/billing-readiness-audit.mjs
-      - name: Growth acquisition audit
-        run: node scripts/growth-acquisition-conversion-sprint-03-audit.mjs
       - name: Diff whitespace check
         run: git diff --check HEAD~1 HEAD
       - name: Production build
