@@ -38,3 +38,15 @@ jobs:
         run: npm run build
       - name: OpenNext Cloudflare build
         run: npm run cf:build
+      - name: Install Chromium for isolated browser checks
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Browser funnel regression (mocked APIs, no live payments)
+        run: |
+          npm run start -- --hostname 127.0.0.1 --port 3092 > /tmp/hegeva-next.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          for attempt in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:3092/ >/dev/null; then break; fi
+            sleep 2
+          done
+          TEST_BASE_URL=http://127.0.0.1:3092 node scripts/conversion-v2-browser-test.cjs
