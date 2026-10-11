@@ -24,6 +24,8 @@ jobs:
           cache: npm
           cache-dependency-path: v0-app/package-lock.json
       - run: npm ci
+      - name: Release smoke syntax
+        run: node --check ../scripts/release-smoke.mjs
       - name: GA4 consent and funnel regression
         run: node --test scripts/ga4-conversion-consent-regression.test.mjs
       - name: GA4 campaign attribution
