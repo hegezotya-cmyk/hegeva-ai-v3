@@ -16,6 +16,8 @@ jobs:
         working-directory: v0-app
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
           node-version: 22
