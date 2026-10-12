@@ -1,0 +1,61 @@
+name: HEGEVA Conversion Fix Verification
+on:
+  push:
+    branches:
+      - fix/ga4-conversion-funnel-audit-20261011
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v0-app
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+      - run: npm ci
+      - name: Install API Worker dependencies
+        working-directory: .
+        run: npm ci
+      - name: Release preflight (Worker, D1 local, Cloudflare dry-run, UI)
+        working-directory: .
+        run: npm run release:check
+      - name: Release smoke syntax
+        run: node --check ../scripts/release-smoke.mjs
+      - name: GA4 consent and funnel regression
+        run: node --test scripts/ga4-conversion-consent-regression.test.mjs
+      - name: GA4 campaign attribution
+        run: node scripts/campaign-attribution-ga4-audit.mjs
+      - name: TypeScript
+        run: npx --no-install tsc --noEmit --incremental false
+      - name: Billing readiness
+        run: node scripts/billing-readiness-audit.mjs
+      - name: Diff whitespace check
+        run: git diff --check HEAD~1 HEAD
+      - name: Production build
+        run: npm run build
+      - name: OpenNext Cloudflare build
+        run: npm run cf:build
+      - name: Install Chromium for isolated browser checks
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Browser funnel regression (mocked APIs, no live payments)
+        run: |
+          npm run start -- --hostname 127.0.0.1 --port 3092 > /tmp/hegeva-next.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          for attempt in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:3092/ >/dev/null; then break; fi
+            sleep 2
+          done
+          TEST_BASE_URL=http://127.0.0.1:3092 node scripts/conversion-v2-browser-test.cjs
+          TEST_BASE_URL=http://127.0.0.1:3092 node scripts/acquisition-transport-test.cjs

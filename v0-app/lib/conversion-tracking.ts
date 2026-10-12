@@ -100,6 +100,11 @@ export function trackActivationEvent(event: ActivationEvent, path: string, ident
 // Account page has re-read a paid entitlement from the authenticated API.
 // Keep the local marker deliberately free of customer, checkout and Stripe IDs.
 export function trackSubscriptionSuccess(plan: string, period: string) {
+  // Do not consume the session dedup marker before analytics consent is granted.
+  if (typeof window === "undefined") return
+  try {
+    if (localStorage.getItem("hegeva:analytics-consent:v1") !== "granted") return
+  } catch { return }
   const key = `hegeva:subscription-success:v1:${plan}:${period || "current"}`
   try {
     if (sessionStorage.getItem(key)) return

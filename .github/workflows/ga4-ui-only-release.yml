@@ -1,0 +1,80 @@
+name: HEGEVA GA4 UI-Only Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      approved_sha:
+        description: "Exact approved 40-character commit SHA on the GA4 fix branch"
+        required: true
+        type: string
+      confirm_ui_only:
+        description: "Type DEPLOY-UI-ONLY to authorize production UI deployment"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hegeva-cloudflare-release
+  cancel-in-progress: false
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  verify-and-deploy-ui:
+    if: ${{ inputs.confirm_ui_only == 'DEPLOY-UI-ONLY' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v0-app
+    steps:
+      - name: Checkout exact requested revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.approved_sha }}
+          persist-credentials: false
+      - name: Verify SHA and authorized release branch
+        working-directory: .
+        env:
+          APPROVED_SHA: ${{ inputs.approved_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$APPROVED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "A full 40-character SHA is required"; exit 1; }
+          test "$(git rev-parse HEAD)" = "$APPROVED_SHA"
+          git fetch --no-tags --depth=100 origin refs/heads/fix/ga4-conversion-funnel-audit-20261011:refs/remotes/origin/ga4-fix
+          git merge-base --is-ancestor "$APPROVED_SHA" refs/remotes/origin/ga4-fix
+          echo "Verified approved SHA $APPROVED_SHA belongs to the GA4 fix branch"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+      - name: Install UI dependencies
+        run: npm ci
+      - name: GA4 consent and conversion regression
+        run: node --test scripts/ga4-conversion-consent-regression.test.mjs
+      - name: Campaign attribution audit
+        run: node scripts/campaign-attribution-ga4-audit.mjs
+      - name: TypeScript check
+        run: npx --no-install tsc --noEmit --incremental false
+      - name: Billing readiness static audit
+        run: node scripts/billing-readiness-audit.mjs
+      - name: Production build
+        run: npm run build
+      - name: Cloudflare OpenNext build
+        run: npm run cf:build
+      - name: Require Cloudflare credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Deploy UI Worker only (no API or D1 operations)
+        run: npx opennextjs-cloudflare deploy
+      - name: Post-deploy live smoke
+        working-directory: .
+        run: npm run release:smoke
