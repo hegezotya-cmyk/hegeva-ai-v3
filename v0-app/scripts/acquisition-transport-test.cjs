@@ -4,7 +4,7 @@ const assert = require('node:assert/strict')
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:3096'
 ;(async () => {
-  const browser = await chromium.launch({channel: 'chrome', headless: true})
+  const browser = await chromium.launch({headless: true})
   try {
     for (const mode of ['real-tag', 'blocked-tag', 'no-consent']) {
       const context = await browser.newContext({viewport: {width: 390, height: 844}})
