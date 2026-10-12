@@ -40,7 +40,9 @@ const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:3096'
       if (mode === 'real-tag') {
         await page.waitForFunction(() => Boolean(window.google_tag_manager), {timeout:15000})
       }
-      const demo = page.getByRole('link',{name:'Try the free 60-second demo',exact:true})
+      const demo = page.locator('[data-acquisition-cta="homepage_challenge"]:visible')
+      assert.equal(await demo.count(),1)
+      assert.equal(await demo.innerText(),'Try the free 60-second demo')
       assert.equal(await demo.getAttribute('href'),'/challenge')
       const cta = page.locator('[data-acquisition-cta="homepage_workspace"]:visible')
       assert.equal(await cta.count(),1)
