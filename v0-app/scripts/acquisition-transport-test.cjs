@@ -64,9 +64,9 @@ const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:3096'
       await page.locator('input[autocomplete="name"]').waitFor()
       const duration = Date.now() - started
       if (mode === 'real-tag') {
-        assert.deepEqual(pageViews, ['/','/login'], 'homepage and registration route each emit one page_view')
         const deadline = Date.now() + 15000
-        while (!hits.includes('registration_start') && Date.now() < deadline) await page.waitForTimeout(200)
+        while ((!hits.includes('registration_start') || pageViews.length < 2) && Date.now() < deadline) await page.waitForTimeout(200)
+        assert.deepEqual(pageViews, ['/','/login'], 'homepage and registration route each emit one page_view')
         for (const name of ['landing_page_view','primary_cta_click','registration_start']) {
           assert.equal(commands.filter(x => x.event === name).length,1,`command ${name}`)
           assert.equal(hits.filter(x => x === name).length,1,`network ${name}`)
