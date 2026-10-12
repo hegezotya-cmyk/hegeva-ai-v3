@@ -58,3 +58,4 @@ jobs:
             sleep 2
           done
           TEST_BASE_URL=http://127.0.0.1:3092 node scripts/conversion-v2-browser-test.cjs
+          TEST_BASE_URL=http://127.0.0.1:3092 node scripts/acquisition-transport-test.cjs
