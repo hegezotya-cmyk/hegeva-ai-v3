@@ -8,7 +8,7 @@ const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:3096'
   try {
     for (const mode of ['real-tag', 'blocked-tag', 'no-consent']) {
       const context = await browser.newContext({viewport: {width: 390, height: 844}})
-      const hits = [], commands = [], errors = []
+      const hits = [], pageViews = [], commands = [], errors = []
       await context.exposeBinding('recordAcquisition', (_, item) => commands.push(item))
       await context.addInitScript(() => {
         window.dataLayer = []
@@ -24,6 +24,14 @@ const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:3096'
           const body = new URLSearchParams(line)
           const name = body.get('en') || query.get('en')
           if (name) hits.push(name)
+          if (name === 'page_view') {
+            const location = body.get('dl') || query.get('dl') || body.get('ep.page_location') || query.get('ep.page_location')
+            let path = body.get('ep.page_path') || query.get('ep.page_path') || 'unknown'
+            if (location && path === 'unknown') {
+              try { path = new URL(location).pathname } catch {}
+            }
+            pageViews.push(path)
+          }
         }
         return r.fulfill({status:204,body:''})
       })
@@ -71,7 +79,7 @@ const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:3096'
         assert.equal(hits.length,0)
       }
       assert.deepEqual(errors,[])
-      console.log(JSON.stringify({mode,result:'PASS',networkEvents:hits,ctaNavigationMs:duration}))
+      console.log(JSON.stringify({mode,result:'PASS',networkEvents:hits,pageViews,ctaNavigationMs:duration}))
       await context.close()
     }
   } finally { await browser.close() }
