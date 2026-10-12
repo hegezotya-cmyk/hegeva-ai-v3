@@ -9,11 +9,11 @@ import { GrowthLoopPromo } from "@/components/home/growth-loop-promo"
 
 const HOMEPAGE_CHALLENGE_HREF = "/challenge"
 const HOMEPAGE_CHALLENGE_ENTRY = {
-  en: { href: HOMEPAGE_CHALLENGE_HREF, kicker: "GIVE HEGEVA 60 SECONDS", title: "See what your business could be missing.", body: "Start with clearly labelled fictional sample data. No signup, no card, and nothing is sent without your approval.", start: "Start 60-second challenge" },
-  hu: { href: HOMEPAGE_CHALLENGE_HREF, kicker: "ADJ A HEGEVA-NAK 60 MÁSODPERCET", title: "Nézd meg, mi hiányozhat a vállalkozásodból.", body: "Kezdj egyértelműen jelölt, fiktív mintaadatokkal. Nincs regisztráció, nincs bankkártya, és jóváhagyásod nélkül semmi nem kerül elküldésre.", start: "60 másodperces kihívás indítása" },
-  de: { href: HOMEPAGE_CHALLENGE_HREF, kicker: "GIB HEGEVA 60 SEKUNDEN", title: "Sieh, was Ihrem Unternehmen fehlen könnte.", body: "Starten Sie mit klar gekennzeichneten fiktiven Beispieldaten. Keine Anmeldung, keine Karte und nichts wird ohne Ihre Freigabe versendet.", start: "60-Sekunden-Challenge starten" },
-  fr: { href: HOMEPAGE_CHALLENGE_HREF, kicker: "DONNEZ 60 SECONDES À HEGEVA", title: "Voyez ce qui pourrait manquer à votre entreprise.", body: "Commencez avec des exemples fictifs clairement indiqués. Aucune inscription, aucune carte et rien n’est envoyé sans votre accord.", start: "Lancer le défi de 60 secondes" },
-  es: { href: HOMEPAGE_CHALLENGE_HREF, kicker: "DA A HEGEVA 60 SEGUNDOS", title: "Descubre qué podría faltarle a tu negocio.", body: "Empieza con datos de ejemplo ficticios y claramente indicados. Sin registro, sin tarjeta y nada se envía sin tu aprobación.", start: "Iniciar reto de 60 segundos" },
+  en: { href: HOMEPAGE_CHALLENGE_HREF, kicker: "GIVE HEGEVA 60 SECONDS", title: "See what your business could be missing.", body: "Start with clearly labelled fictional sample data. No signup, no card, and nothing is sent without your approval.", start: "Try the free 60-second demo" },
+  hu: { href: HOMEPAGE_CHALLENGE_HREF, kicker: "ADJ A HEGEVA-NAK 60 MÁSODPERCET", title: "Nézd meg, mi hiányozhat a vállalkozásodból.", body: "Kezdj egyértelműen jelölt, fiktív mintaadatokkal. Nincs regisztráció, nincs bankkártya, és jóváhagyásod nélkül semmi nem kerül elküldésre.", start: "Próbáld ki az ingyenes, 60 másodperces demót" },
+  de: { href: HOMEPAGE_CHALLENGE_HREF, kicker: "GIB HEGEVA 60 SEKUNDEN", title: "Sieh, was Ihrem Unternehmen fehlen könnte.", body: "Starten Sie mit klar gekennzeichneten fiktiven Beispieldaten. Keine Anmeldung, keine Karte und nichts wird ohne Ihre Freigabe versendet.", start: "Kostenlose 60-Sekunden-Demo testen" },
+  fr: { href: HOMEPAGE_CHALLENGE_HREF, kicker: "DONNEZ 60 SECONDES À HEGEVA", title: "Voyez ce qui pourrait manquer à votre entreprise.", body: "Commencez avec des exemples fictifs clairement indiqués. Aucune inscription, aucune carte et rien n’est envoyé sans votre accord.", start: "Essayer la démo gratuite de 60 secondes" },
+  es: { href: HOMEPAGE_CHALLENGE_HREF, kicker: "DA A HEGEVA 60 SEGUNDOS", title: "Descubre qué podría faltarle a tu negocio.", body: "Empieza con datos de ejemplo ficticios y claramente indicados. Sin registro, sin tarjeta y nada se envía sin tu aprobación.", start: "Probar la demo gratuita de 60 segundos" },
 } as const
 
 export default function HomePage() {
