@@ -40,7 +40,12 @@ const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:3096'
       if (mode === 'real-tag') {
         await page.waitForFunction(() => Boolean(window.google_tag_manager), {timeout:15000})
       }
-      const cta = page.locator('[data-acquisition-event="primary_cta_click"]:visible')
+      const demo = page.getByRole('link',{name:'Try the free 60-second demo',exact:true})
+      assert.equal(await demo.getAttribute('href'),'/challenge')
+      const cta = page.locator('[data-acquisition-cta="homepage_workspace"]:visible')
+      assert.equal(await cta.count(),1)
+      assert.equal(await cta.innerText(),'Create a free workspace')
+      assert.equal(await cta.getAttribute('href'),'/login?mode=register')
       const box = await cta.boundingBox()
       assert(box.height >= 44 && box.y + box.height <= 844)
       const started = Date.now()
