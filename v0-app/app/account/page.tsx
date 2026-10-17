@@ -7,6 +7,7 @@ import { AppShell } from "@/components/app-shell"
 import { PageHeader } from "@/components/page-header"
 import { authClient } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
+import { REGISTRATIONS_COPY } from "@/lib/i18n/registrations-copy"
 import { ACCOUNT_COPY } from "@/lib/i18n/account-copy"
 import { LEADS_COPY } from "@/lib/i18n/leads-copy"
 import { trackSubscriptionSuccess } from "@/lib/conversion-tracking"
@@ -276,6 +277,7 @@ export default function AccountPage() {
           <Link href="/pricing" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.pricing}</Link>
           {plan && PAID_PLANS.has(plan.plan) && <button type="button" disabled={openingBilling || billingLoading || billing?.customerPortalReady !== true} onClick={() => void openBillingPortal()} className="min-h-11 rounded-xl border border-primary/30 bg-primary/10 px-5 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-60">{openingBilling ? c.checking : billingCopy.manage}</button>}
           {billingPortalError && <p role="alert" className="rounded-xl border border-gold/30 bg-gold/10 p-3 text-sm text-muted-foreground">{c.unavailable}</p>}
+          {isOwner && <Link href="/admin/registrations" className="rounded-xl border border-primary/30 bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary">{REGISTRATIONS_COPY[locale].title}</Link>}
           {isOwner && <Link href="/admin/contact-leads" className="rounded-xl border border-primary/30 bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary transition-colors hover:bg-primary/15">{leadsCopy.inbox}</Link>}
           <Link href="/contact" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.support}</Link>
           <button type="button" disabled={loggingOut} onClick={() => void logout()} className="mt-3 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60">{loggingOut ? c.checking : c.logout}</button>

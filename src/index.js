@@ -1,3 +1,4 @@
+import { listOwnerRegistrations } from "./admin-registrations.js";
 import {
   createAuth,
   getLoggedInUser,
@@ -1982,6 +1983,11 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
     // OWNER CONTACT LEAD INBOX
     // =========================================
 
+    if (url.pathname === "/api/admin/registrations") {
+      const user = await getLoggedInUserFn(request, env, ctx);
+      return listOwnerRegistrations(request, env, user);
+    }
+
     if (
       url.pathname ===
       "/api/admin/contact-leads"
@@ -3642,7 +3648,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         });
         if (!result.ok) {
           const status = result.reason === "customer-not-authorized" ? 403 : 422;
-          return Response.json({ error: "The available workspace evidence cannot support this quote email draft." }, { status });
+          return Response.json({ error: "The available workspace evidence cannot support this quote email draft.", code: result.reason }, { status });
         }
 
         if (result.created) {

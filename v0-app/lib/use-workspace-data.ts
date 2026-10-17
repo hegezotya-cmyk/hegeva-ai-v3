@@ -110,6 +110,7 @@ export function useWorkspaceData<T>(type: string): {
         if (!cancelled) {
           skipNextSave.current = true
           setItems(cloudItems)
+          setCloudSavedItems(cloudItems)
           writeLocal(type, ownerKey, cloudItems)
           setSyncState("cloud")
           readyToSave.current = true

@@ -14,7 +14,7 @@ const copy={
 
 const destinations=[
  {href:"/business/intelligence",icon:UsersRound},
- {href:"/business/invoices",icon:FileSignature},
+ {href:"/business/invoices?prepare=quote",icon:FileSignature},
  {href:"/business/invoices",icon:Receipt},
  {href:"/business/messages",icon:MessageSquareText},
  {href:"/business/financial-guard",icon:SearchCheck},
