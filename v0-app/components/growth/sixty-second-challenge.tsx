@@ -9,6 +9,7 @@ import { recordAnalyticsEvent, saveDemoRegistrationContext } from "@/components/
 
 type Stage = "intro" | "select" | "analysing" | "results"
 type BusinessType = "electrician" | "builder" | "plumber" | "cleaner" | "property_maintenance" | "consultant" | "show_me"
+type PreparedAction = "invoice_followup" | "quote_followup"
 
 const PROFILES: Record<BusinessType, { name: string; city: string; sector: string }> = {
   electrician: { name: "Northside Electrical Services", city: "Manchester, UK", sector: "Electrician" },
@@ -41,6 +42,7 @@ const COPY = {
     prepare: "PREPARE ACTION",
     prepared: "Prepared only. Nothing has been sent.",
     reminder: "Hi Sarah, just a quick reminder that invoice INV-1042 for £1,200 is now overdue. Please let me know if you need another copy of the invoice or have any questions.",
+    quoteReminder: "Hi Oak & Stone Property Ltd, I wanted to follow up on quote QUO-1081 for £850. Please let me know if you have any questions or would like to discuss the next step.",
     signoff: "Thanks",
     scoreTitle: "HEGEVA Business Score",
     scoreIntro: "A transparent product heuristic based on the signals shown in this fictional demo.",
@@ -96,6 +98,7 @@ const COPY = {
     prepare: "MŰVELET ELŐKÉSZÍTÉSE",
     prepared: "Csak előkészítve. Semmi nem került elküldésre.",
     reminder: "Szia Sarah, egy gyors emlékeztető: az INV-1042 számú, £1,200 összegű számla lejárt. Kérlek jelezd, ha szükséged van új példányra vagy kérdésed van.",
+    quoteReminder: "Tisztelt Oak & Stone Property Ltd! Szeretnék érdeklődni a £850 összegű QUO-1081 ajánlattal kapcsolatban. Kérem, jelezzék, ha kérdésük van, vagy egyeztetnének a következő lépésről.",
     signoff: "Köszönettel",
     scoreTitle: "HEGEVA Üzleti Pontszám",
     scoreIntro: "Átlátható termékheurisztika a fiktív demóban látható jelek alapján.",
@@ -141,7 +144,7 @@ const COPY = {
     p1b: "Sarah Collins · Rechnung INV-1042 · 18 Tage überfällig", p2t: "£850 potenziellen Umsatz schützen",
     p2b: "Oak & Stone Property Ltd · Angebot QUO-1081 · 12 Tage ohne Nachfassen", p3t: "Wiederkehrenden Kunden reaktivieren",
     p3b: "Daniel Wright · 4 frühere Aufträge · seit 31 Tagen inaktiv", prepare: "AKTION VORBEREITEN",
-    prepared: "Nur vorbereitet. Nichts wurde gesendet.", reminder: "Hallo Sarah, kurze Erinnerung: Rechnung INV-1042 über £1.200 ist überfällig. Bitte sag Bescheid, wenn du eine weitere Kopie brauchst oder Fragen hast.", signoff: "Danke",
+    prepared: "Nur vorbereitet. Nichts wurde gesendet.", reminder: "Hallo Sarah, kurze Erinnerung: Rechnung INV-1042 über £1.200 ist überfällig. Bitte sag Bescheid, wenn du eine weitere Kopie brauchst oder Fragen hast.", quoteReminder: "Hallo Oak & Stone Property Ltd, ich möchte wegen des Angebots QUO-1081 über £850 nachfragen. Bitte geben Sie Bescheid, wenn Sie Fragen haben oder den nächsten Schritt besprechen möchten.", signoff: "Danke",
     scoreTitle: "HEGEVA Business Score", scoreIntro: "Eine transparente Produktheuristik auf Basis der in dieser fiktiven Demo gezeigten Signale.",
     why: "Warum dieser Score?", hide: "Score-Details ausblenden", control: "HEGEVA zeigt die Signale hinter dem Score. Du entscheidest.",
     interpretation: "Mehrere Bereiche brauchen Aufmerksamkeit", finalTitle: "HEGEVA hat in weniger als 60 Sekunden etwas Nützliches gefunden.",
@@ -166,7 +169,7 @@ const COPY = {
     p1b: "Sarah Collins · facture INV-1042 · 18 jours de retard", p2t: "Protéger £850 de revenu potentiel",
     p2b: "Oak & Stone Property Ltd · devis QUO-1081 · aucune relance depuis 12 jours", p3t: "Réactiver un client récurrent",
     p3b: "Daniel Wright · 4 travaux précédents · inactif depuis 31 jours", prepare: "PRÉPARER L’ACTION",
-    prepared: "Préparé uniquement. Rien n’a été envoyé.", reminder: "Bonjour Sarah, petit rappel : la facture INV-1042 de £1 200 est maintenant en retard. Dites-moi si vous avez besoin d’une autre copie ou si vous avez des questions.", signoff: "Merci",
+    prepared: "Préparé uniquement. Rien n’a été envoyé.", reminder: "Bonjour Sarah, petit rappel : la facture INV-1042 de £1 200 est maintenant en retard. Dites-moi si vous avez besoin d’une autre copie ou si vous avez des questions.", quoteReminder: "Bonjour Oak & Stone Property Ltd, je reviens vers vous au sujet du devis QUO-1081 de £850. Dites-moi si vous avez des questions ou souhaitez discuter de la prochaine étape.", signoff: "Merci",
     scoreTitle: "Score Business HEGEVA", scoreIntro: "Une heuristique produit transparente basée sur les signaux affichés dans cette démo fictive.",
     why: "Pourquoi ce score ?", hide: "Masquer les détails", control: "HEGEVA montre les signaux derrière le score. Vous décidez quoi faire.",
     interpretation: "Plusieurs domaines nécessitent une attention", finalTitle: "HEGEVA a trouvé quelque chose d’utile en moins de 60 secondes.",
@@ -191,7 +194,7 @@ const COPY = {
     p1b: "Sarah Collins · factura INV-1042 · 18 días vencida", p2t: "Proteger £850 de ingresos potenciales",
     p2b: "Oak & Stone Property Ltd · presupuesto QUO-1081 · 12 días sin seguimiento", p3t: "Reactivar un cliente recurrente",
     p3b: "Daniel Wright · 4 trabajos anteriores · inactivo 31 días", prepare: "PREPARAR ACCIÓN",
-    prepared: "Solo preparado. No se ha enviado nada.", reminder: "Hola Sarah, un recordatorio rápido: la factura INV-1042 por £1.200 está vencida. Avísame si necesitas otra copia o tienes alguna pregunta.", signoff: "Gracias",
+    prepared: "Solo preparado. No se ha enviado nada.", reminder: "Hola Sarah, un recordatorio rápido: la factura INV-1042 por £1.200 está vencida. Avísame si necesitas otra copia o tienes alguna pregunta.", quoteReminder: "Hola Oak & Stone Property Ltd, quería hacer seguimiento del presupuesto QUO-1081 por £850. Avísame si tienes alguna pregunta o quieres comentar el siguiente paso.", signoff: "Gracias",
     scoreTitle: "HEGEVA Business Score", scoreIntro: "Una heurística de producto transparente basada en las señales de esta demostración ficticia.",
     why: "¿Por qué esta puntuación?", hide: "Ocultar detalles", control: "HEGEVA muestra las señales detrás de la puntuación. Tú decides qué hacer.",
     interpretation: "Varias áreas necesitan atención", finalTitle: "HEGEVA encontró algo útil en menos de 60 segundos.",
@@ -215,7 +218,7 @@ export function SixtySecondChallenge() {
   const c = COPY[locale as keyof typeof COPY] ?? COPY.en
   const [stage, setStage] = useState<Stage>("intro")
   const [selected, setSelected] = useState<BusinessType>("electrician")
-  const [prepared, setPrepared] = useState(false)
+  const [preparedAction, setPreparedAction] = useState<PreparedAction | null>(null)
   const [showWhy, setShowWhy] = useState(false)
   const [shareStatus, setShareStatus] = useState("")
   const resultsTracked = useRef(false)
@@ -240,7 +243,7 @@ export function SixtySecondChallenge() {
 
   const chooseBusiness = (businessType: BusinessType) => {
     setSelected(businessType)
-    setPrepared(false)
+    setPreparedAction(null)
     resultsTracked.current = false
     recordAnalyticsEvent("business_type_selected", "/challenge", { business_type: businessType })
     recordAnalyticsEvent("demo_loaded", "/challenge", { business_type: businessType })
@@ -251,10 +254,10 @@ export function SixtySecondChallenge() {
     }, 900)
   }
 
-  const prepareAction = () => {
-    recordAnalyticsEvent("prepare_action_click", "/challenge", { action_type: "invoice_followup", amount: 1200 })
-    setPrepared(true)
-    recordAnalyticsEvent("prepared_action_complete", "/challenge", { action_type: "invoice_followup", sent: false })
+  const prepareAction = (actionType: PreparedAction, amount: number) => {
+    recordAnalyticsEvent("prepare_action_click", "/challenge", { action_type: actionType, amount })
+    setPreparedAction(actionType)
+    recordAnalyticsEvent("prepared_action_complete", "/challenge", { action_type: actionType, sent: false })
     recordAnalyticsEvent("challenge_complete", "/challenge", { score: score.overall, business_type: selected })
   }
 
@@ -355,18 +358,23 @@ export function SixtySecondChallenge() {
                     <h3 className="mt-1 text-lg font-semibold">{String(title)}</h3>
                     <p className="mt-2 text-sm leading-6 text-muted-foreground">{String(body)}</p>
                     {index === 0 && (
-                      <button type="button" onClick={prepareAction} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-gold/35 bg-gold/[.08] px-4 text-sm font-bold text-gold hover:bg-gold/[.12]">
-                        {prepared ? <CheckCircle2 className="size-4" aria-hidden /> : <ArrowRight className="size-4" aria-hidden />}{c.prepare}
+                      <button type="button" onClick={() => prepareAction("invoice_followup", 1200)} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-gold/35 bg-gold/[.08] px-4 text-sm font-bold text-gold hover:bg-gold/[.12]">
+                        {preparedAction === "invoice_followup" ? <CheckCircle2 className="size-4" aria-hidden /> : <ArrowRight className="size-4" aria-hidden />}{c.prepare}
+                      </button>
+                    )}
+                    {index === 1 && (
+                      <button type="button" onClick={() => prepareAction("quote_followup", 850)} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-gold/35 bg-gold/[.08] px-4 text-sm font-bold text-gold hover:bg-gold/[.12]">
+                        {preparedAction === "quote_followup" ? <CheckCircle2 className="size-4" aria-hidden /> : <ArrowRight className="size-4" aria-hidden />}{c.prepare}
                       </button>
                     )}
                   </article>
                 ))}
               </div>
 
-              {prepared && (
+              {preparedAction && (
                 <section className="mt-5 rounded-3xl border border-primary/30 bg-primary/[.055] p-5 sm:p-6">
                   <div className="flex items-center gap-2 font-semibold text-primary"><ShieldCheck className="size-5" aria-hidden />{c.prepared}</div>
-                  <p className="mt-4 max-w-4xl rounded-2xl border border-border bg-background/55 p-4 text-sm leading-6">{c.reminder} {c.signoff}, {profile.name}</p>
+                  <p className="mt-4 max-w-4xl rounded-2xl border border-border bg-background/55 p-4 text-sm leading-6">{preparedAction === "quote_followup" ? c.quoteReminder : c.reminder} {c.signoff}, {profile.name}</p>
                 </section>
               )}
 
@@ -433,3 +441,4 @@ export function SixtySecondChallenge() {
     </main>
   )
 }
+

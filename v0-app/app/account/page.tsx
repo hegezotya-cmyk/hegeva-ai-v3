@@ -34,6 +34,14 @@ const TOPUP_PACKS = {
   es: { small:"Pequeño · 100 créditos · £1.99", medium:"Mediano · 300 créditos · £3.99", large:"Grande · 1.000 créditos · £7.99" },
 } as const
 
+const TOPUP_COPY = {
+  en: { title:"Extra AI credits", description:"Top-Up credits stay on your account until you use them.", balance:"Top-Up balance", success:"Payment received. Your credits appear after Stripe confirms the payment. Refresh shortly if the balance has not updated yet.", cancelled:"Top-Up purchase cancelled. No credits were charged.", usageOrder:"Your monthly Assistant allowance is used first. Top-Up credits are used only after the monthly allowance runs out.", unavailable:"Top-Up checkout is temporarily unavailable. No charge was made." },
+  hu: { title:"Extra AI-kreditek", description:"A feltöltött kreditek felhasználásig a fiókodban maradnak.", balance:"Feltöltött egyenleg", success:"A fizetés megérkezett. A kreditek a Stripe visszaigazolása után jelennek meg. Ha az egyenleg még nem frissült, rövidesen frissítsd az oldalt.", cancelled:"A kreditvásárlást megszakítottad. Nem történt terhelés.", usageOrder:"Először a havi Asszisztens-kereted fogy. A feltöltött krediteket csak a havi keret elfogyása után használjuk.", unavailable:"A kreditvásárlás átmenetileg nem érhető el. Nem történt terhelés." },
+  de: { title:"Zusätzliche KI-Guthaben", description:"Aufgeladenes Guthaben bleibt in deinem Konto, bis du es verwendest.", balance:"Aufgeladenes Guthaben", success:"Zahlung erhalten. Dein Guthaben erscheint, nachdem Stripe die Zahlung bestätigt hat. Aktualisiere die Seite in Kürze, falls der Stand noch nicht aktualisiert wurde.", cancelled:"Der Guthabenkauf wurde abgebrochen. Es wurde nichts berechnet.", usageOrder:"Zuerst wird dein monatliches Assistenten-Kontingent verwendet. Aufgeladenes Guthaben wird erst danach eingesetzt.", unavailable:"Der Guthabenkauf ist vorübergehend nicht verfügbar. Es wurde nichts berechnet." },
+  fr: { title:"Crédits IA supplémentaires", description:"Les crédits rechargés restent sur votre compte jusqu’à leur utilisation.", balance:"Solde rechargé", success:"Paiement reçu. Vos crédits apparaîtront après confirmation par Stripe. Actualisez bientôt la page si le solde n’a pas encore changé.", cancelled:"L’achat de crédits a été annulé. Aucun montant n’a été débité.", usageOrder:"Votre allocation mensuelle de l’Assistant est utilisée en premier. Les crédits rechargés ne sont utilisés qu’après son épuisement.", unavailable:"L’achat de crédits est temporairement indisponible. Aucun montant n’a été débité." },
+  es: { title:"Créditos de IA adicionales", description:"Los créditos recargados permanecen en tu cuenta hasta que los uses.", balance:"Saldo recargado", success:"Pago recibido. Tus créditos aparecerán cuando Stripe confirme el pago. Actualiza la página en unos instantes si el saldo aún no ha cambiado.", cancelled:"La compra de créditos se canceló. No se realizó ningún cargo.", usageOrder:"Primero se utiliza tu asignación mensual del Asistente. Los créditos recargados solo se usan cuando se agota.", unavailable:"La compra de créditos no está disponible temporalmente. No se realizó ningún cargo." },
+} as const
+
 export default function AccountPage() {
   const router = useRouter()
   const { locale } = useI18n()
@@ -41,6 +49,7 @@ export default function AccountPage() {
   const leadsCopy = LEADS_COPY[locale]
   const billingCopy = BILLING_COPY[locale]
   const topUpPacks = TOPUP_PACKS[locale]
+  const topUpCopy = TOPUP_COPY[locale]
   const [isOwner, setIsOwner] = useState(false)
   const { data: session, isPending } = authClient.useSession()
   const [plan, setPlan] = useState<PlanStatus | null>(null)
@@ -251,16 +260,16 @@ export default function AccountPage() {
           {planError && <p className="mt-5 rounded-xl border border-gold/30 bg-gold/10 p-3 text-sm text-muted-foreground">{c.unavailable}</p>}
           {plan && <div id="assistant-topup" className="mt-6 rounded-2xl border border-primary/25 bg-primary/[.06] p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div><h3 className="font-semibold">Extra AI credits</h3><p className="mt-1 text-sm text-muted-foreground">Top-Up credits stay on your account until you use them.</p></div>
-              <div className="rounded-xl border border-primary/25 bg-background/60 px-4 py-2 text-right"><span className="block text-xs text-muted-foreground">Top-Up balance</span><strong className="text-lg text-primary">{plan.assistantTopUpCredits}</strong></div>
+              <div><h3 className="font-semibold">{topUpCopy.title}</h3><p className="mt-1 text-sm text-muted-foreground">{topUpCopy.description}</p></div>
+              <div className="rounded-xl border border-primary/25 bg-background/60 px-4 py-2 text-right"><span className="block text-xs text-muted-foreground">{topUpCopy.balance}</span><strong className="text-lg text-primary">{plan.assistantTopUpCredits}</strong></div>
             </div>
-            {topUpReturn === "success" && <p role="status" className="mt-4 text-sm text-muted-foreground">Payment received. Your credits appear after Stripe confirms the payment. Refresh shortly if the balance has not updated yet.</p>}
-            {topUpReturn === "cancelled" && <p role="status" className="mt-4 text-sm text-muted-foreground">Top-Up purchase cancelled. No credits were charged.</p>}
+            {topUpReturn === "success" && <p role="status" className="mt-4 text-sm text-muted-foreground">{topUpCopy.success}</p>}
+            {topUpReturn === "cancelled" && <p role="status" className="mt-4 text-sm text-muted-foreground">{topUpCopy.cancelled}</p>}
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               {(["small","medium","large"] as const).map((pack) => <button key={pack} type="button" disabled={Boolean(buyingTopUp)} onClick={() => void buyTopUp(pack)} className="min-h-11 rounded-xl border border-border px-4 py-3 text-sm font-semibold transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60">{buyingTopUp === pack ? c.checking : topUpPacks[pack]}</button>)}
             </div>
-            <p className="mt-3 text-xs leading-5 text-muted-foreground">Your monthly Assistant allowance is used first. Top-Up credits are used only after the monthly allowance runs out.</p>
-            {topUpError && <p role="alert" className="mt-3 text-sm text-destructive">Top-Up checkout is temporarily unavailable. No charge was made.</p>}
+            <p className="mt-3 text-xs leading-5 text-muted-foreground">{topUpCopy.usageOrder}</p>
+            {topUpError && <p role="alert" className="mt-3 text-sm text-destructive">{topUpCopy.unavailable}</p>}
           </div>}
 
           {plan && PAID_PLANS.has(plan.plan) && <div className="mt-6 rounded-2xl border border-border bg-secondary/20 p-5">
@@ -288,3 +297,4 @@ export default function AccountPage() {
     </main>
   </AppShell>
 }
+
