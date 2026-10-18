@@ -4,11 +4,11 @@ const assert = require('node:assert/strict')
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:3096'
 ;(async () => {
-  const browser = await chromium.launch({channel: 'chrome', headless: true})
+  const browser = await chromium.launch({headless: true})
   try {
     for (const mode of ['real-tag', 'blocked-tag', 'no-consent']) {
       const context = await browser.newContext({viewport: {width: 390, height: 844}})
-      const hits = [], commands = [], errors = []
+      const hits = [], pageViews = [], commands = [], errors = []
       await context.exposeBinding('recordAcquisition', (_, item) => commands.push(item))
       await context.addInitScript(() => {
         window.dataLayer = []
@@ -24,6 +24,14 @@ const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:3096'
           const body = new URLSearchParams(line)
           const name = body.get('en') || query.get('en')
           if (name) hits.push(name)
+          if (name === 'page_view') {
+            const location = body.get('dl') || query.get('dl') || body.get('ep.page_location') || query.get('ep.page_location')
+            let path = body.get('ep.page_path') || query.get('ep.page_path') || 'unknown'
+            if (location && path === 'unknown') {
+              try { path = new URL(location).pathname } catch {}
+            }
+            pageViews.push(path)
+          }
         }
         return r.fulfill({status:204,body:''})
       })
@@ -40,7 +48,14 @@ const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:3096'
       if (mode === 'real-tag') {
         await page.waitForFunction(() => Boolean(window.google_tag_manager), {timeout:15000})
       }
-      const cta = page.locator('[data-acquisition-event="primary_cta_click"]:visible')
+      const demo = page.locator('[data-acquisition-cta="homepage_challenge"]:visible')
+      assert.equal(await demo.count(),1)
+      assert.equal(await demo.innerText(),'Try the free 60-second demo')
+      assert.equal(await demo.getAttribute('href'),'/challenge')
+      const cta = page.locator('[data-acquisition-cta="homepage_workspace"]:visible')
+      assert.equal(await cta.count(),1)
+      assert.equal(await cta.innerText(),'Create a free workspace')
+      assert.equal(await cta.getAttribute('href'),'/login?mode=register')
       const box = await cta.boundingBox()
       assert(box.height >= 44 && box.y + box.height <= 844)
       const started = Date.now()
@@ -50,7 +65,8 @@ const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:3096'
       const duration = Date.now() - started
       if (mode === 'real-tag') {
         const deadline = Date.now() + 15000
-        while (!hits.includes('registration_start') && Date.now() < deadline) await page.waitForTimeout(200)
+        while ((!hits.includes('registration_start') || pageViews.length < 2) && Date.now() < deadline) await page.waitForTimeout(200)
+        assert.deepEqual(pageViews, ['/','/login'], 'homepage and registration route each emit one page_view')
         for (const name of ['landing_page_view','primary_cta_click','registration_start']) {
           assert.equal(commands.filter(x => x.event === name).length,1,`command ${name}`)
           assert.equal(hits.filter(x => x === name).length,1,`network ${name}`)
@@ -64,7 +80,7 @@ const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:3096'
         assert.equal(hits.length,0)
       }
       assert.deepEqual(errors,[])
-      console.log(JSON.stringify({mode,result:'PASS',networkEvents:hits,ctaNavigationMs:duration}))
+      console.log(JSON.stringify({mode,result:'PASS',networkEvents:hits,pageViews,ctaNavigationMs:duration}))
       await context.close()
     }
   } finally { await browser.close() }

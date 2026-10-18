@@ -19,6 +19,8 @@ const checks = [
   { name: "invoices page", path: "/business/invoices", method: "GET", expected: [200] },
   { name: "vault page", path: "/business/vault", method: "GET", expected: [200] },
   { name: "tools page", path: "/business/tools", method: "GET", expected: [200] },
+  { name: "challenge page", path: "/challenge", method: "GET", expected: [200] },
+  { name: "registration entry", path: "/login?mode=register", method: "GET", expected: [200] },
   { name: "pricing page", path: "/pricing", method: "GET", expected: [200] },
   { name: "contact page", path: "/contact", method: "GET", expected: [200] },
   { name: "login page", path: "/login", method: "GET", expected: [200] },

@@ -70,7 +70,7 @@ function enableAnalytics(pageReferrer = analyticsReferrerOrigin(document.referre
       (window.clarity as unknown as { q?: unknown[] }).q = (window.clarity as unknown as { q?: unknown[] }).q || []
       ;(window.clarity as unknown as { q: unknown[] }).q.push(args)
     }
-    window.clarity("consentv2", { ad_Storage: "granted", analytics_Storage: "granted" })
+    window.clarity("consentv2", { ad_Storage: "denied", analytics_Storage: "granted" })
     if (!document.getElementById("hegeva-microsoft-clarity")) {
       const script = document.createElement("script")
       script.id = "hegeva-microsoft-clarity"
@@ -108,7 +108,8 @@ export function AnalyticsConsent() {
       const activationPaths = ["/get-started", "/business/customers", "/business/invoices", "/command-center", "/pricing", "/account", "/demo", "/challenge"]
       if (!detail.path || (!PUBLIC_ANALYTICS_PATHS.includes(detail.path) && !activationPaths.includes(detail.path))) return
       const key = `${detail.event}:${detail.path}`
-      const repeatable = detail.event === "primary_cta_click" || detail.event === "demo_business_switch" || detail.event === "business_type_selected" || detail.event === "referral_reward_reviewed"
+      // A visitor may start or finish more than one Challenge in the same session.
+      const repeatable = detail.event === "challenge_start" || detail.event === "challenge_complete" || detail.event === "primary_cta_click" || detail.event === "demo_business_switch" || detail.event === "business_type_selected" || detail.event === "referral_reward_reviewed"
       if (!repeatable && sent.current.has(key)) return
       if (!repeatable) sent.current.add(key)
       const rewardParams = detail.event === "referral_reward_reviewed" && ["approved", "rejected"].includes(String(detail.params?.outcome || "")) && ["approved", "rejected"].includes(String(detail.params?.status || "")) && detail.params?.methodologyVersion === "referral-reward-review-v1"
