@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 50580)
-Total output lines: 5119
-
 import { listOwnerRegistrations } from "./admin-registrations.js";
 import {
   createAuth,
@@ -3224,7 +3221,124 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
     ) {
       try {
         const user =
-          aw…580 tokens truncated…           data:
+          await getLoggedInUser(
+            request,
+            env,
+            ctx
+          );
+
+        if (!user) {
+          return Response.json(
+            {
+              error:
+                "Authentication required."
+            },
+            {
+              status: 401
+            }
+          );
+        }
+
+        const rawType =
+          url.pathname
+            .slice(
+              "/api/workspace/"
+                .length
+            )
+            .trim();
+
+        let dataType;
+
+        try {
+          dataType =
+            decodeURIComponent(
+              rawType
+            );
+        } catch {
+          return Response.json(
+            {
+              error:
+                "Invalid workspace type."
+            },
+            {
+              status: 400
+            }
+          );
+        }
+
+        if (
+          !validWorkspaceType(
+            dataType
+          )
+        ) {
+          return Response.json(
+            {
+              error:
+                "Invalid workspace type."
+            },
+            {
+              status: 400
+            }
+          );
+        }
+
+        if (
+          request.method ===
+          "GET"
+        ) {
+          const row =
+            await env.DB
+              .prepare(`
+                SELECT
+                  id,
+                  dataType,
+                  data,
+                  createdAt,
+                  updatedAt
+                FROM workspace_data
+                WHERE userId = ?1
+                  AND dataType = ?2
+                LIMIT 1
+              `)
+              .bind(
+                user.id,
+                dataType
+              )
+              .first();
+
+          if (!row) {
+            return Response.json({
+              found:
+                false,
+
+              dataType,
+
+              data:
+                null
+            });
+          }
+
+          let parsedData =
+            null;
+
+          try {
+            parsedData =
+              JSON.parse(
+                row.data
+              );
+          } catch {}
+
+          return Response.json({
+            found:
+              true,
+
+            id:
+              row.id,
+
+            dataType:
+              row.dataType,
+
+            data:
               parsedData,
 
             createdAt:
@@ -5002,4 +5116,3 @@ QUALITY RULES:
 }
 
 export default createRequestHandler();
-
