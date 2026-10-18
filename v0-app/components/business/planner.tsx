@@ -1,10 +1,12 @@
 "use client"
 
 import { FormEvent, useMemo, useState } from "react"
-import { CheckCircle2, Circle, Cloud, CloudOff, Pencil, Plus, Trash2, X } from "lucide-react"
+import Link from "next/link"
+import { AlertTriangle, CheckCircle2, Circle, Cloud, CloudOff, Pencil, Plus, Trash2, UserRound, X } from "lucide-react"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { useI18n } from "@/lib/i18n/provider"
 import { getBusinessModulesCopy } from "@/lib/i18n/business-modules-copy"
+import { buildTodayWork } from "@/lib/today-work"
 
 type Task = {
   id: string
@@ -15,10 +17,23 @@ type Task = {
   sourceId?: string
 }
 
+type Customer = { id: string; title?: string; followUp?: string; customerStatus?: string }
+type Document = { id: string; type?: string; status?: string; number?: string; clientName?: string; dueDate?: string }
+
+const TODAY_COPY = {
+  en: { title:"Today’s work", body:"Due work from your saved tasks, customers, quotes and invoices.", empty:"Nothing needs attention today.", invoice:"Overdue invoice", quote:"Quote follow-up", customer:"Customer callback", task:"Task", overdue:"Overdue", open:"Open", safety:"Nothing is sent automatically." },
+  hu: { title:"Mai teendők", body:"A mentett feladatokból, ügyfelekből, ajánlatokból és számlákból.", empty:"Ma nincs sürgős teendő.", invoice:"Lejárt számla", quote:"Ajánlat utánkövetése", customer:"Ügyfél visszahívása", task:"Feladat", overdue:"Lejárt", open:"Megnyitás", safety:"Semmi nem kerül automatikusan elküldésre." },
+  de: { title:"Heutige Aufgaben", body:"Fällige Arbeit aus gespeicherten Aufgaben, Kunden, Angeboten und Rechnungen.", empty:"Heute ist nichts fällig.", invoice:"Überfällige Rechnung", quote:"Angebot nachfassen", customer:"Kundenrückruf", task:"Aufgabe", overdue:"Überfällig", open:"Öffnen", safety:"Nichts wird automatisch gesendet." },
+  fr: { title:"À faire aujourd’hui", body:"Travail dû à partir des tâches, clients, devis et factures enregistrés.", empty:"Rien ne demande votre attention aujourd’hui.", invoice:"Facture en retard", quote:"Relance de devis", customer:"Rappel client", task:"Tâche", overdue:"En retard", open:"Ouvrir", safety:"Rien n’est envoyé automatiquement." },
+  es: { title:"Tareas de hoy", body:"Trabajo pendiente de tareas, clientes, presupuestos y facturas guardados.", empty:"Nada requiere atención hoy.", invoice:"Factura vencida", quote:"Seguimiento de presupuesto", customer:"Llamada al cliente", task:"Tarea", overdue:"Vencido", open:"Abrir", safety:"Nada se envía automáticamente." },
+}
+
 export function LocalPlanner() {
   const { locale } = useI18n()
   const c = getBusinessModulesCopy(locale).planner
   const { items: tasks, setItems: setTasks, syncState, syncError, cloudEnabled } = useWorkspaceData<Task>("planner")
+  const { items: customers } = useWorkspaceData<Customer>("customers")
+  const { items: documents } = useWorkspaceData<Document>("invoice_documents")
   const [title, setTitle] = useState("")
   const [due, setDue] = useState("")
   const [priority, setPriority] = useState<Task["priority"]>("medium")
@@ -54,6 +69,9 @@ export function LocalPlanner() {
   }
 
   const openCount = useMemo(() => tasks.filter((t) => !t.done).length, [tasks])
+  const todayCopy = TODAY_COPY[locale]
+  const today = new Date().toLocaleDateString("en-CA")
+  const todayWork = useMemo(() => buildTodayWork({ today, tasks, customers, documents }), [today, tasks, customers, documents])
 
   return (
     <div>
@@ -64,6 +82,20 @@ export function LocalPlanner() {
           <p className="mt-1 text-xs text-muted-foreground">{syncError ? c.errorBody : cloudEnabled ? c.cloudBody : c.guestBody}</p>
         </div>
       </div>
+      <section className="mb-6 rounded-2xl border border-primary/25 bg-primary/[.04] p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div><h2 className="text-lg font-semibold text-foreground">{todayCopy.title}</h2><p className="mt-1 text-sm text-muted-foreground">{todayCopy.body}</p></div>
+          <span className="rounded-full border border-primary/25 px-3 py-1 text-xs font-semibold text-primary">{todayWork.length}</span>
+        </div>
+        {todayWork.length === 0 ? <p className="mt-4 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">{todayCopy.empty}</p> : <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {todayWork.map((item) => <Link key={item.id} href={item.href} className="flex min-h-20 items-center gap-3 rounded-xl border border-border bg-background/40 p-4 transition-colors hover:border-primary/40">
+            {item.overdue ? <AlertTriangle className="size-5 shrink-0 text-amber-400" /> : <UserRound className="size-5 shrink-0 text-primary" />}
+            <div className="min-w-0 flex-1"><p className="text-xs font-semibold uppercase tracking-wide text-primary">{todayCopy[item.kind]}</p><p className="mt-1 truncate text-sm font-medium text-foreground">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{[item.detail, item.date, item.overdue ? todayCopy.overdue : ""].filter(Boolean).join(" · ")}</p></div>
+            <span className="text-xs font-semibold text-primary">{todayCopy.open}</span>
+          </Link>)}
+        </div>}
+        <p className="mt-4 text-xs text-muted-foreground">{todayCopy.safety}</p>
+      </section>
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
       <form onSubmit={addTask} className="glass-panel h-fit rounded-2xl p-5">
         <h2 className="text-lg font-semibold text-foreground">{editingId ? editCopy.edit : c.add}</h2>
@@ -116,3 +148,4 @@ export function LocalPlanner() {
     </div>
   )
 }
+
