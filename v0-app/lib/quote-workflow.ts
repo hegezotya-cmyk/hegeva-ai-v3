@@ -38,6 +38,15 @@ export function paymentFollowUpSummary(invoice: PaymentFollowUpInvoice, onDate =
   return { daysLate: Math.floor((current - due) / 86_400_000), total: subtotal * (1 + Math.max(0, Number(invoice.vatRate) || 0) / 100) }
 }
 
+export function quoteFollowUpSummary(quote: PaymentFollowUpInvoice, onDate = new Date().toISOString().slice(0, 10)): { daysWaiting: number; total: number } | null {
+  if (quote.type !== 'quote' || quote.status !== 'sent' || !/^\d{4}-\d{2}-\d{2}$/.test(quote.dueDate) || quote.dueDate >= onDate) return null
+  const due = Date.parse(`${quote.dueDate}T00:00:00Z`)
+  const current = Date.parse(`${onDate}T00:00:00Z`)
+  if (!Number.isFinite(due) || !Number.isFinite(current)) return null
+  const subtotal = Array.isArray(quote.items) ? quote.items.reduce((sum, item) => sum + Math.max(0, Number(item.quantity) || 0) * Math.max(0, Number(item.unitPrice) || 0), 0) : 0
+  return { daysWaiting: Math.floor((current - due) / 86_400_000), total: subtotal * (1 + Math.max(0, Number(quote.vatRate) || 0) / 100) }
+}
+
 export function paymentDraftIssue(invoice: Quote, customers: { title: string }[], state: string, cloudEnabled: boolean, savedInvoices: unknown[], customerState = "cloud"): QuoteDraftIssue {
   const issue = quoteDraftIssue(invoice, customers, state, cloudEnabled, savedInvoices, customerState)
   if (issue) return issue

@@ -24,6 +24,7 @@ import { readBusinessKnowledgeMemory, saveBusinessKnowledgeMemory } from "./busi
 import { runCoreV1Decision } from "./core-v1-decision.js";
 import { prepareOverdueInvoiceEmailDraft } from "./email-draft-action.js";
 import { prepareQuoteEmailDraft } from "./quote-email-draft-action.js";
+import { prepareQuoteFollowUpEmailDraft } from "./quote-followup-email-draft-action.js";
 import { approveGovernedExternalAction, markGovernedExternalActionReady } from "./external-action-governance.js";
 import { applyEmailDeliveryState, canConfirmEmailDelivery, emailContentDigest } from "./email-delivery-governance.js";
 import { synchronizePreparedWork, transitionPreparedWork } from "./prepared-work-review.js";
@@ -3590,6 +3591,39 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
       } catch (error) {
         logFailure("email_draft_action_failed", error);
         return Response.json({ error: "Email draft preparation is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/external-actions/quote-followup-email-draft") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        let body;
+        try { body = await request.json(); } catch { return Response.json({ error: "Invalid JSON body." }, { status: 400 }); }
+        const quoteId = typeof body?.quoteId === "string" ? body.quoteId.trim() : "";
+        const locale = typeof body?.locale === "string" ? body.locale.trim() : "en";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(quoteId)) return Response.json({ error: "A valid quote is required." }, { status: 400 });
+        const stored = {};
+        for (const dataType of ["invoice_documents", "customers", "messages"]) {
+          const row = await env.DB.prepare("SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1").bind(user.id, dataType).first();
+          if (!row?.data) { stored[dataType] = []; continue; }
+          try { const value = JSON.parse(row.data); stored[dataType] = Array.isArray(value) ? value : []; }
+          catch { return Response.json({ error: "Workspace data is unavailable." }, { status: 503 }); }
+        }
+        const quote = stored.invoice_documents.find((document) => document?.id === quoteId);
+        if (!quote) return Response.json({ error: "Quote not found." }, { status: 404 });
+        const result = prepareQuoteFollowUpEmailDraft({ quote, customers: stored.customers, messages: stored.messages, locale });
+        if (!result.ok) return Response.json({ error: "The available workspace evidence cannot support this quote follow-up.", code: result.reason }, { status: result.reason === "customer-not-authorized" ? 403 : 422 });
+        if (result.created) {
+          const now = new Date().toISOString();
+          await env.DB.prepare(`INSERT INTO workspace_data (id, userId, dataType, data, createdAt, updatedAt) VALUES (?1, ?2, 'messages', ?3, ?4, ?4) ON CONFLICT(userId, dataType) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt`).bind(crypto.randomUUID(), user.id, JSON.stringify([result.draft, ...stored.messages]), now).run();
+          emitMonitor("quote_followup_email_draft_action", "prepared", { actionType: result.draft.actionType });
+        } else emitMonitor("quote_followup_email_draft_action", "reused", { actionType: result.draft.actionType });
+        return Response.json({ draft: result.draft, created: result.created, state: "awaiting-approval", sent: false }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+      } catch (error) {
+        logFailure("quote_followup_email_draft_action_failed", error);
+        return Response.json({ error: "Quote follow-up preparation is temporarily unavailable." }, { status: 503 });
       }
     }
 
