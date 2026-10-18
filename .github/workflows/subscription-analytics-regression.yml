@@ -1,0 +1,28 @@
+name: Subscription Analytics Regression
+
+on:
+  push:
+    branches:
+      - fix-consented-subscription-tracking-20261018
+  pull_request:
+    branches:
+      - growth-acquisition-conversion-sprint-03-20261001
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analytics-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Subscription consent and deduplication regression
+        run: node v0-app/scripts/subscription-consent-tracking-audit.mjs
+      - name: Campaign attribution regression
+        run: node v0-app/scripts/campaign-attribution-ga4-audit.mjs
+      - name: Diff whitespace validation
+        run: git diff --check HEAD~1 HEAD
