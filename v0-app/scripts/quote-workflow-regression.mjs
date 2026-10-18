@@ -99,6 +99,17 @@ test('payment follow-up summary only accepts sent overdue invoices and derives d
   assert.equal(workflow.paymentDraftIssue(valid, [{ title:'Customer' }], 'cloud', true, [valid], 'cloud'), null)
 })
 
+test('quote follow-up summary only accepts expired sent quotes and derives waiting days and total', () => {
+  const workflow = load('../lib/quote-workflow.ts')
+  assert.equal(typeof workflow.quoteFollowUpSummary, 'function', 'quote follow-up summary must exist')
+  const quote = { id:'q1', type:'quote', status:'sent', number:'QUO-1', dueDate:'2026-10-01', currency:'GBP', vatRate:20, clientName:'Customer', clientDetails:'customer@example.test', items:[{ quantity:2, unitPrice:50 }] }
+  assert.deepEqual(workflow.quoteFollowUpSummary(quote, '2026-10-19'), { daysWaiting:18, total:120 })
+  assert.equal(workflow.quoteFollowUpSummary({ ...quote, status:'draft' }, '2026-10-19'), null)
+  assert.equal(workflow.quoteFollowUpSummary({ ...quote, status:'paid' }, '2026-10-19'), null)
+  assert.equal(workflow.quoteFollowUpSummary({ ...quote, dueDate:'2026-10-19' }, '2026-10-19'), null)
+  assert.equal(workflow.quoteFollowUpSummary({ ...quote, type:'invoice' }, '2026-10-19'), null)
+})
+
 test('invoice page shows an actionable payment follow-up card from real saved records', () => {
   syncState = 'cloud'
   query = ''
@@ -110,6 +121,20 @@ test('invoice page shows an actionable payment follow-up card from real saved re
   assert(html.includes('Fizetési utánkövetés'))
   assert(html.includes('INV-1') && html.includes('Saved Customer'))
   assert(html.includes('Fizetési emlékeztető előkészítése'))
+  assert(html.includes('Semmi nem kerül elküldésre'))
+})
+
+test('invoice page shows an actionable quote follow-up card from real saved records', () => {
+  syncState = 'cloud'
+  query = ''
+  const quote = { id:'q1', type:'quote', status:'sent', number:'QUO-1', issueDate:'2026-09-01', dueDate:'2026-10-01', currency:'GBP', vatRate:20, businessName:'Painter', businessDetails:'', clientName:'Saved Customer', clientDetails:'customer@example.test', items:[{ id:'line-1', description:'Painting', quantity:2, unitPrice:50 }], notes:'', createdAt:'2026-09-01', updatedAt:'2026-09-01' }
+  workspaceRecords = { invoice_documents:[quote], customers:[{ id:'c1', title:'Saved Customer', meta:'customer@example.test', notes:'', createdAt:'2026-09-01' }], business_profile:[] }
+  const Page = load('../app/business/invoices/page.tsx').default
+  const html = renderToStaticMarkup(React.createElement(Page))
+  workspaceRecords = {}
+  assert(html.includes('Ajánlatok utánkövetése'))
+  assert(html.includes('QUO-1') && html.includes('Saved Customer'))
+  assert(html.includes('Emlékeztető előkészítése'))
   assert(html.includes('Semmi nem kerül elküldésre'))
 })
 
