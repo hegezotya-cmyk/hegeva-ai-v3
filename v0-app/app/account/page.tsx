@@ -138,8 +138,13 @@ export default function AccountPage() {
         const paid = PAID_PLANS.has(latest.plan)
         setBillingSuccess(paid)
         setBillingConfirmError(paid ? "" : "entitlement_pending")
-        if (paid) trackSubscriptionSuccess(latest.plan, latest.period)
-        clearBillingQuery()
+        if (paid) {
+          trackSubscriptionSuccess(latest.plan, latest.period)
+          // Preserve the checkout return marker while entitlement is pending.
+          // A refresh can retry after a delayed webhook without counting an
+          // unconfirmed checkout as a successful conversion.
+          clearBillingQuery()
+        }
       }
     }
 
