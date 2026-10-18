@@ -51,10 +51,18 @@ test("today work includes undated open tasks without labelling them overdue", ()
   assert.equal(item.overdue, false)
 })
 
+test("today work hides invoices whose payment follow-up is intentionally paused", () => {
+  const documents = [{ id: "invoice-overdue", type: "invoice", status: "sent", number: "INV-12", dueDate: "2026-10-10" }]
+  assert.equal(todayWork.buildTodayWork({ today: "2026-10-18", tasks: [], customers: [], documents, paymentFollowUps: [{ invoiceId: "invoice-overdue", state: "paused" }] }).length, 0)
+  assert.equal(todayWork.buildTodayWork({ today: "2026-10-18", tasks: [], customers: [], documents, paymentFollowUps: [{ invoiceId: "invoice-overdue", state: "promised", promisedDate: "2026-10-21" }] }).length, 0)
+  assert.equal(todayWork.buildTodayWork({ today: "2026-10-18", tasks: [], customers: [], documents, paymentFollowUps: [{ invoiceId: "invoice-overdue", state: "active" }] }).length, 1)
+})
+
 test("planner presents the derived daily work from existing workspace records", () => {
   const planner = fs.readFileSync(new URL("../components/business/planner.tsx", import.meta.url), "utf8")
   assert.match(planner, /useWorkspaceData<Customer>\("customers"\)/)
   assert.match(planner, /useWorkspaceData<Document>\("invoice_documents"\)/)
+  assert.match(planner, /useWorkspaceData<PaymentFollowUpRecord>\("payment_followup_records"\)/)
   assert.match(planner, /buildTodayWork/)
   assert.match(planner, /Mai teendők/)
   assert.match(planner, /Semmi nem kerül automatikusan elküldésre/)
