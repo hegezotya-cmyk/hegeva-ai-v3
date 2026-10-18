@@ -23,11 +23,11 @@ declare global {
 }
 
 const copy = {
-  en: { title: "Your privacy choices", body: "With your permission, HEGEVA uses Google Analytics to understand visits and registration starts. We do not send business records, form content or advertising identifiers.", accept: "Allow analytics", reject: "Essential only", manage: "Privacy choices", privacy: "Privacy notice" },
-  hu: { title: "Adatvédelmi beállítások", body: "Engedélyeddel a HEGEVA Google Analytics segítségével méri a látogatásokat és a regisztrációk elindítását. Üzleti adatokat, űrlaptartalmat és reklámazonosítókat nem küldünk.", accept: "Analytics engedélyezése", reject: "Csak szükséges", manage: "Adatvédelmi beállítások", privacy: "Adatvédelmi tájékoztató" },
-  de: { title: "Ihre Datenschutzauswahl", body: "Mit Ihrer Erlaubnis nutzt HEGEVA Google Analytics, um Besuche und Registrierungsstarts zu verstehen. Geschäftsdaten, Formularinhalte und Werbe-IDs werden nicht gesendet.", accept: "Analytics erlauben", reject: "Nur erforderlich", manage: "Datenschutzauswahl", privacy: "Datenschutzhinweis" },
-  fr: { title: "Vos choix de confidentialité", body: "Avec votre accord, HEGEVA utilise Google Analytics pour comprendre les visites et les débuts d’inscription. Aucune donnée métier, contenu de formulaire ou identifiant publicitaire n’est envoyé.", accept: "Autoriser Analytics", reject: "Nécessaires uniquement", manage: "Choix de confidentialité", privacy: "Avis de confidentialité" },
-  es: { title: "Tus opciones de privacidad", body: "Con tu permiso, HEGEVA usa Google Analytics para conocer las visitas y los inicios de registro. No enviamos datos empresariales, contenido de formularios ni identificadores publicitarios.", accept: "Permitir Analytics", reject: "Solo necesarias", manage: "Opciones de privacidad", privacy: "Aviso de privacidad" },
+  en: { title: "Your privacy choices", body: "With your permission, HEGEVA uses Google Analytics to understand visits, registration starts and confirmed paid plan activations. We do not send business records, form content, payment details or account identifiers.", accept: "Allow analytics", reject: "Essential only", manage: "Privacy choices", privacy: "Privacy notice" },
+  hu: { title: "Adatvédelmi beállítások", body: "Engedélyeddel a HEGEVA Google Analytics segítségével méri a látogatásokat, a regisztrációk elindítását és a megerősített fizetős csomag-aktiválásokat. Üzleti adatokat, űrlaptartalmat, fizetési adatokat vagy fiókazonosítókat nem küldünk.", accept: "Analytics engedélyezése", reject: "Csak szükséges", manage: "Adatvédelmi beállítások", privacy: "Adatvédelmi tájékoztató" },
+  de: { title: "Ihre Datenschutzauswahl", body: "Mit Ihrer Erlaubnis nutzt HEGEVA Google Analytics, um Besuche, Registrierungsstarts und bestätigte Aktivierungen kostenpflichtiger Tarife zu verstehen. Geschäftsdaten, Formularinhalte, Zahlungsdaten und Konto-IDs werden nicht gesendet.", accept: "Analytics erlauben", reject: "Nur erforderlich", manage: "Datenschutzauswahl", privacy: "Datenschutzhinweis" },
+  fr: { title: "Vos choix de confidentialité", body: "Avec votre accord, HEGEVA utilise Google Analytics pour comprendre les visites, les débuts d’inscription et les activations confirmées d’offres payantes. Aucune donnée métier, contenu de formulaire, donnée de paiement ou identifiant de compte n’est envoyé.", accept: "Autoriser Analytics", reject: "Nécessaires uniquement", manage: "Choix de confidentialité", privacy: "Avis de confidentialité" },
+  es: { title: "Tus opciones de privacidad", body: "Con tu permiso, HEGEVA usa Google Analytics para conocer las visitas, los inicios de registro y las activaciones confirmadas de planes de pago. No enviamos datos empresariales, contenido de formularios, datos de pago ni identificadores de cuenta.", accept: "Permitir Analytics", reject: "Solo necesarias", manage: "Opciones de privacidad", privacy: "Aviso de privacidad" },
 } as const
 
 function queueConsentDefault() {
@@ -46,7 +46,7 @@ function queueConsentDefault() {
 
 function enableAnalytics(pageReferrer = analyticsReferrerOrigin(document.referrer, window.location.origin)) {
   queueConsentDefault()
-  window.gtag?.("consent", "update", { analytics_storage: "granted" })
+  window.gtag?.("consent", "update", { analytics_storage: "granted", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" })
   window.gtag?.("js", new Date())
   window.gtag?.("config", MEASUREMENT_ID, {
     send_page_view: false,
@@ -70,7 +70,7 @@ function enableAnalytics(pageReferrer = analyticsReferrerOrigin(document.referre
       (window.clarity as unknown as { q?: unknown[] }).q = (window.clarity as unknown as { q?: unknown[] }).q || []
       ;(window.clarity as unknown as { q: unknown[] }).q.push(args)
     }
-    window.clarity("consentv2", { ad_Storage: "granted", analytics_Storage: "granted" })
+    window.clarity("consentv2", { ad_Storage: "denied", analytics_Storage: "granted" })
     if (!document.getElementById("hegeva-microsoft-clarity")) {
       const script = document.createElement("script")
       script.id = "hegeva-microsoft-clarity"
@@ -103,8 +103,8 @@ export function AnalyticsConsent() {
   useEffect(() => {
     const receive = (event: Event) => {
       if (consent !== "granted" || !window.gtag) return
-      const detail = (event as CustomEvent<{ event?: string; path?: string; params?: Record<string, string | number | boolean> }>).detail
-      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "email_verified", "get_started_entry", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click", "challenge_view", "challenge_start", "business_type_selected", "demo_loaded", "demo_analysis_complete", "priority_viewed", "prepare_action_click", "prepared_action_complete", "challenge_complete", "business_score_view", "try_my_business_click", "own_business_start", "own_business_result", "share_click", "free_tool_use", "free_tool_cta_click", "referral_visit", "referral_signup", "referral_link_copy", "referral_paid_qualified", "referral_reward_reviewed"].includes(detail.event || "")) return
+      const detail = (event as CustomEvent<{ event?: string; path?: string; params?: Record<string, unknown> }>).detail
+      if (!detail || !["landing_page_view", "registration_start", "registration_completed", "email_verified", "get_started_entry", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "purchase", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click", "challenge_view", "challenge_start", "business_type_selected", "demo_loaded", "demo_analysis_complete", "priority_viewed", "prepare_action_click", "prepared_action_complete", "challenge_complete", "business_score_view", "try_my_business_click", "own_business_start", "own_business_result", "share_click", "free_tool_use", "free_tool_cta_click", "referral_visit", "referral_signup", "referral_link_copy", "referral_paid_qualified", "referral_reward_reviewed"].includes(detail.event || "")) return
       const activationPaths = ["/get-started", "/business/customers", "/business/invoices", "/command-center", "/pricing", "/account", "/demo", "/challenge"]
       if (!detail.path || (!PUBLIC_ANALYTICS_PATHS.includes(detail.path) && !activationPaths.includes(detail.path))) return
       const key = `${detail.event}:${detail.path}`
@@ -191,7 +191,7 @@ export function AnalyticsConsent() {
       sessionStorage.removeItem("hegeva:campaign:v1")
       sessionStorage.removeItem(PENDING_CTA_KEY)
       clearReferralAttribution()
-      window.gtag?.("consent", "update", { analytics_storage: "denied" })
+      window.gtag?.("consent", "update", { analytics_storage: "denied", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" })
       window.clarity?.("consentv2", { ad_Storage: "denied", analytics_Storage: "denied" })
     }
   }
