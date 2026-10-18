@@ -28,7 +28,7 @@ type Draft = {
   completedAt?: string
   deliveryStatus?: "not-sent" | "sent" | "failed"
   executionStatus?: "not-executed" | "executed"
-  evidence?: { invoiceNumber?: string; dueDate?: string; amount?: string; customerName?: string }
+  evidence?: { invoiceNumber?: string; quoteNumber?: string; dueDate?: string; amount?: string; customerName?: string }
   sourceId?: string
 }
 
@@ -221,7 +221,7 @@ export function MessageStudio() {
                     {draft.recipient && <p className="mt-1 text-xs text-muted-foreground">{c.to}: {draft.recipient}</p>}
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs"><span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1">{draft.workflowStatus === "completed" ? <CheckCircle2 className="size-3 text-primary" /> : <ShieldCheck className="size-3" />}{governed ? draft.approvalState === "ready-to-execute" ? readyCopy : draft.approvalState === "sent" ? "SENT" : draft.approvalState === "sending" ? "SENDING" : draft.approvalState === "failed" ? "FAILED" : draft.approvalState === "uncertain" ? "DELIVERY UNCERTAIN" : draft.approvalState === "approved" ? editCopy.approved : editCopy.awaiting : draft.workflowStatus === "completed" ? editCopy.completed : draft.workflowStatus === "approved" ? editCopy.approved : editCopy.draft}</span>{governed && <><span className="rounded-full border px-2 py-1">{draft.deliveryStatus === "sent" ? "SENT" : draft.deliveryStatus === "failed" ? "FAILED" : editCopy.notSent}</span><span className="rounded-full border px-2 py-1">{draft.executionStatus === "executed" ? "EXECUTED" : editCopy.notExecuted}</span></>}{draft.followUpAt && <span className={`inline-flex items-center gap-1 ${draft.workflowStatus !== "completed" && draft.followUpAt <= new Date().toISOString().slice(0,10) ? "text-amber-500" : "text-muted-foreground"}`}><CalendarClock className="size-3" />{draft.followUpAt}{draft.workflowStatus !== "completed" && draft.followUpAt <= new Date().toISOString().slice(0,10) ? ` · ${editCopy.due}` : ""}</span>}</div>
                     {draft.sourceId && tasks.find(task => task.sourceId === draft.sourceId) && <p className="mt-2 text-xs text-primary">{editCopy.linked}: {tasks.find(task => task.sourceId === draft.sourceId)?.title}</p>}
-                    {governed && draft.evidence && <p className="mt-2 text-xs text-muted-foreground">{editCopy.evidence}: {[draft.evidence.invoiceNumber, draft.evidence.dueDate, draft.evidence.amount, draft.evidence.customerName].filter(Boolean).join(" · ")}</p>}
+                    {governed && draft.evidence && <p className="mt-2 text-xs text-muted-foreground">{editCopy.evidence}: {[draft.evidence.invoiceNumber, draft.evidence.quoteNumber, draft.evidence.dueDate, draft.evidence.amount, draft.evidence.customerName].filter(Boolean).join(" · ")}</p>}
                   </div>
                   {!governed && <div className="flex gap-2">
                     <button type="button" onClick={() => navigator.clipboard?.writeText(draft.body)} className="rounded-lg border border-border p-2 text-muted-foreground hover:text-foreground" aria-label={c.copy}><Copy className="size-4" /></button>
@@ -241,3 +241,4 @@ export function MessageStudio() {
     </div>
   )
 }
+
