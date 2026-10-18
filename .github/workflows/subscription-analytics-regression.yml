@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - fix-consented-subscription-tracking-20261018
+      - growth-acquisition-conversion-sprint-03-20261001
   pull_request:
     branches:
       - growth-acquisition-conversion-sprint-03-20261001
