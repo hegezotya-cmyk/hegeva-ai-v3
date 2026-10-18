@@ -17,16 +17,19 @@ type TodayWorkInput = {
   tasks: TodayTask[]
   customers: TodayCustomer[]
   documents: TodayDocument[]
+  paymentFollowUps?: Array<{ invoiceId: string; state: "active" | "promised" | "disputed" | "paused"; promisedDate?: string }>
 }
 
 const validDate = (value?: string) => Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value))
+const paymentPaused = (record: NonNullable<TodayWorkInput["paymentFollowUps"]>[number] | undefined, today: string) => Boolean(record && (record.state === "paused" || record.state === "disputed" || (record.state === "promised" && record.promisedDate && record.promisedDate >= today)))
 
-export function buildTodayWork({ today, tasks, customers, documents }: TodayWorkInput): TodayWorkItem[] {
+export function buildTodayWork({ today, tasks, customers, documents, paymentFollowUps = [] }: TodayWorkInput): TodayWorkItem[] {
   const items: TodayWorkItem[] = []
 
   for (const document of documents) {
     if (document.status !== "sent" || !validDate(document.dueDate) || document.dueDate! >= today) continue
     if (document.type !== "invoice" && document.type !== "quote") continue
+    if (document.type === "invoice" && paymentPaused(paymentFollowUps.find((record) => record.invoiceId === document.id), today)) continue
     items.push({
       id: `${document.type}:${document.id}`,
       kind: document.type,
@@ -67,4 +70,5 @@ export function buildTodayWork({ today, tasks, customers, documents }: TodayWork
   const rank = { invoice: 0, quote: 1, customer: 2, task: 3 }
   return items.sort((a, b) => rank[a.kind] - rank[b.kind] || (a.date || today).localeCompare(b.date || today) || a.id.localeCompare(b.id))
 }
+
 
