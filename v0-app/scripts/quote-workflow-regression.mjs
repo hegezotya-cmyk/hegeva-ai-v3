@@ -11,6 +11,7 @@ const require = createRequire(import.meta.url)
 let syncState = 'checking'
 let query = ''
 let editorDoc = null
+let workspaceRecords = {}
 const load = (relative) => {
   const filename = new URL(relative, import.meta.url)
   const source = fs.readFileSync(filename, 'utf8')
@@ -23,7 +24,7 @@ const load = (relative) => {
     if (name === '@/components/app-shell') return { AppShell: ({ children }) => children }
     if (name === '@/components/page-header') return { PageHeader: () => null }
     if (name === '@/lib/i18n/provider') return { useI18n: () => ({ locale: 'hu' }) }
-    if (name === '@/lib/use-workspace-data') return { useWorkspaceData: (type) => ({ items: [], setItems: () => {}, syncState, cloudEnabled: true, cloudSaveVersion: 0, cloudSavedItems: type === 'invoice_documents' && editorDoc ? [editorDoc] : [] }) }
+    if (name === '@/lib/use-workspace-data') return { useWorkspaceData: (type) => { const items = workspaceRecords[type] || []; return { items, setItems: () => {}, syncState, cloudEnabled: true, cloudSaveVersion: 0, cloudSavedItems: type === 'invoice_documents' && editorDoc ? [editorDoc] : items } } }
     if (name.startsWith('@/')) return load(`../${name.slice(2)}.${name.includes('components/') ? 'tsx' : 'ts'}`)
     if (name.startsWith('.')) return load(new URL(`${name}.ts`, filename))
     return require(name)
@@ -81,3 +82,34 @@ test('cached CRM data cannot authorize an email draft while cloud sync failed', 
   assert.equal(quoteDraftIssue({ ...quote, clientDetails: '' }, [{ title: 'Customer' }], 'cloud', true, [{ ...quote, clientDetails: '' }], 'cloud'), 'recipient')
   assert.equal(quoteDraftIssue({ ...quote, clientName: 'Edited customer' }, [{ title: 'Customer' }], 'cloud', true, [quote], 'cloud'), 'save')
 })
+
+test('payment follow-up summary only accepts sent overdue invoices and derives days and total', () => {
+  const workflow = load('../lib/quote-workflow.ts')
+  assert.equal(typeof workflow.paymentFollowUpSummary, 'function', 'payment follow-up summary must exist')
+  const invoice = { id:'i1', type:'invoice', status:'sent', number:'INV-1', dueDate:'2026-10-01', currency:'GBP', vatRate:20, clientName:'Customer', clientDetails:'customer@example.test', items:[{ quantity:2, unitPrice:50 }] }
+  assert.deepEqual(workflow.paymentFollowUpSummary(invoice, '2026-10-19'), { daysLate:18, total:120 })
+  assert.equal(workflow.paymentFollowUpSummary({ ...invoice, status:'draft' }, '2026-10-19'), null)
+  assert.equal(workflow.paymentFollowUpSummary({ ...invoice, status:'paid' }, '2026-10-19'), null)
+  assert.equal(workflow.paymentFollowUpSummary({ ...invoice, dueDate:'2026-10-19' }, '2026-10-19'), null)
+  assert.equal(workflow.paymentFollowUpSummary({ ...invoice, type:'quote' }, '2026-10-19'), null)
+  assert.equal(typeof workflow.paymentDraftIssue, 'function', 'payment draft preflight must exist')
+  const saved = { ...invoice, clientName:'Customer', clientDetails:`${'x'.repeat(210)} customer@example.test` }
+  assert.equal(workflow.paymentDraftIssue(saved, [{ title:'Customer' }], 'cloud', true, [saved], 'cloud'), 'recipient', 'an email beyond the server evidence limit must be rejected before the request')
+  const valid = { ...saved, clientDetails:'customer@example.test' }
+  assert.equal(workflow.paymentDraftIssue(valid, [{ title:'Customer' }], 'cloud', true, [valid], 'cloud'), null)
+})
+
+test('invoice page shows an actionable payment follow-up card from real saved records', () => {
+  syncState = 'cloud'
+  query = ''
+  const invoice = { id:'i1', type:'invoice', status:'sent', number:'INV-1', issueDate:'2026-09-01', dueDate:'2026-10-01', currency:'GBP', vatRate:20, businessName:'Painter', businessDetails:'', clientName:'Saved Customer', clientDetails:'customer@example.test', items:[{ id:'line-1', description:'Painting', quantity:2, unitPrice:50 }], notes:'', createdAt:'2026-09-01', updatedAt:'2026-09-01' }
+  workspaceRecords = { invoice_documents:[invoice], customers:[{ id:'c1', title:'Saved Customer', meta:'customer@example.test', notes:'', createdAt:'2026-09-01' }], business_profile:[] }
+  const Page = load('../app/business/invoices/page.tsx').default
+  const html = renderToStaticMarkup(React.createElement(Page))
+  workspaceRecords = {}
+  assert(html.includes('Fizetési utánkövetés'))
+  assert(html.includes('INV-1') && html.includes('Saved Customer'))
+  assert(html.includes('Fizetési emlékeztető előkészítése'))
+  assert(html.includes('Semmi nem kerül elküldésre'))
+})
+

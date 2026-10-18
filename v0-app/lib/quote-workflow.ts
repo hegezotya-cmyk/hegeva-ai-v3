@@ -23,3 +23,24 @@ export function quoteDraftIssue(quote: Quote, customers: { title: string }[], st
   if (!/[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(quote.clientDetails)) return 'recipient'
   return null
 }
+
+type PaymentFollowUpInvoice = {
+  type: string; status?: string; dueDate: string; vatRate?: number;
+  items?: { quantity?: number | string; unitPrice?: number | string }[];
+}
+
+export function paymentFollowUpSummary(invoice: PaymentFollowUpInvoice, onDate = new Date().toISOString().slice(0, 10)): { daysLate: number; total: number } | null {
+  if (invoice.type !== 'invoice' || invoice.status !== 'sent' || !/^\d{4}-\d{2}-\d{2}$/.test(invoice.dueDate) || invoice.dueDate >= onDate) return null
+  const due = Date.parse(`${invoice.dueDate}T00:00:00Z`)
+  const current = Date.parse(`${onDate}T00:00:00Z`)
+  if (!Number.isFinite(due) || !Number.isFinite(current)) return null
+  const subtotal = Array.isArray(invoice.items) ? invoice.items.reduce((sum, item) => sum + Math.max(0, Number(item.quantity) || 0) * Math.max(0, Number(item.unitPrice) || 0), 0) : 0
+  return { daysLate: Math.floor((current - due) / 86_400_000), total: subtotal * (1 + Math.max(0, Number(invoice.vatRate) || 0) / 100) }
+}
+
+export function paymentDraftIssue(invoice: Quote, customers: { title: string }[], state: string, cloudEnabled: boolean, savedInvoices: unknown[], customerState = "cloud"): QuoteDraftIssue {
+  const issue = quoteDraftIssue(invoice, customers, state, cloudEnabled, savedInvoices, customerState)
+  if (issue) return issue
+  return /[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(invoice.clientDetails.trim().slice(0, 200)) ? null : 'recipient'
+}
+
