@@ -7,6 +7,7 @@ import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { useI18n } from "@/lib/i18n/provider"
 import { getBusinessModulesCopy } from "@/lib/i18n/business-modules-copy"
 import { buildTodayWork } from "@/lib/today-work"
+import type { PaymentFollowUpRecord } from "@/lib/payment-followup-state"
 
 type Task = {
   id: string
@@ -34,6 +35,7 @@ export function LocalPlanner() {
   const { items: tasks, setItems: setTasks, syncState, syncError, cloudEnabled } = useWorkspaceData<Task>("planner")
   const { items: customers } = useWorkspaceData<Customer>("customers")
   const { items: documents } = useWorkspaceData<Document>("invoice_documents")
+  const { items: paymentFollowUps } = useWorkspaceData<PaymentFollowUpRecord>("payment_followup_records")
   const [title, setTitle] = useState("")
   const [due, setDue] = useState("")
   const [priority, setPriority] = useState<Task["priority"]>("medium")
@@ -71,7 +73,7 @@ export function LocalPlanner() {
   const openCount = useMemo(() => tasks.filter((t) => !t.done).length, [tasks])
   const todayCopy = TODAY_COPY[locale]
   const today = new Date().toLocaleDateString("en-CA")
-  const todayWork = useMemo(() => buildTodayWork({ today, tasks, customers, documents }), [today, tasks, customers, documents])
+  const todayWork = useMemo(() => buildTodayWork({ today, tasks, customers, documents, paymentFollowUps }), [today, tasks, customers, documents, paymentFollowUps])
 
   return (
     <div>
