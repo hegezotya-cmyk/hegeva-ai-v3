@@ -34,6 +34,7 @@ const checks = [
   [ui.includes('value="new-customer"') && ui.includes("selectCustomer") && ui.includes("customer.title") && ui.includes("customer.meta"), "existing-customer selection"],
   [ui.includes('useWorkspaceData<LaunchDraft>("one_click_business_drafts")'), "single launch draft workspace"],
   [ui.includes("draftHydrated") && ui.includes("normalizeLaunchDraft") && ui.includes("setDrafts([{ id: \"current\""), "one-time draft hydration and single-record persistence"],
+  [ui.includes("activeRunId, draftSyncState, setDrafts]"), "first edit persists after delayed draft hydration"],
   [ui.includes("setDrafts([])") && ui.includes("setCustomers") && ui.includes("setDocs") && ui.includes("setTasks"), "draft-only clear after completion"],
   [ui.includes("fieldErrors") && ui.includes("aria-invalid") && ui.includes("aria-describedby") && ui.includes("fieldRefs.current[firstError]?.focus()"), "field-level validation feedback"],
   [ui.includes("max-sm:sticky") && ui.includes("max-sm:bottom-3"), "mobile preview action"],
