@@ -1,0 +1,29 @@
+name: Production Billing PR Check
+on:
+  pull_request:
+    branches: [v0-rebuild]
+    paths:
+      - "v0-app/app/account/page.tsx"
+      - "v0-app/scripts/billing-return-regression.mjs"
+      - ".github/workflows/production-billing-pr-check.yml"
+permissions:
+  contents: read
+jobs:
+  billing-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v0-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+      - run: npm ci
+      - run: node scripts/billing-return-regression.mjs
+      - run: npm run audit:billing
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - run: npm run cf:build
