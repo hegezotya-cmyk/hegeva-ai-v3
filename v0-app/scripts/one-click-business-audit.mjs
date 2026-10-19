@@ -24,6 +24,9 @@ const checks = [
   [ui.includes('useWorkspaceData<BusinessProfile>("business_profile")') && ui.includes("profiles[0]?.name"), "saved business-name prefill"],
   [ui.includes("activeRunId") && ui.includes("setActiveRunId(id)"), "current-session result selection"],
   [ui.includes("newOpportunity") && ui.includes("setActiveRunId(null)"), "explicit new-opportunity reset"],
+  [ui.includes("quoteNet") && ui.includes("quoteVat") && ui.includes("quoteTotal"), "quote preview totals"],
+  [ui.includes("formatMoney") && ui.includes("Intl.NumberFormat"), "localized quote currency formatting"],
+  [ui.includes("current.brief.businessName") && ui.includes("current.brief.customerName") && ui.includes("current.brief.dueDate"), "quote preview parties and validity"],
 ]
 
 for (const [ok, name] of checks) if (!ok) throw new Error(`One-Click Business audit failed: ${name}`)
