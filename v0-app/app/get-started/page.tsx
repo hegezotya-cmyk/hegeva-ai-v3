@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Check, Circle, ShieldCheck } from "lucide-react"
+import { Check, ShieldCheck } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { authClient } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
@@ -22,11 +22,13 @@ export default function GetStartedPage() {
   const c = FIRST_CUSTOMER_COPY[locale]
   const { items: customers } = useWorkspaceData<WorkspaceItem>("customers")
   const { items: invoices } = useWorkspaceData<WorkspaceItem>("invoice_documents")
-  const { items: businessProfiles } = useWorkspaceData<WorkspaceItem>("business_profile")
   const { items: goals } = useWorkspaceData<WorkspaceItem>("goal_mode")
-  const hasBusinessRecord = customers.length > 0 || invoices.length > 0 || businessProfiles.length > 0
-  const incompleteSteps = c.steps.filter((_, index) => index === 0 ? !hasBusinessRecord : index === 1 ? goals.length === 0 : invoices.length === 0)
-  const isReady = incompleteSteps.length === 0
+  const hasBusinessRecord = customers.length > 0 || invoices.length > 0
+  const completedSteps = [customers.length > 0, goals.length > 0, invoices.length > 0]
+  const nextStepIndex = completedSteps.findIndex((complete) => !complete)
+  const nextStep = nextStepIndex >= 0 ? c.steps[nextStepIndex] : null
+  const completedCount = completedSteps.filter(Boolean).length
+  const isReady = nextStep === null
 
   useEffect(() => {
     if (session?.user) trackActivationEvent("get_started_viewed", "/get-started", activationIdentity(session.user.id))
@@ -61,21 +63,23 @@ export default function GetStartedPage() {
               </div>
             </div>
           </section>
-        ) : (
-          <section className="mt-10">
-            <p className="ve-eyebrow">{c.eyebrow}</p>
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
-              {incompleteSteps.map((step) => (
-                <article key={step.href} className="glass-panel flex min-w-0 flex-col rounded-2xl p-6">
-                  <span className="grid size-8 place-items-center rounded-full bg-primary/10 text-primary"><Circle className="size-4" aria-hidden /></span>
-                  <h2 className="mt-5 text-lg font-semibold">{step.title}</h2>
-                  <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">{step.body}</p>
-                  <Link href={step.href} className="mt-5 inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline">
-                    {step.action}
-                  </Link>
-                </article>
-              ))}
+        ) : nextStep && (
+          <section className="mt-10" aria-labelledby="next-onboarding-step">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="ve-eyebrow">{c.eyebrow}</p>
+              <strong className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-sm text-primary">{completedCount}/{c.steps.length}</strong>
             </div>
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted" aria-label={`${completedCount}/${c.steps.length}`}>
+              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${completedCount / c.steps.length * 100}%` }} />
+            </div>
+            <article className="glass-panel mt-5 flex min-w-0 flex-col rounded-2xl p-6 sm:p-8">
+              <span className="grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-bold text-primary">{nextStepIndex + 1}</span>
+              <h2 id="next-onboarding-step" className="mt-5 text-2xl font-semibold">{nextStep.title}</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{nextStep.body}</p>
+              <Link href={nextStep.href} className="mt-5 inline-flex min-h-11 w-fit items-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+                {nextStep.action}
+              </Link>
+            </article>
           </section>
         )}
 

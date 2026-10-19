@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useMemo, useState } from "react"
-import { ArrowRight, FileSpreadsheet, MessageSquareText, ShieldCheck, Sparkles } from "lucide-react"
+import { ArrowRight, MessageSquareText, ShieldCheck, Sparkles, UserPlus } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { analyseCustomerMessage, type QuickStartIntent } from "@/lib/first-wow"
 import { recordAnalyticsEvent } from "@/components/acquisition/acquisition-attribution"
@@ -14,9 +14,9 @@ const COPY = {
     eyebrow: "FIRST WOW",
     title: "Give HEGEVA one thing to work with.",
     subtitle: "Start with one real item from your business. Nothing is sent automatically.",
-    invoiceTitle: "Add an invoice",
-    invoiceBody: "Use the invoice workspace to enter one real invoice. HEGEVA can then use its status as a real workspace signal.",
-    invoiceAction: "Open invoice workspace",
+    customerTitle: "Add your first customer",
+    customerBody: "Start with one real customer. HEGEVA can then connect quotes, follow-ups and invoices to a real business relationship.",
+    customerAction: "Open customer workspace",
     messageTitle: "Paste a customer message",
     messageBody: "Paste one real customer message here. This quick-start check stays in your browser until you choose to continue.",
     placeholder: "Paste a customer message…",
@@ -45,9 +45,9 @@ const COPY = {
     eyebrow: "ELSŐ WOW",
     title: "Adj a HEGEVA-nak egy dolgot, amivel dolgozhat.",
     subtitle: "Kezdj egy valódi üzleti tétellel. Semmi nem kerül automatikusan elküldésre.",
-    invoiceTitle: "Adj hozzá egy számlát",
-    invoiceBody: "Az invoice munkatérben rögzíts egy valódi számlát. A HEGEVA ezután valódi munkaterületi jelként tudja használni az állapotát.",
-    invoiceAction: "Számla munkatér megnyitása",
+    customerTitle: "Add hozzá az első ügyfeledet",
+    customerBody: "Kezdj egy valódi ügyféllel. A HEGEVA ezután az ajánlatokat, utánkövetéseket és számlákat valódi üzleti kapcsolathoz tudja kötni.",
+    customerAction: "Ügyfél munkatér megnyitása",
     messageTitle: "Másolj be egy ügyfélüzenetet",
     messageBody: "Másolj be ide egy valódi ügyfélüzenetet. Ez a gyors ellenőrzés a böngésződben marad, amíg nem döntesz a folytatásról.",
     placeholder: "Másolj be egy ügyfélüzenetet…",
@@ -75,7 +75,7 @@ const COPY = {
   de: {
     eyebrow: "ERSTER WOW-MOMENT", title: "Gib HEGEVA eine Sache, mit der es arbeiten kann.",
     subtitle: "Beginne mit einem echten Geschäftselement. Nichts wird automatisch gesendet.",
-    invoiceTitle: "Rechnung hinzufügen", invoiceBody: "Erfasse eine echte Rechnung im Rechnungsbereich. HEGEVA kann ihren Status dann als echtes Workspace-Signal nutzen.", invoiceAction: "Rechnungsbereich öffnen",
+    customerTitle: "Ersten Kunden hinzufügen", customerBody: "Beginnen Sie mit einem echten Kunden. HEGEVA kann Angebote, Nachfassaktionen und Rechnungen dann einer echten Geschäftsbeziehung zuordnen.", customerAction: "Kundenbereich öffnen",
     messageTitle: "Kundennachricht einfügen", messageBody: "Füge eine echte Kundennachricht ein. Diese Schnellprüfung bleibt im Browser, bis du fortfährst.",
     placeholder: "Kundennachricht einfügen…", analyse: "NACHRICHT PRÜFEN", empty: "Bitte zuerst eine Nachricht einfügen.",
     signal: "HEGEVA hat einen wahrscheinlichen nächsten Schritt gefunden", caveat: "Nur ein Schnellstart-Signal anhand sichtbarer Wörter, keine vollständige KI-Analyse.", openDraft: "VORBEREITETE ANTWORT ÖFFNEN", prepared: "Nur vorbereitet. Nichts wurde gesendet.",
@@ -85,7 +85,7 @@ const COPY = {
   fr: {
     eyebrow: "PREMIER WOW", title: "Donnez à HEGEVA une chose sur laquelle travailler.",
     subtitle: "Commencez avec un élément réel de votre activité. Rien n’est envoyé automatiquement.",
-    invoiceTitle: "Ajouter une facture", invoiceBody: "Saisissez une vraie facture dans l’espace Factures. HEGEVA pourra utiliser son statut comme signal réel.", invoiceAction: "Ouvrir l’espace factures",
+    customerTitle: "Ajouter votre premier client", customerBody: "Commencez avec un vrai client. HEGEVA pourra ensuite relier devis, relances et factures à une relation commerciale réelle.", customerAction: "Ouvrir l’espace clients",
     messageTitle: "Coller un message client", messageBody: "Collez un vrai message client. Cette vérification rapide reste dans votre navigateur jusqu’à ce que vous choisissiez de continuer.",
     placeholder: "Collez un message client…", analyse: "VÉRIFIER LE MESSAGE", empty: "Collez d’abord un message.",
     signal: "HEGEVA a trouvé une prochaine étape probable", caveat: "Signal de démarrage rapide basé sur les mots visibles, pas une analyse IA complète.", openDraft: "OUVRIR LA RÉPONSE PRÉPARÉE", prepared: "Préparé uniquement. Rien n’a été envoyé.",
@@ -95,7 +95,7 @@ const COPY = {
   es: {
     eyebrow: "PRIMER WOW", title: "Dale a HEGEVA una cosa con la que trabajar.",
     subtitle: "Empieza con un elemento real de tu negocio. Nada se envía automáticamente.",
-    invoiceTitle: "Añadir una factura", invoiceBody: "Introduce una factura real en el espacio de facturas. HEGEVA podrá usar su estado como una señal real.", invoiceAction: "Abrir espacio de facturas",
+    customerTitle: "Añade tu primer cliente", customerBody: "Empieza con un cliente real. HEGEVA podrá vincular presupuestos, seguimientos y facturas a una relación comercial real.", customerAction: "Abrir espacio de clientes",
     messageTitle: "Pegar un mensaje de cliente", messageBody: "Pega un mensaje real de cliente. Esta comprobación rápida permanece en tu navegador hasta que decidas continuar.",
     placeholder: "Pega un mensaje de cliente…", analyse: "COMPROBAR MENSAJE", empty: "Pega primero un mensaje.",
     signal: "HEGEVA encontró un siguiente paso probable", caveat: "Señal rápida basada en palabras visibles, no un análisis completo de IA.", openDraft: "ABRIR RESPUESTA PREPARADA", prepared: "Solo preparado. No se ha enviado nada.",
@@ -148,15 +148,15 @@ export function FirstWowQuickStart() {
 
       <div className="mt-7 grid gap-5 lg:grid-cols-2">
         <article className="rounded-2xl border border-border bg-background/45 p-5">
-          <span className="grid size-10 place-items-center rounded-xl bg-gold/10 text-gold"><FileSpreadsheet className="size-5" aria-hidden /></span>
-          <h3 className="mt-4 text-xl font-semibold">{c.invoiceTitle}</h3>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">{c.invoiceBody}</p>
+          <span className="grid size-10 place-items-center rounded-xl bg-gold/10 text-gold"><UserPlus className="size-5" aria-hidden /></span>
+          <h3 className="mt-4 text-xl font-semibold">{c.customerTitle}</h3>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">{c.customerBody}</p>
           <Link
-            href="/business/invoices"
-            onClick={() => recordAnalyticsEvent("own_business_start", "/get-started", { input_type: "invoice" })}
+            href="/business/customers"
+            onClick={() => recordAnalyticsEvent("own_business_start", "/get-started", { input_type: "customer" })}
             className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-gold/35 px-4 text-sm font-semibold text-gold"
           >
-            {c.invoiceAction}<ArrowRight className="size-4" aria-hidden />
+            {c.customerAction}<ArrowRight className="size-4" aria-hidden />
           </Link>
         </article>
 
