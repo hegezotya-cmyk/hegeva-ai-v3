@@ -74,7 +74,7 @@ jobs:
             body="$(curl --fail --silent --show-error --location \
               --retry 8 --retry-delay 3 --retry-all-errors \
               --connect-timeout 10 --max-time 30 "$url")"
-            echo "$body" | grep -qi "HEGEVA" || {
+            grep -qi "HEGEVA" <<< "$body" || {
               echo "Expected HEGEVA marker was not found at $url"
               exit 1
             }
