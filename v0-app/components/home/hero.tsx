@@ -35,7 +35,7 @@ export function Hero() {
             type="image/png"
           />
           <img
-            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+            src="/hegeva-hero-gold-official.png"
             alt=""
             width={811}
             height={490}
