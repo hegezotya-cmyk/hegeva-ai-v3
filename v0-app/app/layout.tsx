@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { I18nProvider } from '@/lib/i18n/provider'
 import { WorkspaceLocalPrivacyGuard } from '@/components/workspace-local-privacy-guard'
+import { ConsentAnalytics } from '@/components/consent-analytics'
 import './globals.css'
 
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
@@ -60,6 +61,7 @@ export default function RootLayout({
       <body className="antialiased font-sans">
         <I18nProvider>
           <WorkspaceLocalPrivacyGuard />
+          <ConsentAnalytics />
           {children}
         </I18nProvider>
       </body>

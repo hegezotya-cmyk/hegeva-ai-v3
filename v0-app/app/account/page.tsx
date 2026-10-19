@@ -11,6 +11,7 @@ import { authClient } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
 import { ACCOUNT_COPY } from "@/lib/i18n/account-copy"
 import { LEADS_COPY } from "@/lib/i18n/leads-copy"
+import { trackConversion } from "@/lib/conversion-tracking"
 
 type PlanStatus = { plan:string; aiMessages:number; aiLimit:number; period:string }
 
@@ -99,7 +100,10 @@ export default function AccountPage() {
         setBillingConfirmError(paid ? "" : "entitlement_pending")
         // Keep the return marker until paid entitlement is confirmed.
         // A reload can retry if the billing webhook arrives late.
-        if (paid) clearBillingQuery()
+        if (paid) {
+          trackConversion("subscription_success")
+          clearBillingQuery()
+        }
       }
     }
 
