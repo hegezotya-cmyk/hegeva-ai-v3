@@ -31,6 +31,9 @@ const checks = [
   [ui.includes("TRADE_PRESETS") && ui.includes('"painter"') && ui.includes('"builder"') && ui.includes('"cleaner"') && ui.includes('"electrician"') && ui.includes('"small-shop"'), "trade preset selector"],
   [ui.includes("customerSection") && ui.includes("workSection") && ui.includes("priceSection"), "three-part opportunity form"],
   [ui.includes('value="new-customer"') && ui.includes("selectCustomer") && ui.includes("customer.title") && ui.includes("customer.meta"), "existing-customer selection"],
+  [ui.includes('useWorkspaceData<LaunchDraft>("one_click_business_drafts")'), "single launch draft workspace"],
+  [ui.includes("draftHydrated") && ui.includes("normalizeLaunchDraft") && ui.includes("setDrafts([{ id: \"current\""), "one-time draft hydration and single-record persistence"],
+  [ui.includes("setDrafts([])") && ui.includes("setCustomers") && ui.includes("setDocs") && ui.includes("setTasks"), "draft-only clear after completion"],
 ]
 
 for (const [ok, name] of checks) if (!ok) throw new Error(`One-Click Business audit failed: ${name}`)
