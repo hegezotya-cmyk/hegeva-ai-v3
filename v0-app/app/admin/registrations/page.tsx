@@ -11,7 +11,7 @@ type User = { id: string; name: string; email: string; emailVerified: boolean; c
 type Metrics = {
   generatedAt: string
   registrations: { total: number; verified: number; last7Days: number; last30Days: number }
-  activation: { workspaceUsers: number; active7Days: number; active30Days: number }
+  activation: { workspaceUsers: number; active7Days: number; active30Days: number; firstValueUsers: number; customerUsers: number; quoteUsers: number; invoiceUsers: number; plannerUsers: number; messageUsers: number }
   assistant: { operationsThisMonth: number; successfulThisMonth: number; failedThisMonth: number; timedOutThisMonth: number; activeUsersThisMonth: number; averageResponseMs: number | null }
   subscriptions: { active: number; trialing: number; pastDue: number }
 }
@@ -57,7 +57,7 @@ export default function RegistrationsPage() {
   const rate = (part: number, whole: number) => whole > 0 ? `${Math.round(part / whole * 100)}%` : '—'
   const metricGroups = metrics ? [
     { title: c.registrationsGroup, values: [[c.registrationTotal, metrics.registrations.total], [c.registrationVerified, `${metrics.registrations.verified} (${rate(metrics.registrations.verified, metrics.registrations.total)})`], [c.registrations7d, metrics.registrations.last7Days], [c.registrations30d, metrics.registrations.last30Days]] },
-    { title: c.activationGroup, values: [[c.workspaceUsers, metrics.activation.workspaceUsers], [c.workspaceActive7d, metrics.activation.active7Days], [c.workspaceActive30d, metrics.activation.active30Days]] },
+    { title: c.activationGroup, values: [[c.workspaceUsers, metrics.activation.workspaceUsers], [c.firstValueUsers, `${metrics.activation.firstValueUsers} (${rate(metrics.activation.firstValueUsers, metrics.registrations.total)})`], [c.customerUsers, metrics.activation.customerUsers], [c.quoteUsers, metrics.activation.quoteUsers], [c.invoiceUsers, metrics.activation.invoiceUsers], [c.plannerUsers, metrics.activation.plannerUsers], [c.messageUsers, metrics.activation.messageUsers], [c.workspaceActive7d, metrics.activation.active7Days], [c.workspaceActive30d, metrics.activation.active30Days]] },
     { title: c.assistantGroup, values: [[c.assistantOperationsMonth, metrics.assistant.operationsThisMonth], [c.assistantUsersMonth, metrics.assistant.activeUsersThisMonth], [c.assistantSuccessful, metrics.assistant.successfulThisMonth], [c.assistantFailed, metrics.assistant.failedThisMonth], [c.assistantTimedOut, metrics.assistant.timedOutThisMonth], [c.averageResponse, metrics.assistant.averageResponseMs === null ? '—' : `${metrics.assistant.averageResponseMs} ms`]] },
     { title: c.subscriptionsGroup, values: [[c.subscriptionActive, metrics.subscriptions.active], [c.subscriptionTrialing, metrics.subscriptions.trialing], [c.subscriptionPastDue, metrics.subscriptions.pastDue]] },
   ] : []

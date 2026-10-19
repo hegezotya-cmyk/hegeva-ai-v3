@@ -17,6 +17,7 @@ const db = { prepare(sql) {
     return { first: async () => ({
       registrationTotal: 12, registrationVerified: 9, registrations7d: 3, registrations30d: 8,
       workspaceUsers: 7, workspaceActive7d: 4, workspaceActive30d: 6,
+      firstValueUsers: 5, customerUsers: 4, quoteUsers: 3, invoiceUsers: 2, plannerUsers: 2, messageUsers: 3,
       assistantOperationsMonth: 21, assistantSuccessMonth: 18, assistantFailureMonth: 2,
       assistantTimeoutMonth: 1, assistantActiveUsersMonth: 5, assistantAverageResponseMs: 842,
       subscriptionActive: 2, subscriptionTrialing: 1, subscriptionPastDue: 1,
@@ -43,7 +44,7 @@ assert.deepEqual(payload.users, [{ id: 'u1', name: 'Test Owner', email: 'owner@e
 assert.equal(payload.nextOffset, null)
 assert.match(payload.metrics.generatedAt, /^\d{4}-\d{2}-\d{2}T/)
 assert.deepEqual(payload.metrics.registrations, { total: 12, verified: 9, last7Days: 3, last30Days: 8 })
-assert.deepEqual(payload.metrics.activation, { workspaceUsers: 7, active7Days: 4, active30Days: 6 })
+assert.deepEqual(payload.metrics.activation, { workspaceUsers: 7, active7Days: 4, active30Days: 6, firstValueUsers: 5, customerUsers: 4, quoteUsers: 3, invoiceUsers: 2, plannerUsers: 2, messageUsers: 3 })
 assert.deepEqual(payload.metrics.assistant, { operationsThisMonth: 21, successfulThisMonth: 18, failedThisMonth: 2, timedOutThisMonth: 1, activeUsersThisMonth: 5, averageResponseMs: 842 })
 assert.deepEqual(payload.metrics.subscriptions, { active: 2, trialing: 1, pastDue: 1 })
 assert.equal(payload.metrics.windows.timeZone, 'Europe/London')
@@ -61,7 +62,7 @@ const copySource = readFileSync(new URL('../lib/i18n/registrations-copy.ts', imp
 for (const marker of ['metrics.registrations', 'metrics.activation', 'metrics.assistant', 'metrics.subscriptions', 'metrics.generatedAt']) {
   assert(pageSource.includes(marker), `owner dashboard must render ${marker}`)
 }
-for (const label of ['metricsTitle', 'registrationTotal', 'workspaceActive7d', 'assistantOperationsMonth', 'subscriptionActive', 'measurementDefinitions']) {
+for (const label of ['metricsTitle', 'registrationTotal', 'workspaceActive7d', 'firstValueUsers', 'customerUsers', 'quoteUsers', 'invoiceUsers', 'plannerUsers', 'messageUsers', 'assistantOperationsMonth', 'subscriptionActive', 'measurementDefinitions']) {
   assert(copySource.includes(label), `owner dashboard copy is missing ${label}`)
 }
 console.log('Owner registrations test passed: owner-only, read-only, bounded, no sensitive authentication fields')
