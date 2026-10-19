@@ -7,12 +7,14 @@ const hub = read("app/business/page.tsx")
 const consent = read("components/analytics-consent.tsx")
 const getStarted = read("lib/i18n/first-customer-copy.ts")
 const firstWow = read("components/get-started/first-wow.tsx")
+const has = (pattern) => pattern.test(ui)
+const startAnalytics = ui.match(/recordAnalyticsEvent\("own_business_start"[\s\S]*?\}\)/)?.[0] || ""
 
 const checks = [
   [ui.includes('useWorkspaceData<Customer>("customers")') && ui.includes('useWorkspaceData<Task>("planner")') && ui.includes('useWorkspaceData<Doc>("invoice_documents")'), "real workspace records"],
-  [ui.includes('status:"review"') && ui.includes('status:"approved"') && ui.includes('status:"created"'), "approval state machine"],
+  [has(/status:\s*"review"/) && has(/status:\s*"approved"/) && has(/status:\s*"created"/), "approval state machine"],
   [logic.includes("validateLaunchBrief") && logic.includes("customerEmail"), "validated inputs"],
-  [logic.includes("one-click:") && ui.includes("some(v=>v.sourceId==="), "duplicate protection"],
+  [logic.includes("one-click:") && has(/some\([^)]*=>[^)]*\.sourceId\s*===/), "duplicate protection"],
   [ui.includes("No email, quote or message is sent") && ui.includes("semmi nem kerül elküldésre"), "no automatic send"],
   [ui.includes("en:") && ui.includes("hu:") && ui.includes("de:") && ui.includes("fr:") && ui.includes("es:"), "five locales"],
   [hub.includes('/business/launch'), "business hub entry"],
@@ -27,6 +29,17 @@ const checks = [
   [ui.includes("quoteNet") && ui.includes("quoteVat") && ui.includes("quoteTotal"), "quote preview totals"],
   [ui.includes("formatMoney") && ui.includes("Intl.NumberFormat"), "localized quote currency formatting"],
   [ui.includes("current.brief.businessName") && ui.includes("current.brief.customerName") && ui.includes("current.brief.dueDate"), "quote preview parties and validity"],
+  [ui.includes("TRADE_PRESETS") && ui.includes('"painter"') && ui.includes('"builder"') && ui.includes('"cleaner"') && ui.includes('"electrician"') && ui.includes('"small-shop"'), "trade preset selector"],
+  [ui.includes("customerSection") && ui.includes("workSection") && ui.includes("priceSection"), "three-part opportunity form"],
+  [ui.includes('value="new-customer"') && ui.includes("selectCustomer") && ui.includes("customer.title") && ui.includes("customer.meta"), "existing-customer selection"],
+  [ui.includes('useWorkspaceData<LaunchDraft>("one_click_business_drafts")'), "single launch draft workspace"],
+  [ui.includes("draftHydrated") && ui.includes("normalizeLaunchDraft") && ui.includes("setDrafts([{ id: \"current\""), "one-time draft hydration and single-record persistence"],
+  [ui.includes("activeRunId, draftSyncState, setDrafts]"), "first edit persists after delayed draft hydration"],
+  [ui.includes("setDrafts([])") && ui.includes("setCustomers") && ui.includes("setDocs") && ui.includes("setTasks"), "draft-only clear after completion"],
+  [ui.includes("fieldErrors") && ui.includes("aria-invalid") && ui.includes("aria-describedby") && ui.includes("fieldRefs.current[firstError]?.focus()"), "field-level validation feedback"],
+  [ui.includes("max-sm:sticky") && ui.includes("max-sm:bottom-3"), "mobile preview action"],
+  [ui.includes('href: "/business/invoices"') && ui.includes("primaryHandoff"), "primary quote handoff"],
+  [startAnalytics.includes("entry_mode") && startAnalytics.includes("customer_mode") && !startAnalytics.includes("brief."), "content-free entry analytics"],
 ]
 
 for (const [ok, name] of checks) if (!ok) throw new Error(`One-Click Business audit failed: ${name}`)

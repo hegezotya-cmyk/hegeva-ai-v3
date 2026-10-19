@@ -39,6 +39,7 @@
     "audit:business-twin": "node scripts/business-twin-audit.mjs",
     "audit:fix-business": "node scripts/fix-my-business-audit.mjs",
     "audit:one-click-business": "node scripts/one-click-business-audit.mjs",
+    "audit:one-click-logic": "node --experimental-strip-types scripts/one-click-business-logic-test.mjs",
     "audit:marketplace-skills": "node scripts/marketplace-skills-audit.mjs",
     "audit:outcome-pricing": "node scripts/outcome-pricing-audit.mjs",
     "audit:business-network": "node scripts/business-network-audit.mjs",
