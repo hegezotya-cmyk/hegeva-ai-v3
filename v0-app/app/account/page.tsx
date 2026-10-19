@@ -97,7 +97,9 @@ export default function AccountPage() {
         const paid = PAID_PLANS.has(latest.plan)
         setBillingSuccess(paid)
         setBillingConfirmError(paid ? "" : "entitlement_pending")
-        clearBillingQuery()
+        // Keep the return marker until paid entitlement is confirmed.
+        // A reload can retry if the billing webhook arrives late.
+        if (paid) clearBillingQuery()
       }
     }
 
