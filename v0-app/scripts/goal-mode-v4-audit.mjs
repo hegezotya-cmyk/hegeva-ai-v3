@@ -25,6 +25,7 @@ const engine=await import(`data:text/javascript;base64,${Buffer.from(compiled).t
  assert(ui.includes("stepCopy")&&ui.includes("metaCopy"),"V4 must remain localized")
  assert(ui.includes("analyseAutopilotWorkspace")&&ui.includes("radarSignals"),"Goal Mode must reuse the existing Opportunity Radar engine")
  assert(ui.includes('href="/business/autopilot"')&&ui.includes("openAutopilot"),"approved Goal work must hand off to the existing Autopilot")
+ assert(ui.includes('id="goal-mode"')&&ui.includes("scroll-mt-24"),"Goal Mode must expose a stable, visible onboarding target")
  for(const stage of ["Goal","Understand","Analyse","Opportunities","Plan","Prepare","Approve","Execute","Measure","Adapt"])assert(ui.includes(`"${stage}"`),`Missing Goal lifecycle stage: ${stage}`)
  for(const locale of ["en:","hu:","de:","fr:","es:"])assert(ui.includes(locale),`Missing Goal Mode locale: ${locale}`)
  assert(adapt.includes("measureGoalOutcome")&&adapt.includes("Activity progress")&&adapt.includes("Business outcome progress"),"Adapt must separate activity from verified business outcomes")

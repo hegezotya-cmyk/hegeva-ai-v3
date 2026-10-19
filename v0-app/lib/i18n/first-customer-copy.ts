@@ -28,7 +28,7 @@ export const FIRST_CUSTOMER_COPY: Record<Locale, FirstCustomerCopy> = {
     loopBody: "Customer → quote → follow-up → invoice → payment status → HEGEVA Core priority.",
     steps: [
       { title: "Add your first real customer", body: "Keep a customer record in your authenticated workspace. No demo data is added.", action: "Add a customer", href: "/business/customers" },
-      { title: "Set the outcome that matters now", body: "Goal Mode prepares a plan from real workspace evidence. You approve every prepared action.", action: "Choose a goal", href: "/command-center" },
+      { title: "Set the outcome that matters now", body: "Goal Mode prepares a plan from real workspace evidence. You approve every prepared action.", action: "Choose a goal", href: "/command-center#goal-mode" },
       { title: "Create a quote or invoice", body: "Use your customer record to prepare a real quote or invoice, then track its status.", action: "Create a quote or invoice", href: "/business/invoices" },
     ],
     proofTitle: "What HEGEVA can help you do next",
@@ -47,7 +47,7 @@ export const FIRST_CUSTOMER_COPY: Record<Locale, FirstCustomerCopy> = {
     loopBody: "Ügyfél → ajánlat → utánkövetés → számla → fizetési állapot → HEGEVA Core-prioritás.",
     steps: [
       { title: "Add hozzá az első valódi ügyfeledet", body: "Tarts ügyfélrekordot a hitelesített munkaterületeden. A HEGEVA nem ad hozzá demóadatot.", action: "Ügyfél hozzáadása", href: "/business/customers" },
-      { title: "Határozd meg a most fontos eredményt", body: "A Goal Mode valódi munkaterületi bizonyítékból készít tervet. Minden előkészített műveletet te hagysz jóvá.", action: "Cél kiválasztása", href: "/command-center" },
+      { title: "Határozd meg a most fontos eredményt", body: "A Goal Mode valódi munkaterületi bizonyítékból készít tervet. Minden előkészített műveletet te hagysz jóvá.", action: "Cél kiválasztása", href: "/command-center#goal-mode" },
       { title: "Készíts ajánlatot vagy számlát", body: "Használd az ügyfélrekordot valódi ajánlat vagy számla előkészítéséhez, majd kövesd az állapotát.", action: "Ajánlat vagy számla készítése", href: "/business/invoices" },
     ],
     proofTitle: "Amiben a HEGEVA ezután segíthet",
@@ -66,7 +66,7 @@ export const FIRST_CUSTOMER_COPY: Record<Locale, FirstCustomerCopy> = {
     loopBody: "Kunde → Angebot → Nachfassen → Rechnung → Zahlungsstatus → HEGEVA-Core-Priorität.",
     steps: [
       { title: "Ersten echten Kunden hinzufügen", body: "Speichern Sie einen Kundeneintrag in Ihrem authentifizierten Workspace. Es werden keine Demodaten hinzugefügt.", action: "Kunden hinzufügen", href: "/business/customers" },
-      { title: "Wichtigstes aktuelles Ergebnis festlegen", body: "Goal Mode erstellt einen Plan aus echten Workspace-Belegen. Sie genehmigen jede vorbereitete Aktion.", action: "Ziel wählen", href: "/command-center" },
+      { title: "Wichtigstes aktuelles Ergebnis festlegen", body: "Goal Mode erstellt einen Plan aus echten Workspace-Belegen. Sie genehmigen jede vorbereitete Aktion.", action: "Ziel wählen", href: "/command-center#goal-mode" },
       { title: "Angebot oder Rechnung erstellen", body: "Nutzen Sie den Kundeneintrag für ein echtes Angebot oder eine Rechnung und verfolgen Sie den Status.", action: "Angebot oder Rechnung erstellen", href: "/business/invoices" },
     ],
     proofTitle: "Wobei HEGEVA als Nächstes helfen kann",
@@ -85,7 +85,7 @@ export const FIRST_CUSTOMER_COPY: Record<Locale, FirstCustomerCopy> = {
     loopBody: "Client → devis → relance → facture → statut de paiement → priorité HEGEVA Core.",
     steps: [
       { title: "Ajoutez votre premier vrai client", body: "Conservez une fiche client dans votre espace authentifié. Aucune donnée de démonstration n’est ajoutée.", action: "Ajouter un client", href: "/business/customers" },
-      { title: "Choisissez le résultat qui compte maintenant", body: "Goal Mode prépare un plan à partir de preuves réelles. Vous approuvez chaque action préparée.", action: "Choisir un objectif", href: "/command-center" },
+      { title: "Choisissez le résultat qui compte maintenant", body: "Goal Mode prépare un plan à partir de preuves réelles. Vous approuvez chaque action préparée.", action: "Choisir un objectif", href: "/command-center#goal-mode" },
       { title: "Créez un devis ou une facture", body: "Utilisez votre fiche client pour préparer un vrai devis ou une facture, puis suivez son statut.", action: "Créer un devis ou une facture", href: "/business/invoices" },
     ],
     proofTitle: "Ce que HEGEVA peut vous aider à faire ensuite",
@@ -104,7 +104,7 @@ export const FIRST_CUSTOMER_COPY: Record<Locale, FirstCustomerCopy> = {
     loopBody: "Cliente → presupuesto → seguimiento → factura → estado de pago → prioridad de HEGEVA Core.",
     steps: [
       { title: "Añade tu primer cliente real", body: "Guarda un cliente en tu espacio autenticado. No se añaden datos de demostración.", action: "Añadir cliente", href: "/business/customers" },
-      { title: "Elige el resultado más importante ahora", body: "Goal Mode prepara un plan a partir de evidencia real. Tú apruebas cada acción preparada.", action: "Elegir objetivo", href: "/command-center" },
+      { title: "Elige el resultado más importante ahora", body: "Goal Mode prepara un plan a partir de evidencia real. Tú apruebas cada acción preparada.", action: "Elegir objetivo", href: "/command-center#goal-mode" },
       { title: "Crea un presupuesto o una factura", body: "Usa el registro del cliente para preparar un presupuesto o factura real y seguir su estado.", action: "Crear presupuesto o factura", href: "/business/invoices" },
     ],
     proofTitle: "En qué puede ayudarte HEGEVA después",

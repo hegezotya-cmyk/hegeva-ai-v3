@@ -19,6 +19,7 @@ expect(page.includes("const completedSteps = [customers.length > 0, goals.length
 expect(page.includes("const nextStepIndex = completedSteps.findIndex"), "guided onboarding must select one current next step")
 expect(page.includes("const nextStep = nextStepIndex >= 0 ? c.steps[nextStepIndex] : null"), "guided onboarding must preserve the customer-to-goal-to-document order")
 expect(page.includes(") : nextStep && ("), "only the current next step should be promoted")
+expect(read("lib/i18n/first-customer-copy.ts").includes('href: "/command-center#goal-mode"'), "goal onboarding step must open the exact Goal Mode section")
 expect(wow.includes("Give HEGEVA one thing to work with."), "first-WOW headline missing")
 expect(wow.includes("Nothing is sent automatically."), "approval-first promise missing")
 expect(wow.includes('href="/business/customers"'), "real customer workspace handoff missing")
