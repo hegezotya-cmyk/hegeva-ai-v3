@@ -1,6 +1,7 @@
 name: HEGEVA V0 UI Auto Deploy
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - v0-rebuild
