@@ -14,9 +14,9 @@ const COPY = {
     eyebrow: "FIRST WOW",
     title: "Give HEGEVA one thing to work with.",
     subtitle: "Start with one real item from your business. Nothing is sent automatically.",
-    customerTitle: "Add your first customer",
-    customerBody: "Start with one real customer. HEGEVA can then connect quotes, follow-ups and invoices to a real business relationship.",
-    customerAction: "Open customer workspace",
+    customerTitle: "Build your first business workflow",
+    customerBody: "Enter one real opportunity once. Review the customer, quote and follow-up task together before creating anything.",
+    customerAction: "Start the 90-second workflow",
     messageTitle: "Paste a customer message",
     messageBody: "Paste one real customer message here. This quick-start check stays in your browser until you choose to continue.",
     placeholder: "Paste a customer message…",
@@ -45,9 +45,9 @@ const COPY = {
     eyebrow: "ELSŐ WOW",
     title: "Adj a HEGEVA-nak egy dolgot, amivel dolgozhat.",
     subtitle: "Kezdj egy valódi üzleti tétellel. Semmi nem kerül automatikusan elküldésre.",
-    customerTitle: "Add hozzá az első ügyfeledet",
-    customerBody: "Kezdj egy valódi ügyféllel. A HEGEVA ezután az ajánlatokat, utánkövetéseket és számlákat valódi üzleti kapcsolathoz tudja kötni.",
-    customerAction: "Ügyfél munkatér megnyitása",
+    customerTitle: "Készítsd el az első üzleti munkafolyamatodat",
+    customerBody: "Adj meg egyszer egy valódi lehetőséget. Létrehozás előtt együtt ellenőrizheted az ügyfelet, az ajánlatot és az utánkövetési feladatot.",
+    customerAction: "90 másodperces indítás",
     messageTitle: "Másolj be egy ügyfélüzenetet",
     messageBody: "Másolj be ide egy valódi ügyfélüzenetet. Ez a gyors ellenőrzés a böngésződben marad, amíg nem döntesz a folytatásról.",
     placeholder: "Másolj be egy ügyfélüzenetet…",
@@ -75,7 +75,7 @@ const COPY = {
   de: {
     eyebrow: "ERSTER WOW-MOMENT", title: "Gib HEGEVA eine Sache, mit der es arbeiten kann.",
     subtitle: "Beginne mit einem echten Geschäftselement. Nichts wird automatisch gesendet.",
-    customerTitle: "Ersten Kunden hinzufügen", customerBody: "Beginnen Sie mit einem echten Kunden. HEGEVA kann Angebote, Nachfassaktionen und Rechnungen dann einer echten Geschäftsbeziehung zuordnen.", customerAction: "Kundenbereich öffnen",
+    customerTitle: "Ersten Geschäftsablauf erstellen", customerBody: "Eine echte Chance einmal eingeben. Kunde, Angebot und Nachfassaufgabe vor der Erstellung gemeinsam prüfen.", customerAction: "90-Sekunden-Ablauf starten",
     messageTitle: "Kundennachricht einfügen", messageBody: "Füge eine echte Kundennachricht ein. Diese Schnellprüfung bleibt im Browser, bis du fortfährst.",
     placeholder: "Kundennachricht einfügen…", analyse: "NACHRICHT PRÜFEN", empty: "Bitte zuerst eine Nachricht einfügen.",
     signal: "HEGEVA hat einen wahrscheinlichen nächsten Schritt gefunden", caveat: "Nur ein Schnellstart-Signal anhand sichtbarer Wörter, keine vollständige KI-Analyse.", openDraft: "VORBEREITETE ANTWORT ÖFFNEN", prepared: "Nur vorbereitet. Nichts wurde gesendet.",
@@ -85,7 +85,7 @@ const COPY = {
   fr: {
     eyebrow: "PREMIER WOW", title: "Donnez à HEGEVA une chose sur laquelle travailler.",
     subtitle: "Commencez avec un élément réel de votre activité. Rien n’est envoyé automatiquement.",
-    customerTitle: "Ajouter votre premier client", customerBody: "Commencez avec un vrai client. HEGEVA pourra ensuite relier devis, relances et factures à une relation commerciale réelle.", customerAction: "Ouvrir l’espace clients",
+    customerTitle: "Créez votre premier parcours métier", customerBody: "Saisissez une opportunité réelle une seule fois. Vérifiez ensemble client, devis et relance avant création.", customerAction: "Lancer le parcours de 90 secondes",
     messageTitle: "Coller un message client", messageBody: "Collez un vrai message client. Cette vérification rapide reste dans votre navigateur jusqu’à ce que vous choisissiez de continuer.",
     placeholder: "Collez un message client…", analyse: "VÉRIFIER LE MESSAGE", empty: "Collez d’abord un message.",
     signal: "HEGEVA a trouvé une prochaine étape probable", caveat: "Signal de démarrage rapide basé sur les mots visibles, pas une analyse IA complète.", openDraft: "OUVRIR LA RÉPONSE PRÉPARÉE", prepared: "Préparé uniquement. Rien n’a été envoyé.",
@@ -95,7 +95,7 @@ const COPY = {
   es: {
     eyebrow: "PRIMER WOW", title: "Dale a HEGEVA una cosa con la que trabajar.",
     subtitle: "Empieza con un elemento real de tu negocio. Nada se envía automáticamente.",
-    customerTitle: "Añade tu primer cliente", customerBody: "Empieza con un cliente real. HEGEVA podrá vincular presupuestos, seguimientos y facturas a una relación comercial real.", customerAction: "Abrir espacio de clientes",
+    customerTitle: "Crea tu primer flujo de negocio", customerBody: "Introduce una oportunidad real una vez. Revisa cliente, presupuesto y seguimiento antes de crear nada.", customerAction: "Iniciar flujo de 90 segundos",
     messageTitle: "Pegar un mensaje de cliente", messageBody: "Pega un mensaje real de cliente. Esta comprobación rápida permanece en tu navegador hasta que decidas continuar.",
     placeholder: "Pega un mensaje de cliente…", analyse: "COMPROBAR MENSAJE", empty: "Pega primero un mensaje.",
     signal: "HEGEVA encontró un siguiente paso probable", caveat: "Señal rápida basada en palabras visibles, no un análisis completo de IA.", openDraft: "ABRIR RESPUESTA PREPARADA", prepared: "Solo preparado. No se ha enviado nada.",
@@ -152,8 +152,8 @@ export function FirstWowQuickStart() {
           <h3 className="mt-4 text-xl font-semibold">{c.customerTitle}</h3>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">{c.customerBody}</p>
           <Link
-            href="/business/customers"
-            onClick={() => recordAnalyticsEvent("own_business_start", "/get-started", { input_type: "customer" })}
+            href="/business/launch"
+            onClick={() => recordAnalyticsEvent("own_business_start", "/get-started", { input_type: "one_click_workflow" })}
             className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-gold/35 px-4 text-sm font-semibold text-gold"
           >
             {c.customerAction}<ArrowRight className="size-4" aria-hidden />

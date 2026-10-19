@@ -1,1 +1,27 @@
-import fs from "node:fs";const read=p=>fs.readFileSync(new URL(`../${p}`,import.meta.url),"utf8"),ui=read("components/business/one-click-business.tsx"),logic=read("lib/one-click-business.ts"),hub=read("app/business/page.tsx");const checks=[[ui.includes('useWorkspaceData<Customer>("customers")')&&ui.includes('useWorkspaceData<Task>("planner")')&&ui.includes('useWorkspaceData<Doc>("invoice_documents")'),"real workspace records"],[ui.includes('status:"review"')&&ui.includes('status:"approved"')&&ui.includes('status:"created"'),"approval state machine"],[logic.includes("validateLaunchBrief")&&logic.includes("customerEmail"),"validated inputs"],[logic.includes("one-click:")&&ui.includes("some(v=>v.sourceId==="),"duplicate protection"],[ui.includes("No email, quote or message is sent")&&ui.includes("semmi nem kerül elküldésre"),"no automatic send"],[ui.includes("en:")&&ui.includes("hu:")&&ui.includes("de:")&&ui.includes("fr:")&&ui.includes("es:"),"five locales"],[hub.includes('/business/launch'),"business hub entry"],[ui.includes('Link from "next/link"')&&ui.includes('"/business/customers"')&&ui.includes('"/business/invoices"')&&ui.includes('"/business/planner"')&&ui.includes('created.filter'),"created-record handoff"]];for(const[ok,name]of checks)if(!ok)throw new Error(`One-Click Business audit failed: ${name}`);console.log("One-Click Business V2 audit passed: validated user facts, review and approval gate, duplicate-safe customer/quote/task creation, created-record handoff, five locales, and no automatic send")
+import fs from "node:fs"
+
+const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), "utf8")
+const ui = read("components/business/one-click-business.tsx")
+const logic = read("lib/one-click-business.ts")
+const hub = read("app/business/page.tsx")
+const consent = read("components/analytics-consent.tsx")
+const getStarted = read("lib/i18n/first-customer-copy.ts")
+const firstWow = read("components/get-started/first-wow.tsx")
+
+const checks = [
+  [ui.includes('useWorkspaceData<Customer>("customers")') && ui.includes('useWorkspaceData<Task>("planner")') && ui.includes('useWorkspaceData<Doc>("invoice_documents")'), "real workspace records"],
+  [ui.includes('status:"review"') && ui.includes('status:"approved"') && ui.includes('status:"created"'), "approval state machine"],
+  [logic.includes("validateLaunchBrief") && logic.includes("customerEmail"), "validated inputs"],
+  [logic.includes("one-click:") && ui.includes("some(v=>v.sourceId==="), "duplicate protection"],
+  [ui.includes("No email, quote or message is sent") && ui.includes("semmi nem kerül elküldésre"), "no automatic send"],
+  [ui.includes("en:") && ui.includes("hu:") && ui.includes("de:") && ui.includes("fr:") && ui.includes("es:"), "five locales"],
+  [hub.includes('/business/launch'), "business hub entry"],
+  [ui.includes('Link from "next/link"') && ui.includes('"/business/customers"') && ui.includes('"/business/invoices"') && ui.includes('"/business/planner"') && ui.includes('created.filter'), "created-record handoff"],
+  [getStarted.includes('href: "/business/launch"'), "guided onboarding entry"],
+  [firstWow.includes('href="/business/launch"'), "first-WOW entry"],
+  [ui.includes('recordAnalyticsEvent("own_business_start", "/business/launch"') && ui.includes('recordAnalyticsEvent("own_business_result", "/business/launch"'), "consented start and result measurement"],
+  [consent.includes('"/business/launch"'), "analytics path allowlist"],
+]
+
+for (const [ok, name] of checks) if (!ok) throw new Error(`One-Click Business audit failed: ${name}`)
+console.log("One-Click Business V3 audit passed: guided WOW entry, consented funnel measurement, validated facts, approval gate, duplicate-safe record creation, five locales, and no automatic send")
