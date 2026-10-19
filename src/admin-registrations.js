@@ -43,6 +43,12 @@ export async function listOwnerRegistrations(request, env, user) {
         (SELECT COUNT(DISTINCT userId) FROM workspace_data) AS workspaceUsers,
         (SELECT COUNT(DISTINCT userId) FROM workspace_data WHERE updatedAt >= ?5) AS workspaceActive7d,
         (SELECT COUNT(DISTINCT userId) FROM workspace_data WHERE updatedAt >= ?6) AS workspaceActive30d,
+        (SELECT COUNT(DISTINCT userId) FROM workspace_data WHERE dataType IN ('customers', 'invoice_documents', 'planner', 'messages') AND json_valid(data) AND json_type(data) = 'array' AND json_array_length(data) > 0) AS firstValueUsers,
+        (SELECT COUNT(DISTINCT userId) FROM workspace_data WHERE dataType = 'customers' AND json_valid(data) AND json_type(data) = 'array' AND json_array_length(data) > 0) AS customerUsers,
+        (SELECT COUNT(DISTINCT workspace_data.userId) FROM workspace_data, json_each(CASE WHEN json_valid(data) THEN data ELSE '[]' END) item WHERE dataType = 'invoice_documents' AND json_extract(item.value, '$.type') = 'quote') AS quoteUsers,
+        (SELECT COUNT(DISTINCT workspace_data.userId) FROM workspace_data, json_each(CASE WHEN json_valid(data) THEN data ELSE '[]' END) item WHERE dataType = 'invoice_documents' AND json_extract(item.value, '$.type') = 'invoice') AS invoiceUsers,
+        (SELECT COUNT(DISTINCT userId) FROM workspace_data WHERE dataType = 'planner' AND json_valid(data) AND json_type(data) = 'array' AND json_array_length(data) > 0) AS plannerUsers,
+        (SELECT COUNT(DISTINCT userId) FROM workspace_data WHERE dataType = 'messages' AND json_valid(data) AND json_type(data) = 'array' AND json_array_length(data) > 0) AS messageUsers,
         (SELECT COUNT(*) FROM assistant_usage_settlements WHERE createdAt >= ?7) AS assistantOperationsMonth,
         (SELECT COUNT(*) FROM assistant_usage_settlements WHERE createdAt >= ?7 AND outcome = 'success') AS assistantSuccessMonth,
         (SELECT COUNT(*) FROM assistant_usage_settlements WHERE createdAt >= ?7 AND outcome = 'failure') AS assistantFailureMonth,
@@ -66,6 +72,9 @@ export async function listOwnerRegistrations(request, env, user) {
       activation: {
         workspaceUsers: count(metricRow?.workspaceUsers), active7Days: count(metricRow?.workspaceActive7d),
         active30Days: count(metricRow?.workspaceActive30d),
+        firstValueUsers: count(metricRow?.firstValueUsers), customerUsers: count(metricRow?.customerUsers),
+        quoteUsers: count(metricRow?.quoteUsers), invoiceUsers: count(metricRow?.invoiceUsers),
+        plannerUsers: count(metricRow?.plannerUsers), messageUsers: count(metricRow?.messageUsers),
       },
       assistant: {
         operationsThisMonth: count(metricRow?.assistantOperationsMonth), successfulThisMonth: count(metricRow?.assistantSuccessMonth),
