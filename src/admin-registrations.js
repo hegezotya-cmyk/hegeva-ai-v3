@@ -32,21 +32,27 @@ export async function listOwnerRegistrations(request, env, user) {
       SELECT
         (SELECT COUNT(*) FROM "user") AS registrationTotal,
         (SELECT COUNT(*) FROM "user" WHERE emailVerified = 1) AS registrationVerified,
-        (SELECT COUNT(*) FROM "user" WHERE createdAt >= ?1) AS registrations7d,
-        (SELECT COUNT(*) FROM "user" WHERE createdAt >= ?2) AS registrations30d,
+        (SELECT COUNT(*) FROM "user" WHERE CASE
+          WHEN typeof(createdAt) IN ('integer', 'real') THEN createdAt >= ?1
+          WHEN CAST(createdAt AS TEXT) GLOB '[0-9]*' AND CAST(createdAt AS TEXT) NOT GLOB '*[^0-9]*' THEN CAST(createdAt AS INTEGER) >= ?1
+          ELSE createdAt >= ?2 END) AS registrations7d,
+        (SELECT COUNT(*) FROM "user" WHERE CASE
+          WHEN typeof(createdAt) IN ('integer', 'real') THEN createdAt >= ?3
+          WHEN CAST(createdAt AS TEXT) GLOB '[0-9]*' AND CAST(createdAt AS TEXT) NOT GLOB '*[^0-9]*' THEN CAST(createdAt AS INTEGER) >= ?3
+          ELSE createdAt >= ?4 END) AS registrations30d,
         (SELECT COUNT(DISTINCT userId) FROM workspace_data) AS workspaceUsers,
-        (SELECT COUNT(DISTINCT userId) FROM workspace_data WHERE updatedAt >= ?3) AS workspaceActive7d,
-        (SELECT COUNT(DISTINCT userId) FROM workspace_data WHERE updatedAt >= ?4) AS workspaceActive30d,
-        (SELECT COUNT(*) FROM assistant_usage_settlements WHERE createdAt >= ?5) AS assistantOperationsMonth,
-        (SELECT COUNT(*) FROM assistant_usage_settlements WHERE createdAt >= ?5 AND outcome = 'success') AS assistantSuccessMonth,
-        (SELECT COUNT(*) FROM assistant_usage_settlements WHERE createdAt >= ?5 AND outcome = 'failure') AS assistantFailureMonth,
-        (SELECT COUNT(*) FROM assistant_usage_settlements WHERE createdAt >= ?5 AND outcome = 'timeout') AS assistantTimeoutMonth,
-        (SELECT COUNT(DISTINCT userId) FROM assistant_usage_settlements WHERE createdAt >= ?5) AS assistantActiveUsersMonth,
-        (SELECT ROUND(AVG(elapsedMs)) FROM assistant_usage_settlements WHERE createdAt >= ?5 AND outcome = 'success') AS assistantAverageResponseMs,
+        (SELECT COUNT(DISTINCT userId) FROM workspace_data WHERE updatedAt >= ?5) AS workspaceActive7d,
+        (SELECT COUNT(DISTINCT userId) FROM workspace_data WHERE updatedAt >= ?6) AS workspaceActive30d,
+        (SELECT COUNT(*) FROM assistant_usage_settlements WHERE createdAt >= ?7) AS assistantOperationsMonth,
+        (SELECT COUNT(*) FROM assistant_usage_settlements WHERE createdAt >= ?7 AND outcome = 'success') AS assistantSuccessMonth,
+        (SELECT COUNT(*) FROM assistant_usage_settlements WHERE createdAt >= ?7 AND outcome = 'failure') AS assistantFailureMonth,
+        (SELECT COUNT(*) FROM assistant_usage_settlements WHERE createdAt >= ?7 AND outcome = 'timeout') AS assistantTimeoutMonth,
+        (SELECT COUNT(DISTINCT userId) FROM assistant_usage_settlements WHERE createdAt >= ?7) AS assistantActiveUsersMonth,
+        (SELECT ROUND(AVG(elapsedMs)) FROM assistant_usage_settlements WHERE createdAt >= ?7 AND outcome = 'success') AS assistantAverageResponseMs,
         (SELECT COUNT(*) FROM stripe_customers WHERE subscriptionStatus = 'active') AS subscriptionActive,
         (SELECT COUNT(*) FROM stripe_customers WHERE subscriptionStatus = 'trialing') AS subscriptionTrialing,
         (SELECT COUNT(*) FROM stripe_customers WHERE subscriptionStatus = 'past_due') AS subscriptionPastDue
-    `).bind(sevenDaysAgo.getTime(), thirtyDaysAgo.getTime(), sevenDaysAgo.toISOString(), thirtyDaysAgo.toISOString(), currentMonthStart).first();
+    `).bind(sevenDaysAgo.getTime(), sevenDaysAgo.toISOString(), thirtyDaysAgo.getTime(), thirtyDaysAgo.toISOString(), sevenDaysAgo.toISOString(), thirtyDaysAgo.toISOString(), currentMonthStart).first();
     const result = await env.DB.prepare(`SELECT id, name, email, emailVerified, createdAt FROM "user" ORDER BY createdAt DESC, id DESC LIMIT ?1 OFFSET ?2`).bind(51, offset).all();
     const rows = Array.isArray(result?.results) ? result.results : [];
     const users = rows.slice(0, 50).map(row => ({ id: row.id, name: row.name, email: row.email, emailVerified: row.emailVerified === true || row.emailVerified === 1, createdAt: row.createdAt }));

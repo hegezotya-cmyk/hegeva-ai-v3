@@ -11,8 +11,9 @@ const db = { prepare(sql) {
     assert.equal(offset, 0)
     return { all: async () => ({ results: [{ id: 'u1', name: 'Test Owner', email: 'owner@example.test', emailVerified: 1, createdAt: '2026-10-17T12:00:00.000Z' }] }) }
   } }
+  assert.match(sql, /typeof\(createdAt\)/, 'registration windows must normalize numeric and ISO timestamps')
   return { bind(...values) {
-    assert.equal(values.length, 5)
+    assert.equal(values.length, 7)
     return { first: async () => ({
       registrationTotal: 12, registrationVerified: 9, registrations7d: 3, registrations30d: 8,
       workspaceUsers: 7, workspaceActive7d: 4, workspaceActive30d: 6,
