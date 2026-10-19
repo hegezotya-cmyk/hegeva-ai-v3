@@ -6,6 +6,7 @@ import { authClient, signIn, signUp, useSession } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
 import { AUTH_COPY } from "@/lib/i18n/auth-copy"
 import { SkeletonSurface } from "@/components/visual-engine"
+import { trackConversion } from "@/lib/conversion-tracking"
 
 export function AuthPanel() {
   const router = useRouter()
@@ -84,6 +85,7 @@ export function AuthPanel() {
           setError(c.authFailed)
           return
         }
+        trackConversion("registration_submitted")
       } else {
         const result = await signIn.email({
           email: email.trim(),
