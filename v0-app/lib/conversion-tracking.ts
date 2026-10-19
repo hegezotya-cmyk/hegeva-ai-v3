@@ -62,18 +62,19 @@ export function clearReferralAttribution() {
   try { sessionStorage.removeItem(referralKey) } catch {}
 }
 
-export function trackRegistrationCompleted() {
+// Signup acceptance is not the same as verified email or an activated account.
+export function trackRegistrationSubmitted() {
   if (typeof window === "undefined") return
   try {
     if (localStorage.getItem("hegeva:analytics-consent:v1") !== "granted") return
-    const key = "hegeva:registration-completed:v1"
+    const key = "hegeva:registration-submitted:v1"
     if (sessionStorage.getItem(key)) return
     sessionStorage.setItem(key, "1")
   } catch {
     return
   }
   window.dispatchEvent(new CustomEvent("hegeva:analytics-event", {
-    detail: { event: "registration_completed", path: "/login" },
+    detail: { event: "registration_submitted", path: "/login" },
   }))
 }
 
