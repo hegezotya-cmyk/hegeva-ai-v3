@@ -1,5 +1,5 @@
 export type IntelligenceTask={id:string;title:string;due?:string;priority:"low"|"medium"|"high";done:boolean;sourceId?:string}
-export type IntelligenceInvoice={id:string;type:"invoice"|"quote";status?:"draft"|"sent"|"paid";number:string;issueDate:string;dueDate:string;currency:string;vatRate:number;businessName:string;businessDetails:string;clientName:string;clientDetails:string;items:{id:string;description:string;quantity:number;unitPrice:number}[];notes:string;createdAt:string;updatedAt:string}
+export type IntelligenceInvoice={id:string;type:"invoice"|"quote";status?:"draft"|"sent"|"paid"|"accepted"|"invoiced";number:string;issueDate:string;dueDate:string;currency:string;vatRate:number;businessName:string;businessDetails:string;clientName:string;clientDetails:string;items:{id:string;description:string;quantity:number;unitPrice:number}[];notes:string;createdAt:string;updatedAt:string}
 
 export const invoiceTotal=(doc:IntelligenceInvoice)=>doc.items.reduce((sum,item)=>sum+(Number(item.quantity)||0)*(Number(item.unitPrice)||0),0)*(1+(Number(doc.vatRate)||0)/100)
 
@@ -43,4 +43,13 @@ export function convertQuoteToInvoice(quote:IntelligenceInvoice,existing:Intelli
  if(alreadyCreated)return alreadyCreated
  const year=new Date().getUTCFullYear(),count=existing.filter(x=>x.type==="invoice"&&x.number.startsWith(`INV-${year}-`)).length+1,now=new Date().toISOString()
  return {...quote,id:crypto.randomUUID(),type:"invoice",status:"draft",number:`INV-${year}-${String(count).padStart(3,"0")}`,issueDate:now.slice(0,10),dueDate:new Date(Date.now()+14*86400000).toISOString().slice(0,10),notes:`Created from quote ${quote.number}${quote.notes?`\n${quote.notes}`:""}`,createdAt:now,updatedAt:now}
+}
+
+export function convertAcceptedQuoteToInvoice(quote:IntelligenceInvoice,existing:IntelligenceInvoice[]){
+ if(quote.type!=="quote"||quote.status!=="accepted")return null
+ const invoice=convertQuoteToInvoice(quote,existing)
+ const updatedQuote={...quote,status:"invoiced" as const,updatedAt:new Date().toISOString()}
+ const withQuoteState=existing.map(item=>item.id===quote.id?updatedQuote:item)
+ const documents=withQuoteState.some(item=>item.id===invoice.id)?withQuoteState:[invoice,...withQuoteState]
+ return {invoice,documents}
 }
