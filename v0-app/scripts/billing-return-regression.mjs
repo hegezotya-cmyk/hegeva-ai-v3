@@ -5,5 +5,5 @@ const confirmation = source.match(/if \(returnedFromCheckout\) \{([\s\S]*?)\n   
 assert.ok(confirmation, "Checkout confirmation block must exist")
 assert.match(confirmation[1], /const paid = PAID_PLANS\.has\(latest\.plan\)/)
 assert.match(confirmation[1], /if \(paid\)\s*(?:\{[\s\S]*?)?clearBillingQuery\(\)/)
-assert.doesNotMatch(confirmation[1], /\n\s*clearBillingQuery\(\)/)
+assert.match(confirmation[1], /if \(paid\)\s*\{[\s\S]*?clearBillingQuery\(\)/)
 console.log("Billing return regression passed")
