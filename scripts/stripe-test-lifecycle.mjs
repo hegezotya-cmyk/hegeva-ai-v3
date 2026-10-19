@@ -47,7 +47,7 @@ const unauthenticatedPortal = await fetch(`${baseUrl}/api/billing/portal`, { met
 assert.equal(unauthenticatedPortal.status, 401, "Customer Portal must require an authenticated account");
 
 const liveRejection = await sendExpecting({ ...checkout, id: `evt_live_${now}`, livemode: true }, 400);
-assert.match(String(liveRejection?.error || ""), /Live Stripe events are not accepted/, "Test build must explicitly reject live webhook events");
+assert.match(String(liveRejection?.error || ""), /Stripe event mode does not match the active payment mode/, "Test mode must explicitly reject live webhook events");
 
 const checkoutResult = await send(checkout);
 assert.equal(checkoutResult.entitlementChanged, true, "Checkout must grant Premium through the verified webhook");

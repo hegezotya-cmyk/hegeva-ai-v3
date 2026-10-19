@@ -9,6 +9,8 @@ import { auditStudioSpecMatch } from "@/lib/app-studio-spec-match"
 const HTML_KEY = "hegeva:x20:studio:html"
 const IDEA_KEY = "hegeva:x20:studio:idea"
 const BUILD_KEY = "hegeva:x20:studio:build-mode"
+const META_KEY = "hegeva:x20:studio:result-meta"
+const SCOPE_KEY = "hegeva:x20:studio:scope"
 
 function estimateQuality(html: string) {
   const controls = (html.match(/<(button|input|select|textarea)\b/gi) || []).length
@@ -39,6 +41,9 @@ export function X20CapabilityStatus() {
         const rawMode = localStorage.getItem(BUILD_KEY)
         const mode: X20BuildMode = rawMode === "starter" || rawMode === "growth" ? rawMode : "premium"
         if (!html) return setState(null)
+        const meta = JSON.parse(localStorage.getItem(META_KEY) || "null") as { version?: number; scope?: string; fingerprint?: string; fidelity?: string } | null
+        const scope = sessionStorage.getItem(SCOPE_KEY) || ""
+        if (meta?.version !== 1 || meta.scope !== scope || meta.fingerprint !== `${mode}:${idea.toLowerCase()}` || meta.fidelity !== "passed") return setState(null)
         const gate = evaluateX20BuildCandidate({ html, quality: estimateQuality(html) }, mode)
         const spec = auditStudioSpecMatch(html, idea)
         setState({

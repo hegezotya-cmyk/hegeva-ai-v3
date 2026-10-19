@@ -4,89 +4,53 @@ import Link from "next/link"
 import { AppShell } from "@/components/app-shell"
 import { PageHeader } from "@/components/page-header"
 import { StatusBadge } from "@/components/status-badge"
-import { Activity, ArrowRight, BarChart3, CalendarCheck2, FileSpreadsheet, FileText, FolderLock, MessageSquareText, ReceiptText, ShieldCheck, Sparkles, Users, WalletCards, Wrench } from "lucide-react"
+import { Users, FileText, ReceiptText, ArrowRight, CalendarCheck2, BarChart3, MessageSquareText, Wrench, FolderLock, FileSpreadsheet, ShieldCheck, Sparkles, FlaskConical, SearchCheck, Rocket, Store, BadgePoundSterling, Network, Share2, Bot, PlugZap } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { TOOLS_COPY } from "@/lib/i18n/tools-copy"
 import { VAULT_COPY } from "@/lib/i18n/vault-copy"
 import { INVOICE_COPY } from "@/lib/i18n/invoice-copy"
-import { AICore, IntelligenceCard, LiveStatus, SignalIcon } from "@/components/visual-engine"
+import { IntelligenceCard, SignalIcon } from "@/components/visual-engine"
 
 export default function BusinessPage() {
   const { t, locale } = useI18n()
   const modules = [
-    { href: "/business/customers", title: t.business.customers, text: t.business.customersDesc, icon: Users, tone: "emerald" as const },
-    { href: "/business/documents", title: t.business.documents, text: t.business.documentsDesc, icon: FileText, tone: "cyan" as const },
-    { href: "/business/expenses", title: t.business.expenses, text: t.business.expensesDesc, icon: ReceiptText, tone: "gold" as const },
-    { href: "/business/planner", title: t.business.planner, text: t.business.plannerDesc, icon: CalendarCheck2, tone: "violet" as const },
-    { href: "/business/reports", title: t.business.reports, text: t.business.reportsDesc, icon: BarChart3, tone: "cyan" as const },
-    { href: "/business/messages", title: t.business.messages, text: t.business.messagesDesc, icon: MessageSquareText, tone: "emerald" as const },
-    { href: "/business/tools", title: TOOLS_COPY[locale].moduleTitle, text: TOOLS_COPY[locale].moduleDesc, icon: Wrench, tone: "violet" as const },
-    { href: "/business/vault", title: VAULT_COPY[locale].moduleTitle, text: VAULT_COPY[locale].moduleDesc, icon: FolderLock, tone: "gold" as const },
-    { href: "/business/invoices", title: INVOICE_COPY[locale].moduleTitle, text: INVOICE_COPY[locale].moduleDesc, icon: FileSpreadsheet, tone: "cyan" as const },
+    { href: "/business/intelligence", title: locale === "hu" ? "Üzleti intelligencia" : "Business Intelligence", text: locale === "hu" ? "Reggeli összefoglaló, reklámok, utánkövetés, heti riport és Watchtower." : "Briefings, ads, follow-ups, weekly reports and Watchtower.", icon: Sparkles },
+    { href: "/business/twin", title: locale === "hu" ? "Business Twin" : locale === "de" ? "Business Twin" : locale === "fr" ? "Jumeau d’entreprise" : locale === "es" ? "Gemelo empresarial" : "Business Twin", text: locale === "hu" ? "Tesztelj árazási, marketing- és növekedési döntéseket a valódi adataidon." : locale === "de" ? "Preis-, Marketing- und Wachstumsentscheidungen mit echten Daten testen." : locale === "fr" ? "Testez les décisions de prix, marketing et croissance avec vos données réelles." : locale === "es" ? "Prueba decisiones de precios, marketing y crecimiento con datos reales." : "Test pricing, marketing and growth decisions against your real records.", icon: FlaskConical },
+    { href: "/business/fix", title: "Fix My Business", text: locale === "hu" ? "Találd meg a pénzügyi, értékesítési és működési akadályokat, majd készíts jóváhagyható javítási tervet." : locale === "de" ? "Finanzielle, vertriebliche und operative Bremsen finden und einen freigabefähigen Plan erstellen." : locale === "fr" ? "Identifiez les blocages financiers, commerciaux et opérationnels, puis préparez un plan approuvable." : locale === "es" ? "Detecta bloqueos financieros, comerciales y operativos y prepara un plan aprobable." : "Find financial, sales and operational blockers, then prepare an approval-ready recovery plan.", icon: SearchCheck },
+    { href: "/business/launch", title: "One-Click Business", text: locale === "hu" ? "Egy valódi lehetőségből jóváhagyható ügyfél-, ajánlat- és utánkövetési folyamat." : locale === "de" ? "Ein freigabefähiger Kunden-, Angebots- und Nachfassablauf aus einer echten Chance." : locale === "fr" ? "Un flux client, devis et relance approuvable à partir d’une opportunité réelle." : locale === "es" ? "Un flujo aprobable de cliente, presupuesto y seguimiento desde una oportunidad real." : "Turn one real opportunity into an approval-ready customer, quote and follow-up flow.", icon: Rocket },
+    { href: "/business/marketplace", title: "Marketplace + HEGEVA Skills", text: locale === "hu" ? "Valóban elkészült HEGEVA-képességek átlátható, munkaterületi katalógusa." : locale === "de" ? "Transparenter Workspace-Katalog implementierter HEGEVA-Fähigkeiten." : locale === "fr" ? "Catalogue transparent des capacités HEGEVA réalisées." : locale === "es" ? "Catálogo transparente de capacidades HEGEVA implementadas." : "A transparent workspace catalogue of implemented HEGEVA capabilities.", icon: Store },
+    { href: "/business/outcome-pricing", title: "Outcome Pricing", text: locale === "hu" ? "Eredményarányos díj átlátható modellezése valódi kifizetett bevétel alapján." : locale === "de" ? "Transparente Ergebnisgebühr auf Basis echter bezahlter Umsätze." : locale === "fr" ? "Modélisation transparente des frais sur le revenu réellement payé." : locale === "es" ? "Tarifa por resultado basada en ingresos realmente pagados." : "Model transparent outcome-linked fees from verified paid revenue.", icon: BadgePoundSterling },
+    { href: "/business/network", title: "Business Network", text: locale === "hu" ? "A valódi ügyfél-, ajánlói és partnerkapcsolatok privát munkaterületi térképe." : locale === "de" ? "Private Karte echter Kunden-, Empfehlungs- und Partnerbeziehungen." : locale === "fr" ? "Carte privée des relations clients, recommandations et partenaires." : locale === "es" ? "Mapa privado de relaciones reales con clientes y socios." : "A private workspace map of real customer, referral and partner relationships.", icon: Network },
+    { href: "/business/client-portal", title: "Client Portal", text: locale === "hu" ? "Kiválasztott ügyfélrekordok lejáró, visszavonható, csak olvasható megosztása." : "Share selected customer records through an expiring, revocable, read-only portal.", icon: Share2 },
+    { href: "/business/autopilot", title: "Advanced Autopilot", text: locale === "hu" ? "Napi plafonnal, engedélyezett műveletekkel és kötelező jóváhagyással működő Autopilot." : "Workspace Autopilot with daily caps, permitted actions and mandatory approval.", icon: Bot },
+    { href: "/business/integrations", title: locale === "hu" ? "Integrációk" : locale === "de" ? "Integrationen" : locale === "fr" ? "Intégrations" : locale === "es" ? "Integraciones" : "Integrations", text: locale === "hu" ? "Gmail, Outlook és naptárkapcsolatok biztonságos, engedélyköteles alapja." : "A safe, approval-gated foundation for email and calendar connections.", icon: PlugZap },
+    { href: "/business/customers", title: t.business.customers, text: t.business.customersDesc, icon: Users },
+    { href: "/business/documents", title: t.business.documents, text: t.business.documentsDesc, icon: FileText },
+    { href: "/business/expenses", title: t.business.expenses, text: t.business.expensesDesc, icon: ReceiptText },
+    { href: "/business/planner", title: t.business.planner, text: t.business.plannerDesc, icon: CalendarCheck2 },
+    { href: "/business/reports", title: t.business.reports, text: t.business.reportsDesc, icon: BarChart3 },
+    { href: "/business/messages", title: t.business.messages, text: t.business.messagesDesc, icon: MessageSquareText },
+    { href: "/business/tools", title: TOOLS_COPY[locale].moduleTitle, text: TOOLS_COPY[locale].moduleDesc, icon: Wrench },
+    { href: "/business/vault", title: VAULT_COPY[locale].moduleTitle, text: VAULT_COPY[locale].moduleDesc, icon: FolderLock },
+    { href: "/business/invoices", title: INVOICE_COPY[locale].moduleTitle, text: INVOICE_COPY[locale].moduleDesc, icon: FileSpreadsheet },
+    { href: "/business/financial-guard", title: t.nav.financialGuard, text: t.nav.financialGuard, icon: ShieldCheck },
+    ...(locale === "hu" ? [{ href: "/business/contracts", title: "Szerződések", text: "Saját szerződéstervezetek kezelése.", icon: FileText }, { href: "/business/receipts", title: "Nyugták", text: "Valós tranzakciók nyilvántartása.", icon: ReceiptText }, { href: "/business/tax-summaries", title: "Adóösszesítők", text: "Saját bevételek és kiadások áttekintése.", icon: FileSpreadsheet }] : locale === "de" ? [{ href: "/business/contracts", title: "Verträge", text: "Eigene Vertragsentwürfe verwalten.", icon: FileText }, { href: "/business/receipts", title: "Quittungen", text: "Echte Transaktionen erfassen.", icon: ReceiptText }, { href: "/business/tax-summaries", title: "Steuerübersichten", text: "Eigene Einnahmen und Ausgaben prüfen.", icon: FileSpreadsheet }] : locale === "fr" ? [{ href: "/business/contracts", title: "Contrats", text: "Gérer vos brouillons de contrats.", icon: FileText }, { href: "/business/receipts", title: "Reçus", text: "Enregistrer des transactions réelles.", icon: ReceiptText }, { href: "/business/tax-summaries", title: "Synthèses fiscales", text: "Examiner vos revenus et dépenses.", icon: FileSpreadsheet }] : locale === "es" ? [{ href: "/business/contracts", title: "Contratos", text: "Gestiona tus borradores de contrato.", icon: FileText }, { href: "/business/receipts", title: "Recibos", text: "Registra transacciones reales.", icon: ReceiptText }, { href: "/business/tax-summaries", title: "Resúmenes fiscales", text: "Revisa tus ingresos y gastos.", icon: FileSpreadsheet }] : [{ href: "/business/contracts", title: "Contracts", text: "Prepare and manage contract drafts.", icon: FileText }, { href: "/business/receipts", title: "Receipts", text: "Record real transactions.", icon: ReceiptText }, { href: "/business/tax-summaries", title: "Tax summaries", text: "Review supplied income and expenses.", icon: FileSpreadsheet }]),
   ]
-
   return (
     <AppShell>
-      <div className="relative mx-auto max-w-[1500px] overflow-hidden px-4 py-8 sm:px-6 lg:px-8">
-        <div className="pointer-events-none absolute -left-24 top-16 size-72 rounded-full bg-primary/10 blur-3xl" />
-        <div className="pointer-events-none absolute right-[8%] top-10 size-80 rounded-full bg-cyan/7 blur-3xl" />
-        <div className="pointer-events-none absolute -right-20 top-80 size-72 rounded-full bg-violet/10 blur-3xl" />
-
-        <div className="relative z-10 grid gap-5 xl:grid-cols-[minmax(0,1fr)_330px]">
-          <IntelligenceCard tone="emerald" className="overflow-hidden p-6 sm:p-8">
-            <div className="pointer-events-none absolute right-[-8%] top-[-22%] size-80 rounded-full border border-primary/10 shadow-[0_0_90px_rgba(16,185,129,.08)]" aria-hidden />
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-              <div className="max-w-3xl">
-                <div className="mb-5 flex items-center gap-4"><AICore state="active" /><div><p className="ve-eyebrow">{t.business.eyebrow}</p><p className="text-xs text-muted-foreground">HEGEVA business intelligence workspace</p></div></div>
-                <PageHeader eyebrow="" title={t.business.title} subtitle={t.business.subtitle} />
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary"><Sparkles className="size-4" />9 modules ready</div>
-                <Link href="/business/reports" className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-cyan/20 bg-cyan/6 px-4 text-sm font-semibold text-cyan transition hover:border-cyan/35 hover:bg-cyan/10"><BarChart3 className="size-4" />Reports</Link>
-              </div>
-            </div>
-
-            <div className="mt-7 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-primary/18 bg-primary/5 p-4"><LiveStatus label="Workspace" detail="Ready" tone="emerald" /></div>
-              <div className="rounded-2xl border border-cyan/18 bg-cyan/5 p-4"><LiveStatus label="Business data" detail="Connected" tone="cyan" /></div>
-              <div className="rounded-2xl border border-violet/18 bg-violet/5 p-4"><LiveStatus label="Account security" detail="Protected" tone="violet" /></div>
-            </div>
-          </IntelligenceCard>
-
-          <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start" aria-label="Business intelligence rail">
-            <IntelligenceCard tone="cyan" className="p-5">
-              <div className="flex items-center gap-3"><SignalIcon icon={WalletCards} tone="cyan" className="size-10 rounded-xl" /><div><p className="ve-eyebrow mb-0">Operations core</p><p className="text-sm font-semibold">Business systems</p></div></div>
-              <div className="mt-4 space-y-2">
-                <LiveStatus label="CRM" detail="Ready" tone="emerald" />
-                <LiveStatus label="Documents" detail="Available" tone="cyan" />
-                <LiveStatus label="Planner" detail="Connected" tone="violet" />
-              </div>
-            </IntelligenceCard>
-
-            <IntelligenceCard tone="violet" className="p-5">
-              <div className="flex items-center gap-3"><SignalIcon icon={Activity} tone="violet" className="size-10 rounded-xl" /><div><p className="ve-eyebrow mb-0">Workspace map</p><p className="text-sm font-semibold">Quick launch</p></div></div>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <Link href="/business/customers" className="rounded-xl border border-white/8 bg-background/30 p-3 transition hover:border-primary/20 hover:bg-primary/5"><Users className="size-4 text-primary"/><p className="mt-2 text-xs font-semibold">CRM</p><p className="mt-1 text-[10px] text-muted-foreground">Customers</p></Link>
-                <Link href="/business/invoices" className="rounded-xl border border-white/8 bg-background/30 p-3 transition hover:border-cyan/20 hover:bg-cyan/5"><FileSpreadsheet className="size-4 text-cyan"/><p className="mt-2 text-xs font-semibold">Invoices</p><p className="mt-1 text-[10px] text-muted-foreground">Billing docs</p></Link>
-                <Link href="/business/planner" className="rounded-xl border border-white/8 bg-background/30 p-3 transition hover:border-violet/20 hover:bg-violet/5"><CalendarCheck2 className="size-4 text-violet"/><p className="mt-2 text-xs font-semibold">Planner</p><p className="mt-1 text-[10px] text-muted-foreground">Schedule</p></Link>
-                <Link href="/business/vault" className="rounded-xl border border-white/8 bg-background/30 p-3 transition hover:border-gold/20 hover:bg-gold/5"><ShieldCheck className="size-4 text-gold"/><p className="mt-2 text-xs font-semibold">Vault</p><p className="mt-1 text-[10px] text-muted-foreground">Secure files</p></Link>
-              </div>
-            </IntelligenceCard>
-          </aside>
-        </div>
-
-        <div className="relative z-10 mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {modules.map(({ href, title, text, icon: Icon, tone }) => (
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <PageHeader eyebrow={t.business.eyebrow} title={t.business.title} subtitle={t.business.subtitle} />
+        <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {modules.map(({ href, title, text, icon: Icon }, index) => (
             <Link key={href} href={href} className="group rounded-3xl focus-visible:outline-none">
-              <IntelligenceCard interactive tone={tone} className="h-full overflow-hidden p-6 sm:p-7">
-                <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" aria-hidden />
-                <div className="flex items-center justify-between gap-4">
-                  <SignalIcon icon={Icon} tone={tone} className="size-12 rounded-2xl" />
-                  <StatusBadge status="working" />
-                </div>
-                <h2 className="mt-5 font-display text-xl font-semibold text-foreground">{title}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{text}</p>
-                <span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-foreground/80 transition-colors group-hover:text-foreground">{t.business.open}<span className="flex size-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] transition group-hover:border-primary/25 group-hover:bg-primary/10"><ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" /></span></span>
+              <IntelligenceCard interactive tone={index===4||index===5?"cyan":index===7?"gold":index===8?"violet":"neutral"} className="h-full p-6">
+              <div className="flex items-center justify-between gap-4">
+                <SignalIcon icon={Icon} tone={index===4||index===5?"cyan":index===7?"gold":index===8?"violet":"emerald"} />
+                <StatusBadge status="working" />
+              </div>
+              <h2 className="mt-5 text-xl font-semibold text-foreground">{title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{text}</p>
+              <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-foreground/80 group-hover:text-foreground">{t.business.open} <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></span>
               </IntelligenceCard>
             </Link>
           ))}

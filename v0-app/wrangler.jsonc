@@ -2,21 +2,23 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "hegeva-ai-v3-v0",
   "main": ".open-next/worker.js",
-  "compatibility_date": "2026-08-21",
+  "compatibility_date": "2026-09-02",
   "compatibility_flags": ["nodejs_compat"],
-  "routes": [
-    {
-      "pattern": "hegevaai.co.uk",
-      "custom_domain": true
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1
     },
-    {
-      "pattern": "www.hegevaai.co.uk",
-      "custom_domain": true
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.05
     }
-  ],
+  },
   "assets": {
     "directory": ".open-next/assets",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "run_worker_first": true
   },
   "services": [
     {

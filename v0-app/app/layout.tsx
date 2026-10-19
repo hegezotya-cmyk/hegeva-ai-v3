@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { I18nProvider } from '@/lib/i18n/provider'
 import { WorkspaceLocalPrivacyGuard } from '@/components/workspace-local-privacy-guard'
-import { ConsentAnalytics } from '@/components/consent-analytics'
+import { AnalyticsConsent } from '@/components/analytics-consent'
 import './globals.css'
 
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   },
   robots: { index: true, follow: true },
   icons: {
-    icon: [{ url: '/hegeva-logo.png', type: 'image/png' }],
+    icon: [{ url: '/hegeva-logo-gold-official.png', type: 'image/png' }],
   },
   manifest: '/manifest.webmanifest',
 }
@@ -46,6 +46,20 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   colorScheme: 'dark',
   themeColor: '#0b1310',
+}
+
+function ConsentModeBootstrap() {
+  const source = `window.dataLayer=window.dataLayer||[];
+window.gtag=window.gtag||function(){window.dataLayer.push(arguments)};
+window.gtag("consent","default",{
+  analytics_storage:"denied",
+  ad_storage:"denied",
+  ad_user_data:"denied",
+  ad_personalization:"denied",
+  wait_for_update:500
+});
+window.__hegevaConsentDefaulted=true;`
+  return <script id="hegeva-consent-mode-default" dangerouslySetInnerHTML={{ __html: source }} />
 }
 
 export default function RootLayout({
@@ -58,10 +72,13 @@ export default function RootLayout({
       lang="en"
       className={`dark bg-background ${geistSans.variable} ${geistMono.variable}`}
     >
+      <head>
+        <ConsentModeBootstrap />
+      </head>
       <body className="antialiased font-sans">
         <I18nProvider>
           <WorkspaceLocalPrivacyGuard />
-          <ConsentAnalytics />
+          <AnalyticsConsent />
           {children}
         </I18nProvider>
       </body>

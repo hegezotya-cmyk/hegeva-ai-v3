@@ -10,6 +10,8 @@ import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { buildLocalizedSpecification, getStudioCopy } from "@/lib/i18n/studio-copy"
 import { runStudioAI, type StudioLocale } from "@/lib/app-studio-ai"
+import { useAiAvailability } from "@/lib/ai-availability"
+import { ComingSoonCard } from "@/components/coming-soon-state"
 
 const APP_STUDIO_HANDOFF_KEY = "hegeva:app-studio:prompt-to-build"
 
@@ -32,6 +34,11 @@ export function PromptMyApp() {
   const [copied, setCopied] = useState(false)
   const [enhancing, setEnhancing] = useState(false)
   const [aiError, setAiError] = useState("")
+
+  const aiAvailability = useAiAvailability()
+  if (!aiAvailability.status.x10Enabled) {
+    return <ComingSoonCard feature="prompt" className="mx-auto mt-12 max-w-xl" />
+  }
 
   function buildSpec() {
     const trimmed = idea.trim()

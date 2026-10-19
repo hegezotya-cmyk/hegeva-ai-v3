@@ -3,25 +3,53 @@
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Activity, Bot, CreditCard, Gauge, LogOut, ShieldCheck, Sparkles, UserRound } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { PageHeader } from "@/components/page-header"
-import { AICore, SignalIcon } from "@/components/visual-engine"
 import { authClient } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/provider"
+import { REGISTRATIONS_COPY } from "@/lib/i18n/registrations-copy"
 import { ACCOUNT_COPY } from "@/lib/i18n/account-copy"
 import { LEADS_COPY } from "@/lib/i18n/leads-copy"
-import { trackConversion } from "@/lib/conversion-tracking"
+import { trackSubscriptionSuccess } from "@/lib/conversion-tracking"
+import { ReferralReview } from "@/components/growth/referral-review"
+import { WorkspaceBusinessCheck } from "@/components/growth/workspace-business-check"
 
-type PlanStatus = { plan:string; aiMessages:number; aiLimit:number; period:string }
+type PlanStatus = { plan:string; aiMessages:number; aiLimit:number; aiRemaining:number; assistantTopUpCredits:number; period:string }
+type BillingStatus = { customerPortalReady:boolean; subscriptionStatus:string | null; cancelAtPeriodEnd:boolean; currentPeriodEnd:string | null }
+
+const BILLING_COPY = {
+  en:{title:"Subscription",status:"Status",renews:"Next renewal",ends:"Access until",active:"Active",trialing:"Trial",past_due:"Payment overdue",unpaid:"Unpaid",canceled:"Cancelled",manage:"Manage subscription in Stripe",loading:"Checking subscription…",unavailable:"Subscription details are temporarily unavailable.",notLinked:"No active Stripe subscription is linked to this account yet. If you have just completed checkout, refresh shortly; otherwise view plans or contact support.",usageNote:"This shows Assistant usage. HEGEVA Core analysis is tracked separately and does not change this figure."},
+  hu:{title:"Előfizetés",status:"Állapot",renews:"Következő megújulás",ends:"Hozzáférés eddig",active:"Aktív",trialing:"Próbaidő",past_due:"Fizetési késedelem",unpaid:"Kifizetetlen",canceled:"Lemondva",manage:"Előfizetés kezelése a Stripe-ban",loading:"Előfizetés ellenőrzése…",unavailable:"Az előfizetés részletei átmenetileg nem érhetők el.",notLinked:"Ehhez a fiókhoz még nincs aktív Stripe-előfizetés kapcsolva. Ha most fejezted be a fizetést, frissíts rövidesen; egyébként nézd meg a csomagokat vagy vedd fel a kapcsolatot a támogatással.",usageNote:"Ez az Asszisztens használatát mutatja. A HEGEVA Core elemzése külön számlálón fut, ezért ezt az értéket nem módosítja."},
+  de:{title:"Abonnement",status:"Status",renews:"Nächste Verlängerung",ends:"Zugriff bis",active:"Aktiv",trialing:"Testphase",past_due:"Zahlung überfällig",unpaid:"Unbezahlt",canceled:"Gekündigt",manage:"Abonnement in Stripe verwalten",loading:"Abonnement wird geprüft…",unavailable:"Abonnementdetails sind vorübergehend nicht verfügbar.",notLinked:"Diesem Konto ist noch kein aktives Stripe-Abonnement zugeordnet. Wenn Sie den Checkout gerade abgeschlossen haben, aktualisieren Sie die Seite in Kürze; andernfalls sehen Sie sich die Tarife an oder kontaktieren Sie den Support.",usageNote:"Hier wird die Nutzung des Assistenten angezeigt. HEGEVA Core-Analysen werden separat erfasst und ändern diesen Wert nicht."},
+  fr:{title:"Abonnement",status:"Statut",renews:"Prochain renouvellement",ends:"Accès jusqu’au",active:"Actif",trialing:"Essai",past_due:"Paiement en retard",unpaid:"Impayé",canceled:"Annulé",manage:"Gérer l’abonnement dans Stripe",loading:"Vérification de l’abonnement…",unavailable:"Les détails de l’abonnement sont temporairement indisponibles.",notLinked:"Aucun abonnement Stripe actif n’est encore lié à ce compte. Si vous venez de terminer le paiement, actualisez dans un instant ; sinon, consultez les offres ou contactez l’assistance.",usageNote:"Cette valeur indique l’utilisation de l’Assistant. Les analyses HEGEVA Core sont comptabilisées séparément et ne modifient pas ce chiffre."},
+  es:{title:"Suscripción",status:"Estado",renews:"Próxima renovación",ends:"Acceso hasta",active:"Activa",trialing:"Prueba",past_due:"Pago atrasado",unpaid:"Sin pagar",canceled:"Cancelada",manage:"Gestionar suscripción en Stripe",loading:"Comprobando suscripción…",unavailable:"Los detalles de la suscripción no están disponibles temporalmente.",notLinked:"Todavía no hay una suscripción activa de Stripe vinculada a esta cuenta. Si acabas de completar el pago, actualiza en unos instantes; de lo contrario, consulta los planes o contacta con soporte.",usageNote:"Aquí se muestra el uso del Asistente. Los análisis de HEGEVA Core se registran por separado y no cambian esta cifra."},
+} as const
 
 const PAID_PLANS = new Set(["premium", "pro"])
+const TOPUP_PACKS = {
+  en: { small:"Small · 100 credits · £1.99", medium:"Medium · 300 credits · £3.99", large:"Large · 1,000 credits · £7.99" },
+  hu: { small:"Kicsi · 100 kredit · £1.99", medium:"Közepes · 300 kredit · £3.99", large:"Nagy · 1,000 kredit · £7.99" },
+  de: { small:"Klein · 100 Guthaben · £1.99", medium:"Mittel · 300 Guthaben · £3.99", large:"Groß · 1.000 Guthaben · £7.99" },
+  fr: { small:"Petit · 100 crédits · £1.99", medium:"Moyen · 300 crédits · £3.99", large:"Grand · 1 000 crédits · £7.99" },
+  es: { small:"Pequeño · 100 créditos · £1.99", medium:"Mediano · 300 créditos · £3.99", large:"Grande · 1.000 créditos · £7.99" },
+} as const
+
+const TOPUP_COPY = {
+  en: { title:"Extra AI credits", description:"Top-Up credits stay on your account until you use them.", balance:"Top-Up balance", success:"Payment received. Your credits appear after Stripe confirms the payment. Refresh shortly if the balance has not updated yet.", cancelled:"Top-Up purchase cancelled. No credits were charged.", usageOrder:"Your monthly Assistant allowance is used first. Top-Up credits are used only after the monthly allowance runs out.", unavailable:"Top-Up checkout is temporarily unavailable. No charge was made." },
+  hu: { title:"Extra AI-kreditek", description:"A feltöltött kreditek felhasználásig a fiókodban maradnak.", balance:"Feltöltött egyenleg", success:"A fizetés megérkezett. A kreditek a Stripe visszaigazolása után jelennek meg. Ha az egyenleg még nem frissült, rövidesen frissítsd az oldalt.", cancelled:"A kreditvásárlást megszakítottad. Nem történt terhelés.", usageOrder:"Először a havi Asszisztens-kereted fogy. A feltöltött krediteket csak a havi keret elfogyása után használjuk.", unavailable:"A kreditvásárlás átmenetileg nem érhető el. Nem történt terhelés." },
+  de: { title:"Zusätzliche KI-Guthaben", description:"Aufgeladenes Guthaben bleibt in deinem Konto, bis du es verwendest.", balance:"Aufgeladenes Guthaben", success:"Zahlung erhalten. Dein Guthaben erscheint, nachdem Stripe die Zahlung bestätigt hat. Aktualisiere die Seite in Kürze, falls der Stand noch nicht aktualisiert wurde.", cancelled:"Der Guthabenkauf wurde abgebrochen. Es wurde nichts berechnet.", usageOrder:"Zuerst wird dein monatliches Assistenten-Kontingent verwendet. Aufgeladenes Guthaben wird erst danach eingesetzt.", unavailable:"Der Guthabenkauf ist vorübergehend nicht verfügbar. Es wurde nichts berechnet." },
+  fr: { title:"Crédits IA supplémentaires", description:"Les crédits rechargés restent sur votre compte jusqu’à leur utilisation.", balance:"Solde rechargé", success:"Paiement reçu. Vos crédits apparaîtront après confirmation par Stripe. Actualisez bientôt la page si le solde n’a pas encore changé.", cancelled:"L’achat de crédits a été annulé. Aucun montant n’a été débité.", usageOrder:"Votre allocation mensuelle de l’Assistant est utilisée en premier. Les crédits rechargés ne sont utilisés qu’après son épuisement.", unavailable:"L’achat de crédits est temporairement indisponible. Aucun montant n’a été débité." },
+  es: { title:"Créditos de IA adicionales", description:"Los créditos recargados permanecen en tu cuenta hasta que los uses.", balance:"Saldo recargado", success:"Pago recibido. Tus créditos aparecerán cuando Stripe confirme el pago. Actualiza la página en unos instantes si el saldo aún no ha cambiado.", cancelled:"La compra de créditos se canceló. No se realizó ningún cargo.", usageOrder:"Primero se utiliza tu asignación mensual del Asistente. Los créditos recargados solo se usan cuando se agota.", unavailable:"La compra de créditos no está disponible temporalmente. No se realizó ningún cargo." },
+} as const
 
 export default function AccountPage() {
   const router = useRouter()
   const { locale } = useI18n()
   const c = ACCOUNT_COPY[locale]
   const leadsCopy = LEADS_COPY[locale]
+  const billingCopy = BILLING_COPY[locale]
+  const topUpPacks = TOPUP_PACKS[locale]
+  const topUpCopy = TOPUP_COPY[locale]
   const [isOwner, setIsOwner] = useState(false)
   const { data: session, isPending } = authClient.useSession()
   const [plan, setPlan] = useState<PlanStatus | null>(null)
@@ -32,10 +60,18 @@ export default function AccountPage() {
   const [loggingOut, setLoggingOut] = useState(false)
   const [openingBilling, setOpeningBilling] = useState(false)
   const [billingPortalError, setBillingPortalError] = useState(false)
+  const [billing, setBilling] = useState<BillingStatus | null>(null)
+  const [billingLoading, setBillingLoading] = useState(false)
+  const [billingStatusError, setBillingStatusError] = useState(false)
+  const [buyingTopUp, setBuyingTopUp] = useState<string | null>(null)
+  const [topUpError, setTopUpError] = useState(false)
+  const [topUpReturn, setTopUpReturn] = useState<"success" | "cancelled" | null>(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     setBillingReturn(params.get("billing") === "success")
+    const topup = params.get("topup")
+    setTopUpReturn(topup === "success" || topup === "cancelled" ? topup : null)
   }, [])
 
   const loginCallbackHref = useMemo(() => {
@@ -46,6 +82,8 @@ export default function AccountPage() {
   useEffect(() => {
     if (!session?.user) return
     let active = true
+    setBillingLoading(true)
+    setBillingStatusError(false)
 
     const fetchPlan = async () => {
       const controller = new AbortController()
@@ -63,6 +101,8 @@ export default function AccountPage() {
           plan: typeof data.plan === "string" ? data.plan : "basic",
           aiMessages: Number(data.aiMessages) || 0,
           aiLimit: Number(data.aiLimit) || 0,
+          aiRemaining: Number(data.aiRemaining) || 0,
+          assistantTopUpCredits: Number(data.assistantTopUpCredits) || 0,
           period: typeof data.period === "string" ? data.period : "",
         } satisfies PlanStatus
       } finally {
@@ -98,10 +138,11 @@ export default function AccountPage() {
         const paid = PAID_PLANS.has(latest.plan)
         setBillingSuccess(paid)
         setBillingConfirmError(paid ? "" : "entitlement_pending")
-        // Keep the return marker until paid entitlement is confirmed.
-        // A reload can retry if the billing webhook arrives late.
         if (paid) {
-          trackConversion("subscription_success")
+          trackSubscriptionSuccess(latest.plan, latest.period)
+          // Preserve the checkout return marker while entitlement is pending.
+          // A refresh can retry after a delayed webhook without counting an
+          // unconfirmed checkout as a successful conversion.
           clearBillingQuery()
         }
       }
@@ -115,6 +156,20 @@ export default function AccountPage() {
         setBillingConfirmError("plan_status_unavailable")
       }
     })
+
+    fetch("/api/billing/status", { credentials:"include", cache:"no-store", headers:{ Accept:"application/json" } })
+      .then(async (response) => {
+        const data = await response.json().catch(() => null)
+        if (!response.ok || !data) throw new Error("billing")
+        if (active) setBilling({
+          customerPortalReady: data.customerPortalReady === true,
+          subscriptionStatus: typeof data.subscriptionStatus === "string" ? data.subscriptionStatus : null,
+          cancelAtPeriodEnd: data.cancelAtPeriodEnd === true,
+          currentPeriodEnd: typeof data.currentPeriodEnd === "string" ? data.currentPeriodEnd : null,
+        })
+      })
+      .catch(() => { if (active) setBillingStatusError(true) })
+      .finally(() => { if (active) setBillingLoading(false) })
 
     fetch("/api/admin/contact-leads", { credentials:"include", cache:"no-store" })
       .then((response) => { if (active) setIsOwner(response.ok) })
@@ -156,63 +211,95 @@ export default function AccountPage() {
     }
   }
 
-  if (isPending) return <AppShell><main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8"><div className="ve-panel relative overflow-hidden rounded-3xl p-8 text-sm text-muted-foreground"><div className="flex items-center gap-4"><AICore state="thinking"/><span>{c.checking}</span></div></div></main></AppShell>
+  async function buyTopUp(pack: "small" | "medium" | "large") {
+    if (buyingTopUp) return
+    setBuyingTopUp(pack)
+    setTopUpError(false)
+    try {
+      const response = await fetch("/api/billing/topup/checkout", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ pack }),
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok || typeof data?.url !== "string" || !data.url.startsWith("https://checkout.stripe.com/")) throw new Error("topup")
+      window.location.assign(data.url)
+    } catch {
+      setTopUpError(true)
+      setBuyingTopUp(null)
+    }
+  }
 
-  if (!session?.user) return <AppShell><main className="relative mx-auto max-w-3xl overflow-hidden px-4 py-12 sm:px-6 lg:px-8"><div className="pointer-events-none absolute right-0 top-0 h-72 w-72 rounded-full bg-violet/10 blur-3xl"/><PageHeader eyebrow={c.eyebrow} title={c.signInTitle} subtitle={c.signInBody}/>{billingReturn && <p role="status" className="mt-6 rounded-2xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground shadow-[0_18px_60px_-45px_rgba(16,185,129,.8)]">{c.billingSignIn}</p>}<Link href={loginCallbackHref} className="mt-8 inline-flex rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[0_16px_40px_-20px_rgba(16,185,129,.8)] transition hover:-translate-y-0.5">{c.signIn}</Link></main></AppShell>
+  if (isPending) return <AppShell><main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8"><div className="glass-panel rounded-3xl p-8 text-sm text-muted-foreground">{c.checking}</div></main></AppShell>
+
+  if (!session?.user) return <AppShell><main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8"><PageHeader eyebrow={c.eyebrow} title={c.signInTitle} subtitle={c.signInBody}/>{billingReturn && <p role="status" className="mt-6 rounded-xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground">{c.billingSignIn}</p>}<Link href={loginCallbackHref} className="mt-8 inline-flex rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">{c.signIn}</Link></main></AppShell>
 
   const used = plan?.aiMessages || 0
   const limit = plan?.aiLimit || 0
   const percentage = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0
+  const subscriptionStatus = billing?.subscriptionStatus || null
+  const statusLabel = subscriptionStatus ? billingCopy[subscriptionStatus as keyof typeof billingCopy] || subscriptionStatus.replaceAll("_", " ") : billingCopy.unavailable
+  const periodEnd = billing?.currentPeriodEnd ? new Date(billing.currentPeriodEnd) : null
+  const periodEndLabel = periodEnd && !Number.isNaN(periodEnd.getTime()) ? new Intl.DateTimeFormat(locale, { dateStyle:"long" }).format(periodEnd) : "—"
 
   return <AppShell>
-    <main className="relative mx-auto max-w-6xl overflow-hidden px-4 py-12 sm:px-6 lg:px-8">
-      <div className="pointer-events-none absolute -left-32 top-28 h-72 w-72 rounded-full bg-primary/9 blur-3xl" />
-      <div className="pointer-events-none absolute right-0 top-16 h-80 w-80 rounded-full bg-violet/9 blur-3xl" />
-
-      <div className="relative z-10 flex items-start gap-4">
-        <AICore state="active" className="mt-1" />
-        <div className="min-w-0 flex-1"><PageHeader eyebrow={c.eyebrow} title={c.title} subtitle={c.subtitle}/></div>
-      </div>
-
-      {billingSuccess && <p role="status" className="relative z-10 mt-6 rounded-2xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground shadow-[0_18px_60px_-45px_rgba(16,185,129,.8)]">{c.billingSuccess}</p>}
-      {billingConfirmError && <p role="alert" className="relative z-10 mt-4 rounded-2xl border border-gold/30 bg-gold/10 p-4 text-sm text-muted-foreground">{c.unavailable} <span className="font-mono">({billingConfirmError})</span></p>}
-
-      <div className="relative z-10 mt-8 grid gap-6 lg:grid-cols-[1.18fr_0.82fr]">
-        <section className="ve-panel ve-tone-cyan relative overflow-hidden rounded-3xl p-6 sm:p-8">
-          <div className="mb-5 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3"><SignalIcon icon={UserRound} tone="cyan" className="size-11 rounded-2xl"/><div><p className="ve-eyebrow mb-1">HEGEVA IDENTITY</p><h2 className="text-lg font-semibold">{c.details}</h2></div></div>
-            <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold capitalize text-primary">{plan?.plan || "—"}</span>
-          </div>
-
-          <dl className="divide-y divide-border/80 rounded-2xl border border-white/8 bg-background/20 px-4">
+    <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+      <PageHeader eyebrow={c.eyebrow} title={c.title} subtitle={c.subtitle}/>
+      {billingSuccess && <p role="status" className="mt-6 rounded-xl border border-primary/40 bg-primary/10 p-4 text-sm text-foreground">{c.billingSuccess}</p>}
+      {billingConfirmError && <p role="alert" className="mt-4 rounded-xl border border-gold/30 bg-gold/10 p-4 text-sm text-muted-foreground">{c.unavailable} <span className="font-mono">({billingConfirmError})</span></p>}
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+        <section className="glass-panel rounded-3xl p-6 sm:p-8">
+          <h2 className="text-lg font-semibold">{c.details}</h2>
+          <dl className="mt-6 divide-y divide-border">
             <div className="grid gap-1 py-4 sm:grid-cols-[10rem_1fr]"><dt className="text-sm text-muted-foreground">{c.name}</dt><dd className="break-words text-sm font-medium">{session.user.name || "—"}</dd></div>
             <div className="grid gap-1 py-4 sm:grid-cols-[10rem_1fr]"><dt className="text-sm text-muted-foreground">{c.email}</dt><dd className="break-all text-sm font-medium">{session.user.email}</dd></div>
             <div className="grid gap-1 py-4 sm:grid-cols-[10rem_1fr]"><dt className="text-sm text-muted-foreground">{c.plan}</dt><dd className="text-sm font-semibold capitalize text-primary">{plan?.plan || (planError ? "—" : c.checking)}</dd></div>
             <div className="grid gap-1 py-4 sm:grid-cols-[10rem_1fr]"><dt className="text-sm text-muted-foreground">{c.period}</dt><dd className="text-sm font-medium">{plan?.period || "—"}</dd></div>
           </dl>
-
-          {plan && <div className="mt-6 rounded-2xl border border-white/8 bg-background/25 p-4">
-            <div className="flex items-center justify-between gap-3 text-sm"><span className="flex items-center gap-2 text-muted-foreground"><Gauge className="size-4 text-cyan"/>{c.usage}</span><strong>{used} / {limit}</strong></div>
-            <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-gradient-to-r from-primary via-cyan to-violet transition-[width]" style={{width:`${percentage}%`}}/></div>
-            <p className="mt-2 text-right text-xs text-muted-foreground">{percentage}%</p>
+          {plan && <div className="mt-5">
+            <div className="flex items-center justify-between gap-3 text-sm"><span className="text-muted-foreground">{c.usage}</span><strong>{used} / {limit}</strong></div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-[width]" style={{width:`${percentage}%`}}/></div>
+            <p className="mt-3 text-xs leading-5 text-muted-foreground">{billingCopy.usageNote}</p>
           </div>}
           {planError && <p className="mt-5 rounded-xl border border-gold/30 bg-gold/10 p-3 text-sm text-muted-foreground">{c.unavailable}</p>}
-        </section>
+          {plan && <div id="assistant-topup" className="mt-6 rounded-2xl border border-primary/25 bg-primary/[.06] p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div><h3 className="font-semibold">{topUpCopy.title}</h3><p className="mt-1 text-sm text-muted-foreground">{topUpCopy.description}</p></div>
+              <div className="rounded-xl border border-primary/25 bg-background/60 px-4 py-2 text-right"><span className="block text-xs text-muted-foreground">{topUpCopy.balance}</span><strong className="text-lg text-primary">{plan.assistantTopUpCredits}</strong></div>
+            </div>
+            {topUpReturn === "success" && <p role="status" className="mt-4 text-sm text-muted-foreground">{topUpCopy.success}</p>}
+            {topUpReturn === "cancelled" && <p role="status" className="mt-4 text-sm text-muted-foreground">{topUpCopy.cancelled}</p>}
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              {(["small","medium","large"] as const).map((pack) => <button key={pack} type="button" disabled={Boolean(buyingTopUp)} onClick={() => void buyTopUp(pack)} className="min-h-11 rounded-xl border border-border px-4 py-3 text-sm font-semibold transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60">{buyingTopUp === pack ? c.checking : topUpPacks[pack]}</button>)}
+            </div>
+            <p className="mt-3 text-xs leading-5 text-muted-foreground">{topUpCopy.usageOrder}</p>
+            {topUpError && <p role="alert" className="mt-3 text-sm text-destructive">{topUpCopy.unavailable}</p>}
+          </div>}
 
-        <aside className="ve-panel ve-tone-violet relative overflow-hidden rounded-3xl p-6">
-          <div className="mb-5 flex items-center gap-3"><SignalIcon icon={Sparkles} tone="violet" className="size-11 rounded-2xl"/><div><p className="ve-eyebrow mb-1">HEGEVA CONTROL</p><h2 className="text-base font-semibold">Quick access</h2></div></div>
-          <div className="grid gap-3">
-            <Link href="/command-center" className="group flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary transition hover:-translate-y-0.5 hover:bg-primary/15"><span className="flex items-center gap-2"><Activity className="size-4"/>{c.workspace}</span><span>→</span></Link>
-            <Link href="/assistant" className="group flex items-center justify-between rounded-2xl border border-cyan/20 bg-cyan/8 px-4 py-3 text-sm font-semibold transition hover:-translate-y-0.5 hover:border-cyan/35"><span className="flex items-center gap-2"><Bot className="size-4 text-cyan"/>{c.assistant}</span><span>→</span></Link>
-            <Link href="/pricing" className="group flex items-center justify-between rounded-2xl border border-gold/20 bg-gold/8 px-4 py-3 text-sm font-semibold transition hover:-translate-y-0.5 hover:border-gold/35"><span className="flex items-center gap-2"><CreditCard className="size-4 text-gold"/>{c.pricing}</span><span>→</span></Link>
-            {plan && PAID_PLANS.has(plan.plan) && <button type="button" disabled={openingBilling} onClick={() => void openBillingPortal()} className="min-h-11 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-3 text-sm font-semibold text-primary transition hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-60">{openingBilling ? c.checking : `${c.plan} · Stripe Sandbox`}</button>}
-            {billingPortalError && <p role="alert" className="rounded-xl border border-gold/30 bg-gold/10 p-3 text-sm text-muted-foreground">{c.unavailable}</p>}
-            {isOwner && <Link href="/admin/contact-leads" className="rounded-2xl border border-primary/30 bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary transition hover:bg-primary/15">{leadsCopy.inbox}</Link>}
-            <Link href="/contact" className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-background/25 px-5 py-3 text-sm font-semibold transition hover:bg-secondary"><ShieldCheck className="size-4 text-primary"/>{c.support}</Link>
-            <button type="button" disabled={loggingOut} onClick={() => void logout()} className="mt-2 flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-background/25 px-5 py-3 text-sm font-semibold text-muted-foreground transition hover:border-destructive/30 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60"><LogOut className="size-4"/>{loggingOut ? c.checking : c.logout}</button>
-          </div>
+          {plan && PAID_PLANS.has(plan.plan) && <div className="mt-6 rounded-2xl border border-border bg-secondary/20 p-5">
+            <h3 className="font-semibold">{billingCopy.title}</h3>
+            {billingLoading ? <p className="mt-3 text-sm text-muted-foreground">{billingCopy.loading}</p> : billingStatusError ? <p role="alert" className="mt-3 text-sm text-muted-foreground">{billingCopy.unavailable}</p> : !subscriptionStatus ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{billingCopy.notLinked}</p> : <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+              <div><dt className="text-muted-foreground">{billingCopy.status}</dt><dd className="mt-1 font-semibold capitalize text-primary">{statusLabel}</dd></div>
+              <div><dt className="text-muted-foreground">{billing?.cancelAtPeriodEnd ? billingCopy.ends : billingCopy.renews}</dt><dd className="mt-1 font-semibold">{periodEndLabel}</dd></div>
+            </dl>}
+          </div>}
+        </section>
+        <aside className="glass-panel flex flex-col gap-3 rounded-3xl p-6">
+          <Link href="/command-center" className="rounded-xl bg-primary px-5 py-3 text-center text-sm font-semibold text-primary-foreground">{c.workspace}</Link>
+          <Link href="/assistant" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.assistant}</Link>
+          <Link href="/pricing" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.pricing}</Link>
+          {plan && PAID_PLANS.has(plan.plan) && <button type="button" disabled={openingBilling || billingLoading || billing?.customerPortalReady !== true} onClick={() => void openBillingPortal()} className="min-h-11 rounded-xl border border-primary/30 bg-primary/10 px-5 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-60">{openingBilling ? c.checking : billingCopy.manage}</button>}
+          {billingPortalError && <p role="alert" className="rounded-xl border border-gold/30 bg-gold/10 p-3 text-sm text-muted-foreground">{c.unavailable}</p>}
+          {isOwner && <Link href="/admin/registrations" className="rounded-xl border border-primary/30 bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary">{REGISTRATIONS_COPY[locale].title}</Link>}
+          {isOwner && <Link href="/admin/contact-leads" className="rounded-xl border border-primary/30 bg-primary/10 px-5 py-3 text-center text-sm font-semibold text-primary transition-colors hover:bg-primary/15">{leadsCopy.inbox}</Link>}
+          <Link href="/contact" className="rounded-xl border border-border px-5 py-3 text-center text-sm font-semibold transition-colors hover:bg-secondary">{c.support}</Link>
+          <button type="button" disabled={loggingOut} onClick={() => void logout()} className="mt-3 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60">{loggingOut ? c.checking : c.logout}</button>
         </aside>
       </div>
+      <WorkspaceBusinessCheck />
+      <ReferralReview />
     </main>
   </AppShell>
 }
+

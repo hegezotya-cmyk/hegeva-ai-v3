@@ -1,78 +1,244 @@
 "use client"
 
-import { FormEvent, useState } from "react"
-import { Cloud, CloudOff, Copy, Mail, Pencil, Plus, Sparkles, Trash2, X } from "lucide-react"
+import { FormEvent, useEffect, useState } from "react"
+import { CalendarClock, CheckCircle2, Cloud, CloudOff, Copy, Pencil, Plus, ShieldCheck, Trash2, X } from "lucide-react"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { useI18n } from "@/lib/i18n/provider"
 import { getBusinessModulesCopy } from "@/lib/i18n/business-modules-copy"
 
-type Draft = { id: string; type: string; tone: string; recipient?: string; subject?: string; body: string; createdAt: string }
+type Draft = {
+  id: string
+  type: string
+  tone: string
+  actionType?: "email-draft"
+  actionKey?: string
+  recipient?: string
+  subject?: string
+  body: string
+  createdAt: string
+  followUpAt?: string
+  workflowStatus?: "draft" | "approved" | "ready-to-execute" | "sending" | "sent" | "failed" | "uncertain" | "completed"
+  approvalState?: "awaiting-approval" | "approved" | "ready-to-execute" | "sending" | "sent" | "failed" | "uncertain"
+  approvalVersion?: number
+  approvedAt?: string
+  approvedByActorHash?: string | null
+  readyAt?: string
+  readyByActorHash?: string | null
+  readyVersion?: number
+  completedAt?: string
+  deliveryStatus?: "not-sent" | "sent" | "failed"
+  executionStatus?: "not-executed" | "executed"
+  evidence?: { invoiceNumber?: string; quoteNumber?: string; dueDate?: string; amount?: string; customerName?: string }
+  sourceId?: string
+}
+
+type LinkedTask = { id: string; title: string; due?: string; priority: "low" | "medium" | "high"; done: boolean; sourceId?: string }
 
 export function MessageStudio() {
   const { locale } = useI18n()
   const c = getBusinessModulesCopy(locale).messages
   const { items: drafts, setItems: setDrafts, syncState, syncError, cloudEnabled } = useWorkspaceData<Draft>("messages")
+  const { items: tasks, setItems: setTasks } = useWorkspaceData<LinkedTask>("planner")
   const [type, setType] = useState("Customer reply")
   const [tone, setTone] = useState("Professional")
   const [recipient, setRecipient] = useState("")
   const [subject, setSubject] = useState("")
   const [body, setBody] = useState("")
+  const [followUpAt, setFollowUpAt] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
-  const editCopy = { en:{edit:"Edit draft",update:"Update draft",cancel:"Cancel"},hu:{edit:"Vázlat szerkesztése",update:"Vázlat frissítése",cancel:"Mégse"},de:{edit:"Entwurf bearbeiten",update:"Entwurf aktualisieren",cancel:"Abbrechen"},fr:{edit:"Modifier le brouillon",update:"Mettre à jour",cancel:"Annuler"},es:{edit:"Editar borrador",update:"Actualizar borrador",cancel:"Cancelar"} }[locale]
+  const [approvingId, setApprovingId] = useState<string | null>(null)
+  const [approvalNotice, setApprovalNotice] = useState("")
+  useEffect(() => {
+    try {
+      const key = "hegeva:first-wow-message-seed:v1"
+      const raw = sessionStorage.getItem(key)
+      if (!raw) return
+      const seed = JSON.parse(raw)
+      const age = Date.now() - Number(seed?.at || 0)
+      if (age < 0 || age > 30 * 60 * 1000 || typeof seed?.body !== "string") {
+        sessionStorage.removeItem(key)
+        return
+      }
+      if (typeof seed.type === "string") setType(seed.type)
+      if (typeof seed.tone === "string") setTone(seed.tone)
+      if (typeof seed.subject === "string") setSubject(seed.subject)
+      setBody(seed.body)
+      sessionStorage.removeItem(key)
+    } catch {
+      // Quick-start handoff is best-effort and must never block Message Studio.
+    }
+  }, [])
 
-  function resetForm() { setRecipient(""); setSubject(""); setBody(""); setEditingId(null) }
-  function editDraft(draft: Draft) { setEditingId(draft.id); setType(draft.type); setTone(draft.tone); setRecipient(draft.recipient || ""); setSubject(draft.subject || ""); setBody(draft.body) }
-  function saveDraft(e: FormEvent) {
-    e.preventDefault(); const clean = body.trim(); if (!clean) return
-    setDrafts((current) => {
-      const existing = editingId ? current.find((draft) => draft.id === editingId) : undefined
-      const next: Draft = { id: existing?.id || crypto.randomUUID(), type, tone, recipient: recipient.trim() || undefined, subject: subject.trim() || undefined, body: clean, createdAt: existing?.createdAt || new Date().toISOString() }
-      return existing ? current.map((draft) => draft.id === existing.id ? next : draft) : [next, ...current]
-    }); resetForm()
+  const editCopy = {
+    en:{edit:"Edit draft",update:"Update draft",cancel:"Cancel",follow:"Follow-up date",draft:"Draft",approve:"Approve",approved:"Approved",complete:"Complete follow-up",completed:"Completed",due:"Follow-up due",linked:"Linked planner task",awaiting:"Awaiting approval",notSent:"Not sent",notExecuted:"Not executed",approveAction:"Approve action",approving:"Approving…",failed:"Approval could not be completed. Reload and try again.",evidence:"Evidence"},hu:{edit:"Vázlat szerkesztése",update:"Vázlat frissítése",cancel:"Mégse",follow:"Utánkövetés dátuma",draft:"Vázlat",approve:"Jóváhagyás",approved:"Jóváhagyva",complete:"Utánkövetés lezárása",completed:"Lezárva",due:"Utánkövetés esedékes",linked:"Kapcsolódó tervezőfeladat",awaiting:"Jóváhagyásra vár",notSent:"Nincs elküldve",notExecuted:"Nincs végrehajtva",approveAction:"Művelet jóváhagyása",approving:"Jóváhagyás…",failed:"A jóváhagyás nem sikerült. Töltsd újra az oldalt, majd próbáld újra.",evidence:"Bizonyíték"},de:{edit:"Entwurf bearbeiten",update:"Entwurf aktualisieren",cancel:"Abbrechen",follow:"Nachfassdatum",draft:"Entwurf",approve:"Freigeben",approved:"Freigegeben",complete:"Nachfassung abschließen",completed:"Abgeschlossen",due:"Nachfassung fällig",linked:"Verknüpfte Planeraufgabe",awaiting:"Wartet auf Freigabe",notSent:"Nicht gesendet",notExecuted:"Nicht ausgeführt",approveAction:"Aktion freigeben",approving:"Freigabe…",failed:"Die Freigabe konnte nicht abgeschlossen werden. Bitte neu laden und erneut versuchen.",evidence:"Nachweis"},fr:{edit:"Modifier le brouillon",update:"Mettre à jour",cancel:"Annuler",follow:"Date de suivi",draft:"Brouillon",approve:"Approuver",approved:"Approuvé",complete:"Terminer le suivi",completed:"Terminé",due:"Suivi dû",linked:"Tâche liée au planificateur",awaiting:"En attente d’approbation",notSent:"Non envoyé",notExecuted:"Non exécuté",approveAction:"Approuver l’action",approving:"Approbation…",failed:"L’approbation n’a pas pu être effectuée. Rechargez puis réessayez.",evidence:"Preuve"},es:{edit:"Editar borrador",update:"Actualizar borrador",cancel:"Cancelar",follow:"Fecha de seguimiento",draft:"Borrador",approve:"Aprobar",approved:"Aprobado",complete:"Completar seguimiento",completed:"Completado",due:"Seguimiento pendiente",linked:"Tarea vinculada del planificador",awaiting:"Pendiente de aprobación",notSent:"No enviado",notExecuted:"No ejecutado",approveAction:"Aprobar acción",approving:"Aprobando…",failed:"No se pudo completar la aprobación. Recarga e inténtalo de nuevo.",evidence:"Evidencia"},
+  }[locale]
+  const readyCopy = { en: "Ready to execute", hu: "Végrehajtásra kész", de: "Bereit zur Ausführung", fr: "Prêt à exécuter", es: "Listo para ejecutar" }[locale]
+  const readyActionCopy = { en: "Mark ready to execute", hu: "Végrehajtásra készítés", de: "Als ausführungsbereit markieren", fr: "Marquer prêt à exécuter", es: "Marcar listo para ejecutar" }[locale]
+  const readyingCopy = { en: "Preparing…", hu: "Előkészítés…", de: "Vorbereitung…", fr: "Préparation…", es: "Preparando…" }[locale]
+
+  function resetForm() {
+    setRecipient("")
+    setSubject("")
+    setBody("")
+    setFollowUpAt("")
+    setEditingId(null)
   }
 
-  const fieldClass = "w-full rounded-2xl border border-white/10 bg-background/35 px-3.5 py-3 text-sm text-foreground outline-none transition focus:border-cyan/45 focus:bg-background/55 focus:ring-2 focus:ring-cyan/10"
+  function editDraft(draft: Draft) {
+    setEditingId(draft.id)
+    setType(draft.type)
+    setTone(draft.tone)
+    setRecipient(draft.recipient || "")
+    setSubject(draft.subject || "")
+    setBody(draft.body)
+    setFollowUpAt(draft.followUpAt || "")
+  }
+
+  function saveDraft(e: FormEvent) {
+    e.preventDefault()
+    const clean = body.trim()
+    if (!clean) return
+    const linkedSourceId = editingId ? drafts.find((draft) => draft.id === editingId)?.sourceId : undefined
+    setDrafts((current) => {
+      const existing = editingId ? current.find((draft) => draft.id === editingId) : undefined
+      const next: Draft = {
+        id: existing?.id || crypto.randomUUID(),
+        type,
+        tone,
+        recipient: recipient.trim() || undefined,
+        subject: subject.trim() || undefined,
+        body: clean,
+        createdAt: existing?.createdAt || new Date().toISOString(),
+        followUpAt: followUpAt || undefined,
+        workflowStatus: "draft",
+        approvedAt: undefined,
+        completedAt: undefined,
+        sourceId: existing?.sourceId,
+      }
+      return existing ? current.map((draft) => draft.id === existing.id ? next : draft) : [next, ...current]
+    })
+    if (linkedSourceId) setTasks((current) => current.map((task) => task.sourceId === linkedSourceId ? { ...task, done: false } : task))
+    resetForm()
+  }
+
+  async function approveGovernedAction(draft: Draft) {
+    setApprovingId(draft.id)
+    setApprovalNotice("")
+    try {
+      const response = await fetch("/api/external-actions/approve", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ actionId: draft.id }),
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.action || payload.action.approvalState !== "approved") {
+        setApprovalNotice(editCopy.failed)
+        return
+      }
+      setDrafts((all) => all.map((item) => item.id === draft.id ? payload.action as Draft : item))
+    } catch {
+      setApprovalNotice(editCopy.failed)
+    } finally {
+      setApprovingId(null)
+    }
+  }
+
+  async function markReady(draft: Draft) {
+    setApprovingId(draft.id)
+    setApprovalNotice("")
+    try {
+      const response = await fetch("/api/external-actions/ready", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ actionId: draft.id }) })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.action || payload.action.approvalState !== "ready-to-execute") { setApprovalNotice(editCopy.failed); return }
+      setDrafts((all) => all.map((item) => item.id === draft.id ? payload.action as Draft : item))
+    } catch { setApprovalNotice(editCopy.failed) } finally { setApprovingId(null) }
+  }
+  async function confirmEmailDelivery(draft: Draft) {
+    const canonical = JSON.stringify({ recipient: (draft.recipient || "").trim().toLowerCase(), subject: (draft.subject || "").trim(), body: draft.body.trim(), readyVersion: draft.readyVersion || 0 })
+    const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical))
+    const confirmationDigest = [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("")
+    if (!window.confirm(`Send this exact email now?\n\nTo: ${draft.recipient}\nSubject: ${draft.subject}\n\n${draft.body}`)) return
+    setApprovingId(draft.id); setApprovalNotice("")
+    try { const response = await fetch("/api/external-actions/email-delivery/confirm", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ actionId: draft.id, confirmationDigest }) }); const payload = await response.json().catch(() => null); if (response.ok && payload?.action?.approvalState === "sent") setDrafts((all) => all.map((item) => item.id === draft.id ? payload.action as Draft : item)); else setApprovalNotice(payload?.error || editCopy.failed) } catch { setApprovalNotice(editCopy.failed) } finally { setApprovingId(null) }
+  }
+  async function ownerDeliveryTest() {
+    setApprovalNotice("")
+    try {
+      const preview = await fetch("/api/external-actions/email-delivery/test/preview", { credentials: "include" })
+      const data = await preview.json().catch(() => null)
+      const draft = data?.action as Draft | undefined
+      if (!preview.ok || !draft) { setApprovalNotice(data?.error || editCopy.failed); return }
+      await confirmEmailDelivery(draft)
+    } catch { setApprovalNotice(editCopy.failed) }
+  }
 
   return (
-    <div className="relative">
-      <div className="pointer-events-none absolute -left-20 top-8 h-56 w-56 rounded-full bg-cyan/8 blur-3xl" />
-      <div className="pointer-events-none absolute right-0 top-40 h-64 w-64 rounded-full bg-violet/8 blur-3xl" />
-
-      <div className="glass-panel relative mb-6 flex items-start gap-3 overflow-hidden rounded-3xl border-white/10 p-4 shadow-[0_20px_70px_-55px_rgba(34,211,238,.7)]">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-cyan/20 bg-cyan/10 text-cyan">
-          {cloudEnabled && syncState !== "error" ? <Cloud className="size-4" /> : <CloudOff className="size-4" />}
-        </span>
-        <div><p className="text-sm font-semibold text-foreground">{syncState === "saving" ? c.saving : syncState === "cloud" ? c.synced : cloudEnabled ? c.checking : c.browser}</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{syncError ? c.errorBody : cloudEnabled ? c.cloudBody : c.guestBody}</p></div>
+    <div>
+      <div className="glass-panel mb-6 flex items-start gap-3 rounded-2xl p-4">
+        {cloudEnabled && syncState !== "error" ? <Cloud className="mt-0.5 size-4 text-primary" /> : <CloudOff className="mt-0.5 size-4 text-muted-foreground" />}
+        <div>
+          <p className="text-sm font-medium text-foreground">{syncState === "saving" ? c.saving : syncState === "cloud" ? c.synced : cloudEnabled ? c.checking : c.browser}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{syncError ? c.errorBody : cloudEnabled ? c.cloudBody : c.guestBody}</p>
+        </div>
       </div>
+      <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
+      <form onSubmit={saveDraft} className="glass-panel h-fit rounded-2xl p-5">
+        <div className="flex items-center gap-2 text-sm font-semibold text-foreground">{editingId ? <Pencil className="size-4 text-primary" /> : <Plus className="size-4 text-primary" />} {editingId ? editCopy.edit : c.newDraft}</div>
+        <div className="mt-5 space-y-3">
+          <select value={type} onChange={(e) => setType(e.target.value)} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50">
+            {c.types.map((option, index) => <option key={option} value={["Customer reply", "Follow-up", "Payment reminder", "Sales message", "Support response", "Business email"][index]}>{option}</option>)}
+          </select>
+          <select value={tone} onChange={(e) => setTone(e.target.value)} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50">
+            {c.tones.map((option, index) => <option key={option} value={["Professional", "Friendly", "Short", "Formal"][index]}>{option}</option>)}
+          </select>
+          <input value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder={c.recipient} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
+          <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={c.subject} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder={c.body} rows={8} className="w-full resize-y rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
+          <label className="block text-xs font-medium text-muted-foreground">{editCopy.follow}<input type="date" value={followUpAt} onChange={(e) => setFollowUpAt(e.target.value)} className="mt-2 w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground" /></label>
+          <div className="flex gap-2"><button type="submit" className="flex-1 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">{editingId ? editCopy.update : c.save}</button>{editingId && <button type="button" onClick={resetForm} className="inline-flex items-center gap-1 rounded-xl border border-border px-3 py-2.5 text-sm"><X className="size-4" /> {editCopy.cancel}</button>}</div>
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{c.honesty}</p>
+      </form>
 
-      <div className="relative grid gap-6 lg:grid-cols-[380px_1fr]">
-        <form onSubmit={saveDraft} className="glass-panel h-fit overflow-hidden rounded-3xl border-white/10 p-5 shadow-[0_26px_80px_-60px_rgba(139,92,246,.8)]">
-          <div className="mb-5 flex items-center gap-3"><span className="flex size-11 items-center justify-center rounded-2xl border border-violet/25 bg-violet/10 text-violet"><Sparkles className="size-5" /></span><div><p className="text-sm font-semibold text-foreground">{editingId ? editCopy.edit : c.newDraft}</p><p className="mt-0.5 text-xs text-muted-foreground">HEGEVA Message Studio</p></div></div>
-          <div className="space-y-3">
-            <select value={type} onChange={(e) => setType(e.target.value)} className={fieldClass}>{c.types.map((option, index) => <option key={option} value={["Customer reply", "Follow-up", "Payment reminder", "Sales message", "Support response", "Business email"][index]}>{option}</option>)}</select>
-            <select value={tone} onChange={(e) => setTone(e.target.value)} className={fieldClass}>{c.tones.map((option, index) => <option key={option} value={["Professional", "Friendly", "Short", "Formal"][index]}>{option}</option>)}</select>
-            <input value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder={c.recipient} className={fieldClass} />
-            <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={c.subject} className={fieldClass} />
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder={c.body} rows={8} className={`${fieldClass} resize-y`} />
-            <div className="flex gap-2"><button type="submit" className="flex-1 rounded-2xl border border-primary/25 bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-[0_12px_34px_-18px_rgba(16,185,129,.9)] transition hover:-translate-y-0.5 hover:bg-primary/90">{editingId ? editCopy.update : c.save}</button>{editingId && <button type="button" onClick={resetForm} className="inline-flex items-center gap-1 rounded-2xl border border-white/10 bg-background/35 px-3 py-2.5 text-sm"><X className="size-4" /> {editCopy.cancel}</button>}</div>
+      <section>
+        <section className="mb-4 rounded-xl border border-amber-300/35 bg-amber-300/10 p-4"><p className="text-xs font-bold tracking-wide text-amber-200">TEST MODE · OWNER ONLY</p><p className="mt-1 text-xs text-muted-foreground">Recipient, subject, and body are fixed server-side. Available only when both delivery gates are enabled.</p><button type="button" onClick={ownerDeliveryTest} className="mt-3 min-h-10 rounded-lg border border-amber-300/40 px-3 text-xs font-semibold text-amber-200">Preview owner delivery test</button></section>
+        {approvalNotice && <p role="status" className="mb-3 rounded-xl border border-destructive/35 bg-destructive/10 px-4 py-3 text-sm text-destructive">{approvalNotice}</p>}
+        {drafts.length === 0 ? (
+          <div className="glass-panel rounded-2xl p-8 text-center">
+            <p className="font-medium text-foreground">{c.empty}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{c.emptyBody}</p>
           </div>
-          <p className="mt-4 border-t border-white/8 pt-4 text-xs leading-relaxed text-muted-foreground">{c.honesty}</p>
-        </form>
-
-        <section>
-          {drafts.length === 0 ? (
-            <div className="glass-panel relative overflow-hidden rounded-3xl border-white/10 p-10 text-center"><div className="mx-auto flex size-14 items-center justify-center rounded-2xl border border-cyan/20 bg-cyan/10 text-cyan"><Mail className="size-6" /></div><p className="mt-5 font-semibold text-foreground">{c.empty}</p><p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">{c.emptyBody}</p></div>
-          ) : (
-            <div className="space-y-4">{drafts.map((draft) => (
-              <article key={draft.id} className="glass-panel group relative overflow-hidden rounded-3xl border-white/10 p-5 transition duration-300 hover:-translate-y-0.5 hover:border-cyan/25 hover:shadow-[0_22px_70px_-55px_rgba(34,211,238,.8)]">
-                <div className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-cyan/7 blur-3xl" />
-                <div className="relative flex items-start justify-between gap-4"><div><div className="flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[.12em] text-cyan/80"><span>{draft.type}</span><span className="text-muted-foreground">·</span><span className="text-violet/80">{draft.tone}</span></div>{draft.subject && <h2 className="mt-2 font-semibold text-foreground">{draft.subject}</h2>}{draft.recipient && <p className="mt-1 text-xs text-muted-foreground">{c.to}: {draft.recipient}</p>}</div><div className="flex gap-2"><button type="button" onClick={() => navigator.clipboard?.writeText(draft.body)} className="rounded-xl border border-white/10 bg-background/35 p-2 text-muted-foreground transition hover:border-cyan/30 hover:text-cyan" aria-label={c.copy}><Copy className="size-4" /></button><button type="button" onClick={() => editDraft(draft)} className="rounded-xl border border-white/10 bg-background/35 p-2 text-muted-foreground transition hover:border-primary/30 hover:text-primary" aria-label={editCopy.edit}><Pencil className="size-4" /></button><button type="button" onClick={() => { setDrafts((all) => all.filter((x) => x.id !== draft.id)); if (editingId === draft.id) resetForm() }} className="rounded-xl border border-white/10 bg-background/35 p-2 text-muted-foreground transition hover:border-destructive/35 hover:text-destructive" aria-label={c.delete}><Trash2 className="size-4" /></button></div></div>
-                <p className="relative mt-4 whitespace-pre-wrap rounded-2xl border border-white/8 bg-background/25 p-4 text-sm leading-relaxed text-foreground/80">{draft.body}</p><p className="relative mt-4 text-[11px] text-muted-foreground">{c.saved} {new Date(draft.createdAt).toLocaleString(locale)}</p>
+        ) : (
+          <div className="space-y-3">
+            {drafts.map((draft) => {
+              const governed = draft.actionType === "email-draft" && Boolean(draft.approvalState)
+              return <article key={draft.id} className="glass-panel rounded-2xl p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground"><span>{draft.type}</span><span>·</span><span>{draft.tone}</span></div>
+                    {draft.subject && <h2 className="mt-2 font-semibold text-foreground">{draft.subject}</h2>}
+                    {draft.recipient && <p className="mt-1 text-xs text-muted-foreground">{c.to}: {draft.recipient}</p>}
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs"><span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1">{draft.workflowStatus === "completed" ? <CheckCircle2 className="size-3 text-primary" /> : <ShieldCheck className="size-3" />}{governed ? draft.approvalState === "ready-to-execute" ? readyCopy : draft.approvalState === "sent" ? "SENT" : draft.approvalState === "sending" ? "SENDING" : draft.approvalState === "failed" ? "FAILED" : draft.approvalState === "uncertain" ? "DELIVERY UNCERTAIN" : draft.approvalState === "approved" ? editCopy.approved : editCopy.awaiting : draft.workflowStatus === "completed" ? editCopy.completed : draft.workflowStatus === "approved" ? editCopy.approved : editCopy.draft}</span>{governed && <><span className="rounded-full border px-2 py-1">{draft.deliveryStatus === "sent" ? "SENT" : draft.deliveryStatus === "failed" ? "FAILED" : editCopy.notSent}</span><span className="rounded-full border px-2 py-1">{draft.executionStatus === "executed" ? "EXECUTED" : editCopy.notExecuted}</span></>}{draft.followUpAt && <span className={`inline-flex items-center gap-1 ${draft.workflowStatus !== "completed" && draft.followUpAt <= new Date().toISOString().slice(0,10) ? "text-amber-500" : "text-muted-foreground"}`}><CalendarClock className="size-3" />{draft.followUpAt}{draft.workflowStatus !== "completed" && draft.followUpAt <= new Date().toISOString().slice(0,10) ? ` · ${editCopy.due}` : ""}</span>}</div>
+                    {draft.sourceId && tasks.find(task => task.sourceId === draft.sourceId) && <p className="mt-2 text-xs text-primary">{editCopy.linked}: {tasks.find(task => task.sourceId === draft.sourceId)?.title}</p>}
+                    {governed && draft.evidence && <p className="mt-2 text-xs text-muted-foreground">{editCopy.evidence}: {[draft.evidence.invoiceNumber, draft.evidence.quoteNumber, draft.evidence.dueDate, draft.evidence.amount, draft.evidence.customerName].filter(Boolean).join(" · ")}</p>}
+                  </div>
+                  {!governed && <div className="flex gap-2">
+                    <button type="button" onClick={() => navigator.clipboard?.writeText(draft.body)} className="rounded-lg border border-border p-2 text-muted-foreground hover:text-foreground" aria-label={c.copy}><Copy className="size-4" /></button>
+                    <button type="button" onClick={() => editDraft(draft)} className="rounded-lg border border-border p-2 text-muted-foreground hover:text-primary" aria-label={editCopy.edit}><Pencil className="size-4" /></button>
+                    <button type="button" onClick={() => { setDrafts((all) => all.filter((x) => x.id !== draft.id)); if (editingId === draft.id) resetForm() }} className="rounded-lg border border-border p-2 text-muted-foreground hover:text-destructive" aria-label={c.delete}><Trash2 className="size-4" /></button>
+                  </div>}
+                </div>
+                <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{draft.body}</p>
+                <div className="mt-4 flex flex-wrap gap-2">{governed ? <>{draft.approvalState === "awaiting-approval" && <button type="button" onClick={() => approveGovernedAction(draft)} disabled={approvingId === draft.id} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60">{approvingId === draft.id ? editCopy.approving : editCopy.approveAction}</button>}{draft.approvalState === "approved" && <button type="button" onClick={() => markReady(draft)} disabled={approvingId === draft.id} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60">{approvingId === draft.id ? readyingCopy : readyActionCopy}</button>}{draft.approvalState === "ready-to-execute" && <button type="button" onClick={() => confirmEmailDelivery(draft)} disabled={approvingId === draft.id} className="min-h-10 rounded-lg bg-destructive px-3 text-xs font-semibold text-destructive-foreground">Send email now</button>}</> : <>{draft.workflowStatus !== "approved" && draft.workflowStatus !== "completed" && <button type="button" onClick={() => setDrafts(all => all.map(x => x.id === draft.id ? {...x, workflowStatus:"approved", approvedAt:new Date().toISOString()} : x))} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary">{editCopy.approve}</button>}{draft.workflowStatus === "approved" && <button type="button" onClick={() => {const completedAt=new Date().toISOString();setDrafts(all => all.map(x => x.id === draft.id ? {...x, workflowStatus:"completed", completedAt} : x));if(draft.sourceId)setTasks(all => all.map(task => task.sourceId === draft.sourceId ? {...task,done:true} : task))}} className="min-h-10 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground">{editCopy.complete}</button>}</>}</div>
+                <p className="mt-4 text-[11px] text-muted-foreground">{c.saved} {new Date(draft.createdAt).toLocaleString(locale)}</p>
               </article>
-            ))}</div>
-          )}
-        </section>
+            })}
+          </div>
+        )}
+      </section>
       </div>
     </div>
   )
 }
+

@@ -1,4 +1,56 @@
-import hegevaWorker from "./index.js";
+import hegevaWorker, { emitMonitor } from "./index.js";
+import { reconcileReferralRewardForUser, reverseApprovedReferralRewards } from "./referral-reward-review.js";
+export { UserRateLimiter } from "./user-rate-limiter-do.js";
+
+const STRIPE_WEBHOOK_BODY_LIMIT = 512 * 1024;
+
+function requestTooLargeResponse() {
+  return Response.json(
+    { error: "Request body is too large." },
+    {
+      status: 413,
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+        "X-Content-Type-Options": "nosniff",
+      },
+    },
+  );
+}
+
+async function readRawBodyWithinLimit(request, limit) {
+  const declared = request.headers.get("content-length");
+  if (declared !== null) {
+    const declaredBytes = Number(declared);
+    if (!Number.isFinite(declaredBytes) || declaredBytes < 0 || declaredBytes > limit) return null;
+  }
+  if (!request.body) return new Uint8Array();
+
+  const reader = request.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > limit) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
 
 function isStripeWebhookSecret(value) {
   return typeof value === "string" && value.startsWith("whsec_");
@@ -153,6 +205,98 @@ function stripeSubscriptionId(eventType, object) {
   );
 }
 
+function getLedgerPaymentMode(env) {
+  const mode = String(env.PAYMENT_MODE || "").trim().toLowerCase();
+  return mode === "test" || mode === "live" ? mode : "";
+}
+
+function isLedgerStripeSecretForMode(value, mode) {
+  return (
+    typeof value === "string" &&
+    ((mode === "test" && value.startsWith("sk_test_")) ||
+      (mode === "live" && value.startsWith("sk_live_")))
+  );
+}
+
+async function fetchStripeSubscriptionSnapshot(
+  env,
+  subscriptionId,
+  expectedCustomerId
+) {
+  const paymentMode = getLedgerPaymentMode(env);
+  const secretKey =
+    typeof env.STRIPE_SECRET_KEY === "string"
+      ? env.STRIPE_SECRET_KEY.trim()
+      : "";
+
+  if (
+    !subscriptionId ||
+    !paymentMode ||
+    !isLedgerStripeSecretForMode(secretKey, paymentMode)
+  ) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.stripe.com/v1/subscriptions/${encodeURIComponent(subscriptionId)}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          Accept: "application/json",
+        },
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) {
+      console.error("HEGEVA_REQUEST_FAILURE", {
+        reason: "stripe_subscription_hydration_http_failed",
+        status: response.status,
+      });
+      return null;
+    }
+
+    const subscription = await response.json();
+
+    const responseSubscriptionId = stripeObjectId(
+      subscription?.id,
+      "sub_"
+    );
+    const responseCustomerId = stripeObjectId(
+      subscription?.customer,
+      "cus_"
+    );
+
+    const modeMatches =
+      (paymentMode === "live" && subscription?.livemode === true) ||
+      (paymentMode === "test" && subscription?.livemode === false);
+
+    if (
+      responseSubscriptionId !== subscriptionId ||
+      responseCustomerId !== expectedCustomerId ||
+      !modeMatches
+    ) {
+      console.error("HEGEVA_REQUEST_FAILURE", {
+        reason: "stripe_subscription_hydration_identity_mismatch",
+        subscriptionMatch: responseSubscriptionId === subscriptionId,
+        customerMatch: responseCustomerId === expectedCustomerId,
+        modeMatch: modeMatches,
+      });
+      return null;
+    }
+
+    return subscription;
+  } catch (error) {
+    console.error("HEGEVA_REQUEST_FAILURE", {
+      reason: "stripe_subscription_hydration_fetch_failed",
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
+    return null;
+  }
+}
+
 async function syncStripeBillingIdentity(env, event, claim) {
   if (!claim?.userId) return;
 
@@ -160,29 +304,106 @@ async function syncStripeBillingIdentity(env, event, claim) {
   const customerId = stripeObjectId(object?.customer, "cus_");
   if (!customerId) return;
 
-  const subscriptionId = stripeSubscriptionId(claim.eventType, object);
-  const status = claim.eventType.startsWith("customer.subscription.")
-    ? String(object?.status || "").trim().toLowerCase() || null
-    : null;
-  const cancelAtPeriodEnd = object?.cancel_at_period_end === true ? 1 : 0;
-  const periodEndSeconds = Number(object?.current_period_end);
-  const currentPeriodEnd = Number.isFinite(periodEndSeconds) && periodEndSeconds > 0
-    ? new Date(periodEndSeconds * 1000).toISOString()
-    : null;
+  const subscriptionId = stripeSubscriptionId(
+    claim.eventType,
+    object
+  );
+
+  let status =
+    claim.eventType.startsWith("customer.subscription.")
+      ? String(object?.status || "").trim().toLowerCase() || null
+      : null;
+
+  let cancelAtPeriodEnd =
+    object?.cancel_at_period_end === true ? 1 : 0;
+
+  const directPeriodEndSeconds =
+    Number(object?.current_period_end);
+
+  let currentPeriodEnd =
+    Number.isFinite(directPeriodEndSeconds) &&
+    directPeriodEndSeconds > 0
+      ? new Date(directPeriodEndSeconds * 1000).toISOString()
+      : null;
+
+  const shouldHydrateFromStripe =
+    Boolean(subscriptionId) &&
+    !status &&
+    (
+      claim.eventType === "checkout.session.completed" ||
+      claim.eventType === "invoice.paid"
+    );
+
+  if (shouldHydrateFromStripe) {
+    const subscription =
+      await fetchStripeSubscriptionSnapshot(
+        env,
+        subscriptionId,
+        customerId
+      );
+
+    if (subscription) {
+      status =
+        String(subscription.status || "")
+          .trim()
+          .toLowerCase() || null;
+
+      cancelAtPeriodEnd =
+        subscription.cancel_at_period_end === true ? 1 : 0;
+      const itemPeriodEnds = Array.isArray(subscription?.items?.data)
+        ? subscription.items.data
+            .map((item) => Number(item?.current_period_end))
+            .filter((value) => Number.isFinite(value) && value > 0)
+        : [];
+
+      const hydratedPeriodEndSeconds =
+        itemPeriodEnds.length > 0
+          ? Math.min(...itemPeriodEnds)
+          : Number(subscription.current_period_end);
+
+      currentPeriodEnd =
+        Number.isFinite(hydratedPeriodEndSeconds) &&
+        hydratedPeriodEndSeconds > 0
+          ? new Date(
+              hydratedPeriodEndSeconds * 1000
+            ).toISOString()
+          : currentPeriodEnd;
+    }
+  }
+
   const now = new Date().toISOString();
 
   await env.DB.prepare(`
     INSERT INTO stripe_customers (
-      userId, stripeCustomerId, stripeSubscriptionId, subscriptionStatus,
-      cancelAtPeriodEnd, currentPeriodEnd, createdAt, updatedAt
+      userId,
+      stripeCustomerId,
+      stripeSubscriptionId,
+      subscriptionStatus,
+      cancelAtPeriodEnd,
+      currentPeriodEnd,
+      createdAt,
+      updatedAt
     )
     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7)
     ON CONFLICT(userId) DO UPDATE SET
       stripeCustomerId = excluded.stripeCustomerId,
-      stripeSubscriptionId = COALESCE(excluded.stripeSubscriptionId, stripe_customers.stripeSubscriptionId),
-      subscriptionStatus = COALESCE(excluded.subscriptionStatus, stripe_customers.subscriptionStatus),
-      cancelAtPeriodEnd = CASE WHEN excluded.subscriptionStatus IS NULL THEN stripe_customers.cancelAtPeriodEnd ELSE excluded.cancelAtPeriodEnd END,
-      currentPeriodEnd = COALESCE(excluded.currentPeriodEnd, stripe_customers.currentPeriodEnd),
+      stripeSubscriptionId = COALESCE(
+        excluded.stripeSubscriptionId,
+        stripe_customers.stripeSubscriptionId
+      ),
+      subscriptionStatus = COALESCE(
+        excluded.subscriptionStatus,
+        stripe_customers.subscriptionStatus
+      ),
+      cancelAtPeriodEnd = CASE
+        WHEN excluded.subscriptionStatus IS NULL
+          THEN stripe_customers.cancelAtPeriodEnd
+        ELSE excluded.cancelAtPeriodEnd
+      END,
+      currentPeriodEnd = COALESCE(
+        excluded.currentPeriodEnd,
+        stripe_customers.currentPeriodEnd
+      ),
       updatedAt = excluded.updatedAt
   `).bind(
     claim.userId,
@@ -191,7 +412,7 @@ async function syncStripeBillingIdentity(env, event, claim) {
     status,
     cancelAtPeriodEnd,
     currentPeriodEnd,
-    now,
+    now
   ).run();
 }
 
@@ -360,7 +581,8 @@ async function handleStripeWebhook(request, env, ctx) {
   let event;
 
   try {
-    rawBytes = new Uint8Array(await request.arrayBuffer());
+    rawBytes = await readRawBodyWithinLimit(request, STRIPE_WEBHOOK_BODY_LIMIT);
+    if (rawBytes === null) return requestTooLargeResponse();
     const signatureValid = await verifyStripeWebhookSignature(
       rawBytes,
       signatureHeader,
@@ -368,6 +590,7 @@ async function handleStripeWebhook(request, env, ctx) {
     );
 
     if (!signatureValid) {
+      emitMonitor("stripe_webhook", "signature_invalid");
       return Response.json(
         { error: "Invalid Stripe webhook signature." },
         { status: 400 },
@@ -382,18 +605,15 @@ async function handleStripeWebhook(request, env, ctx) {
     );
   }
 
-  const liveMode = String(env.PAYMENT_MODE || "").trim().toLowerCase() === "live";
+  const paymentMode = String(env.PAYMENT_MODE || "").trim().toLowerCase();
+  const eventMatchesMode =
+    (paymentMode === "live" && event?.livemode === true) ||
+    (paymentMode === "test" && event?.livemode === false);
 
-  if (event?.livemode === true && !liveMode) {
+  if (!eventMatchesMode) {
+    emitMonitor("stripe_webhook", "mode_mismatch");
     return Response.json(
-      { error: "Live Stripe events are not accepted by this test build." },
-      { status: 400 },
-    );
-  }
-
-  if (event?.livemode === false && liveMode) {
-    return Response.json(
-      { error: "Test Stripe events are not accepted by this live build." },
+      { error: "Stripe event mode does not match the active payment mode." },
       { status: 400 },
     );
   }
@@ -402,7 +622,10 @@ async function handleStripeWebhook(request, env, ctx) {
   try {
     claim = await claimStripeEvent(env, event);
   } catch (error) {
-    console.error("HEGEVA Stripe event ledger claim error:", error);
+    console.error("HEGEVA_REQUEST_FAILURE", {
+      reason: "stripe_event_claim_failed",
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
     return Response.json(
       { error: "Stripe webhook event ledger unavailable." },
       { status: 500 },
@@ -419,6 +642,21 @@ async function handleStripeWebhook(request, env, ctx) {
   }
 
   if (!claim.claimed) {
+    const duplicateCanRefreshBillingIdentity =
+      claim.eventType === "checkout.session.completed" ||
+      claim.eventType === "invoice.paid";
+
+    if (duplicateCanRefreshBillingIdentity) {
+      try {
+        await syncStripeBillingIdentity(env, event, claim);
+      } catch (error) {
+        console.error("HEGEVA_REQUEST_FAILURE", {
+          reason: "stripe_duplicate_billing_identity_refresh_failed",
+          errorName: error instanceof Error ? error.name : "UnknownError",
+        });
+      }
+    }
+
     return Response.json({
       received: true,
       verified: true,
@@ -427,6 +665,7 @@ async function handleStripeWebhook(request, env, ctx) {
       eventType: claim.eventType,
       entitlementChanged: false,
       ignored: true,
+      billingIdentityRefreshed: duplicateCanRefreshBillingIdentity,
     });
   }
 
@@ -452,10 +691,14 @@ async function handleStripeWebhook(request, env, ctx) {
 
     if (terminalSubscriptionResult) {
       await finalizeStripeEvent(env, claim.eventId, terminalSubscriptionResult);
+      await reverseApprovedReferralRewards(env.DB, claim.userId, "entitlement-invalid");
       return Response.json(terminalSubscriptionResult);
     }
   } catch (error) {
-    console.error("HEGEVA Stripe stale/cancellation guard error:", error);
+    console.error("HEGEVA_REQUEST_FAILURE", {
+      reason: "stripe_event_guard_failed",
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
     try {
       await releaseStripeEvent(env, claim.eventId);
     } catch {}
@@ -478,7 +721,10 @@ async function handleStripeWebhook(request, env, ctx) {
     try {
       await releaseStripeEvent(env, claim.eventId);
     } catch (error) {
-      console.error("HEGEVA Stripe event ledger release error:", error);
+      console.error("HEGEVA_REQUEST_FAILURE", {
+        reason: "stripe_event_release_failed",
+        errorName: error instanceof Error ? error.name : "UnknownError",
+      });
     }
     return response;
   }
@@ -486,8 +732,15 @@ async function handleStripeWebhook(request, env, ctx) {
   try {
     const responseData = await responseCopy.json().catch(() => null);
     await finalizeStripeEvent(env, claim.eventId, responseData);
+    if (claim.userId && responseData?.entitlementChanged === true) {
+      if (["premium", "pro"].includes(responseData?.resultingPlan)) await reconcileReferralRewardForUser(env.DB, claim.userId);
+      if (responseData?.resultingPlan === "basic") await reverseApprovedReferralRewards(env.DB, claim.userId, "entitlement-invalid");
+    }
   } catch (error) {
-    console.error("HEGEVA Stripe event ledger finalize error:", error);
+    console.error("HEGEVA_REQUEST_FAILURE", {
+      reason: "stripe_event_finalize_failed",
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
   }
 
   return response;

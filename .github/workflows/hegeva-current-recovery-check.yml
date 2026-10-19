@@ -1,0 +1,86 @@
+name: HEGEVA Current Recovery Check
+
+on:
+  push:
+    branches:
+      - hegeva-recovery-20260919
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify protected visual and Core files stayed on latest Copilot baseline
+        shell: bash
+        run: |
+          git diff --exit-code 58ab2c007fe72060fa4078ac0994e323a01d2e1f --             v0-app/components/hegeva-logo.tsx             v0-app/app/globals.css             v0-app/components/desktop-command-rail.tsx             v0-app/components/site-header.tsx             v0-app/components/app-shell.tsx             v0-app/components/command-center/core-decision-surface.tsx             v0-app/lib/hegeva-core.ts
+
+      - name: Verify recovery contract
+        working-directory: v0-app
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs"
+          const read = p => fs.readFileSync(p, "utf8")
+          const layout = read("app/layout.tsx")
+          const home = read("app/page.tsx")
+          const consent = read("components/analytics-consent.tsx")
+          const tracking = read("lib/conversion-tracking.ts")
+          const demo = read("components/demo-workspace.tsx")
+          const logo = read("components/hegeva-logo.tsx")
+          const expect = (ok, msg) => { if (!ok) throw new Error(msg) }
+
+          expect(layout.includes("hegeva-logo-gold-official.png"), "official gold metadata logo missing")
+          expect(layout.includes("ConsentModeBootstrap"), "early consent bootstrap missing")
+          expect(logo.includes("hegeva-logo-gold-official.png"), "official HEGEVA logo component missing")
+          expect(home.includes("jsonLd"), "homepage JSON-LD missing")
+          expect(home.includes('data-demo-analytics="entry"'), "homepage demo entry missing")
+          expect(demo.includes("demo_workspace_view") && demo.includes("demo_business_switch") && demo.includes("demo_signup_click"), "demo analytics dispatch missing")
+          for (const value of ["linkedin","facebook","instagram","reddit","youtube","snapchat","tiktok","chatgpt","organic","referral","hegeva_growth_2026","video_1","video_2","video_3","text_post_1"]) {
+            expect(tracking.includes(value), "missing campaign value: " + value)
+          }
+          for (const event of ["demo_entry_click","demo_workspace_view","demo_business_switch","demo_signup_click"]) {
+            expect(consent.includes(event), "consent event allowlist missing: " + event)
+          }
+          expect(consent.includes("campaignAttribution()"), "campaign attribution missing from GA4 events")
+          expect(consent.includes('consent !== "granted"'), "analytics consent gate missing")
+          console.log("HEGEVA current recovery contract PASS")
+          NODE
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: v0-app
+        run: npm ci
+
+      - name: Product audit
+        working-directory: v0-app
+        run: npm run audit:product
+
+      - name: Mobile audit
+        working-directory: v0-app
+        run: npm run audit:ui-mobile
+
+      - name: Visual audit
+        working-directory: v0-app
+        run: npm run audit:visual
+
+      - name: TypeScript check
+        working-directory: v0-app
+        run: npx tsc --noEmit
+
+      - name: Production build
+        working-directory: v0-app
+        run: npm run build

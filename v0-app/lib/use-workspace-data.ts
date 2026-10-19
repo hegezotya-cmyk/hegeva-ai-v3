@@ -5,6 +5,24 @@ import { useSession } from "@/lib/auth-client"
 
 export type WorkspaceSyncState = "checking" | "cloud" | "local" | "saving" | "error"
 
+const MAX_CONCURRENT_WORKSPACE_LOADS = 2
+let activeWorkspaceLoads = 0
+const workspaceLoadWaiters: Array<() => void> = []
+
+async function withWorkspaceLoadSlot<T>(task: () => Promise<T>): Promise<T> {
+  if (activeWorkspaceLoads >= MAX_CONCURRENT_WORKSPACE_LOADS) {
+    await new Promise<void>((resolve) => workspaceLoadWaiters.push(resolve))
+  }
+
+  activeWorkspaceLoads += 1
+  try {
+    return await task()
+  } finally {
+    activeWorkspaceLoads -= 1
+    workspaceLoadWaiters.shift()?.()
+  }
+}
+
 function localKey(type: string, ownerKey: string) {
   return `hegeva:v0:${ownerKey}:${type}`
 }
@@ -30,6 +48,10 @@ export function useWorkspaceData<T>(type: string): {
   syncState: WorkspaceSyncState
   syncError: string
   cloudEnabled: boolean
+  cloudSaveVersion: number
+  cloudSavedAt: number
+  cloudSavedItems: T[]
+  workspaceIdentity: string | null
 } {
   const { data: session, isPending } = useSession()
   const userId = session?.user?.id
@@ -37,13 +59,15 @@ export function useWorkspaceData<T>(type: string): {
   const [items, setItems] = useState<T[]>([])
   const [syncState, setSyncState] = useState<WorkspaceSyncState>("checking")
   const [syncError, setSyncError] = useState("")
+  const [cloudSaveVersion, setCloudSaveVersion] = useState(0)
+  const [cloudSavedAt, setCloudSavedAt] = useState(0)
+  const [cloudSavedItems, setCloudSavedItems] = useState<T[]>([])
   const readyToSave = useRef(false)
   const skipNextSave = useRef(false)
-  const saveGeneration = useRef(0)
 
   useEffect(() => {
     let cancelled = false
-    const loadGeneration = ++saveGeneration.current
+    let loadController: AbortController | null = null
     readyToSave.current = false
     skipNextSave.current = false
     setSyncError("")
@@ -55,7 +79,7 @@ export function useWorkspaceData<T>(type: string): {
       }
 
       if (!userId) {
-        if (!cancelled && loadGeneration === saveGeneration.current) {
+        if (!cancelled) {
           skipNextSave.current = true
           setItems(readLocal<T>(type, ownerKey))
           setSyncState("local")
@@ -66,15 +90,16 @@ export function useWorkspaceData<T>(type: string): {
 
       setSyncState("checking")
       const controller = new AbortController()
+      loadController = controller
       const timeout = window.setTimeout(() => controller.abort(), 8000)
 
       try {
-        const response = await fetch(`/api/workspace/${encodeURIComponent(type)}`, {
+        const response = await withWorkspaceLoadSlot(() => fetch(`/api/workspace/${encodeURIComponent(type)}`, {
           credentials: "include",
           cache: "no-store",
           signal: controller.signal,
           headers: { Accept: "application/json" },
-        })
+        }))
         const payload = await response.json().catch(() => null)
 
         if (!response.ok) {
@@ -82,15 +107,16 @@ export function useWorkspaceData<T>(type: string): {
         }
 
         const cloudItems = Array.isArray(payload?.data) ? payload.data as T[] : []
-        if (!cancelled && loadGeneration === saveGeneration.current) {
+        if (!cancelled) {
           skipNextSave.current = true
           setItems(cloudItems)
+          setCloudSavedItems(cloudItems)
           writeLocal(type, ownerKey, cloudItems)
           setSyncState("cloud")
           readyToSave.current = true
         }
       } catch (error) {
-        if (!cancelled && loadGeneration === saveGeneration.current) {
+        if (!cancelled) {
           skipNextSave.current = true
           setItems(readLocal<T>(type, ownerKey))
           setSyncState("error")
@@ -105,6 +131,7 @@ export function useWorkspaceData<T>(type: string): {
     void load()
     return () => {
       cancelled = true
+      loadController?.abort()
     }
   }, [isPending, type, userId, ownerKey])
 
@@ -122,11 +149,8 @@ export function useWorkspaceData<T>(type: string): {
       return
     }
 
-    let cancelled = false
-    const generation = ++saveGeneration.current
     const controller = new AbortController()
     const timer = window.setTimeout(async () => {
-      if (cancelled || generation !== saveGeneration.current) return
       setSyncState("saving")
       setSyncError("")
       const requestTimeout = window.setTimeout(() => controller.abort(), 8000)
@@ -146,9 +170,11 @@ export function useWorkspaceData<T>(type: string): {
           throw new Error(payload?.error || "Cloud workspace could not be saved.")
         }
 
-        if (!cancelled && generation === saveGeneration.current) setSyncState("cloud")
+        setSyncState("cloud")
+        setCloudSaveVersion((version) => version + 1)
+        setCloudSavedAt(Date.now())
+        setCloudSavedItems(items)
       } catch (error) {
-        if (cancelled || generation !== saveGeneration.current) return
         if (controller.signal.aborted) {
           setSyncState("error")
           setSyncError("Cloud workspace save timed out.")
@@ -162,7 +188,6 @@ export function useWorkspaceData<T>(type: string): {
     }, 500)
 
     return () => {
-      cancelled = true
       window.clearTimeout(timer)
       controller.abort()
     }
@@ -174,5 +199,9 @@ export function useWorkspaceData<T>(type: string): {
     syncState,
     syncError,
     cloudEnabled: Boolean(userId),
+    cloudSaveVersion,
+    cloudSavedAt,
+    cloudSavedItems,
+    workspaceIdentity: userId ? `user:${userId}` : null,
   }
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { looksLikeHtmlDocument, runStudioAI, stripCodeFence, type StudioLocale } from "@/lib/app-studio-ai"
+import { looksLikeHtmlDocument, runStudioAI, stripCodeFence, type StudioLocale, type X20ActionContext } from "@/lib/app-studio-ai"
 import { buildX20RetryInstruction, evaluateX20BuildCandidate } from "@/lib/app-studio-capability-gate"
 import type { X20BuildMode } from "@/lib/app-studio-capability-engine"
 import { auditStudioSpecMatch, buildStudioSpecRepairInstruction } from "@/lib/app-studio-spec-match"
@@ -14,6 +14,8 @@ const REPAIR_KEY = "hegeva:x20:capability-repair-key"
 const REPAIR_ATTEMPTS_KEY = "hegeva:x20:capability-repair-attempts"
 const MAX_REPAIR_ATTEMPTS = 3
 const MIN_REQUEST_MATCH = 80
+const BUILD_INTENT_KEY = "hegeva:x20:studio:build-intent"
+const BUILD_SESSION_KEY = "hegeva:x20:studio:build-session"
 
 function quality(html: string) {
   const controls = (html.match(/<(button|input|select|textarea)\b/gi) || []).length
@@ -87,6 +89,8 @@ export function X20CapabilityAutoRepair() {
     const check = async () => {
       if (running.current || cancelled) return
       try {
+        const buildSessionId = localStorage.getItem(BUILD_INTENT_KEY)
+        if (!buildSessionId || localStorage.getItem(BUILD_SESSION_KEY) !== buildSessionId) return
         const html = localStorage.getItem(HTML_KEY) || ""
         const idea = (localStorage.getItem(IDEA_KEY) || "").trim()
         const mode = selectedMode(localStorage.getItem(BUILD_KEY))
@@ -109,8 +113,10 @@ export function X20CapabilityAutoRepair() {
         let bestHtml = html
         let best = base
         let usedAttempts = attempts
+        const action: X20ActionContext = { startRequestId: crypto.randomUUID() }
 
         while (usedAttempts < MAX_REPAIR_ATTEMPTS && !cancelled) {
+          if (localStorage.getItem(BUILD_INTENT_KEY) !== buildSessionId || localStorage.getItem(BUILD_SESSION_KEY) !== buildSessionId) break
           usedAttempts += 1
           writeAttempts(key, usedAttempts)
           const instruction = [
@@ -126,7 +132,7 @@ export function X20CapabilityAutoRepair() {
             "Return ONLY one complete self-contained index.html with inline CSS and vanilla JavaScript.",
           ].filter(Boolean).join("\n\n")
 
-          const retryHtml = stripCodeFence(await runStudioAI(instruction, localeFromDocument()))
+          const retryHtml = stripCodeFence(await runStudioAI(instruction, localeFromDocument(), action))
           if (!looksLikeHtmlDocument(retryHtml)) continue
           const retry = candidateRank(retryHtml, idea, mode)
           if (retry.rank > best.rank) {
@@ -136,6 +142,7 @@ export function X20CapabilityAutoRepair() {
           if (best.gate.accepted && best.spec.score >= MIN_REQUEST_MATCH && !best.spec.severeMismatch) break
         }
 
+        if (localStorage.getItem(BUILD_INTENT_KEY) !== buildSessionId || localStorage.getItem(BUILD_SESSION_KEY) !== buildSessionId) return
         if (bestHtml !== html && best.rank > base.rank) {
           localStorage.setItem(HTML_KEY, bestHtml)
           localStorage.setItem(MODE_KEY, `${mode} best-of-${usedAttempts} capability/spec repair`)

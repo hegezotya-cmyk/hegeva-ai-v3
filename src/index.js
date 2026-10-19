@@ -1,20 +1,188 @@
+import { listOwnerRegistrations } from "./admin-registrations.js";
 import {
   createAuth,
   getLoggedInUser,
-  sendResendEmail,
-  HEGEVA_EMAIL_FROM
+  sendResendEmail
 } from "./auth.js";
+import { reserveAIUsage } from "./ai-quota-reservation.js";
+import { createAuthRateLimiter, clientIpKey } from "./auth-rate-limiter.js";
+import { handleAiChatAdmission } from "./ai-chat-admission.js";
+import { isX20RequestId, registerX20Attempt, startX20Action, finishX20Attempt } from "./x20-ledger.js";
+import { readAssistantUsage, startAssistantOperation, finishAssistantOperation } from "./assistant-quota.js";
+import { ASSISTANT_TOPUP_PACKS, readAssistantTopUpBalance, reserveAssistantTopUpCredit, finishAssistantTopUpCredit, grantAssistantTopUpPurchase, reconcileAssistantTopUpFinancialEvent } from "./assistant-topup.js";
+import { readAssistantCostGuardConfig, reserveAssistantCostGuard, settleAssistantCostGuard } from "./assistant-cost-guard.js";
+import { readAssistantDailyAdmissionConfig, reserveAssistantDailyAdmission, settleAssistantDailyAdmission, releaseAssistantDailyAdmission } from "./assistant-daily-admission.js";
+import { isX30OperationId, startX30Generation, finishX30Generation, X30_MONTHLY_LIMIT, X30_WORKSPACE_LIMIT } from "./x30-generation-ledger.js";
+import { validateX30ProviderBrief, x30ProviderEnabled, isX30CanaryOwner } from "./x30-generation.js";
+import { invokeX30Provider } from "./x30-provider.js";
+import { boundAssistantProviderPayload, buildWorkersAiProjection, getWorkersAiConfig, getWorkersAiCanaryConfig, invokeWorkersAiText, invokeAssistantWorkersAiText, parseProviderFlags, resolveAssistantModelTier, CANARY_BOUNDS } from "./cloudflare-ai-provider.js";
+import { createPortalShare, previewPortalShare, readPortalShare, revokePortalShare } from "./client-portal.js";
+import { completeOAuth, disconnectIntegration, listConnections, readIntegrationIntelligence, readIntegrationSignals, startOAuth } from "./integrations.js";
+import { creativeProviderCapability, invokeCreativeProvider, isCreativeCanaryOwner, readCreativeCredits, reserveCreativeCredits, settleCreativeCredits, validateCreativeGeneration } from "./creative-provider.js";
+import { createDurableMemoryD1Adapter } from "./durable-memory-d1-adapter.js";
+import { readBusinessKnowledgeMemory, saveBusinessKnowledgeMemory } from "./business-knowledge-memory.js";
+import { runCoreV1Decision } from "./core-v1-decision.js";
+import { prepareOverdueInvoiceEmailDraft } from "./email-draft-action.js";
+import { prepareQuoteEmailDraft } from "./quote-email-draft-action.js";
+import { prepareQuoteFollowUpEmailDraft } from "./quote-followup-email-draft-action.js";
+import { approveGovernedExternalAction, markGovernedExternalActionReady } from "./external-action-governance.js";
+import { applyEmailDeliveryState, canConfirmEmailDelivery, emailContentDigest } from "./email-delivery-governance.js";
+import { synchronizePreparedWork, transitionPreparedWork } from "./prepared-work-review.js";
+import { BUSINESS_SCORE_METHODOLOGY, deriveBusinessScoreShare, hashBusinessScoreToken, newBusinessScoreToken, normalizeShareExpiry } from "./business-score-share.js";
+import { createReferralCode, revokeReferralCode, recordReferralTouch, attributeReferral, listReferralAttributions } from "./referral-attribution.js";
+import { reconcileReferralRewardForUser, listReferralRewardReviews, listReferralRewardSummary, reviewReferralReward } from "./referral-reward-review.js";
+import { PLAN_LIMITS, resolveAssistantPlan } from "./assistant-plan.js";
 
 // =========================================
 // HEGEVA AI V35.0
 // ACCOUNT + PASSWORD RECOVERY BACKEND
 // =========================================
 
-const PLAN_LIMITS = {
-  basic: 50,
-  premium: 300,
-  pro: 1000
-};
+// =========================================
+// PAYMENT-FAILURE GRACE POLICY (P0-4)
+// -----------------------------------------
+// Non-destructive policy: a failed invoice NEVER breaks a live workspace.
+// Stripe owns the dunning/retry cycle; that retry window is treated as the
+// protected grace period during which the workspace keeps working fully.
+// Servicing visible via the billing API: paymentState "payment-failed" and
+// paymentGraceUntil (lastEventCreatedAt + GRACE_DAYS). Only when Stripe
+// definitively settles "unpaid" / cancels the subscription does the ledger
+// terminal downgrade apply (downgradeTerminalSubscription in index-ledger.js).
+// Stripe webhooks remain the source of truth; the front end never downgrades.
+const GRACE_DAYS = 7;
+
+// These limits leave room for legitimate payloads while bounding buffering
+// before parsing, persistence, provider calls, or AI execution. Workspace is
+// 768 KiB because the application checks JSON.stringify(data).length in UTF-16
+// code units (250,000 max); BMP characters can require three UTF-8 bytes each,
+// plus the small {"data":...} request wrapper.
+export const REQUEST_BODY_LIMITS = Object.freeze({
+  default: 64 * 1024,
+  auth: 32 * 1024,
+  chat: 64 * 1024,
+  contact: 16 * 1024,
+  workspace: 768 * 1024,
+  billing: 16 * 1024,
+  webhook: 512 * 1024,
+  email: 16 * 1024,
+});
+
+export function selectAiOutputTokens({ isX20Action = false, appStudioProfile } = {}) {
+  return !isX20Action && appStudioProfile === "x10" ? 1800 : 700;
+}
+
+function requestBodyLimit(pathname) {
+  if (pathname.startsWith("/api/auth/")) return REQUEST_BODY_LIMITS.auth;
+  if (pathname === "/api/chat") return REQUEST_BODY_LIMITS.chat;
+  if (pathname === "/api/contact") return REQUEST_BODY_LIMITS.contact;
+  if (pathname.startsWith("/api/workspace/")) return REQUEST_BODY_LIMITS.workspace;
+  if (pathname === "/api/billing/webhook") return REQUEST_BODY_LIMITS.webhook;
+  if (pathname.startsWith("/api/billing/")) return REQUEST_BODY_LIMITS.billing;
+  if (pathname === "/api/email/test") return REQUEST_BODY_LIMITS.email;
+  if (pathname.startsWith("/api/admin/")) return REQUEST_BODY_LIMITS.contact;
+  return pathname === "/api" || pathname.startsWith("/api/")
+    ? REQUEST_BODY_LIMITS.default
+    : null;
+}
+
+function requestTooLargeResponse() {
+  return Response.json(
+    { error: "Request body is too large." },
+    {
+      status: 413,
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+        "X-Content-Type-Options": "nosniff",
+      },
+    },
+  );
+}
+
+function safeErrorName(error) {
+  return error instanceof Error && typeof error.name === "string"
+    ? error.name
+    : "UnknownError";
+}
+
+export function emitMonitor(scope, outcome, metadata = {}) {
+  console.error("HEGEVA_MONITOR", {
+    scope,
+    outcome,
+    ...metadata,
+  });
+}
+
+function logFailure(reason, error, metadata = {}) {
+  console.error("HEGEVA_REQUEST_FAILURE", {
+    reason,
+    errorName: safeErrorName(error),
+    ...metadata,
+  });
+  emitMonitor(reason, "failure", {
+    errorName: safeErrorName(error),
+    ...metadata,
+  });
+}
+
+function logX20Lifecycle(event, metadata = {}) {
+  console.info("HEGEVA_X20_LIFECYCLE", { event, ...metadata });
+}
+
+export async function readBodyWithinLimit(request, limit) {
+  const declared = request.headers.get("content-length");
+  if (declared !== null) {
+    const declaredBytes = Number(declared);
+    if (!Number.isFinite(declaredBytes) || declaredBytes < 0 || declaredBytes > limit) {
+      return null;
+    }
+  }
+
+  if (!request.body) return new Uint8Array();
+
+  const reader = request.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > limit) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
+async function enforceRequestBodyLimit(request, pathname) {
+  if (["GET", "HEAD", "OPTIONS"].includes(request.method)) return request;
+  const limit = requestBodyLimit(pathname);
+  if (!limit) return request;
+
+  const body = await readBodyWithinLimit(request, limit);
+  if (body === null) return requestTooLargeResponse();
+
+  const headers = new Headers(request.headers);
+  headers.delete("content-length");
+  return new Request(request.url, {
+    method: request.method,
+    headers,
+    body: body.byteLength ? body : null,
+    redirect: "manual",
+  });
+}
 
 function validWorkspaceType(type) {
   return /^[a-z0-9_-]{1,40}$/i.test(type);
@@ -32,6 +200,199 @@ function getCurrentPeriod() {
     ).padStart(2, "0");
 
   return `${year}-${month}`;
+}
+
+const AI_BOT_OPERATION_ID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
+const AI_BOT_PROFILE_ID = /^bot-[A-Za-z0-9._:-]{1,95}$/;
+const OWNER_PROFILE_SETUP_FIELDS = ["name", "purpose", "instructions", "knowledgeScope", "permittedTools"];
+const OWNER_PROFILE_SETUP_LIMITS = { name: 80, purpose: 240, instructions: 1200, knowledgeScope: 240 };
+const OWNER_PROFILE_SETUP_UNSAFE = /<\/?[a-z][^>]*>|(?:javascript|data|https?):\/\/|\b(?:eval|new\s+Function|import\s*\(|dangerouslySetInnerHTML|tool\s*call|deploy|execute\s+code)\b/i;
+const OWNER_EMAIL_DELIVERY_TEST_ACTION_ID = "owner-email-delivery-test-v1";
+const OWNER_EMAIL_DELIVERY_TEST_SUBJECT = "HEGEVA AI — Email Delivery Test";
+const OWNER_EMAIL_DELIVERY_TEST_BODY = "This is a controlled HEGEVA AI email delivery test. No customer action is required.";
+
+function ownerEmailDeliveryTestAction(user) {
+  const recipient = typeof user?.email === "string" ? user.email.trim().toLowerCase() : "";
+  if (user?.emailVerified !== true || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) return null;
+  return { id: OWNER_EMAIL_DELIVERY_TEST_ACTION_ID, actionType: "email-draft", recipient, subject: OWNER_EMAIL_DELIVERY_TEST_SUBJECT, body: OWNER_EMAIL_DELIVERY_TEST_BODY, approvalState: "ready-to-execute", workflowStatus: "ready-to-execute", readyVersion: 1, deliveryStatus: "not-sent", executionStatus: "not-executed", audit: [{ event: "test-prepared", previousState: "test", newState: "ready-to-execute", occurredAt: "1970-01-01T00:00:00.000Z" }], test: true };
+}
+
+async function sha256Hex(value) {
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function consumeCanaryAuthorization(env, request, { actorHash, workspaceHash, operationType }) {
+  const raw = request.headers.get("X-HEGEVA-CANARY-TOKEN");
+  const expected = typeof env.AI_BOT_CANARY_AUTHORIZATION_HASH === "string" ? env.AI_BOT_CANARY_AUTHORIZATION_HASH.trim().toLowerCase() : "";
+  if (!raw || !expected || (await sha256Hex(raw)) !== expected) return { ok: false, reason: "authorization-required" };
+  const row = await env.DB.prepare("SELECT authorizationHash,actorHash,workspaceHash,operationType,expiresAt,status,consumedCount FROM ai_canary_authorizations WHERE authorizationHash=?1 LIMIT 1").bind(expected).first();
+  if (!row || row.status !== "active" || row.operationType !== operationType || row.actorHash !== actorHash || row.workspaceHash !== workspaceHash || row.consumedCount !== 0 || Date.parse(row.expiresAt) <= Date.now()) return { ok: false, reason: "authorization-expired" };
+  const now = new Date().toISOString();
+  const result = await env.DB.prepare("UPDATE ai_canary_authorizations SET consumedCount=1,status='consumed',consumedAt=?1 WHERE authorizationHash=?2 AND status='active' AND consumedCount=0 AND expiresAt>?1").bind(now, expected).run();
+  return Number(result?.meta?.changes || 0) === 1 ? { ok: true } : { ok: false, reason: "authorization-consumed" };
+}
+
+async function admitAIBotCanary(env, request, values) {
+  const raw = request.headers.get("X-HEGEVA-CANARY-TOKEN");
+  const expected = typeof values.authorizationHash === "string" ? values.authorizationHash : (typeof env.AI_BOT_CANARY_AUTHORIZATION_HASH === "string" ? env.AI_BOT_CANARY_AUTHORIZATION_HASH.trim().toLowerCase() : "");
+  if (!raw || !expected || (await sha256Hex(raw)) !== expected) return { ok: false, reason: "authorization-required" };
+  const now = new Date().toISOString(); const period = now.slice(0, 10); const retention = new Date(Date.now() + 90 * 86400000).toISOString();
+  const actorHash = await sha256Hex(values.userId); const workspaceHash = actorHash; const reservationId = `fg-${values.operationId}`;
+  try {
+    await env.DB.prepare("INSERT INTO ai_canary_admissions(operationId,authorizationHash,actorHash,workspaceHash,profileId,period,estimatedNeurons,globalDailyCeiling,userDailyCeiling,workspaceDailyCeiling,neuronDailyCeiling,prepaidAvailable,approvedAt,approvalExpiresAt,approvalVersion,approvedByActorHash,createdAt) VALUES (?1,?2,?3,?4,?5,?6,1,?7,?8,?9,?10,1,?11,?12,?13,?14,?11)").bind(values.operationId, expected, actorHash, workspaceHash, values.profileId, period, values.globalDailyCeiling || 1, values.userDailyCeiling || 1, values.workspaceDailyCeiling || 1, values.neuronDailyCeiling || 1, values.approvedAt, values.approvalExpiresAt, values.approvalVersion, values.approvedByActorHash).run();
+    return { ok: true, reservationId };
+  } catch { return { ok: false, reason: "admission-rejected" }; }
+}
+
+async function revokeUnusedCanaryAuthorization(env, authorizationHash) {
+  if (!authorizationHash) return;
+  try {
+    await env.DB.prepare("UPDATE ai_canary_authorizations SET status='revoked',revokedAt=?1 WHERE authorizationHash=?2 AND status='active' AND consumedCount=0").bind(new Date().toISOString(), authorizationHash).run();
+  } catch {}
+}
+
+async function loadCanonicalAIBotProfile(env, userId, profileId) {
+  const row = await env.DB.prepare("SELECT data,updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(userId).first();
+  if (!row || typeof row.data !== "string") return null;
+  let records;
+  try { records = JSON.parse(row.data); } catch { return null; }
+  if (!Array.isArray(records)) return null;
+  const profile = records.find((item) => item && item.id === profileId);
+  const now = Date.now();
+  if (!profile || profile.enabled !== true || profile.approvalState !== "owner-approved" || profile.executionState !== "not-started" || !Number.isSafeInteger(profile.approvalVersion) || profile.approvalVersion < 1 || typeof profile.approvedAt !== "string" || typeof profile.approvalExpiresAt !== "string" || typeof profile.approvedByActorHash !== "string" || profile.approvedByActorHash.length < 16 || !Number.isFinite(Date.parse(profile.approvedAt)) || !Number.isFinite(Date.parse(profile.approvalExpiresAt)) || Date.parse(profile.approvalExpiresAt) <= now) return null;
+  return profile;
+}
+
+async function loadCanaryProfile(env, userId, profileId) {
+  const row = await env.DB.prepare("SELECT data,updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(userId).first();
+  if (!row || typeof row.data !== "string") return { profile: null, reason: "profile-not-found" };
+  let records;
+  try { records = JSON.parse(row.data); } catch { return { profile: null, reason: "profile-not-found" }; }
+  if (!Array.isArray(records)) return { profile: null, reason: "profile-not-found" };
+  const profile = records.find((item) => item && item.id === profileId);
+  if (!profile) return { profile: null, reason: "profile-not-found" };
+  if (profile.enabled !== true) return { profile: null, reason: "profile-disabled" };
+  if (profile.approvalState !== "owner-approved") return { profile: null, reason: "profile-not-approved" };
+  if (!Number.isSafeInteger(profile.approvalVersion) || profile.approvalVersion < 1) return { profile: null, reason: "profile-approval-stale" };
+  if (typeof profile.approvedAt !== "string" || typeof profile.approvalExpiresAt !== "string" || !Number.isFinite(Date.parse(profile.approvedAt)) || !Number.isFinite(Date.parse(profile.approvalExpiresAt))) return { profile: null, reason: "profile-approval-stale" };
+  if (Date.parse(profile.approvalExpiresAt) <= Date.now()) return { profile: null, reason: "profile-approval-expired" };
+  if (typeof profile.approvedByActorHash !== "string" || profile.approvedByActorHash.length < 16) return { profile: null, reason: "profile-approval-stale" };
+  if (typeof profile.approvalRevision !== "string" || !profile.approvalRevision || profile.approvalRevision !== row.updatedAt) return { profile: null, reason: "profile-approval-stale" };
+  return { profile };
+}
+
+// Side-effect-free preflight shared by readiness diagnostics and the one-shot
+// route. It intentionally stops before authorization creation or any provider
+// invocation and returns only bounded reason codes.
+async function evaluateAIBotCanaryPreflight(env, request, user, profileId) {
+  const fail = (reason, status) => ({ ok: false, reason, status });
+  if (!user || typeof user.id !== "string") return fail("authentication-required", 401);
+  const configuredOwner = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
+  const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+  if (!configuredOwner || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredOwner) || !userEmail || userEmail !== configuredOwner) return fail("owner-identity-mismatch", 403);
+  const loaded = await loadCanaryProfile(env, user.id, profileId);
+  if (!loaded.profile) return fail(loaded.reason, 403);
+  const profile = loaded.profile;
+  const actorHash = await sha256Hex(user.id);
+  if (profile.approvedByActorHash !== actorHash) return fail("profile-actor-mismatch", 403);
+  const flags = parseProviderFlags(env);
+  if (!flags.providerEnabled) return fail("provider-disabled", 503);
+  if (flags.killSwitchActive) return fail("kill-switch-active", 503);
+  if (!flags.ownerCanaryEnabled) return fail("canary-disabled", 503);
+  if (env.FINANCIAL_GUARD_ENABLED !== "enabled") return fail("financial-guard-disabled", 503);
+  if (!env.AI || typeof env.AI.run !== "function") return fail("ai-binding-unavailable", 503);
+  const providerConfig = getWorkersAiCanaryConfig(env);
+  if (!providerConfig.ok) return fail(providerConfig.reason, 503);
+  const period = new Date().toISOString().slice(0, 10);
+  let usageRows;
+  try { usageRows = await env.DB.prepare("SELECT scopeHash,scopeType,requests,estimatedNeurons,prepaidReserved FROM ai_provider_usage WHERE period=?1 AND (scopeHash='global-scope-hash' OR scopeHash=?2) AND scopeType IN ('global','user','workspace')").bind(period, actorHash).all(); } catch { return fail("internal-unavailable", 503); }
+  if (!Array.isArray(usageRows?.results)) return fail("included-allowance-unavailable", 503);
+  const rows = usageRows.results;
+  const usageFor = (scopeType) => rows.find((row) => row.scopeType === scopeType && (scopeType === "global" || row.scopeHash === actorHash));
+  const global = usageFor("global") || {}; const userUsage = usageFor("user") || {}; const workspace = usageFor("workspace") || {};
+  if ((Number(global.requests) || 0) >= providerConfig.requestCeiling) return fail("global-request-ceiling", 429);
+  if ((Number(userUsage.requests) || 0) >= providerConfig.userCeiling) return fail("user-request-ceiling", 429);
+  if ((Number(workspace.requests) || 0) >= providerConfig.workspaceCeiling) return fail("workspace-request-ceiling", 429);
+  if ((Number(global.estimatedNeurons) || 0) + 1 > providerConfig.neuronCeiling || (Number(global.estimatedNeurons) || 0) + 1 > Math.floor(providerConfig.allocation * 0.7)) return fail("neuron-ceiling", 429);
+  if ((Number(global.prepaidReserved) || 0) >= providerConfig.requestCeiling || (Number(userUsage.prepaidReserved) || 0) >= providerConfig.userCeiling || (Number(workspace.prepaidReserved) || 0) >= providerConfig.workspaceCeiling) return fail("reservation-in-use", 429);
+  return { ok: true, profile, actorHash, providerConfig };
+}
+
+async function loadStoredAIBotProfile(env, userId, profileId) {
+  const row = await env.DB.prepare("SELECT data,updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(userId).first();
+  if (!row || typeof row.data !== "string") return null;
+  try {
+    const records = JSON.parse(row.data);
+    if (!Array.isArray(records)) return null;
+    const profile = records.find((item) => item && item.id === profileId);
+    return profile && typeof profile === "object" ? { row, records, profile } : null;
+  } catch { return null; }
+}
+
+function configuredAIBotCanaryOwner(env) {
+  const email = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
+}
+
+function parseOwnerProfileSetupRequest(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const keys = Object.keys(body);
+  if (keys.length !== OWNER_PROFILE_SETUP_FIELDS.length || keys.some((key) => !OWNER_PROFILE_SETUP_FIELDS.includes(key))) return null;
+  if (!Array.isArray(body.permittedTools) || body.permittedTools.length !== 1 || body.permittedTools[0] !== "none") return null;
+  const profile = { permittedTools: ["none"] };
+  for (const [key, limit] of Object.entries(OWNER_PROFILE_SETUP_LIMITS)) {
+    const value = typeof body[key] === "string" ? body[key].trim() : "";
+    if (!value || value.length > limit || OWNER_PROFILE_SETUP_UNSAFE.test(value)) return null;
+    profile[key] = value;
+  }
+  return profile;
+}
+
+async function evaluateOwnerProfileSetup(env, user) {
+  const userEmail = typeof user?.email === "string" ? user.email.trim().toLowerCase() : "";
+  if (!user?.id || !userEmail) return { ok: false, status: 401, reason: "authentication-required", profileExists: false };
+  const configuredOwner = configuredAIBotCanaryOwner(env);
+  if (!configuredOwner) return { ok: false, status: 503, reason: "internal-unavailable", profileExists: false };
+  if (userEmail !== configuredOwner) return { ok: false, status: 403, reason: "owner-identity-mismatch", profileExists: false };
+  if (!parseProviderFlags(env).ownerProfileSetupEnabled) return { ok: false, status: 503, reason: "setup-disabled", profileExists: false };
+  const row = await env.DB.prepare("SELECT data,updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'ai-bot-profiles' LIMIT 1").bind(user.id).first();
+  if (!row) return { ok: true, row: null, records: [] };
+  if (typeof row.data !== "string") return { ok: false, status: 503, reason: "profile-data-invalid", profileExists: false };
+  let records;
+  try { records = JSON.parse(row.data); } catch { return { ok: false, status: 503, reason: "profile-data-invalid", profileExists: false }; }
+  if (!Array.isArray(records) || records.some((item) => !item || typeof item !== "object" || Array.isArray(item))) return { ok: false, status: 503, reason: "profile-data-invalid", profileExists: false };
+  if (records.length > 0) return { ok: false, status: 409, reason: "profile-exists", profileExists: true };
+  return { ok: true, row, records };
+}
+
+function ownerProfileSetupFailure(result) {
+  return Response.json({ setupEligible: false, profileExists: result.profileExists === true, reason: result.reason }, { status: result.status });
+}
+
+async function reserveAIBotOperation(env, { operationId, userId, profileId, period, limit, approvedAt, approvalExpiresAt, approvalVersion, approvedByActorHash }) {
+  const now = new Date().toISOString();
+  try {
+    await env.DB.prepare("INSERT INTO ai_bot_operations (operationId,userId,workspaceScope,profileId,period,status,attemptNumber,approvedAt,approvalExpiresAt,approvalVersion,approvedByActorHash,usageLimit,createdAt,updatedAt) VALUES (?1,?2,?2,?3,?4,'reserved',0,?5,?6,?7,?8,?9,?10,?11,?11)").bind(operationId,userId,profileId,period,approvedAt,approvalExpiresAt,approvalVersion,approvedByActorHash,limit,now).run();
+    return { reserved: true };
+  } catch (error) {
+    try {
+      const existing = await env.DB.prepare("SELECT operationId,userId,period,status FROM ai_bot_operations WHERE operationId = ?1 LIMIT 1").bind(operationId).first();
+      if (existing) return existing.userId === userId && existing.period === period ? { reserved: false, reason: "duplicate-operation" } : { reserved: false, reason: "operation-owner-mismatch" };
+    } catch {}
+    return { reserved: false, reason: "persistence-unavailable" };
+  }
+}
+
+async function finishAIBotOperation(env, { operationId, userId, profileId, reservationId, status, failureCode = null }) {
+  const now = new Date().toISOString();
+  const retentionUntil = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+  const ledgerUserId = await sha256Hex(userId);
+  await env.DB.batch([
+    env.DB.prepare("UPDATE financial_guard_reservations SET status=?1,finalizedAt=?2,failureCode=?3 WHERE reservationId=?4 AND status='reserved'").bind(status === "succeeded" ? "finalized" : "released", now, failureCode, reservationId),
+    env.DB.prepare("UPDATE ai_bot_operations SET status=?1,attemptNumber=1,updatedAt=?2 WHERE operationId=?3 AND userId=?4 AND status='reserved'").bind(status, now, operationId, ledgerUserId),
+    env.DB.prepare("INSERT INTO ai_bot_execution_history (id,operationId,userId,workspaceScope,profileId,status,failureCode,attemptNumber,createdAt,retentionUntil) VALUES (?1,?2,?3,?3,?4,?5,?6,1,?7,?8)").bind(crypto.randomUUID(), operationId, ledgerUserId, profileId, status, failureCode, now, retentionUntil),
+  ]);
 }
 
 async function ensureUserPlan(
@@ -88,28 +449,10 @@ async function getUserPlan(
       .bind(userId)
       .first();
 
-  const plan =
-    row?.plan &&
-    Object.prototype
-      .hasOwnProperty.call(
-        PLAN_LIMITS,
-        row.plan
-      )
-      ? row.plan
-      : "basic";
-
-  return {
-    plan,
-    limit:
-      PLAN_LIMITS[plan],
-    createdAt:
-      row?.createdAt || null,
-    updatedAt:
-      row?.updatedAt || null
-  };
+  return resolveAssistantPlan(row);
 }
 
-async function getAIUsage(
+async function readAIUsage(
   env,
   userId,
   period
@@ -117,83 +460,23 @@ async function getAIUsage(
   const row =
     await env.DB
       .prepare(`
-        SELECT
-          aiMessages,
-          createdAt,
-          updatedAt
+        SELECT aiMessages
         FROM ai_usage
         WHERE userId = ?1
           AND period = ?2
         LIMIT 1
       `)
-      .bind(
-        userId,
-        period
-      )
+      .bind(userId, period)
       .first();
 
-  return {
-    aiMessages:
-      Number.isFinite(
-        Number(
-          row?.aiMessages
-        )
-      )
-        ? Number(
-            row.aiMessages
-          )
-        : 0,
-
-    createdAt:
-      row?.createdAt || null,
-
-    updatedAt:
-      row?.updatedAt || null
-  };
+  return Number.isFinite(Number(row?.aiMessages))
+    ? Number(row.aiMessages)
+    : 0;
 }
 
-async function incrementAIUsage(
-  env,
-  userId,
-  period
-) {
-  const now =
-    new Date().toISOString();
-
-  await env.DB
-    .prepare(`
-      INSERT INTO ai_usage (
-        userId,
-        period,
-        aiMessages,
-        createdAt,
-        updatedAt
-      )
-      VALUES (
-        ?1,
-        ?2,
-        1,
-        ?3,
-        ?3
-      )
-
-      ON CONFLICT(
-        userId,
-        period
-      )
-
-      DO UPDATE SET
-        aiMessages =
-          aiMessages + 1,
-        updatedAt =
-          excluded.updatedAt
-    `)
-    .bind(
-      userId,
-      period,
-      now
-    )
-    .run();
+async function readX20Usage(env, userId, period) {
+  const row = await env.DB.prepare(`SELECT x20Actions FROM x20_ai_usage WHERE userId = ?1 AND period = ?2 LIMIT 1`).bind(userId, period).first();
+  return Number.isFinite(Number(row?.x20Actions)) ? Number(row.x20Actions) : 0;
 }
 
 function getPublicAppUrl(
@@ -280,48 +563,16 @@ function getStripePriceId(
   return "";
 }
 
-function getPaymentMode(
-  env
-) {
-  return (
-    typeof env.PAYMENT_MODE ===
-      "string"
-      ? env.PAYMENT_MODE
-          .trim()
-          .toLowerCase()
-      : "test"
-  );
+function getPaymentMode(env) {
+  const mode = String(env.PAYMENT_MODE || "").trim().toLowerCase();
+  return mode === "test" || mode === "live" ? mode : "";
 }
 
-function isStripeModeLive(
-  env
-) {
+function isStripeSecretForMode(value, mode) {
   return (
-    getPaymentMode(env) === "live"
-  );
-}
-
-function isStripeSecret(
-  env
-) {
-  const key =
-    typeof env.STRIPE_SECRET_KEY ===
-      "string"
-      ? env.STRIPE_SECRET_KEY.trim()
-      : "";
-
-  return (
-    isStripeModeLive(env)
-      ? key.startsWith("sk_live_")
-      : key.startsWith("sk_test_")
-  );
-}
-
-function isStripeTestMode(
-  env
-) {
-  return (
-    !isStripeModeLive(env)
+    typeof value === "string" &&
+    ((mode === "test" && value.startsWith("sk_test_")) ||
+      (mode === "live" && value.startsWith("sk_live_")))
   );
 }
 
@@ -700,53 +951,6 @@ async function applyStripePlanEvent(
   return true;
 }
 
-async function applyVerifiedStripeCheckoutPlan(
-  env,
-  userId,
-  plan
-) {
-  if (
-    typeof userId !== "string" ||
-    !userId.trim() ||
-    !validStripePlan(plan)
-  ) {
-    return false;
-  }
-
-  const now =
-    new Date().toISOString();
-
-  await env.DB
-    .prepare(`
-      INSERT INTO user_plans (
-        userId,
-        plan,
-        createdAt,
-        updatedAt
-      )
-      VALUES (
-        ?1,
-        ?2,
-        ?3,
-        ?3
-      )
-
-      ON CONFLICT(userId)
-
-      DO UPDATE SET
-        plan = excluded.plan,
-        updatedAt = excluded.updatedAt
-    `)
-    .bind(
-      userId.trim(),
-      plan,
-      now
-    )
-    .run();
-
-  return true;
-}
-
 async function markStripeWebhookVerified(
   env,
   userId,
@@ -841,7 +1045,9 @@ async function getStripeWebhookStatus(
       configured,
       verified: false,
       lastEventType: null,
-      lastEventCreatedAt: null
+      lastEventCreatedAt: null,
+      paymentState: "current",
+      paymentGraceUntil: null
     };
   }
 
@@ -867,7 +1073,9 @@ async function getStripeWebhookStatus(
       configured,
       verified: false,
       lastEventType: null,
-      lastEventCreatedAt: null
+      lastEventCreatedAt: null,
+      paymentState: "current",
+      paymentGraceUntil: null
     };
   }
 
@@ -877,24 +1085,72 @@ async function getStripeWebhookStatus(
         row.data
       );
 
+    const lastEventType =
+      typeof parsed?.lastEventType ===
+      "string"
+        ? parsed.lastEventType
+        : null;
+
+    const lastEventCreatedAt =
+      typeof parsed?.lastEventCreatedAt ===
+        "string" &&
+      Number.isFinite(
+        new Date(
+          parsed.lastEventCreatedAt
+        ).getTime()
+      )
+        ? parsed.lastEventCreatedAt
+        : null;
+
+    const PAYMENT_FAILED_EVENT =
+      "invoice.payment_failed";
+    let paymentState =
+      "current";
+    let paymentGraceUntil =
+      null;
+    if (
+      lastEventType ===
+        PAYMENT_FAILED_EVENT &&
+      typeof lastEventCreatedAt ===
+        "string"
+    ) {
+      const failedAt =
+        new Date(lastEventCreatedAt).getTime();
+      if (Number.isInteger(failedAt)) {
+        paymentState =
+          "payment-failed";
+        paymentGraceUntil =
+          new Date(
+            failedAt +
+              GRACE_DAYS *
+                24 *
+                60 *
+                60 *
+                1000
+          ).toISOString();
+      }
+    }
+
     return {
       configured,
       verified:
         parsed?.verified ===
         true,
       lastEventType:
-        parsed?.lastEventType ||
-        null,
+        lastEventType,
       lastEventCreatedAt:
-        parsed?.lastEventCreatedAt ||
-        null
+        lastEventCreatedAt,
+      paymentState,
+      paymentGraceUntil
     };
   } catch {
     return {
       configured,
       verified: false,
       lastEventType: null,
-      lastEventCreatedAt: null
+      lastEventCreatedAt: null,
+      paymentState: "current",
+      paymentGraceUntil: null
     };
   }
 }
@@ -910,14 +1166,16 @@ async function createStripeCheckoutSession(
       ? env.STRIPE_SECRET_KEY.trim()
       : "";
 
+  const paymentMode = getPaymentMode(env);
+
   if (
-    !isStripeSecret(env)
+    !isStripeSecretForMode(secretKey, paymentMode)
   ) {
     return {
       ok: false,
       status: 503,
       error:
-        "Stripe secret is not configured."
+        "Stripe secret is not configured for the active payment mode."
     };
   }
 
@@ -932,7 +1190,7 @@ async function createStripeCheckoutSession(
       ok: false,
       status: 503,
       error:
-        "Stripe test price is not configured for this plan."
+        "Stripe price is not configured for this plan."
     };
   }
 
@@ -1057,10 +1315,13 @@ async function createStripeCheckoutSession(
   } catch {}
 
   if (!response.ok) {
-    console.error(
-      "HEGEVA Stripe checkout error:",
-      data
-    );
+    console.error("HEGEVA_PROVIDER_FAILURE", {
+      provider: "stripe",
+      operation: "checkout",
+      reason: "provider_rejected",
+      status: response.status,
+      responseType: typeof data,
+    });
 
     return {
       ok: false,
@@ -1069,9 +1330,7 @@ async function createStripeCheckoutSession(
         response.status ||
         502,
 
-      error:
-        data?.error?.message ||
-        "Stripe test checkout could not be created."
+      error: "Stripe test checkout could not be created."
     };
   }
 
@@ -1097,14 +1356,96 @@ async function createStripeCheckoutSession(
   };
 }
 
+function getAssistantTopUpPack(env, packCode) {
+  const code = String(packCode || "").trim().toLowerCase();
+  const suffix = { small: "SMALL", medium: "MEDIUM", large: "LARGE" }[code];
+  if (!suffix) return null;
+  const approved = ASSISTANT_TOPUP_PACKS[code];
+  if (!approved) return null;
+  const priceId = String(env[`STRIPE_TOPUP_${suffix}_PRICE_ID`] || "").trim();
+  const configuredCredits = env[`ASSISTANT_TOPUP_${suffix}_CREDITS`];
+  const configuredAmount = env[`ASSISTANT_TOPUP_${suffix}_AMOUNT`];
+  const configuredCurrency = env[`ASSISTANT_TOPUP_${suffix}_CURRENCY`];
+  if (!priceId.startsWith("price_") ||
+    (configuredCredits != null && Number(configuredCredits) !== approved.credits) ||
+    (configuredAmount != null && Number(configuredAmount) !== approved.amount) ||
+    (configuredCurrency != null && String(configuredCurrency).trim().toLowerCase() !== approved.currency)) return null;
+  return { ...approved, priceId };
+}
+
+async function evaluateAIBotRenewalReadiness(env, user, profileId) {
+  if (!user || typeof user.id !== "string" || !user.id.trim()) return false;
+  const configuredOwner = configuredAIBotCanaryOwner(env);
+  const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+  if (!configuredOwner || userEmail !== configuredOwner) return false;
+  if (profileId !== "bot-b2083aff-69ef-4902-93bd-2c792c3cb0c9") return false;
+  const stored = await loadStoredAIBotProfile(env, user.id, profileId);
+  if (!stored) return false;
+  const current = stored.profile;
+  const now = Date.now();
+  const approvedAt = typeof current.approvedAt === "string" ? Date.parse(current.approvedAt) : NaN;
+  const expiresAt = typeof current.approvalExpiresAt === "string" ? Date.parse(current.approvalExpiresAt) : NaN;
+  const actorHash = await sha256Hex(user.id);
+  return current.enabled === false
+    && current.executionState === "not-started"
+    && Array.isArray(current.permittedTools)
+    && current.permittedTools.length === 1
+    && current.permittedTools[0] === "none"
+    && current.approvalState === "owner-approved"
+    && Number.isFinite(approvedAt)
+    && Number.isFinite(expiresAt)
+    && expiresAt <= now
+    && typeof current.approvedByActorHash === "string"
+    && current.approvedByActorHash === actorHash
+    && typeof current.approvalRevision === "string"
+    && current.approvalRevision === current.approvedAt
+    && current.approvalRevision === stored.row.updatedAt;
+}
+
+async function createStripeTopUpCheckoutSession(request, env, user, pack) {
+  const secretKey = String(env.STRIPE_SECRET_KEY || "").trim();
+  const paymentMode = getPaymentMode(env);
+  if (!isStripeSecretForMode(secretKey, paymentMode)) return { ok: false, status: 503, error: "Stripe billing is not configured for the active payment mode." };
+  if (!pack) return { ok: false, status: 503, error: "This AI Top-Up pack is not configured." };
+
+  const form = new URLSearchParams();
+  form.set("mode", "payment");
+  form.set("line_items[0][price]", pack.priceId);
+  form.set("line_items[0][quantity]", "1");
+  form.set("client_reference_id", String(user.id));
+  const customer = await env.DB.prepare("SELECT stripeCustomerId FROM stripe_customers WHERE userId = ?1 LIMIT 1").bind(String(user.id)).first();
+  if (customer?.stripeCustomerId) form.set("customer", customer.stripeCustomerId);
+  else if (user.email) form.set("customer_email", user.email);
+  const appUrl = getPublicAppUrl(request, env);
+  form.set("success_url", `${appUrl}/account?topup=success&session_id={CHECKOUT_SESSION_ID}`);
+  form.set("cancel_url", `${appUrl}/account?topup=cancelled`);
+  form.set("metadata[userId]", String(user.id));
+  form.set("metadata[hegevaPurchaseType]", "assistant_topup");
+  form.set("metadata[topUpPack]", pack.code);
+
+  const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/x-www-form-urlencoded" },
+    body: form.toString(),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.id || !data?.url) {
+    console.error("HEGEVA_PROVIDER_FAILURE", { provider: "stripe", operation: "assistant_topup_checkout", reason: "provider_rejected", status: response.status });
+    return { ok: false, status: response.status || 502, error: "Stripe AI Top-Up checkout could not be created." };
+  }
+  return { ok: true, status: 200, id: data.id, url: data.url };
+}
+
 async function createStripePortalSession(request, env, user) {
   const secretKey =
     typeof env.STRIPE_SECRET_KEY === "string"
       ? env.STRIPE_SECRET_KEY.trim()
       : "";
 
-  if (!isStripeSecret(env)) {
-    return { ok: false, status: 503, error: "Stripe billing is not configured." };
+  const paymentMode = getPaymentMode(env);
+
+  if (!isStripeSecretForMode(secretKey, paymentMode)) {
+    return { ok: false, status: 503, error: "Stripe billing is not configured for the active payment mode." };
   }
 
   const customer = await env.DB
@@ -1136,14 +1477,21 @@ async function createStripePortalSession(request, env, user) {
   const data = await response.json().catch(() => null);
 
   if (!response.ok || typeof data?.url !== "string" || !data.url.startsWith("https://billing.stripe.com/")) {
-    console.error("HEGEVA Stripe portal error:", data);
-    return { ok: false, status: response.status || 502, error: data?.error?.message || "Stripe billing portal could not be opened." };
+    console.error("HEGEVA_PROVIDER_FAILURE", {
+      provider: "stripe",
+      operation: "portal",
+      reason: "provider_rejected",
+      status: response.status,
+      responseType: typeof data,
+    });
+    return { ok: false, status: response.status || 502, error: "Stripe billing portal could not be opened." };
   }
 
   return { ok: true, status: 200, url: data.url };
 }
 
-export default {
+export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {}) {
+  return {
   async fetch(
     request,
     env,
@@ -1176,6 +1524,121 @@ export default {
       );
     }
 
+    const limitedRequest = await enforceRequestBodyLimit(request, url.pathname);
+    if (limitedRequest instanceof Response) return limitedRequest;
+    request = limitedRequest;
+
+    if (url.pathname === "/api/client-portal/share" && request.method === "POST") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      let body;try{body=await request.json()}catch{return Response.json({error:"Invalid JSON body."},{status:400})}
+      const result=await createPortalShare(env.DB,user.id,body);return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store"}});
+    }
+    if (url.pathname === "/api/client-portal/preview" && request.method === "POST") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      let body;try{body=await request.json()}catch{return Response.json({error:"Invalid JSON body."},{status:400})}
+      const result=await previewPortalShare(env.DB,user.id,body);return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store"}});
+    }
+    if (url.pathname.startsWith("/api/client-portal/share/") && request.method === "DELETE") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      const result=await revokePortalShare(env.DB,user.id,url.pathname.split("/").pop()||"");return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store"}});
+    }
+    if (url.pathname.startsWith("/api/client-portal/public/") && request.method === "GET") {
+      const result=await readPortalShare(env.DB,url.pathname.split("/").pop()||"");return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow"}});
+    }
+    if (url.pathname === "/api/business-score/share" && request.method === "POST") {
+      const user = await getLoggedInUser(request, env, ctx);
+      if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+      const rows = await env.DB.batch(["invoice_documents", "customers", "planner"].map((type) => env.DB.prepare("SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1").bind(user.id, type)));
+      const source = (index) => { try { const value = JSON.parse(rows[index]?.results?.[0]?.data || "[]"); return Array.isArray(value) ? value : []; } catch { return []; } };
+      const derived = deriveBusinessScoreShare({ invoices: source(0), customers: source(1), tasks: source(2) });
+      if (derived.state !== "ready") return Response.json({ error: "Insufficient workspace data." }, { status: 422, headers: { "Cache-Control": "no-store" } });
+      const token = newBusinessScoreToken();
+      const tokenHash = await hashBusinessScoreToken(token);
+      const now = new Date().toISOString();
+      const expiresAt = normalizeShareExpiry(null, Date.now());
+      const id = crypto.randomUUID();
+      try {
+        await env.DB.batch([
+          env.DB.prepare("UPDATE business_score_shares SET revokedAt = ?1 WHERE ownerUserId = ?2 AND revokedAt IS NULL").bind(now, user.id),
+          env.DB.prepare("INSERT INTO business_score_shares (id,ownerUserId,tokenHash,scoreBand,methodologyVersion,expiresAt,createdAt) VALUES (?1,?2,?3,?4,?5,?6,?7)").bind(id, user.id, tokenHash, derived.scoreBand, BUSINESS_SCORE_METHODOLOGY, expiresAt, now),
+        ]);
+      } catch {
+        return Response.json({ error: "Share unavailable." }, { status: 409, headers: { "Cache-Control": "no-store" } });
+      }
+      return Response.json({ shareId: id, token, scoreBand: derived.scoreBand, methodologyVersion: BUSINESS_SCORE_METHODOLOGY, expiresAt }, { headers: { "Cache-Control": "no-store" } });
+    }
+    if (url.pathname.startsWith("/api/business-score/share/") && request.method === "DELETE") {
+      const user = await getLoggedInUser(request, env, ctx);
+      if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+      const id = url.pathname.split("/").pop() || "";
+      const result = await env.DB.prepare("UPDATE business_score_shares SET revokedAt = ?1 WHERE id = ?2 AND ownerUserId = ?3 AND revokedAt IS NULL").bind(new Date().toISOString(), id, user.id).run();
+      return Response.json({ revoked: Number(result.meta?.changes || 0) === 1 }, { headers: { "Cache-Control": "no-store" } });
+    }
+    if (url.pathname.startsWith("/api/business-score/public/") && request.method === "GET") {
+      const tokenHash = await hashBusinessScoreToken(url.pathname.split("/").pop() || "");
+      const row = await env.DB.prepare("SELECT scoreBand,methodologyVersion,expiresAt FROM business_score_shares WHERE tokenHash = ?1 AND revokedAt IS NULL AND expiresAt > ?2 LIMIT 1").bind(tokenHash, new Date().toISOString()).first();
+      if (!row) return Response.json({ error: "Share unavailable." }, { status: 404, headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" } });
+      return Response.json({ scoreBand: row.scoreBand, methodologyVersion: row.methodologyVersion, expiresAt: row.expiresAt }, { headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" } });
+    }
+    if (url.pathname === "/api/referrals/code" && request.method === "POST") { const user=await getLoggedInUser(request,env,ctx); if(!user)return Response.json({error:"Authentication required."},{status:401}); const r=await createReferralCode(env.DB,user.id); return Response.json(r.data||{error:r.error},{status:r.status,headers:{"Cache-Control":"no-store"}}); }
+    if (url.pathname.startsWith("/api/referrals/code/") && request.method === "DELETE") { const user=await getLoggedInUser(request,env,ctx); if(!user)return Response.json({error:"Authentication required."},{status:401}); const r=await revokeReferralCode(env.DB,user.id,url.pathname.split("/").pop()||""); return Response.json(r.data||{error:r.error},{status:r.status,headers:{"Cache-Control":"no-store"}}); }
+    if (url.pathname === "/api/referrals/touch" && request.method === "POST") { let body;try{body=await request.json()}catch{return Response.json({error:"Invalid JSON body."},{status:400})}; const raw=typeof body?.code==="string"?body.code:""; const r=await recordReferralTouch(env.DB,raw,crypto.randomUUID(),body?.consentState==="granted"?"granted":"essential"); return new Response(null,{status:r.status,headers:{"Cache-Control":"no-store"}}); }
+    if (url.pathname === "/api/referrals/attribute" && request.method === "POST") { const user=await getLoggedInUser(request,env,ctx); if(!user)return Response.json({error:"Authentication required."},{status:401}); let body;try{body=await request.json()}catch{return Response.json({error:"Invalid JSON body."},{status:400})}; const r=await attributeReferral(env.DB,body?.code,user.id); return Response.json(r.data||{error:r.error},{status:r.status,headers:{"Cache-Control":"no-store"}}); }
+    if (url.pathname === "/api/referrals/attributions" && request.method === "GET") { const user=await getLoggedInUser(request,env,ctx); if(!user)return Response.json({error:"Authentication required."},{status:401}); const r=await listReferralAttributions(env.DB,user.id); return Response.json({items:r.results||[]},{headers:{"Cache-Control":"private, no-store"}}); }
+    if (url.pathname === "/api/referrals/activation" && request.method === "POST") {
+      const user=await getLoggedInUserFn(request,env,ctx);
+      if(!user)return Response.json({error:"Authentication required."},{status:401,headers:{"Cache-Control":"no-store"}});
+      const result=await reconcileReferralRewardForUser(env.DB,user.id);
+      return Response.json({activationAcknowledged:true,rewardReviewCreated:result.created,reason:result.reason},{headers:{"Cache-Control":"private, no-store"}});
+    }
+    if (url.pathname === "/api/referrals/reward-reviews" && request.method === "GET") {
+      const user=await getLoggedInUserFn(request,env,ctx);
+      if(!user)return Response.json({error:"Authentication required."},{status:401,headers:{"Cache-Control":"no-store"}});
+      const adminEmail=typeof env.ADMIN_EMAIL==="string"?env.ADMIN_EMAIL.trim().toLowerCase():"";
+      const isOwnerReviewer=Boolean(adminEmail&&user.email&&user.email.trim().toLowerCase()===adminEmail);
+      const items=await listReferralRewardReviews(env.DB,user.id,isOwnerReviewer);
+      const summary=await listReferralRewardSummary(env.DB,user.id,isOwnerReviewer);
+      return Response.json({items,summary},{headers:{"Cache-Control":"private, no-store"}});
+    }
+    if (url.pathname.startsWith("/api/referrals/reward-reviews/") && request.method === "POST") {
+      const user=await getLoggedInUserFn(request,env,ctx);
+      if(!user)return Response.json({error:"Authentication required."},{status:401,headers:{"Cache-Control":"no-store"}});
+      const adminEmail=typeof env.ADMIN_EMAIL==="string"?env.ADMIN_EMAIL.trim().toLowerCase():"";
+      if(!adminEmail||!user.email||user.email.trim().toLowerCase()!==adminEmail)return Response.json({error:"Owner access required."},{status:403,headers:{"Cache-Control":"no-store"}});
+      let body;try{body=await request.json()}catch{return Response.json({error:"Invalid JSON body."},{status:400})}
+      const reviewId=url.pathname.split("/").pop()||"";
+      if(!/^[A-Za-z0-9_-]{8,100}$/.test(reviewId))return Response.json({error:"Review unavailable."},{status:404});
+      const decision=body?.decision;
+      const reason=typeof body?.reason==="string"?body.reason.trim().slice(0,160):"owner-reviewed-v1";
+      const result=await reviewReferralReward(env.DB,{reviewId,reviewerUserId:user.id,decision,reason,actorHash:await sha256Hex(user.id)});
+      return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"private, no-store"}});
+    }
+    if (url.pathname === "/api/integrations" && request.method === "GET") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      return Response.json({providers:await listConnections(env.DB,env,user.id)},{headers:{"Cache-Control":"no-store"}});
+    }
+    if (url.pathname === "/api/integrations/signals" && request.method === "GET") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      return Response.json(await readIntegrationSignals(env.DB,env,user.id),{headers:{"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});
+    }
+    if (url.pathname === "/api/integrations/intelligence" && request.method === "GET") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401,headers:{"Cache-Control":"private, no-store"}});
+      const data=await readIntegrationIntelligence(env.DB,env,user.id);return Response.json(data,{headers:{"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});
+    }
+    if (url.pathname === "/api/integrations/oauth/start" && request.method === "GET") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      const result=await startOAuth(env.DB,env,user.id,url.searchParams.get("provider")||"");return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store"}});
+    }
+    if (url.pathname === "/api/integrations/oauth/callback" && request.method === "GET") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.redirect(`${env.PUBLIC_APP_URL}/login?next=/business/integrations`,302);
+      const result=await completeOAuth(env.DB,env,user.id,{state:url.searchParams.get("state"),code:url.searchParams.get("code")});
+      return Response.redirect(`${env.PUBLIC_APP_URL}/business/integrations?oauth=${result.status===200?"connected":"failed"}`,302);
+    }
+    if (url.pathname.startsWith("/api/integrations/") && request.method === "DELETE") {
+      const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
+      const result=await disconnectIntegration(env.DB,user.id,url.pathname.split("/").pop()||"");return Response.json(result.data||{error:result.error},{status:result.status,headers:{"Cache-Control":"no-store"}});
+    }
+
     // =========================================
     // BETTER AUTH
     // =========================================
@@ -1185,6 +1648,43 @@ export default {
         "/api/auth/"
       )
     ) {
+      const authRouteKey =
+        url.pathname.slice(
+          "/api/auth/".length
+        );
+      const authLimiter =
+        globalThis.__hegevaAuthRateLimiter ||
+        (globalThis.__hegevaAuthRateLimiter =
+          createAuthRateLimiter());
+      const authAdmission =
+        request.method === "POST"
+          ? authLimiter.admit(
+              authRouteKey,
+              clientIpKey(request)
+            )
+          : { allowed: true };
+
+      if (!authAdmission.allowed) {
+        emitMonitor("auth", "rate_limited", {
+          route: authRouteKey
+        });
+
+        return Response.json(
+          {
+            error:
+              "Too many requests. Please try again shortly."
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(
+                authAdmission.retryAfterSeconds
+              )
+            }
+          }
+        );
+      }
+
       try {
         const auth =
           createAuth(
@@ -1197,10 +1697,7 @@ export default {
           request
         );
       } catch (error) {
-        console.error(
-          "HEGEVA Auth error:",
-          error
-        );
+        logFailure("auth_handler_failed", error);
 
         return Response.json(
           {
@@ -1238,29 +1735,7 @@ export default {
       }
 
       return Response.json({
-        configured:
-          Boolean(
-            env.RESEND_API_KEY
-          ),
-
-        provider:
-          env.RESEND_API_KEY
-            ? "Resend"
-            : "Not configured",
-
-        sender:
-          HEGEVA_EMAIL_FROM,
-
-        passwordRecovery:
-          Boolean(
-            env.RESEND_API_KEY
-          ),
-
-        resetLinkExpiresInSeconds:
-          3600,
-
-        revokeSessionsOnPasswordReset:
-          true
+        passwordRecovery: Boolean(env.RESEND_API_KEY)
       });
     }
 
@@ -1339,10 +1814,7 @@ export default {
             null
         });
       } catch (error) {
-        console.error(
-          "HEGEVA security test email error:",
-          error
-        );
+        logFailure("resend_security_test_failed", error);
 
         return Response.json(
           {
@@ -1499,10 +1971,7 @@ export default {
           createdAt
         });
       } catch (error) {
-        console.error(
-          "HEGEVA contact error:",
-          error
-        );
+        logFailure("contact_handler_failed", error);
 
         return Response.json(
           { error: "Contact service temporarily unavailable." },
@@ -1514,6 +1983,11 @@ export default {
     // =========================================
     // OWNER CONTACT LEAD INBOX
     // =========================================
+
+    if (url.pathname === "/api/admin/registrations") {
+      const user = await getLoggedInUserFn(request, env, ctx);
+      return listOwnerRegistrations(request, env, user);
+    }
 
     if (
       url.pathname ===
@@ -1644,10 +2118,7 @@ export default {
           }
         );
       } catch (error) {
-        console.error(
-          "HEGEVA owner lead inbox error:",
-          error
-        );
+        logFailure("owner_lead_inbox_failed", error);
 
         return Response.json(
           { error: "Lead inbox temporarily unavailable." },
@@ -1709,29 +2180,41 @@ export default {
           getCurrentPeriod();
 
         const usage =
-          await getAIUsage(
+          await readAssistantUsage(
             env,
             user.id,
             period
           );
+
+        const x20Actions = await readX20Usage(env, user.id, period);
+        const assistantTopUpCredits = await readAssistantTopUpBalance(env, user.id);
 
         return Response.json({
           plan:
             planInfo.plan,
 
           aiMessages:
-            usage.aiMessages,
+            usage,
 
           aiLimit:
             planInfo.limit,
 
-          period
+          aiRemaining:
+            planInfo.limit === null
+              ? null
+              : Math.max(0, planInfo.limit - usage),
+          assistantTopUpCredits,
+
+          period,
+          x20Actions,
+          x20Limit: planInfo.limit,
+          x20Remaining:
+            planInfo.limit === null
+              ? null
+              : Math.max(0, planInfo.limit - x20Actions)
         });
       } catch (error) {
-        console.error(
-          "HEGEVA plan error:",
-          error
-        );
+        logFailure("plan_handler_failed", error);
 
         return Response.json(
           {
@@ -1838,13 +2321,11 @@ export default {
             webhookSecret
           );
       } catch (error) {
-        console.error(
-          "HEGEVA Stripe webhook signature error:",
-          error
-        );
+        logFailure("stripe_webhook_signature_failed", error);
       }
 
       if (!signatureValid) {
+        emitMonitor("stripe_webhook", "signature_invalid");
         return Response.json(
           {
             error:
@@ -1870,6 +2351,7 @@ export default {
             bodyText
           );
       } catch {
+        emitMonitor("stripe_webhook", "payload_invalid");
         return Response.json(
           {
             error:
@@ -1886,6 +2368,7 @@ export default {
         event.object !== "event" ||
         typeof event.type !== "string"
       ) {
+        emitMonitor("stripe_webhook", "event_invalid");
         return Response.json(
           {
             error:
@@ -1897,29 +2380,17 @@ export default {
         );
       }
 
-      if (
-        isStripeTestMode(env) &&
-        event.livemode === true
-      ) {
-        return Response.json(
-          {
-            error:
-              "Live Stripe events are not accepted by this test build."
-          },
-          {
-            status: 400
-          }
-        );
-      }
+      const paymentMode = getPaymentMode(env);
+      const eventMatchesMode =
+        (paymentMode === "live" && event.livemode === true) ||
+        (paymentMode === "test" && event.livemode === false);
 
-      if (
-        isStripeModeLive(env) &&
-        event.livemode === false
-      ) {
+      if (!eventMatchesMode) {
+        emitMonitor("stripe_webhook", "mode_mismatch");
         return Response.json(
           {
             error:
-              "Test Stripe events are not accepted by this live build."
+              "Stripe event mode does not match the active payment mode."
           },
           {
             status: 400
@@ -1961,6 +2432,57 @@ export default {
 
       try {
         if (
+          event.type === "checkout.session.completed" &&
+          metadata?.hegevaPurchaseType === "assistant_topup"
+        ) {
+          const pack = getAssistantTopUpPack(env, metadata?.topUpPack);
+          const paymentComplete = object?.mode === "payment" && object?.payment_status === "paid";
+          const amountMatches = pack && Number(object?.amount_total) === pack.amount;
+          const currencyMatches = pack && String(object?.currency || "").toLowerCase() === pack.currency;
+          if (userId && pack && paymentComplete && amountMatches && currencyMatches && typeof event.id === "string" && typeof object?.id === "string") {
+            const grant = await grantAssistantTopUpPurchase(env, {
+              purchaseId: `topup-${object.id}`,
+              userId,
+              stripeCheckoutSessionId: object.id,
+              stripePaymentIntentId: typeof object?.payment_intent === "string" ? object.payment_intent : null,
+              stripeChargeId: typeof object?.charges?.data?.[0]?.id === "string" ? object.charges.data[0].id : null,
+              stripeEventId: event.id,
+              packCode: pack.code,
+              credits: pack.credits,
+              amountTotal: pack.amount,
+              currency: pack.currency,
+            });
+            entitlementChanged = Boolean(grant.granted);
+          } else {
+            ignored = true;
+          }
+        }
+
+        else if (["charge.refunded", "refund.created", "charge.dispute.created", "charge.dispute.updated", "charge.dispute.closed"].includes(event.type)) {
+          const eventType = event.type === "charge.refunded" || event.type === "refund.created"
+            ? "refund"
+            : event.type === "charge.dispute.created"
+              ? "dispute_created"
+              : event.type === "charge.dispute.updated"
+                ? "dispute_updated"
+                : "dispute_closed";
+          const identifiers = {
+            paymentIntentId: typeof object?.payment_intent === "string" ? object.payment_intent : null,
+            chargeId: typeof object?.charge === "string" ? object.charge : typeof object?.id === "string" && event.type.startsWith("charge.") ? object.id : null,
+            checkoutSessionId: typeof object?.metadata?.checkoutSessionId === "string" ? object.metadata.checkoutSessionId : null,
+          };
+          const reconciliation = await reconcileAssistantTopUpFinancialEvent(env, {
+            eventId: event.id,
+            eventType,
+            eventState: object?.status || event.type,
+            identifiers,
+            amount: Number.isSafeInteger(Number(event.type === "charge.refunded" ? object?.amount_refunded : object?.amount)) ? Number(event.type === "charge.refunded" ? object.amount_refunded : object.amount) : null,
+            currency: typeof object?.currency === "string" ? object.currency.toLowerCase() : null,
+          });
+          ignored = !reconciliation.reconciled && !reconciliation.duplicate;
+        }
+
+        else if (
           event.type ===
           "checkout.session.completed"
         ) {
@@ -2031,6 +2553,17 @@ export default {
           event.type ===
           "invoice.payment_failed"
         ) {
+          logFailure(
+            "stripe_invoice_payment_failed",
+            new Error(
+              "Stripe invoice payment failed."
+            ),
+            {
+              userId: userId || null,
+              eventId: event?.id || null
+            }
+          );
+
           ignored =
             true;
         }
@@ -2069,10 +2602,7 @@ export default {
           );
         }
       } catch (error) {
-        console.error(
-          "HEGEVA Stripe webhook processing error:",
-          error
-        );
+        logFailure("stripe_webhook_processing_failed", error);
 
         return Response.json(
           {
@@ -2163,16 +2693,26 @@ export default {
             : "";
 
         const paymentMode =
-          getPaymentMode(env);
+          typeof env.PAYMENT_MODE ===
+            "string"
+            ? env.PAYMENT_MODE
+                .trim()
+                .toLowerCase()
+            : "";
 
         const providerSelected =
           provider === "stripe";
 
-        const liveMode =
-          paymentMode === "live";
+        const validMode =
+          paymentMode === "test" || paymentMode === "live";
 
         const secretReady =
-          isStripeSecret(env);
+          isStripeSecretForMode(
+            typeof env.STRIPE_SECRET_KEY === "string"
+              ? env.STRIPE_SECRET_KEY.trim()
+              : "",
+            paymentMode
+          );
 
         const premiumPriceReady =
           Boolean(
@@ -2192,6 +2732,7 @@ export default {
 
         const connected =
           providerSelected &&
+          validMode &&
           secretReady;
 
         const checkoutEnabled =
@@ -2228,9 +2769,7 @@ export default {
               : null,
 
           mode:
-            liveMode
-              ? "live"
-              : "test",
+            paymentMode || null,
 
           checkoutEnabled,
 
@@ -2258,6 +2797,12 @@ export default {
           lastWebhookEventCreatedAt:
             webhookStatus.lastEventCreatedAt,
 
+          paymentState:
+            webhookStatus.paymentState,
+
+          paymentGraceUntil:
+            webhookStatus.paymentGraceUntil,
+
           entitlementSource:
             "backend",
 
@@ -2270,9 +2815,9 @@ export default {
           managedPaymentsEnabled:
             false,
 
-          stripeConfiguration: {
+          paymentConfiguration: {
             providerSelected,
-            liveMode,
+            mode: paymentMode || null,
             secretReady,
             premiumPriceReady,
             proPriceReady
@@ -2280,14 +2825,11 @@ export default {
 
           message:
             checkoutEnabled
-              ? `${liveMode ? "Stripe live checkout" : "Stripe test checkout"} is configured. Managed Payments is disabled for the HEGEVA checkout. Verified Stripe webhooks control paid entitlement.`
+              ? `Stripe ${paymentMode} checkout is configured. Managed Payments is disabled. Verified Stripe webhooks control paid entitlement.`
               : "Billing API is available, but Stripe checkout setup is incomplete."
         });
       } catch (error) {
-        console.error(
-          "HEGEVA billing status error:",
-          error
-        );
+        logFailure("billing_status_failed", error);
 
         return Response.json(
           {
@@ -2311,16 +2853,16 @@ export default {
       }
 
       try {
-        const user = await getLoggedInUser(request, env, ctx);
+      const user = await getLoggedInUserFn(request, env, ctx);
         if (!user) {
           return Response.json({ error: "Authentication required." }, { status: 401 });
         }
 
         const provider = String(env.PAYMENT_PROVIDER || "").trim().toLowerCase();
-        const mode = getPaymentMode(env);
-        if (provider !== "stripe") {
+        const mode = String(env.PAYMENT_MODE || "").trim().toLowerCase();
+        if (provider !== "stripe" || !["test", "live"].includes(mode)) {
           return Response.json(
-            { error: "Only Stripe billing is available in this build." },
+            { error: "Stripe billing is not configured." },
             { status: 503 }
           );
         }
@@ -2333,7 +2875,7 @@ export default {
           { status: portal.status }
         );
       } catch (error) {
-        console.error("HEGEVA billing portal error:", error);
+        logFailure("stripe_portal_handler_failed", error);
         return Response.json(
           { error: "Billing portal is temporarily unavailable." },
           { status: 500 }
@@ -2342,227 +2884,34 @@ export default {
     }
 
     // =========================================
-    // STRIPE CHECKOUT CONFIRMATION
+    // ASSISTANT PREPAID TOP-UP CHECKOUT
     // =========================================
-
-    if (
-      url.pathname ===
-      "/api/billing/confirm"
-    ) {
-      if (
-        request.method !==
-        "POST"
-      ) {
-        return Response.json(
-          {
-            error:
-              "Method not allowed."
-          },
-          {
-            status: 405
-          }
-        );
-      }
-
+    if (url.pathname === "/api/billing/topup/checkout") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
       try {
-        const user =
-          await getLoggedInUser(
-            request,
-            env,
-            ctx
-          );
-
-        if (!user) {
-          return Response.json(
-            {
-              error:
-                "Authentication required."
-            },
-            {
-              status: 401
-            }
-          );
-        }
-
-        const body =
-          await request
-            .json()
-            .catch(() => null);
-
-        const sessionId =
-          typeof body?.sessionId ===
-            "string"
-            ? body.sessionId.trim()
-            : "";
-
-        const secretKey =
-          typeof env.STRIPE_SECRET_KEY ===
-            "string"
-            ? env.STRIPE_SECRET_KEY.trim()
-            : "";
-
-        const liveMode =
-          isStripeModeLive(env);
-
-        const expectsTestSession =
-          !liveMode;
-
-        const expectedSessionPrefix =
-          expectsTestSession
-            ? "cs_test_"
-            : "cs_live_";
-
-        if (
-          !sessionId.startsWith(
-            expectedSessionPrefix
-          ) ||
-          !isStripeSecret(env)
-        ) {
-          return Response.json(
-            {
-              error:
-                "Invalid checkout confirmation.",
-              code:
-                !sessionId.startsWith(expectedSessionPrefix)
-                  ? "invalid_session_id"
-                  : liveMode
-                      ? "stripe_live_secret_unavailable"
-                      : "stripe_test_secret_unavailable"
-            },
-            {
-              status: 400
-            }
-          );
-        }
-
-        const stripeResponse =
-          await fetch(
-            `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}`,
-            {
-              headers: {
-                Authorization:
-                  `Bearer ${secretKey}`
-              }
-            }
-          );
-
-        const stripeSession =
-          await stripeResponse
-            .json()
-            .catch(() => null);
-
-        if (
-          !stripeResponse.ok ||
-          !stripeSession
-        ) {
-          return Response.json(
-            {
-              error:
-                "Stripe checkout could not be verified.",
-              code:
-                "stripe_session_lookup_failed",
-              stripeStatus:
-                stripeResponse.status
-            },
-            {
-              status:
-                stripeResponse.status ||
-                502
-            }
-          );
-        }
-
-        const mappedUserId =
-          typeof stripeSession
-            .metadata?.userId ===
-            "string"
-            ? stripeSession.metadata.userId.trim()
-            : "";
-
-        const plan =
-          typeof stripeSession
-            .metadata?.hegevaPlan ===
-            "string"
-            ? stripeSession.metadata.hegevaPlan
-                .trim()
-                .toLowerCase()
-            : "";
-
-        const paid =
-          [
-            "paid",
-            "no_payment_required"
-          ].includes(
-            stripeSession.payment_status
-          );
-
-        if (
-          stripeSession.livemode !== (liveMode === true) ||
-          stripeSession.mode !==
-            "subscription" ||
-          !paid ||
-          mappedUserId !==
-            String(user.id) ||
-          !validStripePlan(plan)
-        ) {
-          return Response.json(
-            {
-              error:
-                "This checkout does not belong to the authenticated account or is not paid.",
-              code:
-                "stripe_session_validation_failed",
-              checks: {
-                modeMatch:
-                  stripeSession.livemode === (liveMode === true),
-                expectedLive:
-                  liveMode,
-                subscriptionMode:
-                  stripeSession.mode === "subscription",
-                paid,
-                userMapped:
-                  Boolean(mappedUserId),
-                authenticatedUserMatches:
-                  mappedUserId === String(user.id),
-                validPlan:
-                  validStripePlan(plan)
-              }
-            },
-            {
-              status: 403
-            }
-          );
-        }
-
-        await applyVerifiedStripeCheckoutPlan(
-          env,
-          String(user.id),
-          plan
-        );
-
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        let body;
+        try { body = await request.json(); } catch { return Response.json({ error: "Invalid JSON body." }, { status: 400 }); }
+        const pack = getAssistantTopUpPack(env, body?.pack);
+        if (!pack) return Response.json({ error: "Invalid or unavailable AI Top-Up pack." }, { status: 400 });
+        const checkout = await createStripeTopUpCheckoutSession(request, env, user, pack);
+        if (!checkout.ok) return Response.json({ ok: false, error: checkout.error }, { status: checkout.status });
         return Response.json({
           ok: true,
-          verified: true,
-          plan,
-          sessionId:
-            stripeSession.id
+          provider: "Stripe",
+          mode: getPaymentMode(env),
+          purchaseType: "assistant_topup",
+          pack: pack.code,
+          credits: pack.credits,
+          sessionId: checkout.id,
+          url: checkout.url,
+          creditGranted: false,
+          message: "AI Top-Up credits are added only after Stripe confirms the payment by verified webhook.",
         });
       } catch (error) {
-        console.error(
-          "HEGEVA Stripe confirmation error:",
-          error
-        );
-
-        return Response.json(
-          {
-            error:
-              "Stripe checkout confirmation is temporarily unavailable.",
-            code:
-              "stripe_confirmation_internal_error"
-          },
-          {
-            status: 500
-          }
-        );
+        logFailure("stripe_topup_checkout_failed", error);
+        return Response.json({ error: "AI Top-Up checkout is temporarily unavailable." }, { status: 500 });
       }
     }
 
@@ -2653,18 +3002,14 @@ export default {
           );
         }
 
-        const expectedMode =
-          isStripeModeLive(env)
-            ? "live"
-            : "test";
+        const requestedMode =
+          typeof body?.mode === "string" ? body.mode.trim().toLowerCase() : "";
 
-        if (
-          body?.mode !== expectedMode
-        ) {
+        if (!["test", "live"].includes(requestedMode)) {
           return Response.json(
             {
               error:
-                `Only ${expectedMode} checkout is allowed in this build.`
+                "Invalid payment mode."
             },
             {
               status: 400
@@ -2681,11 +3026,17 @@ export default {
             : "";
 
         const paymentMode =
-          getPaymentMode(env);
+          typeof env.PAYMENT_MODE ===
+            "string"
+            ? env.PAYMENT_MODE
+                .trim()
+                .toLowerCase()
+            : "";
 
         if (
           provider !== "stripe" ||
-          paymentMode !== getPaymentMode(env)
+          !["test", "live"].includes(paymentMode) ||
+          requestedMode !== paymentMode
         ) {
           return Response.json(
             {
@@ -2696,7 +3047,7 @@ export default {
                 null,
 
               mode:
-                expectedMode,
+                paymentMode || null,
 
               plan:
                 requestedPlan,
@@ -2711,7 +3062,7 @@ export default {
                 false,
 
               message:
-                `Stripe ${expectedMode} mode is not configured.`
+                "Stripe payment mode is not configured or does not match the request."
             },
             {
               status: 503
@@ -2737,7 +3088,7 @@ export default {
                 "Stripe",
 
               mode:
-                expectedMode,
+                paymentMode,
 
               plan:
                 requestedPlan,
@@ -2769,7 +3120,7 @@ export default {
             "Stripe",
 
           mode:
-            expectedMode,
+            paymentMode,
 
           plan:
             requestedPlan,
@@ -2796,13 +3147,10 @@ export default {
             false,
 
           message:
-            `Stripe ${expectedMode} checkout session created. Managed Payments is disabled. Paid entitlement changes only after verified Stripe webhook events.`
+            `Stripe ${paymentMode} checkout session created. Managed Payments is disabled. Paid entitlement changes only after verified Stripe webhook events.`
         });
       } catch (error) {
-        console.error(
-          "HEGEVA billing checkout error:",
-          error
-        );
+        logFailure("stripe_checkout_handler_failed", error);
 
         return Response.json(
           {
@@ -3143,10 +3491,7 @@ export default {
           }
         );
       } catch (error) {
-        console.error(
-          "HEGEVA workspace error:",
-          error
-        );
+        logFailure("workspace_handler_failed", error);
 
         return Response.json(
           {
@@ -3156,6 +3501,600 @@ export default {
           {
             status: 500
           }
+        );
+      }
+    }
+
+    // =========================================
+    // GOVERNED EXTERNAL ACTIONS: EMAIL DRAFTS
+    // =========================================
+
+    if (url.pathname === "/api/external-actions/email-draft") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) {
+          return Response.json({ error: "Authentication required." }, { status: 401 });
+        }
+
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: "Invalid JSON body." }, { status: 400 });
+        }
+
+        const invoiceId = typeof body?.invoiceId === "string" ? body.invoiceId.trim() : "";
+        const locale = typeof body?.locale === "string" ? body.locale.trim() : "en";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(invoiceId)) {
+          return Response.json({ error: "A valid invoice is required." }, { status: 400 });
+        }
+
+        const dataTypes = ["invoice_documents", "customers", "messages"];
+        const stored = {};
+        for (const dataType of dataTypes) {
+          const row = await env.DB.prepare(
+            "SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1",
+          ).bind(user.id, dataType).first();
+          if (!row?.data) {
+            stored[dataType] = [];
+            continue;
+          }
+          try {
+            const value = JSON.parse(row.data);
+            stored[dataType] = Array.isArray(value) ? value : [];
+          } catch {
+            return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+          }
+        }
+
+        const invoice = stored.invoice_documents.find((document) => document?.id === invoiceId);
+        if (!invoice) {
+          return Response.json({ error: "Invoice not found." }, { status: 404 });
+        }
+
+        const result = prepareOverdueInvoiceEmailDraft({
+          invoice,
+          customers: stored.customers,
+          messages: stored.messages,
+          locale,
+        });
+        if (!result.ok) {
+          const status = result.reason === "customer-not-authorized" ? 403 : 422;
+          return Response.json({ error: "The available workspace evidence cannot support this email draft." }, { status });
+        }
+
+        if (result.created || result.updated) {
+          const now = new Date().toISOString();
+          await env.DB.prepare(`
+            INSERT INTO workspace_data (id, userId, dataType, data, createdAt, updatedAt)
+            VALUES (?1, ?2, 'messages', ?3, ?4, ?4)
+            ON CONFLICT(userId, dataType) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt
+          `).bind(
+            crypto.randomUUID(),
+            user.id,
+            JSON.stringify([result.draft, ...stored.messages]),
+            now,
+          ).run();
+          emitMonitor("email_draft_action", result.created ? "prepared" : "upgraded", { actionType: result.draft.actionType });
+        } else {
+          emitMonitor("email_draft_action", "reused", { actionType: result.draft.actionType });
+        }
+
+        return Response.json(
+          { draft: result.draft, created: result.created, state: "awaiting-approval", sent: false },
+          { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } },
+        );
+      } catch (error) {
+        logFailure("email_draft_action_failed", error);
+        return Response.json({ error: "Email draft preparation is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/external-actions/quote-followup-email-draft") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        let body;
+        try { body = await request.json(); } catch { return Response.json({ error: "Invalid JSON body." }, { status: 400 }); }
+        const quoteId = typeof body?.quoteId === "string" ? body.quoteId.trim() : "";
+        const locale = typeof body?.locale === "string" ? body.locale.trim() : "en";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(quoteId)) return Response.json({ error: "A valid quote is required." }, { status: 400 });
+        const stored = {};
+        for (const dataType of ["invoice_documents", "customers", "messages"]) {
+          const row = await env.DB.prepare("SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1").bind(user.id, dataType).first();
+          if (!row?.data) { stored[dataType] = []; continue; }
+          try { const value = JSON.parse(row.data); stored[dataType] = Array.isArray(value) ? value : []; }
+          catch { return Response.json({ error: "Workspace data is unavailable." }, { status: 503 }); }
+        }
+        const quote = stored.invoice_documents.find((document) => document?.id === quoteId);
+        if (!quote) return Response.json({ error: "Quote not found." }, { status: 404 });
+        const result = prepareQuoteFollowUpEmailDraft({ quote, customers: stored.customers, messages: stored.messages, locale });
+        if (!result.ok) return Response.json({ error: "The available workspace evidence cannot support this quote follow-up.", code: result.reason }, { status: result.reason === "customer-not-authorized" ? 403 : 422 });
+        if (result.created) {
+          const now = new Date().toISOString();
+          await env.DB.prepare(`INSERT INTO workspace_data (id, userId, dataType, data, createdAt, updatedAt) VALUES (?1, ?2, 'messages', ?3, ?4, ?4) ON CONFLICT(userId, dataType) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt`).bind(crypto.randomUUID(), user.id, JSON.stringify([result.draft, ...stored.messages]), now).run();
+          emitMonitor("quote_followup_email_draft_action", "prepared", { actionType: result.draft.actionType });
+        } else emitMonitor("quote_followup_email_draft_action", "reused", { actionType: result.draft.actionType });
+        return Response.json({ draft: result.draft, created: result.created, state: "awaiting-approval", sent: false }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+      } catch (error) {
+        logFailure("quote_followup_email_draft_action_failed", error);
+        return Response.json({ error: "Quote follow-up preparation is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/external-actions/quote-email-draft") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) {
+          return Response.json({ error: "Authentication required." }, { status: 401 });
+        }
+
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: "Invalid JSON body." }, { status: 400 });
+        }
+
+        const quoteId = typeof body?.quoteId === "string" ? body.quoteId.trim() : "";
+        const locale = typeof body?.locale === "string" ? body.locale.trim() : "en";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(quoteId)) {
+          return Response.json({ error: "A valid quote is required." }, { status: 400 });
+        }
+
+        const dataTypes = ["invoice_documents", "customers", "messages"];
+        const stored = {};
+        for (const dataType of dataTypes) {
+          const row = await env.DB.prepare(
+            "SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1",
+          ).bind(user.id, dataType).first();
+          if (!row?.data) {
+            stored[dataType] = [];
+            continue;
+          }
+          try {
+            const value = JSON.parse(row.data);
+            stored[dataType] = Array.isArray(value) ? value : [];
+          } catch {
+            return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+          }
+        }
+
+        const quote = stored.invoice_documents.find((document) => document?.id === quoteId);
+        if (!quote) {
+          return Response.json({ error: "Quote not found." }, { status: 404 });
+        }
+
+        const result = prepareQuoteEmailDraft({
+          quote,
+          customers: stored.customers,
+          messages: stored.messages,
+          locale,
+        });
+        if (!result.ok) {
+          const status = result.reason === "customer-not-authorized" ? 403 : 422;
+          return Response.json({ error: "The available workspace evidence cannot support this quote email draft.", code: result.reason }, { status });
+        }
+
+        if (result.created) {
+          const now = new Date().toISOString();
+          await env.DB.prepare(`
+            INSERT INTO workspace_data (id, userId, dataType, data, createdAt, updatedAt)
+            VALUES (?1, ?2, 'messages', ?3, ?4, ?4)
+            ON CONFLICT(userId, dataType) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt
+          `).bind(
+            crypto.randomUUID(),
+            user.id,
+            JSON.stringify([result.draft, ...stored.messages]),
+            now,
+          ).run();
+          emitMonitor("quote_email_draft_action", "prepared", { actionType: result.draft.actionType });
+        } else {
+          emitMonitor("quote_email_draft_action", "reused", { actionType: result.draft.actionType });
+        }
+
+        return Response.json(
+          { draft: result.draft, created: result.created, state: "awaiting-approval", sent: false },
+          { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } },
+        );
+      } catch (error) {
+        logFailure("quote_email_draft_action_failed", error);
+        return Response.json({ error: "Quote email draft preparation is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/external-actions/approve") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: "Invalid JSON body." }, { status: 400 });
+        }
+        const actionId = typeof body?.actionId === "string" ? body.actionId.trim() : "";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(actionId)) {
+          return Response.json({ error: "A valid action is required." }, { status: 400 });
+        }
+
+        const row = await env.DB.prepare(
+          "SELECT data, updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1",
+        ).bind(user.id, "messages").first();
+        let messages;
+        try {
+          messages = row?.data ? JSON.parse(row.data) : [];
+        } catch {
+          return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+        }
+        if (!Array.isArray(messages)) return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+
+        const current = messages.find((message) => message?.id === actionId);
+        if (!current) return Response.json({ error: "Action not found." }, { status: 404 });
+        const now = new Date().toISOString();
+        const approved = approveGovernedExternalAction(current, { actorHash: await sha256Hex(user.id), now });
+        if (!approved.ok) return Response.json({ error: "This action cannot be approved in its current state." }, { status: 409 });
+        if (approved.idempotent) {
+          emitMonitor("external_action_approval", "reused", { actionType: current.actionType });
+          return Response.json({ state: approved.action.approvalState, action: approved.action, idempotent: true }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+        }
+
+        const nextMessages = messages.map((message) => message?.id === actionId ? approved.action : message);
+        const update = await env.DB.prepare(
+          "UPDATE workspace_data SET data = ?1, updatedAt = ?2 WHERE userId = ?3 AND dataType = 'messages' AND updatedAt = ?4",
+        ).bind(JSON.stringify(nextMessages), now, user.id, row?.updatedAt).run();
+        if (Number(update?.meta?.changes || 0) !== 1) {
+          return Response.json({ error: "The action changed; reload and try again." }, { status: 409 });
+        }
+        emitMonitor("external_action_approval", "approved", { actionType: approved.action.actionType });
+        return Response.json({ state: "approved", action: approved.action, idempotent: false }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+      } catch (error) {
+        logFailure("external_action_approval_failed", error);
+        return Response.json({ error: "Owner approval is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/external-actions/ready") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: "Invalid JSON body." }, { status: 400 });
+        }
+        const actionId = typeof body?.actionId === "string" ? body.actionId.trim() : "";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(actionId)) {
+          return Response.json({ error: "A valid action is required." }, { status: 400 });
+        }
+
+        const row = await env.DB.prepare(
+          "SELECT data, updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1",
+        ).bind(user.id, "messages").first();
+        let messages;
+        try {
+          messages = row?.data ? JSON.parse(row.data) : [];
+        } catch {
+          return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+        }
+        if (!Array.isArray(messages)) return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+
+        const current = messages.find((message) => message?.id === actionId);
+        if (!current) return Response.json({ error: "Action not found." }, { status: 404 });
+        const now = new Date().toISOString();
+        const ready = markGovernedExternalActionReady(current, { actorHash: await sha256Hex(user.id), now });
+        if (!ready.ok) return Response.json({ error: "This action cannot be marked ready in its current state." }, { status: 409 });
+        if (ready.idempotent) {
+          emitMonitor("external_action_ready", "reused", { actionType: current.actionType });
+          return Response.json({ state: "ready-to-execute", action: ready.action, idempotent: true }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+        }
+
+        const nextMessages = messages.map((message) => message?.id === actionId ? ready.action : message);
+        const update = await env.DB.prepare(
+          "UPDATE workspace_data SET data = ?1, updatedAt = ?2 WHERE userId = ?3 AND dataType = 'messages' AND updatedAt = ?4",
+        ).bind(JSON.stringify(nextMessages), now, user.id, row?.updatedAt).run();
+        if (Number(update?.meta?.changes || 0) !== 1) {
+          return Response.json({ error: "The action changed; reload and try again." }, { status: 409 });
+        }
+        emitMonitor("external_action_ready", "ready", { actionType: ready.action.actionType });
+        return Response.json({ state: "ready-to-execute", action: ready.action, idempotent: false }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+      } catch (error) {
+        logFailure("external_action_ready_failed", error);
+        return Response.json({ error: "Preparing the action for execution is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/external-actions/email-delivery/test/preview") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      const user = await getLoggedInUserFn(request, env, ctx);
+      if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+      if (env.EMAIL_DELIVERY_ENABLED !== "enabled" || env.EMAIL_DELIVERY_TEST_MODE_ENABLED !== "enabled") return Response.json({ error: "Email delivery test mode is disabled." }, { status: 503 });
+      const action = ownerEmailDeliveryTestAction(user);
+      if (!action) return Response.json({ error: "A verified account email is required." }, { status: 403 });
+      return Response.json({ action }, { headers: { "Cache-Control": "private, no-store" } });
+    }
+
+    if (url.pathname === "/api/external-actions/email-delivery/confirm") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      let deliveryLimiter = null;
+      let deliveryLease = null;
+      let deliveryUserId = null;
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        if (env.EMAIL_DELIVERY_ENABLED !== "enabled") return Response.json({ error: "Email delivery is disabled." }, { status: 503 });
+        deliveryUserId = user.id;
+        deliveryLimiter = env.RATE_LIMITER?.getByName(`email-delivery-rate-limit:${user.id}`);
+        if (!deliveryLimiter) return Response.json({ error: "Email delivery is temporarily unavailable." }, { status: 503 });
+        try {
+          deliveryLease = await deliveryLimiter.admit();
+        } catch (error) {
+          logFailure("email_delivery_rate_limit_failed", error);
+          return Response.json({ error: "Email delivery is temporarily unavailable." }, { status: 503 });
+        }
+        if (!deliveryLease?.allowed) return Response.json({ error: "Email delivery rate limit reached. Please try again later." }, { status: 429, headers: { "Retry-After": String(Math.max(1, Math.ceil((Number(deliveryLease?.retryAfterMs) || 1000) / 1000))) } });
+        let body;
+        try { body = await request.json(); } catch { return Response.json({ error: "Invalid JSON body." }, { status: 400 }); }
+        const actionId = typeof body?.actionId === "string" ? body.actionId.trim() : "";
+        const confirmationDigest = typeof body?.confirmationDigest === "string" ? body.confirmationDigest : "";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(actionId) || !/^[a-f0-9]{64}$/.test(confirmationDigest)) return Response.json({ error: "A valid final confirmation is required." }, { status: 400 });
+        const isOwnerTest = actionId === OWNER_EMAIL_DELIVERY_TEST_ACTION_ID;
+        if (isOwnerTest && env.EMAIL_DELIVERY_TEST_MODE_ENABLED !== "enabled") return Response.json({ error: "Email delivery test mode is disabled." }, { status: 503 });
+        const row = isOwnerTest ? null : await env.DB.prepare("SELECT data, updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'messages' LIMIT 1").bind(user.id).first();
+        let messages; try { messages = row?.data ? JSON.parse(row.data) : []; } catch { return Response.json({ error: "Workspace data is unavailable." }, { status: 503 }); }
+        if (!Array.isArray(messages)) return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+        const current = isOwnerTest ? ownerEmailDeliveryTestAction(user) : messages.find((message) => message?.id === actionId);
+        const digest = await emailContentDigest(current);
+        if (!canConfirmEmailDelivery(current, confirmationDigest) || digest !== confirmationDigest) return Response.json({ error: "This exact ready email must be reviewed again." }, { status: 409 });
+        const actorHash = await sha256Hex(user.id), now = new Date().toISOString(), operationId = crypto.randomUUID();
+        try {
+          await env.DB.batch([
+            env.DB.prepare("INSERT INTO email_delivery_operations (operationId,userId,actionId,readyVersion,contentDigest,status,confirmedByActorHash,confirmedAt,createdAt,updatedAt) VALUES (?1,?2,?3,?4,?5,'sending',?6,?7,?7,?7)").bind(operationId, user.id, actionId, current.readyVersion, digest, actorHash, now),
+            env.DB.prepare("INSERT INTO email_delivery_history (id,operationId,userId,event,status,actorHash,occurredAt) VALUES (?1,?2,?3,'final-confirmed','sending',?4,?5)").bind(crypto.randomUUID(), operationId, user.id, actorHash, now),
+          ]);
+        } catch {
+          const existing = await env.DB.prepare("SELECT status FROM email_delivery_operations WHERE userId=?1 AND actionId=?2 AND readyVersion=?3 LIMIT 1").bind(user.id, actionId, current.readyVersion).first();
+          return Response.json({ error: existing?.status === "sent" ? "This email was already sent." : "A delivery operation already exists for this email." }, { status: 409 });
+        }
+        const sending = applyEmailDeliveryState(current, "sending", { now, actorHash });
+        if (!isOwnerTest) {
+          const update = await env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='messages' AND updatedAt=?4").bind(JSON.stringify(messages.map((message) => message?.id === actionId ? sending : message)), now, user.id, row.updatedAt).run();
+          if (Number(update?.meta?.changes || 0) !== 1) return Response.json({ error: "The email changed; reload and try again." }, { status: 409 });
+        }
+        try {
+          const result = await sendResendEmail(env, { to: current.recipient, subject: current.subject, text: current.body, html: `<div style="white-space:pre-wrap">${current.body.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</div>`, idempotencyKey: operationId });
+          const providerMessageId = typeof result?.id === "string" ? result.id : "";
+          if (!providerMessageId) throw new Error("provider-response-invalid");
+          const sentAt = new Date().toISOString(), sent = applyEmailDeliveryState(sending, "sent", { now: sentAt, actorHash, providerMessageId });
+          await env.DB.batch([env.DB.prepare("UPDATE email_delivery_operations SET status='sent',providerMessageId=?1,updatedAt=?2 WHERE operationId=?3 AND userId=?4 AND status='sending'").bind(providerMessageId, sentAt, operationId, user.id), env.DB.prepare("INSERT INTO email_delivery_history (id,operationId,userId,event,status,providerMessageId,actorHash,occurredAt) VALUES (?1,?2,?3,'sent','sent',?4,?5,?6)").bind(crypto.randomUUID(), operationId, user.id, providerMessageId, actorHash, sentAt), ...(!isOwnerTest ? [env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='messages'").bind(JSON.stringify(messages.map((message) => message?.id === actionId ? sent : message)), sentAt, user.id)] : [])]);
+          return Response.json({ action: sent, status: "sent" }, { headers: { "Cache-Control": "private, no-store" } });
+        } catch (error) {
+          const uncertain = error?.name === "AbortError" || error?.message === "provider-response-invalid";
+          const finalStatus = uncertain ? "uncertain" : "failed", completedAt = new Date().toISOString(), failed = applyEmailDeliveryState(sending, finalStatus, { now: completedAt, actorHash, failureCode: uncertain ? "provider-outcome-uncertain" : "provider-failure" });
+          await env.DB.batch([env.DB.prepare("UPDATE email_delivery_operations SET status=?1,failureCode=?2,updatedAt=?3 WHERE operationId=?4 AND userId=?5 AND status='sending'").bind(finalStatus, uncertain ? "provider-outcome-uncertain" : "provider-failure", completedAt, operationId, user.id), env.DB.prepare("INSERT INTO email_delivery_history (id,operationId,userId,event,status,failureCode,actorHash,occurredAt) VALUES (?1,?2,?3,?4,?4,?5,?6,?7)").bind(crypto.randomUUID(), operationId, user.id, finalStatus, uncertain ? "provider-outcome-uncertain" : "provider-failure", actorHash, completedAt), ...(!isOwnerTest ? [env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='messages'").bind(JSON.stringify(messages.map((message) => message?.id === actionId ? failed : message)), completedAt, user.id)] : [])]);
+          return Response.json({ error: uncertain ? "Delivery outcome is uncertain; no retry is available." : "Email delivery failed.", status: finalStatus }, { status: 503 });
+        }
+      } catch (error) {
+        logFailure("email_delivery_failed", error);
+        return Response.json({ error: "Email delivery is temporarily unavailable." }, { status: 503 });
+      } finally {
+        if (deliveryLease?.allowed && deliveryLease?.token && deliveryLimiter && deliveryUserId) {
+          try {
+            await deliveryLimiter.release(deliveryLease.token);
+          } catch (error) {
+            logFailure("email_delivery_rate_limit_release_failed", error);
+          }
+        }
+      }
+    }
+
+    if (url.pathname === "/api/prepared-work/sync" || url.pathname === "/api/prepared-work/review") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        const row = await env.DB.prepare("SELECT data, updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = 'prepared_work' LIMIT 1").bind(user.id).first();
+        let records;
+        try { records = row?.data ? JSON.parse(row.data) : []; } catch { return Response.json({ error: "Prepared work is unavailable." }, { status: 503 }); }
+        if (!Array.isArray(records)) return Response.json({ error: "Prepared work is unavailable." }, { status: 503 });
+        const now = new Date().toISOString();
+        let next;
+        if (url.pathname === "/api/prepared-work/sync") {
+          const workspaceData = {};
+          for (const [dataType, coreKey] of [["customers", "customers"], ["invoice_documents", "invoices"], ["planner", "tasks"], ["messages", "messages"], ["documents", "documents"], ["expenses", "expenses"], ["goals", "goals"]]) {
+            const source = await env.DB.prepare("SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1").bind(user.id, dataType).first();
+            try { workspaceData[coreKey] = source?.data ? JSON.parse(source.data) : []; } catch { workspaceData[coreKey] = []; }
+          }
+          next = synchronizePreparedWork(records, runCoreV1Decision(workspaceData, true, "en").employeeDelegations, now);
+          if (!next.ok) return Response.json({ error: "Prepared work is unavailable." }, { status: 503 });
+        } else {
+          let body;
+          try { body = await request.json(); } catch { return Response.json({ error: "Invalid JSON body." }, { status: 400 }); }
+          const actionId = typeof body?.actionId === "string" ? body.actionId : "";
+          const action = typeof body?.action === "string" ? body.action : "";
+          next = transitionPreparedWork(records, actionId, action, { actorHash: await sha256Hex(user.id), now });
+          if (!next.ok) return Response.json({ error: "This review action is unavailable." }, { status: next.reason === "not-found" ? 404 : 409 });
+          next.created = 0;
+        }
+        if (next.created === 0 && url.pathname === "/api/prepared-work/sync") return Response.json({ records: next.records, created: 0 }, { headers: { "Cache-Control": "private, no-store" } });
+        const data = JSON.stringify(next.records);
+        const update = row
+          ? await env.DB.prepare("UPDATE workspace_data SET data = ?1, updatedAt = ?2 WHERE userId = ?3 AND dataType = 'prepared_work' AND updatedAt = ?4").bind(data, now, user.id, row.updatedAt).run()
+          : await env.DB.prepare("INSERT INTO workspace_data (id, userId, dataType, data, createdAt, updatedAt) VALUES (?1, ?2, 'prepared_work', ?3, ?4, ?4) ON CONFLICT(userId, dataType) DO NOTHING").bind(crypto.randomUUID(), user.id, data, now).run();
+        if (Number(update?.meta?.changes || 0) !== 1) return Response.json({ error: "Prepared work changed; reload and try again." }, { status: 409 });
+        return Response.json({ records: next.records, created: next.created || 0, ...(next.record ? { record: next.record } : {}) }, { headers: { "Cache-Control": "private, no-store" } });
+      } catch (error) {
+        logFailure("prepared_work_review_failed", error);
+        return Response.json({ error: "Prepared work is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    // =========================================
+    // BUSINESS KNOWLEDGE V1 — DURABLE MEMORY
+    // Authenticated, workspace-scoped, owner-controlled.
+    // =========================================
+
+    if (url.pathname === "/api/business-knowledge") {
+      if (!["GET", "PUT"].includes(request.method)) {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+
+        // The current HEGEVA workspace is owner-scoped by userId.
+        const workspaceId = user.id;
+        const adapter = createDurableMemoryD1Adapter({ DB: env.DB });
+
+        if (request.method === "GET") {
+          const record = await readBusinessKnowledgeMemory(adapter, { userId: user.id, workspaceId });
+          return Response.json(
+            { profile: record?.payload || { version: 1, workspaceId, items: [] } },
+            { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } }
+          );
+        }
+
+        const body = await request.json();
+        const items = Array.isArray(body?.items) ? body.items : [];
+        const now = new Date().toISOString();
+        const record = await saveBusinessKnowledgeMemory(adapter, {
+          userId: user.id,
+          workspaceId,
+          items,
+          now,
+          correlationId: crypto.randomUUID(),
+        });
+        return Response.json(
+          { profile: record.payload },
+          { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } }
+        );
+      } catch (error) {
+        logFailure("business_knowledge_failed", error);
+        return Response.json({ error: "Business knowledge is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    // =========================================
+    // HEGEVA CORE V1 DECIDE
+    // =========================================
+
+    if (
+      url.pathname ===
+      "/api/core/decide"
+    ) {
+      if (request.method !== "POST") {
+        return Response.json(
+          { error: "Method not allowed." },
+          { status: 405 }
+        );
+      }
+
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+
+        if (!user) {
+          return Response.json(
+            { error: "Authentication required." },
+            { status: 401 }
+          );
+        }
+
+        const userId = user.id;
+
+        // Core V1 is deterministic and does not invoke an AI provider.
+        // Do not consume or require the user's monthly Assistant quota for
+        // workspace signal computation. Core remains authenticated and
+        // preparation-only; external actions still require owner approval.
+
+        // Load workspace data for signal computation
+        const workspaceTypes = [
+          ["customers", "customers"],
+          ["invoice_documents", "invoices"],
+          ["planner", "tasks"],
+          ["messages", "messages"],
+          ["documents", "documents"],
+          ["expenses", "expenses"],
+        ];
+
+        const workspaceData = {};
+        for (const [dataType, coreKey] of workspaceTypes) {
+          try {
+            const row = await env.DB.prepare(`
+              SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1
+            `).bind(userId, dataType).first();
+            workspaceData[coreKey] = row?.data ? JSON.parse(row.data) : [];
+          } catch {
+            workspaceData[coreKey] = [];
+          }
+        }
+
+        // Load goals if available
+        try {
+          const goalRow = await env.DB.prepare(`
+            SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = 'goals' LIMIT 1
+          `).bind(userId).first();
+          workspaceData.goals = goalRow?.data ? JSON.parse(goalRow.data) : [];
+        } catch {
+          workspaceData.goals = [];
+        }
+
+        // Read workspace-scoped Business Knowledge as context only.
+        // Missing/unavailable memory must never block Core decisions.
+        try {
+          const memoryAdapter = createDurableMemoryD1Adapter({ DB: env.DB });
+          const knowledgeRecord = await readBusinessKnowledgeMemory(memoryAdapter, {
+            userId,
+            workspaceId: userId,
+          });
+          workspaceData.businessKnowledge = knowledgeRecord?.payload || null;
+        } catch (error) {
+          workspaceData.businessKnowledge = null;
+          logFailure("core_business_knowledge_read_failed", error);
+        }
+
+        const cloudEnabled = true; // authenticated user
+        const locale = "en"; // TODO: extract from user preferences
+
+        const result = runCoreV1Decision(workspaceData, cloudEnabled, locale);
+
+        // Record successful Core V1 decision
+        emitMonitor("core_v1", "decision_completed", {
+          priorityCount: result.priorities.length,
+          actionCount: result.preparedActions.length,
+          topPriority: result.coreDecision?.kind,
+        });
+
+        return Response.json(result, {
+          headers: {
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+          }
+        });
+      } catch (error) {
+        logFailure("core_v1_decide_failed", error);
+        emitMonitor("core_v1", "handler_failed");
+
+        return Response.json(
+          { error: "Core V1 decision is temporarily unavailable." },
+          { status: 503 }
         );
       }
     }
@@ -3185,7 +4124,7 @@ export default {
 
       try {
         const user =
-          await getLoggedInUser(
+          await getLoggedInUserFn(
             request,
             env,
             ctx
@@ -3203,48 +4142,45 @@ export default {
           );
         }
 
+        const body =
+          await request.json();
+
+        const isX20Action = body.actionKind === "x20";
+        const isX10StudioProfile = !isX20Action && body.appStudioProfile === "x10";
+        if (!isX20Action) {
+          const flags = parseProviderFlags(env);
+          if (!flags.publicAssistantEnabled || !flags.providerEnabled || flags.killSwitchActive) {
+            return Response.json(
+              { error: "HEGEVA Assistant is currently unavailable." },
+              { status: 503 }
+            );
+          }
+          if (isX10StudioProfile && (!flags.x10Enabled || !flags.providerEnabled || flags.killSwitchActive)) {
+            return Response.json(
+              { error: "HEGEVA X10 is currently unavailable." },
+              { status: 503 }
+            );
+          }
+        }
+
         const planInfo =
           await getUserPlan(
             env,
             user.id
           );
 
-        const period =
-          getCurrentPeriod();
-
-        const usage =
-          await getAIUsage(
-            env,
-            user.id,
-            period
-          );
-
-        if (
-          usage.aiMessages >=
-          planInfo.limit
-        ) {
+        if (!planInfo.assistantAvailable) {
           return Response.json(
             {
-              error:
-                "Monthly AI message limit reached.",
-
-              plan:
-                planInfo.plan,
-
-              limit:
-                planInfo.limit,
-
-              used:
-                usage.aiMessages
+              error: "Assistant access requires a configured Enterprise entitlement.",
+              code: "ASSISTANT_CUSTOM_PLAN_UNAVAILABLE",
             },
-            {
-              status: 429
-            }
+            { status: 403 },
           );
         }
 
-        const body =
-          await request.json();
+        const period =
+          getCurrentPeriod();
 
         const message =
           typeof body.message ===
@@ -3451,7 +4387,6 @@ QUALITY RULES:
           // =========================================
           // SAFE BASE 7 — AI RELIABILITY & COST CONTROL
           // =========================================
-          const AI_COOLDOWN_MS = 1500;
           const AI_TIMEOUT_MS = 30000;
 
           const aiRuntime =
@@ -3461,104 +4396,251 @@ QUALITY RULES:
               lastRequest: new Map()
             });
 
-          const aiUserKey = String(user.id);
+          let x20Action = null;
+          let x20Attempt = null;
+          let assistantOperationId = null;
+          let assistantOperationReserved = false;
+          let assistantOperationSettlementAttempted = false;
+          let assistantCreditSource = null;
+          let assistantGlobalReservation = null;
+          let assistantGlobalSettlementAttempted = false;
+          let assistantDailyReservation = null;
+          let assistantDailySettlementAttempted = false;
 
-          if (aiRuntime.inFlight.has(aiUserKey)) {
-            return Response.json(
-              {
-                error:
-                  "An AI request is already running. Please wait for it to finish."
+          const result =
+            await handleAiChatAdmission({
+              request,
+              user,
+              planInfo,
+              period,
+              body,
+              runtime: aiRuntime,
+              resolveTier: ({ tier, plan }) => resolveAssistantModelTier({ tier, plan, env }),
+              validateProviderInput: ({ message, tier }) => {
+                const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: message });
+                return boundAssistantProviderPayload(tier, projection);
               },
-              {
-                status: 429
-              }
-            );
-          }
-
-          const now = Date.now();
-          const lastRequest =
-            Number(aiRuntime.lastRequest.get(aiUserKey) || 0);
-
-          const retryAfterMs =
-            AI_COOLDOWN_MS - (now - lastRequest);
-
-          if (retryAfterMs > 0) {
-            return Response.json(
-              {
-                error:
-                  "Please wait a moment before sending another AI request.",
-                retryAfterMs
-              },
-              {
-                status: 429,
-                headers: {
-                  "Retry-After":
-                    String(
-                      Math.max(
-                        1,
-                        Math.ceil(retryAfterMs / 1000)
-                      )
-                    )
+              distributed: env.RATE_LIMITER?.getByName(`chat-rate-limit:${user.id}`),
+              reserve: async (userId, usagePeriod, limit, tier) => {
+                if (!isX20Action) {
+                  assistantOperationId = body.assistantOperationId || null;
+                  const selectedTier = resolveAssistantModelTier({ tier: body.tier, plan: planInfo.plan, env });
+                  if (!selectedTier.ok) return { reserved: false, reason: "assistant_tier_unavailable" };
+                  const operation = await startAssistantOperation(env, {
+                    operationId: assistantOperationId,
+                    userId,
+                    workspaceId: userId,
+                    period: usagePeriod,
+                    planLimit: limit,
+                    plan: planInfo.plan,
+                    provider: "workers-ai",
+                    model: selectedTier.tier.model,
+                    creditCost: tier.customerCreditCost,
+                  });
+                  if (operation.duplicate) return { reserved: false, reason: "duplicate_assistant_operation" };
+                  assistantOperationReserved = Boolean(operation.reserved);
+                  return operation;
                 }
-              }
-            );
-          }
-
-          aiRuntime.inFlight.add(aiUserKey);
-          aiRuntime.lastRequest.set(aiUserKey, now);
-
-          let result;
-
-          try {
-            const aiModel =
-            typeof env.AI_MODEL === "string" &&
-            env.AI_MODEL.trim()
-              ? env.AI_MODEL.trim()
-              : "@cf/qwen/qwen3-30b-a3b-fp8";
-
-            const aiPromise =
-              env.AI.run(
-                aiModel,
-                {
-                  messages: [
-                    {
-                      role: "system",
-                      content: systemPrompt
-                    },
-                    ...safeHistory,
-                      {
-                      role: "user",
-                      content: message
+                logX20Lifecycle("x20_reservation_started", { startRequestId: body.startRequestId || null, actionId: body.actionId || null });
+                if (!x20Action) {
+                  try {
+                    x20Action = body.actionId
+                      ? await env.DB.prepare(`SELECT actionId, userId, period, kind, userReserved, providerCalls, status, actionExpiresAt FROM x20_request_ledger WHERE actionId = ?1 LIMIT 1`).bind(body.actionId).first()
+                      : await startX20Action(env, { startRequestId: body.startRequestId, userId, period: usagePeriod, planLimit: limit });
+                  } catch (error) {
+                    if (/monthly quota unavailable/i.test(String(error?.message || error))) {
+                      logX20Lifecycle("x20_reservation_failed", { reason: "x20_allowance_unavailable", errorName: safeErrorName(error) });
+                      return { reserved: false, reason: "x20_allowance_unavailable" };
                     }
-                  ],
-                  temperature: 0.15,
-                  max_tokens: 700
+                    logX20Lifecycle("x20_reservation_failed", { reason: "ledger_error", errorName: safeErrorName(error) });
+                    throw error;
+                  }
+                  if (!x20Action) return { reserved: false, reason: body.actionId ? "invalid_action_identity" : "x20_allowance_exhausted" };
+                  const newlyCreatedAction = !body.actionId && x20Action.created === true;
+                  if (newlyCreatedAction && !isX20RequestId(x20Action.actionId)) return { reserved: false, reason: "invalid_action_identity" };
+                  if (!newlyCreatedAction) {
+                    if (!body.actionId && x20Action.created === false) return { reserved: false, reason: "duplicate_action_start" };
+                    if (x20Action.userId && x20Action.userId !== userId) return { reserved: false, reason: "invalid_action_identity" };
+                    if (x20Action.period !== usagePeriod || x20Action.kind !== "x20") return { reserved: false, reason: "invalid_action_identity" };
+                    if (new Date(x20Action.actionExpiresAt).getTime() <= Date.now()) return { reserved: false, reason: "expired_action" };
+                  }
                 }
-              );
+                if (!body.attemptRequestId) return { reserved: false, reason: "invalid_attempt_request" };
+                x20Attempt = await registerX20Attempt(env, { actionId: x20Action.actionId, attemptRequestId: body.attemptRequestId, userId, period: usagePeriod });
+                if (x20Attempt.duplicate) return { reserved: false, reason: "duplicate_attempt" };
+                if (x20Attempt.duplicate === true || x20Attempt.status !== "reserved" || !isX20RequestId(x20Attempt.attemptId) || !Number.isInteger(Number(x20Attempt.attemptNumber)) || Number(x20Attempt.attemptNumber) < 1 || Number(x20Attempt.attemptNumber) > 3) {
+                  return { reserved: false, reason: x20Attempt.reason || "attempt_cap" };
+                }
+                logX20Lifecycle("x20_attempt_reserved", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber });
+                return { reserved: true, reason: "x20_attempt_reserved" };
+              },
+              reserveTopUp: isX20Action ? null : async (userId, tier) => {
+                assistantOperationId = body.assistantOperationId || null;
+                const operation = await reserveAssistantTopUpCredit(env, { operationId: assistantOperationId, userId, credits: tier.customerCreditCost });
+                if (operation.reserved) assistantOperationReserved = true;
+                return operation;
+              },
+              reserveDaily: isX20Action ? null : async ({ operationId, tier }) => {
+                const admission = await reserveAssistantDailyAdmission(env, {
+                  operationId,
+                  day: new Date().toISOString().slice(0, 10),
+                  tier: tier.id,
+                  reservationNeurons: tier.reservation.neurons,
+                  config: readAssistantDailyAdmissionConfig(env),
+                });
+                if (admission.reserved) assistantDailyReservation = admission;
+                return admission;
+              },
+              releaseDaily: isX20Action ? null : async ({ operationId }) => {
+                if (!assistantDailyReservation || assistantDailySettlementAttempted) return { settled: true, duplicate: true };
+                assistantDailySettlementAttempted = true;
+                return releaseAssistantDailyAdmission(env, { operationId });
+              },
+              reserveGlobal: isX20Action ? null : async ({ creditSource, operationId, period: usagePeriod, tier }) => {
+                const guard = await reserveAssistantCostGuard(env, {
+                  operationId,
+                  period: usagePeriod,
+                  fundingClass: creditSource === "topup" ? "prepaid" : "included",
+                  config: { ...readAssistantCostGuardConfig(env), requestUnits: tier.reservation.neurons },
+                });
+                if (guard.reserved) assistantGlobalReservation = guard;
+                return guard;
+              },
+              releaseReservation: isX20Action ? null : async ({ creditSource }) => {
+                if (!assistantOperationReserved || assistantOperationSettlementAttempted) return { settled: true, duplicate: true };
+                assistantOperationSettlementAttempted = true;
+                const settlement = creditSource === "topup"
+                  ? await finishAssistantTopUpCredit(env, { operationId: assistantOperationId, status: "failed" })
+                  : await finishAssistantOperation(env, { operationId: assistantOperationId, status: "failed", metrics: null, elapsedMs: 0, httpStatus: 503 });
+                return settlement;
+              },
+              readTopUpBalance: isX20Action ? null : (userId) => readAssistantTopUpBalance(env, userId),
+              readUsage: (userId, usagePeriod) =>
+                isX20Action ? readAIUsage(env, userId, usagePeriod) : readAssistantUsage(env, userId, usagePeriod),
+              execute: async ({ message: admittedMessage, safeHistory: admittedHistory, creditSource, tier, dailyReservation, globalReservation }) => {
+                if (!isX20Action) assistantCreditSource = creditSource || "monthly";
+                if (isX20Action) logX20Lifecycle("x20_provider_started", { actionId: x20Action?.actionId, attemptId: x20Attempt?.attemptId, attemptNumber: x20Attempt?.attemptNumber });
+                if (!isX20Action) {
+                  const startedAt = Date.now();
+                  let adapted = null;
+                  try {
+                    const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage });
+                    adapted = await invokeAssistantWorkersAiText(env, projection, { tier });
+                    if (dailyReservation && !assistantDailySettlementAttempted) {
+                      assistantDailySettlementAttempted = true;
+                      const dailySettlement = await settleAssistantDailyAdmission(env, { operationId: dailyReservation.operationId, actualNeurons: adapted.metrics?.neuronUsage });
+                      if (!dailySettlement.settled && !dailySettlement.duplicate) throw new Error("HEGEVA_ASSISTANT_DAILY_SETTLEMENT_UNAVAILABLE");
+                    }
+                    if (globalReservation && !assistantGlobalSettlementAttempted) {
+                      assistantGlobalSettlementAttempted = true;
+                      const globalSettlement = await settleAssistantCostGuard(env, { operationId: globalReservation.operationId, status: "settled" });
+                      if (!globalSettlement.settled && !globalSettlement.duplicate) throw new Error("HEGEVA_ASSISTANT_COST_GUARD_SETTLEMENT_UNAVAILABLE");
+                    }
+                    const timedOut = adapted.reason === "timeout";
+                    assistantOperationSettlementAttempted = true;
+                    const settlement = assistantCreditSource === "topup"
+                      ? await finishAssistantTopUpCredit(env, {
+                          operationId: assistantOperationId,
+                          status: adapted.ok ? "succeeded" : timedOut ? "timed_out" : "failed",
+                        })
+                      : await finishAssistantOperation(env, {
+                          operationId: assistantOperationId,
+                          status: adapted.ok ? "succeeded" : timedOut ? "timed_out" : "failed",
+                          metrics: adapted.metrics,
+                          elapsedMs: adapted.metrics?.durationMs ?? Math.max(0, Date.now() - startedAt),
+                          httpStatus: adapted.ok ? 200 : 500,
+                        });
+                    if (!settlement.settled) throw new Error("HEGEVA_ASSISTANT_SETTLEMENT_UNAVAILABLE");
+                    if (!adapted.ok) {
+                      const unavailable = new Error("Workers AI unavailable");
+                      unavailable.name = timedOut ? "HEGEVA_AI_TIMEOUT" : "HEGEVA_PROVIDER_UNAVAILABLE";
+                      throw unavailable;
+                    }
+                    return { response: adapted.response };
+                  } catch (error) {
+                    if (dailyReservation && !assistantDailySettlementAttempted) {
+                      assistantDailySettlementAttempted = true;
+                      await settleAssistantDailyAdmission(env, { operationId: dailyReservation.operationId, actualNeurons: adapted?.metrics?.neuronUsage }).catch(() => {});
+                    }
+                    if (globalReservation && !assistantGlobalSettlementAttempted) {
+                      assistantGlobalSettlementAttempted = true;
+                      await settleAssistantCostGuard(env, { operationId: globalReservation.operationId, status: "settled" }).catch(() => {});
+                    }
+                    if (assistantOperationReserved && !assistantOperationSettlementAttempted) {
+                      assistantOperationSettlementAttempted = true;
+                      const timedOut = error?.name === "AbortError" || error?.message === "HEGEVA_AI_TIMEOUT";
+                      const settlement = assistantCreditSource === "topup"
+                        ? await finishAssistantTopUpCredit(env, {
+                            operationId: assistantOperationId,
+                            status: timedOut ? "timed_out" : "failed",
+                          })
+                        : await finishAssistantOperation(env, {
+                            operationId: assistantOperationId,
+                            status: timedOut ? "timed_out" : "failed",
+                            metrics: adapted?.metrics || null,
+                            elapsedMs: adapted?.metrics?.durationMs ?? Math.max(0, Date.now() - startedAt),
+                            httpStatus: 500,
+                          });
+                      if (!settlement.settled) throw new Error("HEGEVA_ASSISTANT_SETTLEMENT_UNAVAILABLE");
+                    }
+                    throw error;
+                  }
+                }
+                const aiPromise =
+                  env.AI.run(
+                    "@cf/meta/llama-3.1-8b-instruct-fast",
+                    {
+                      messages: [
+                        {
+                          role: "system",
+                          content: systemPrompt
+                        },
+                        ...admittedHistory,
+                        {
+                          role: "user",
+                          content: admittedMessage
+                        }
+                      ],
+                      temperature: 0.15,
+                      max_tokens: selectAiOutputTokens({ isX20Action, appStudioProfile: isX10StudioProfile ? body.appStudioProfile : undefined })
+                    }
+                  );
 
-            let timeoutId;
+                let timeoutId;
+                const timeoutPromise =
+                  new Promise((_, reject) => {
+                    timeoutId = setTimeout(
+                      () => reject(new Error("HEGEVA_AI_TIMEOUT")),
+                      AI_TIMEOUT_MS
+                    );
+                  });
 
-            const timeoutPromise =
-              new Promise((_, reject) => {
-                timeoutId = setTimeout(
-                  () => reject(
-                    new Error("HEGEVA_AI_TIMEOUT")
-                  ),
-                  AI_TIMEOUT_MS
-                );
-              });
+                try {
+                  const providerResult = await Promise.race([aiPromise, timeoutPromise]);
+                  if (isX20Action && x20Attempt) {
+                    await finishX20Attempt(env, { attemptId: x20Attempt.attemptId, actionId: x20Action.actionId, status: "succeeded" });
+                    logX20Lifecycle("x20_provider_completed", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber });
+                    logX20Lifecycle("x20_attempt_completed", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber, status: "succeeded" });
+                  }
+                  if (!isX20Action && assistantOperationReserved) await finishAssistantOperation(env, { operationId: assistantOperationId, status: "succeeded" });
+                  return providerResult;
+                } catch (error) {
+                  if (isX20Action && x20Attempt) {
+                    const status = error?.message === "HEGEVA_AI_TIMEOUT" ? "timed_out" : "failed";
+                    await finishX20Attempt(env, { attemptId: x20Attempt.attemptId, actionId: x20Action.actionId, status });
+                    logX20Lifecycle("x20_provider_failed", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber, status, errorName: safeErrorName(error) });
+                    logX20Lifecycle("x20_attempt_failed", { actionId: x20Action.actionId, attemptId: x20Attempt.attemptId, attemptNumber: x20Attempt.attemptNumber, status, errorName: safeErrorName(error) });
+                  }
+                  if (!isX20Action && assistantOperationReserved) await finishAssistantOperation(env, { operationId: assistantOperationId, status: error?.message === "HEGEVA_AI_TIMEOUT" ? "timed_out" : "failed" });
+                  throw error;
+                } finally {
+                  clearTimeout(timeoutId);
+                }
+              },
+            });
 
-            try {
-              result =
-                await Promise.race([
-                  aiPromise,
-                  timeoutPromise
-                ]);
-            } finally {
-              clearTimeout(timeoutId);
-            }
-          } finally {
-            aiRuntime.inFlight.delete(aiUserKey);
+          if (result instanceof Response) {
+            return result;
           }
 
         let aiResponse =
@@ -3614,31 +4696,21 @@ QUALITY RULES:
             fallbackResponses.en;
         }
 
-        await incrementAIUsage(
-          env,
-          user.id,
-          period
-        );
-
-        return Response.json({
-          response:
-            aiResponse,
-
+          return Response.json({
+          response: aiResponse,
           language,
-
-          version:
-            "V35.3.6"
+          version: "V35.3.6",
+          ...(!isX20Action && assistantOperationId ? { assistantOperationId } : {}),
+          ...(isX20Action && x20Action?.actionId ? { actionId: x20Action.actionId, attemptId: x20Attempt?.attemptId || null, actionKind: "x20" } : {})
         });
       } catch (error) {
-        console.error(
-          "HEGEVA AI chat error:",
-          error
-        );
+        logFailure("ai_chat_handler_failed", error);
 
         return Response.json(
           {
-            error:
-              "HEGEVA AI is temporarily unavailable."
+            error: "HEGEVA AI is temporarily unavailable.",
+            ...(!isX20Action && assistantOperationId ? { assistantOperationId } : {}),
+            ...(isX20Action && x20Action?.actionId ? { actionId: x20Action.actionId, attemptId: x20Attempt?.attemptId || null, actionKind: "x20" } : {})
           },
           {
             status: 500
@@ -3647,14 +4719,400 @@ QUALITY RULES:
       }
     }
 
+    if (url.pathname === "/api/ai-bot/owner-setup-capability") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        if (!request.headers.get("cookie")) return ownerProfileSetupFailure({ status: 401, reason: "authentication-required", profileExists: false });
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return ownerProfileSetupFailure({ status: 401, reason: "authentication-required", profileExists: false });
+        const result = await evaluateOwnerProfileSetup(env, user);
+        if (result.ok) return Response.json({ setupEligible: true, profileExists: false }, { headers: { "Cache-Control": "private, no-store" } });
+        if (result.reason === "profile-exists") return Response.json({ setupEligible: false, profileExists: true, reason: "profile-exists" }, { headers: { "Cache-Control": "private, no-store" } });
+        return ownerProfileSetupFailure(result);
+      } catch { return ownerProfileSetupFailure({ status: 503, reason: "internal-unavailable", profileExists: false }); }
+    }
+
+    if (url.pathname === "/api/ai-bot/owner-setup-profile") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        if (!request.headers.get("cookie")) return ownerProfileSetupFailure({ status: 401, reason: "authentication-required", profileExists: false });
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return ownerProfileSetupFailure({ status: 401, reason: "authentication-required", profileExists: false });
+        const result = await evaluateOwnerProfileSetup(env, user);
+        if (!result.ok) return ownerProfileSetupFailure(result);
+        let body;
+        try { body = await request.json(); } catch { return Response.json({ error: "A valid disabled AI Bot profile is required." }, { status: 400 }); }
+        const input = parseOwnerProfileSetupRequest(body);
+        if (!input) return Response.json({ error: "A valid disabled AI Bot profile is required." }, { status: 400 });
+        const now = new Date().toISOString();
+        const profile = { id: `bot-${crypto.randomUUID()}`, schemaVersion: "0.1", ...input, enabled: false, approvalState: "not-requested", executionState: "not-started", approvedAt: null, approvalExpiresAt: null, approvedByActorHash: null, approvalVersion: 1, approvalRevision: null, createdAt: now, updatedAt: now };
+        const records = [...result.records, profile];
+        const write = result.row
+          ? await env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='ai-bot-profiles' AND updatedAt=?4").bind(JSON.stringify(records), now, user.id, result.row.updatedAt).run()
+          : await env.DB.prepare("INSERT INTO workspace_data (id,userId,dataType,data,createdAt,updatedAt) VALUES (?1,?2,'ai-bot-profiles',?3,?4,?4) ON CONFLICT(userId,dataType) DO NOTHING").bind(crypto.randomUUID(), user.id, JSON.stringify(records), now).run();
+        if (Number(write?.meta?.changes || 0) !== 1) return Response.json({ error: "The profile changed; reload and try again." }, { status: 409 });
+        return Response.json({ status: "created", profile: { id: profile.id, enabled: false, approvalState: "not-requested", executionState: "not-started", approvalVersion: 1 } }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
+      } catch { return ownerProfileSetupFailure({ status: 503, reason: "internal-unavailable", profileExists: false }); }
+    }
+
+    if (url.pathname === "/api/ai-bot/approve") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        const body = await request.json();
+        const profileId = typeof body?.profileId === "string" ? body.profileId : "";
+        if (!AI_BOT_PROFILE_ID.test(profileId)) return Response.json({ error: "A valid AI Bot profile is required." }, { status: 400 });
+        const configuredOwner = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
+        const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+        if (!configuredOwner || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredOwner) || !userEmail || userEmail !== configuredOwner) return Response.json({ error: "Owner approval is unavailable." }, { status: 403 });
+        const stored = await loadStoredAIBotProfile(env, user.id, profileId);
+        if (!stored) return Response.json({ error: "This AI Bot profile is unavailable." }, { status: 404 });
+        const current = stored.profile;
+        const isOwnerSetupProfile = current.enabled === false
+          && current.approvalState === "not-requested"
+          && current.executionState === "not-started"
+          && Array.isArray(current.permittedTools)
+          && current.permittedTools.length === 1
+          && current.permittedTools[0] === "none"
+          && current.approvedAt === null
+          && current.approvalExpiresAt === null
+          && current.approvedByActorHash === null
+          && current.approvalRevision === null;
+        if (!isOwnerSetupProfile) return Response.json({ error: "This AI Bot profile is not awaiting owner approval." }, { status: 409 });
+        const now = new Date(); const approvedAt = now.toISOString(); const approvalExpiresAt = new Date(now.getTime() + 30 * 60 * 1000).toISOString();
+        const approvalVersion = Number.isSafeInteger(current.approvalVersion) && current.approvalVersion > 0 ? current.approvalVersion + 1 : 1;
+        const approvedByActorHash = await sha256Hex(user.id);
+        const next = { ...current, approvalState: "owner-approved", approvedAt, approvalExpiresAt, approvedByActorHash, approvalVersion, approvalRevision: approvedAt, updatedAt: approvedAt };
+        const records = stored.records.map((item) => item && item.id === profileId ? next : item);
+        const result = await env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='ai-bot-profiles' AND updatedAt=?4").bind(JSON.stringify(records), approvedAt, user.id, stored.row.updatedAt).run();
+        if (Number(result?.meta?.changes || 0) !== 1) return Response.json({ error: "The profile changed; reload and try again." }, { status: 409 });
+        return Response.json({ status: "owner-approved", approvalExpiresAt, approvalVersion }, { status: 200 });
+      } catch { emitMonitor("ai_bot_create", "approval_failed"); return Response.json({ error: "Owner approval is temporarily unavailable." }, { status: 503 }); }
+    }
+
+    if (url.pathname === "/api/ai-bot/renewal-readiness") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        if (!request.headers.get("cookie")) return Response.json({ renewalAvailable: false }, { status: 401, headers: { "Cache-Control": "private, no-store" } });
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ renewalAvailable: false }, { status: 401, headers: { "Cache-Control": "private, no-store" } });
+        const ready = await evaluateAIBotRenewalReadiness(env, user, "bot-b2083aff-69ef-4902-93bd-2c792c3cb0c9");
+        return Response.json({ renewalAvailable: ready, ...(ready ? { profileId: "bot-b2083aff-69ef-4902-93bd-2c792c3cb0c9" } : {}) }, { headers: { "Cache-Control": "private, no-store" } });
+      } catch { return Response.json({ renewalAvailable: false }, { status: 503, headers: { "Cache-Control": "private, no-store" } }); }
+    }
+
+    if (url.pathname === "/api/ai-bot/renew-approval") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user || typeof user.id !== "string" || !user.id.trim()) return Response.json({ error: "Authentication required." }, { status: 401 });
+        let body;
+        try { body = await request.json(); } catch { return Response.json({ error: "A valid AI Bot profile is required." }, { status: 400 }); }
+        const keys = body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body) : [];
+        const profileId = typeof body?.profileId === "string" ? body.profileId : "";
+        if (keys.length !== 1 || keys[0] !== "profileId" || !AI_BOT_PROFILE_ID.test(profileId)) return Response.json({ error: "A valid AI Bot profile is required." }, { status: 400 });
+        if (profileId !== "bot-b2083aff-69ef-4902-93bd-2c792c3cb0c9") return Response.json({ error: "This AI Bot profile is unavailable." }, { status: 404 });
+
+        const configuredOwner = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
+        const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+        if (!configuredOwner || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredOwner) || userEmail !== configuredOwner) return Response.json({ error: "Owner approval renewal is unavailable." }, { status: 403 });
+
+        const stored = await loadStoredAIBotProfile(env, user.id, profileId);
+        if (!stored) return Response.json({ error: "This AI Bot profile is unavailable." }, { status: 404 });
+        const matches = stored.records.filter((item) => item && item.id === profileId);
+        if (matches.length !== 1) return Response.json({ error: "This AI Bot profile is unavailable." }, { status: 404 });
+        const current = stored.profile;
+        const nowMs = Date.now();
+        const approvedAtMs = typeof current.approvedAt === "string" ? Date.parse(current.approvedAt) : NaN;
+        const expiresAtMs = typeof current.approvalExpiresAt === "string" ? Date.parse(current.approvalExpiresAt) : NaN;
+        const actorHash = await sha256Hex(user.id);
+        const eligible = current.enabled === false
+          && current.executionState === "not-started"
+          && Array.isArray(current.permittedTools)
+          && current.permittedTools.length === 1
+          && current.permittedTools[0] === "none"
+          && current.approvalState === "owner-approved"
+          && Number.isFinite(approvedAtMs)
+          && Number.isFinite(expiresAtMs)
+          && approvedAtMs <= expiresAtMs
+          && expiresAtMs <= nowMs
+          && typeof current.approvedByActorHash === "string"
+          && current.approvedByActorHash === actorHash
+          && Number.isSafeInteger(current.approvalVersion)
+          && current.approvalVersion > 0
+          && typeof current.approvalRevision === "string"
+          && Number.isFinite(Date.parse(current.approvalRevision))
+          && current.approvalRevision === current.approvedAt
+          && current.approvalRevision === stored.row.updatedAt;
+        if (!eligible) return Response.json({ error: "This AI Bot profile is not eligible for approval renewal." }, { status: 409 });
+
+        const renewedAt = new Date(nowMs).toISOString();
+        const approvalExpiresAt = new Date(nowMs + 30 * 60 * 1000).toISOString();
+        const approvalVersion = current.approvalVersion + 1;
+        const next = { ...current, approvedAt: renewedAt, approvalExpiresAt, approvedByActorHash: actorHash, approvalVersion, approvalRevision: renewedAt, updatedAt: renewedAt };
+        const records = stored.records.map((item) => item && item.id === profileId ? next : item);
+        const result = await env.DB.prepare("UPDATE workspace_data SET data=?1,updatedAt=?2 WHERE userId=?3 AND dataType='ai-bot-profiles' AND updatedAt=?4").bind(JSON.stringify(records), renewedAt, user.id, stored.row.updatedAt).run();
+        if (Number(result?.meta?.changes || 0) !== 1) return Response.json({ error: "The profile changed; reload and try again." }, { status: 409 });
+        return Response.json({ status: "owner-reapproved", profileId, approvalExpiresAt, approvalVersion }, { status: 200, headers: { "Cache-Control": "private, no-store" } });
+      } catch { emitMonitor("ai_bot_create", "approval_renewal_failed"); return Response.json({ error: "Owner approval renewal is temporarily unavailable." }, { status: 503 }); }
+    }
+
+    if (url.pathname === "/api/ai-bot/canary-readiness") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        if (!request.headers.get("cookie")) return Response.json({ reason: "authentication-required" }, { status: 401 });
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ reason: "authentication-required" }, { status: 401 });
+        const body = await request.json();
+        const keys = body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body) : [];
+        if (keys.length !== 1 || keys[0] !== "profileId" || typeof body.profileId !== "string" || !AI_BOT_PROFILE_ID.test(body.profileId)) return Response.json({ reason: "invalid-request" }, { status: 400 });
+        const result = await evaluateAIBotCanaryPreflight(env, request, user, body.profileId);
+        return result.ok ? Response.json({ ready: true, reason: "ready" }, { status: 200 }) : Response.json({ reason: result.reason }, { status: result.status });
+      } catch { return Response.json({ reason: "internal-unavailable" }, { status: 503 }); }
+    }
+
+    if (url.pathname === "/api/ai-bot/canary-once") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      let authorizationHash = null;
+      const canaryReply = (reason, status) => Response.json({ reason }, { status });
+      try {
+        if (!request.headers.get("cookie")) return canaryReply("authentication-required", 401);
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return canaryReply("authentication-required", 401);
+        const body = await request.json();
+        const keys = body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body) : [];
+        if (keys.length !== 1 || keys[0] !== "profileId" || typeof body.profileId !== "string" || !AI_BOT_PROFILE_ID.test(body.profileId)) return canaryReply("invalid-request", 400);
+        const preflight = await evaluateAIBotCanaryPreflight(env, request, user, body.profileId);
+        if (!preflight.ok) return canaryReply(preflight.reason, preflight.status);
+        const profile = preflight.profile;
+        const actorHash = preflight.actorHash;
+        const providerConfig = preflight.providerConfig;
+        const operationId = crypto.randomUUID();
+        const rawToken = crypto.randomUUID() + crypto.randomUUID();
+        authorizationHash = await sha256Hex(rawToken);
+        const now = new Date();
+        const createdAt = now.toISOString();
+        const expiresAt = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
+        await env.DB.prepare("INSERT INTO ai_canary_authorizations(authorizationHash,actorHash,workspaceHash,operationType,maximumRequests,consumedCount,createdAt,expiresAt,status) VALUES(?1,?2,?2,'ai-bot',1,0,?3,?4,'active')").bind(authorizationHash, actorHash, createdAt, expiresAt).run();
+        const internalRequest = new Request(request.url, { method: "POST", headers: { "X-HEGEVA-CANARY-TOKEN": rawToken } });
+        const admission = await admitAIBotCanary(env, internalRequest, { authorizationHash, userId: user.id, operationId, profileId: body.profileId, approvedAt: profile.approvedAt, approvalExpiresAt: profile.approvalExpiresAt, approvalVersion: profile.approvalVersion, approvedByActorHash: profile.approvedByActorHash, globalDailyCeiling: providerConfig.requestCeiling, userDailyCeiling: providerConfig.userCeiling, workspaceDailyCeiling: providerConfig.workspaceCeiling, neuronDailyCeiling: providerConfig.neuronCeiling });
+        if (!admission.ok) { await revokeUnusedCanaryAuthorization(env, authorizationHash); return canaryReply(admission.reason === "authorization-consumed" ? "already-used" : "authorization-reservation-failed", 429); }
+        const projection = buildWorkersAiProjection({ operation: "ai-bot", locale: "en", prompt: "State the current HEGEVA canary readiness in one short sentence." });
+        if (!projection) { await finishAIBotOperation(env, { operationId, userId: user.id, profileId: body.profileId, reservationId: admission.reservationId, status: "failed", failureCode: "invalid-projection" }); return Response.json({ status: "failed", providerAttempted: false, financialGuardStatus: "released", reason: "provider-response-invalid" }, { status: 503 }); }
+        const provider = await invokeWorkersAiText(env, projection);
+        const failureReason = provider.ok ? null : provider.reason === "timeout" ? "provider-timeout" : provider.reason === "missing-response" ? "provider-response-invalid" : provider.reason === "provider-failure" ? "provider-failure" : "unknown";
+        try {
+          await finishAIBotOperation(env, { operationId, userId: user.id, profileId: body.profileId, reservationId: admission.reservationId, status: provider.ok ? "succeeded" : "failed", failureCode: provider.ok ? null : provider.reason });
+        } catch { return Response.json({ status: "failed", providerAttempted: true, financialGuardStatus: "reserved", reason: "operation-finalization-failed" }, { status: 503 }); }
+        return Response.json({ status: provider.ok ? "succeeded" : "failed", providerAttempted: true, financialGuardStatus: provider.ok ? "finalized" : "released", ...(provider.ok && provider.metrics ? { metrics: provider.metrics } : {}), ...(failureReason ? { reason: failureReason } : {}) }, { status: provider.ok ? 200 : 503 });
+      } catch {
+        if (authorizationHash) await revokeUnusedCanaryAuthorization(env, authorizationHash);
+        emitMonitor("ai_bot_canary", "preflight_failed");
+        return canaryReply(authorizationHash ? "authorization-reservation-failed" : "internal-unavailable", 503);
+      }
+    }
+
+    if (url.pathname === "/api/ai-bot/execute") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      let operationId = null; let profileId = null;
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        const body = await request.json();
+        profileId = typeof body?.profileId === "string" ? body.profileId : "";
+        operationId = typeof body?.operationId === "string" ? body.operationId : "";
+        if (!AI_BOT_PROFILE_ID.test(profileId) || !AI_BOT_OPERATION_ID.test(operationId)) return Response.json({ error: "A valid AI Bot operation is required." }, { status: 400 });
+        const profile = await loadCanonicalAIBotProfile(env, user.id, profileId);
+        if (!profile) return Response.json({ error: "AI Bot approval is required." }, { status: 403 });
+        const canaryEmail = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
+        const userEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+        const flags = parseProviderFlags(env);
+        if (!flags.ownerCanaryEnabled || !canaryEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(canaryEmail) || userEmail !== canaryEmail) return Response.json({ error: "AI Bot approval is required." }, { status: 403 });
+        const providerConfig = getWorkersAiConfig(env);
+        if (!providerConfig.enabled || providerConfig.globalKillSwitch || providerConfig.freeAllocationSource !== "configured" || env.FINANCIAL_GUARD_ENABLED !== "enabled" || !env.AI) return Response.json({ error: "AI Bot provider is currently unavailable." }, { status: 503 });
+        const prompt = typeof body?.prompt === "string" ? body.prompt.slice(0, CANARY_BOUNDS.maxInputTokens) : "";
+        const projection = buildWorkersAiProjection({ operation: "ai-bot", locale: typeof body?.locale === "string" ? body.locale : "en", prompt });
+        if (!projection) return Response.json({ error: "The AI Bot request could not be validated." }, { status: 400 });
+        const period = getCurrentPeriod();
+          const reservation = await admitAIBotCanary(env, request, { userId: user.id, operationId, profileId, approvedAt: profile.approvedAt, approvalExpiresAt: profile.approvalExpiresAt, approvalVersion: profile.approvalVersion, approvedByActorHash: profile.approvedByActorHash, globalDailyCeiling: providerConfig.dailyRequestCeiling, userDailyCeiling: providerConfig.perUserCeiling, workspaceDailyCeiling: providerConfig.perWorkspaceCeiling, neuronDailyCeiling: providerConfig.dailyNeuronCeiling });
+          if (!reservation.ok) return Response.json({ error: "AI Bot allowance is unavailable." }, { status: reservation.reason === "authorization-consumed" ? 409 : 429 });
+          const provider = await invokeWorkersAiText(env, projection);
+          await finishAIBotOperation(env, { operationId, userId: user.id, profileId, reservationId: reservation.reservationId, status: provider.ok ? "succeeded" : "failed", failureCode: provider.ok ? null : provider.reason });
+          if (!provider.ok) return Response.json({ error: "AI Bot execution is temporarily unavailable." }, { status: provider.reason === "timeout" ? 504 : 503 });
+          return Response.json({ schemaVersion: "0.1", status: "ready-for-review", provider: "workers-ai", executionState: "not-started", response: provider.response }, { status: 200 });
+      } catch { emitMonitor("ai_bot_execute", "handler_failed"); return Response.json({ error: "AI Bot execution is temporarily unavailable." }, { status: 503 }); }
+    }
+
+    if (url.pathname === "/api/ai/status") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const flags = parseProviderFlags(env);
+        const providerEnabled = flags.providerEnabled === true;
+        const globalKillSwitch = flags.killSwitchActive === true;
+        const publicAssistantEnabled = flags.publicAssistantEnabled === true;
+        const ownerProfileSetupEnabled = flags.ownerProfileSetupEnabled === true;
+        const ownerCanaryEnabled = flags.ownerCanaryEnabled === true;
+        const nonX20ProviderActive = providerEnabled && !globalKillSwitch;
+        const advancedAssistantEnabled = nonX20ProviderActive && publicAssistantEnabled &&
+          resolveAssistantModelTier({ tier: "advanced", plan: "premium", env }).ok;
+        return Response.json({
+          providerEnabled,
+          globalKillSwitch,
+          x20Enabled: true,
+          assistantEnabled: publicAssistantEnabled && nonX20ProviderActive,
+          advancedAssistantEnabled,
+          ownerProfileSetupEnabled,
+          x10Enabled: flags.x10Enabled && nonX20ProviderActive,
+          aiBotsEnabled: ownerCanaryEnabled && nonX20ProviderActive,
+          x30Enabled: x30ProviderEnabled(env),
+          videoEnabled:
+            env?.CREATIVE_VIDEO_PROVIDER_ENABLED === "enabled",
+        }, { headers: { "Cache-Control": "no-store, max-age=0" } });
+      } catch {
+        return Response.json({ error: "AI status is temporarily unavailable." }, { status: 503, headers: { "Cache-Control": "no-store, max-age=0" } });
+      }
+    }
+
+    if (url.pathname === "/api/billing/public-status") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const provider =
+          typeof env.PAYMENT_PROVIDER === "string"
+            ? env.PAYMENT_PROVIDER.trim().toLowerCase()
+            : "";
+        const paymentMode =
+          typeof env.PAYMENT_MODE === "string"
+            ? env.PAYMENT_MODE.trim().toLowerCase()
+            : "";
+        const providerSelected = provider === "stripe";
+        const validMode = paymentMode === "test" || paymentMode === "live";
+        const secretReady = isStripeSecretForMode(
+          typeof env.STRIPE_SECRET_KEY === "string" ? env.STRIPE_SECRET_KEY.trim() : "",
+          paymentMode
+        );
+        const premiumPriceReady = Boolean(getStripePriceId(env, "premium"));
+        const proPriceReady = Boolean(getStripePriceId(env, "pro"));
+        const connected = providerSelected && validMode && secretReady;
+        const checkoutEnabled = connected && premiumPriceReady && proPriceReady;
+        return Response.json({
+          provider: providerSelected ? "stripe" : null,
+          mode: validMode ? paymentMode : null,
+          connected,
+          checkoutEnabled,
+          webhookConfigured: isStripeWebhookSecret(
+            typeof env.STRIPE_WEBHOOK_SECRET === "string" ? env.STRIPE_WEBHOOK_SECRET.trim() : ""
+          ),
+          managedPaymentsEnabled: false,
+        }, { headers: { "Cache-Control": "no-store, max-age=0" } });
+      } catch {
+        return Response.json({ error: "Billing status is temporarily unavailable." }, { status: 503, headers: { "Cache-Control": "no-store, max-age=0" } });
+      }
+    }
+
+    if (url.pathname === "/api/creative/capability") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user=await getLoggedInUser(request,env,ctx)
+        if(!user)return Response.json({authenticated:false,entitled:false,providers:{text:false,image:false,video:false}},{headers:{"Cache-Control":"private, no-store"}})
+        const planInfo=await getUserPlan(env,user.id),period=getCurrentPeriod(),credits=await readCreativeCredits(env.DB,user.id,period,planInfo.plan),capability=creativeProviderCapability(env,planInfo.plan)
+        return Response.json({authenticated:true,canaryEligible:isCreativeCanaryOwner(user,env),...capability,credits},{headers:{"Cache-Control":"private, no-store"}})
+      }catch{return Response.json({error:"Creative capability is temporarily unavailable."},{status:503,headers:{"Cache-Control":"private, no-store"}})}
+    }
+
+    if (url.pathname === "/api/creative/generate") {
+      if(request.method!=="POST")return Response.json({error:"Method not allowed."},{status:405})
+      let lease=null,user=null,reservation=null
+      try{
+        user=await getLoggedInUser(request,env,ctx)
+        if(!user)return Response.json({error:"Authentication required."},{status:401})
+        if(!isCreativeCanaryOwner(user,env))return Response.json({error:"Creative generation is currently limited to the approved canary."},{status:403})
+        const planInfo=await getUserPlan(env,user.id),capability=creativeProviderCapability(env,planInfo.plan)
+        if(!capability.entitled)return Response.json({error:"Premium or Pro is required for Creative AI generation."},{status:403})
+        const body=await request.json(),validated=validateCreativeGeneration(body)
+        if(!validated.ok)return Response.json({error:"The creative brief could not be validated."},{status:400})
+        const providerKey=validated.brief.operationType==="image"?"image":"text"
+        if(!capability.providers[providerKey])return Response.json({error:"The approved creative provider is unavailable."},{status:503})
+        const limiter=env.RATE_LIMITER?.getByName(`creative-rate-limit:${user.id}`)
+        lease=limiter?await limiter.admit():null
+        if(limiter&&!lease?.allowed)return Response.json({error:"Creative generation rate limit reached."},{status:429})
+        const period=getCurrentPeriod(),daily=new Date().toISOString().slice(0,10)
+        const dailyCount=await env.DB.prepare("SELECT COUNT(*) AS total FROM creative_credit_operations WHERE userId=?1 AND substr(createdAt,1,10)=?2").bind(user.id,daily).first()
+        if(Number(dailyCount?.total||0)>=10)return Response.json({error:"Creative daily generation limit reached."},{status:429})
+        reservation=await reserveCreativeCredits(env.DB,{operationId:validated.brief.operationId,requestId:validated.brief.requestId,userId:user.id,period,plan:planInfo.plan,operationType:validated.brief.operationType})
+        if(!reservation.reserved){const status=reservation.reason==="duplicate-operation"?409:reservation.reason==="credits-exhausted"?429:503;return Response.json({error:status===409?"This generation request was already processed.":status===429?"Creative AI credits are exhausted.":"Creative credit reservation is unavailable."},{status})}
+        const generated=await invokeCreativeProvider(env,validated.brief)
+        await settleCreativeCredits(env.DB,{operationId:validated.brief.operationId,userId:user.id,success:generated.ok,failureCode:generated.reason,settledCredits:generated.settledCredits})
+        if(!generated.ok)return Response.json({error:"Creative generation is temporarily unavailable.",reason:generated.reason},{status:generated.reason==="provider-timeout"?504:503})
+        const credits=await readCreativeCredits(env.DB,user.id,period,planInfo.plan)
+        return Response.json({...generated,executionState:"not-published",credits},{status:200,headers:{"Cache-Control":"private, no-store"}})
+      }catch{emitMonitor("creative_generate","handler_failed")
+        if(reservation?.reserved&&user)await settleCreativeCredits(env.DB,{operationId:reservation.operationId,userId:user.id,success:false,failureCode:"internal-failure"}).catch(()=>{})
+        return Response.json({error:"Creative generation is temporarily unavailable."},{status:503})
+      }finally{if(lease?.allowed&&lease?.token&&env.RATE_LIMITER)await env.RATE_LIMITER.getByName(`creative-rate-limit:${user?.id}`).release(lease.token).catch(()=>{})}
+    }
+
+    if (url.pathname === "/api/x30/capability") {
+      if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+        if (!user) return Response.json({ authenticated: false, canaryEligible: false, generationEnabled: false }, { status: 200 });
+        const canaryEligible = isX30CanaryOwner(user, env);
+        return Response.json({ authenticated: true, canaryEligible, generationEnabled: canaryEligible && x30ProviderEnabled(env) }, { status: 200 });
+      } catch {
+        return Response.json({ authenticated: false, canaryEligible: false, generationEnabled: false }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/x30/generate") {
+      if (request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405 });
+      try {
+        const user = await getLoggedInUser(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+        if (!isX30CanaryOwner(user, env)) return Response.json({ error: "X30 generation is not currently available." }, { status: 403 });
+        if (!x30ProviderEnabled(env)) return Response.json({ error: "X30 generation is not currently available." }, { status: 503 });
+        const body = await request.json();
+        const operationId = body?.operationId;
+        if (!isX30OperationId(operationId)) return Response.json({ error: "A valid X30 generation operation is required." }, { status: 400 });
+        const briefResult = validateX30ProviderBrief(body?.brief);
+        if (!briefResult.ok) return Response.json({ error: "The X30 brief could not be validated." }, { status: 400 });
+        const period = getCurrentPeriod();
+        const reservation = await startX30Generation(env, { operationId, userId: user.id, workspaceScope: user.id, period, planLimit: X30_MONTHLY_LIMIT, workspaceLimit: X30_WORKSPACE_LIMIT });
+        if (!reservation.reserved) {
+          const status = reservation.reason === "x30_allowance_exhausted" ? 429 : reservation.reason === "expired_x30_operation" ? 409 : 503;
+          return Response.json({ error: status === 429 ? "X30 generation allowance reached." : "X30 generation is not currently available." }, { status });
+        }
+        const provider = await invokeX30Provider(env, { brief: briefResult.brief, operationId, scope: "authenticated" });
+        await finishX30Generation(env, { operationId, userId: user.id, status: provider.ok ? "ready-for-review" : "rejected" });
+        if (!provider.ok) return Response.json({ error: "X30 generation is temporarily unavailable." }, { status: provider.reason === "provider_timeout" ? 504 : 502 });
+        return Response.json(provider.result, { status: 200 });
+      } catch { emitMonitor("x30_generate", "handler_failed");
+        return Response.json({ error: "X30 generation is not currently available." }, { status: 503 });
+      }
+    }
+
     // =========================================
     // STATIC HEGEVA WEBSITE
     // =========================================
 
-    if (env.ASSETS) {
-      return env.ASSETS.fetch(request);
+    // Retire the legacy browser UI while preserving API and asset behavior.
+    const acceptsHtml = (request.headers.get("Accept") || "").toLowerCase().includes("text/html");
+    const isApiPath = url.pathname === "/api" || url.pathname.startsWith("/api/");
+    const canonicalOrigin = getPublicAppUrl(request, env);
+    if (
+      !isApiPath &&
+      ["GET", "HEAD"].includes(request.method) &&
+      acceptsHtml &&
+      url.origin !== canonicalOrigin
+    ) {
+      return Response.redirect(`${canonicalOrigin}${url.pathname}${url.search}`, 308);
     }
 
-    return new Response("Not found", { status: 404 });
+    return env.ASSETS.fetch(
+      request
+    );
   }
-};
+  };
+}
+
+export default createRequestHandler();

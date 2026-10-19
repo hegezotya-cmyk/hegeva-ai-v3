@@ -1,0 +1,32 @@
+import assert from "node:assert/strict"
+import fs from "node:fs"
+import ts from "typescript"
+const source = fs.readFileSync(new URL("../lib/advertising-workflows.ts", import.meta.url), "utf8")
+assert.match(source, /ADVERTISING_VERSION = ["']0\.1["']/)
+assert.match(source, /ADVERTISING_CHANNELS/)
+assert.match(source, /ADVERTISING_LANGUAGES/)
+assert.match(source, /provider-approval-required/)
+assert.match(source, /executionState: "not-started"/)
+assert.match(source, /providerEvidence: "none"/)
+assert.match(source, /__proto__|prototype|constructor/)
+assert.match(source, /new TextEncoder\(\)/)
+assert.doesNotMatch(source, /fetch\s*\(|Workers AI|wrangler|setTimeout\s*\(|setInterval\s*\(|new\s+Function/i)
+const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText
+const contract = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`)
+const input = { schemaVersion: "0.1", kind: "advertisement-creator-brief", productOrService: "Secure booking", targetAudience: "Small businesses", campaignObjective: "Increase qualified enquiries", channel: "linkedin", language: "en", keyBenefits: ["Clear setup", "Trusted support"], restrictions: ["No unsupported claims"] }
+const brief = contract.validateAdvertisingBrief(input)
+assert.deepEqual(contract.validateAdvertisingBrief(input), brief)
+const result = contract.prepareAdvertisingWorkflow(brief)
+assert.equal(result.state, "provider-approval-required")
+assert.equal(result.executionState, "not-started")
+assert.equal(result.providerEvidence, "none")
+assert.throws(() => contract.validateAdvertisingBrief({ ...input, unknown: true }), /unexpected-key/)
+assert.throws(() => contract.validateAdvertisingBrief({ ...input, productOrService: "<script>bad</script>" }), /invalid/)
+assert.throws(() => contract.validateAdvertisingBrief({ ...input, keyBenefits: ["same", "SAME"] }), /duplicate/)
+assert.throws(() => contract.validateAdvertisingBrief({ ...input, channel: "unknown" }), /channel/)
+assert.throws(() => contract.validateAdvertisingBrief({ ...input, targetAudience: 42 }), /type/)
+assert.throws(() => contract.validateAdvertisingBrief({ ...input, kind: "advertisement-improver-brief" }), /required/)
+assert.equal(contract.validateAdvertisingBrief({ ...input, sourceUrl: "https://example.com/offer" }).sourceUrl, "https://example.com/offer")
+assert.throws(() => contract.validateAdvertisingBrief({ ...input, sourceUrl: "javascript:alert(1)" }), /source-url/)
+assert.equal(result.brief.productOrService, "Secure booking")
+console.log("Advertising workflow audit passed: bounded improver/creator brief, deterministic provider-approval state, no provider or persistence path")

@@ -1,0 +1,66 @@
+name: HEGEVA Linux Build Only
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - growth-activation-sprint-02-20260930
+
+permissions:
+  contents: read
+
+jobs:
+  build-only:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v0-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+
+      - name: Install V0 dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx --no-install tsc --noEmit --incremental false
+
+      - name: Sprint 02 activation audit
+        run: node scripts/growth-activation-sprint-02-audit.mjs
+
+      - name: Growth Engine audit
+        run: node scripts/growth-engine-v1-audit.mjs
+
+      - name: Auth hydration audit
+        run: node scripts/auth-hydration-audit.mjs
+
+      - name: Billing readiness audit
+        run: node scripts/billing-readiness-audit.mjs
+
+      - name: Product readiness audit
+        run: node scripts/product-readiness-audit.mjs
+
+      - name: Customer referral growth-loop audit
+        run: node scripts/customer-referral-growth-loop-audit.mjs
+
+      - name: Referral V1 audit
+        run: node scripts/referral-v1-audit.mjs
+
+      - name: Referral V2 audit
+        run: node scripts/referral-v2-audit.mjs
+
+      - name: Diff check
+        run: git diff --check
+
+      - name: Next.js production build
+        run: npm run build
+
+      - name: OpenNext Cloudflare build
+        run: npm run cf:build

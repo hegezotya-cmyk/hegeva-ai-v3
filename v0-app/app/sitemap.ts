@@ -2,11 +2,11 @@ import type { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = 'https://hegevaai.co.uk'
-  const routes = ['', '/app-studio', '/app-studio/prompt-my-app', '/app-studio/build-my-app', '/app-studio/fix-my-app', '/assistant', '/business', '/business/customers', '/business/documents', '/business/expenses', '/business/planner', '/business/reports', '/business/messages', '/business/tools', '/business/vault', '/business/invoices', '/command-center', '/get-started', '/pricing', '/contact', '/privacy', '/terms']
+  const routes = ['', '/challenge', '/ai-for-small-business', '/ai-business-assistant', '/quote-and-invoice-software', '/ai-for-trades', '/ai-for-electricians', '/for-electricians', '/for-builders', '/for-plumbers', '/for-cleaners', '/for-property-maintenance', '/for-consultants', '/free-tools', '/pricing', '/enterprise', '/contact', '/privacy', '/terms']
   return routes.map((route) => ({
     url: `${base}${route}`,
     lastModified: new Date(),
     changeFrequency: route === '' ? 'weekly' : 'monthly',
-    priority: route === '' ? 1 : route === '/pricing' || route === '/contact' ? 0.8 : route === '/privacy' || route === '/terms' ? 0.5 : 0.7,
+    priority: route === '' ? 1 : route === '/challenge' ? 0.9 : route === '/pricing' || route === '/contact' ? 0.8 : route === '/enterprise' ? 0.7 : route === '/privacy' || route === '/terms' ? 0.5 : 0.7,
   }))
 }

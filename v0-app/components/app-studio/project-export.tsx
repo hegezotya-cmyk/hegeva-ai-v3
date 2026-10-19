@@ -10,6 +10,9 @@ import {
   stripCodeFence,
   type StudioLocale,
 } from "@/lib/app-studio-ai"
+import { blockingFindings, verifyGeneratedHtml } from "@/lib/app-studio-boundary"
+import { useAiAvailability } from "@/lib/ai-availability"
+import { ComingSoonBanner } from "@/components/coming-soon-state"
 
 const LAST_BUILD_KEY = "hegeva:app-studio:last-built-html"
 
@@ -216,6 +219,7 @@ export function ProjectExport() {
     return () => window.clearInterval(id)
   }, [])
 
+  const securityFindings = useMemo(() => (html ? blockingFindings(html) : []), [html])
   const baseFiles = useMemo(() => (html ? splitPrototype(html) : null), [html])
   const checks = useMemo(() => {
     if (!baseFiles) return []
@@ -239,7 +243,7 @@ export function ProjectExport() {
     ] as const
   }, [baseFiles, c])
 
-  const allPassed = checks.length > 0 && checks.every(([, ok]) => ok)
+  const allPassed = securityFindings.length === 0 && checks.length > 0 && checks.every(([, ok]) => ok)
   const files = useMemo<ProjectFiles | null>(() => {
     if (!baseFiles) return null
     const report = [
@@ -254,8 +258,11 @@ export function ProjectExport() {
     return { ...baseFiles, "VERIFY.md": report }
   }, [allPassed, baseFiles, checks])
 
+  const aiAvailability = useAiAvailability()
+  const aiRepairAvailable = aiAvailability.status.x10Enabled
+
   async function autoRepairProject() {
-    if (!html || allPassed || repairing) return
+    if (!html || allPassed || repairing || !aiRepairAvailable) return
     setRepairing(true)
     setRepairMessage("")
     const failed = checks.filter(([, ok]) => !ok).map(([label]) => `- ${label}`).join("\n")
@@ -275,6 +282,7 @@ export function ProjectExport() {
       const answer = await runStudioAI(instruction, locale as StudioLocale)
       const repaired = stripCodeFence(answer)
       if (!looksLikeHtmlDocument(repaired)) throw new Error(c.repairFailed)
+      verifyGeneratedHtml(repaired)
       const repairedFiles = splitPrototype(repaired)
       const repairedIndex = repairedFiles["index.html"]
       const projectOk = repairedFiles["styles.css"].trim().length > 0 && repairedFiles["app.js"].trim().length > 0 && javascriptParses(repairedFiles["app.js"]) && repairedIndex.includes('href="styles.css"') && repairedIndex.includes('src="app.js"')
@@ -312,7 +320,11 @@ export function ProjectExport() {
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               {checks.map(([label, ok]) => <div key={label} className="flex items-center gap-2 text-sm">{ok ? <CheckCircle2 className="size-4 text-primary" aria-hidden /> : <XCircle className="size-4 text-destructive" aria-hidden />}<span>{label}</span></div>)}
             </div>
-            {!allPassed && <button type="button" disabled={repairing} onClick={() => void autoRepairProject()} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"><Sparkles className="size-4" aria-hidden />{repairing ? c.repairing : c.repair}</button>}
+            {!allPassed && (aiRepairAvailable ? (
+              <button type="button" disabled={repairing} onClick={() => void autoRepairProject()} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"><Sparkles className="size-4" aria-hidden />{repairing ? c.repairing : c.repair}</button>
+            ) : (
+              <ComingSoonBanner feature="fix" className="mt-4" />
+            ))}
             {repairMessage && <p className="mt-3 text-sm text-muted-foreground">{repairMessage}</p>}
           </div>
 

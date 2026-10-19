@@ -1,0 +1,30 @@
+name: HEGEVA OpenNext Build Only
+
+on:
+  push:
+    branches:
+      - business-check-account-page-spec-20260927
+
+permissions:
+  contents: read
+
+jobs:
+  build-only:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v0-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install V0 dependencies
+        run: npm ci
+
+      - name: Build OpenNext bundle
+        run: npm run cf:build

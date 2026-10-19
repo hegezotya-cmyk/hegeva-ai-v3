@@ -3,14 +3,16 @@
 import { useMemo, useState } from "react"
 import { Braces, CheckCircle2, Code2, Download, Eye, Laptop, Smartphone, Sparkles, Tablet, WandSparkles } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
-import { downloadTextFile, looksLikeHtmlDocument, runStudioAI, stripCodeFence, type StudioLocale } from "@/lib/app-studio-ai"
+import { downloadTextFile, looksLikeHtmlDocument, runStudioAI, stripCodeFence, type AssistantOperationContext, type StudioLocale } from "@/lib/app-studio-ai"
 import { auditStudioSpecMatch } from "@/lib/app-studio-spec-match"
+import { preparePreviewHtml, verifyGeneratedHtml } from "@/lib/app-studio-boundary"
+import { useAiAvailability } from "@/lib/ai-availability"
+import { ComingSoonCard } from "@/components/coming-soon-state"
 
 type ViewMode = "preview" | "code"
 type DeviceMode = "desktop" | "tablet" | "mobile"
 
 const X10_MIN_REQUEST_MATCH = 75
-const X10_MAX_ATTEMPTS = 3
 
 function audit(html: string, idea: string) {
   const spec = auditStudioSpecMatch(html, idea)
@@ -29,21 +31,13 @@ function audit(html: string, idea: string) {
 
 function instruction(idea: string, locale: string, missing: string[] = [], previousScore?: number) {
   return [
-    "You are the HEGEVA Build My App X10 premium browser-app engine.",
-    `Visible UI language: ${locale}.`,
-    "Create one polished, genuinely working self-contained index.html with inline CSS and vanilla JavaScript.",
-    "Build the CUSTOMER'S ACTUAL REQUEST. Do not replace a specific domain request with a generic CRM, dashboard, Business OS, invoice app or template unless the customer explicitly asked for that.",
-    "Preserve the customer's important domain nouns, entities, fields and workflows in the visible UI, navigation, forms, state model and working interactions.",
-    "X10 should be focused rather than huge: 2-4 meaningful product areas with one excellent end-to-end workflow.",
-    "Every visible primary button and form must work locally. Use real add/update/delete/search/filter/calculation behavior when relevant to the request.",
-    "Persist useful user-created data with localStorage when appropriate.",
-    "Use strong premium SaaS UX, responsive mobile layout, clear hierarchy, helpful empty states and accessible labels.",
-    "Do not fake server authentication, payments, cloud database, email or external API success. Mark external integrations honestly when they cannot run locally.",
-    previousScore !== undefined ? `PREVIOUS REQUEST MATCH: ${previousScore}%. This is below the X10 target of ${X10_MIN_REQUEST_MATCH}%. Rebuild around the customer's actual domain instead of preserving unrelated generic modules.` : "",
-    missing.length ? `PREVIOUS BUILD MISSED THESE REQUEST CONCEPTS. The new build must visibly and functionally implement them where relevant: ${missing.join(", ")}. Do not merely mention these words in headings or comments.` : "",
-    "Before returning, mentally verify that the main records, form fields, navigation labels and actions are specific to the customer's request rather than a generic business template.",
-    "Return ONLY the complete HTML document. No Markdown fences or explanation.",
-    `CUSTOMER REQUEST:\n${idea.slice(0, 1600)}`,
+    "HEGEVA X10. Return ONLY one complete <!doctype html> document; no Markdown or explanation. Close html/head/body.",
+    `Language: ${locale}. Inline CSS and vanilla JavaScript only. Build the exact customer domain, not a generic CRM/Business OS/template.`,
+    "Implement the requested fields and one complete local workflow with working add/edit/delete, search/filter, localStorage persistence, responsive mobile layout, accessible labels, and clear demo/local-only wording.",
+    "Never claim cloud sync, authentication, payments, email, API or external success. Keep controls honest and local.",
+    previousScore !== undefined ? `Request match was ${previousScore}%; correct the customer's domain.` : "",
+    missing.length ? `Required concepts: ${missing.join(", ")}.` : "",
+    `CUSTOMER REQUEST (preserve all requirements; exclusions are not positive domain terms):\n${idea.slice(0, 1500)}`,
   ].filter(Boolean).join("\n\n")
 }
 
@@ -64,8 +58,12 @@ export function BuildMyAppX10Tuned() {
   const [error, setError] = useState("")
   const [view, setView] = useState<ViewMode>("preview")
   const [device, setDevice] = useState<DeviceMode>("desktop")
-  const result = useMemo(() => audit(html, idea), [html, idea])
   const width = device === "mobile" ? "390px" : device === "tablet" ? "820px" : "100%"
+  const result = useMemo(() => audit(html, idea), [html, idea])
+  const aiAvailability = useAiAvailability()
+  if (!aiAvailability.status.x10Enabled) {
+    return <ComingSoonCard feature="x10" className="mx-auto mt-12 max-w-xl" />
+  }
 
   async function build() {
     const request = idea.trim()
@@ -73,29 +71,13 @@ export function BuildMyAppX10Tuned() {
     setBusy(true)
     setError("")
     try {
-      let bestHtml = ""
-      let bestCheck: ReturnType<typeof audit> | null = null
-      let missing: string[] = []
-      let previousScore: number | undefined
-
-      for (let attempt = 0; attempt < X10_MAX_ATTEMPTS; attempt += 1) {
-        const candidate = stripCodeFence(await runStudioAI(instruction(request, locale, missing, previousScore), locale as StudioLocale))
-        if (!looksLikeHtmlDocument(candidate)) continue
-        const candidateCheck = audit(candidate, request)
-        if (!bestCheck || candidateCheck.specScore > bestCheck.specScore || (candidateCheck.specScore === bestCheck.specScore && candidateCheck.capabilityScore > bestCheck.capabilityScore)) {
-          bestHtml = candidate
-          bestCheck = candidateCheck
-        }
-        if (candidateCheck.specScore >= X10_MIN_REQUEST_MATCH && candidateCheck.capabilityScore >= 67) break
-        missing = candidateCheck.missing.slice(0, 14)
-        previousScore = candidateCheck.specScore
-      }
-
-      if (!bestCheck || !bestHtml) throw new Error("HEGEVA could not verify this X10 build.")
+      const operation: AssistantOperationContext = { assistantOperationId: crypto.randomUUID(), appStudioProfile: "x10" }
+      const bestHtml = stripCodeFence(await runStudioAI(instruction(request, locale), locale as StudioLocale, undefined, operation))
+      if (!looksLikeHtmlDocument(bestHtml)) throw new Error("HEGEVA could not verify this X10 build.")
+      const bestCheck = audit(bestHtml, request)
+      verifyGeneratedHtml(bestHtml)
       if (bestCheck.specScore < X10_MIN_REQUEST_MATCH) {
-        setHtml(bestHtml)
-        setView("preview")
-        throw new Error(`X10 did not pass request verification (${bestCheck.specScore}%/${X10_MIN_REQUEST_MATCH}%). The best attempt is shown for inspection, but it is not accepted as a finished build.`)
+        throw new Error(`X10 did not pass request verification (${bestCheck.specScore}%/${X10_MIN_REQUEST_MATCH}%). Start a new build when you are ready to retry.`)
       }
 
       setHtml(bestHtml)
@@ -130,7 +112,7 @@ export function BuildMyAppX10Tuned() {
         <section className="overflow-hidden rounded-3xl border border-border bg-background/30 shadow-[0_28px_85px_rgba(0,0,0,.18)]">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5"><div><h2 className="text-sm font-black text-foreground">X10 Live Workspace</h2><p className="mt-1 text-[11px] text-muted-foreground">Focused single-file customer build</p></div><div className="flex flex-wrap items-center gap-2"><div className="flex rounded-xl border border-border bg-background/40 p-1"><button onClick={() => setView("preview")} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold ${view === "preview" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><Eye className="size-3.5" />{c.preview}</button><button onClick={() => setView("code")} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold ${view === "code" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}><Code2 className="size-3.5" />{c.code}</button></div><button disabled={!html} onClick={() => html && downloadTextFile("index.html", html, "text/html;charset=utf-8")} className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-bold disabled:opacity-40"><Download className="size-4" />{c.download}</button></div></div>
           <div className="flex items-center justify-between gap-3 border-b border-border bg-background/20 px-4 py-2.5 sm:px-5"><div className="flex rounded-xl border border-border bg-background/40 p-1">{([["desktop",Laptop],["tablet",Tablet],["mobile",Smartphone]] as const).map(([key, Icon]) => <button key={key} onClick={() => setDevice(key)} className={`rounded-lg p-2 ${device === key ? "bg-primary/15 text-primary" : "text-muted-foreground"}`} aria-label={key}><Icon className="size-4" /></button>)}</div><span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{html ? `${result.specScore}% request match` : "Ready"}</span></div>
-          {!html ? <div className="flex min-h-[720px] items-center justify-center p-8 text-center"><div><div className="mx-auto flex size-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10"><WandSparkles className="size-6 text-primary" /></div><p className="mt-4 text-sm font-black text-foreground">{c.empty}</p></div></div> : view === "preview" ? <div className="bg-[#040907] p-3 sm:p-5"><div className="mx-auto overflow-hidden rounded-[22px] border border-white/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,.35)] transition-[width]" style={{ width, maxWidth: "100%" }}><div className="flex items-center justify-between border-b border-black/10 bg-[#f6f7f7] px-3 py-2"><span className="text-[10px] font-semibold text-black/45">customer-app.local</span></div><iframe title="HEGEVA X10 preview" srcDoc={html} sandbox="allow-scripts" className="h-[720px] w-full bg-white" /></div></div> : <div className="bg-[#07100d] p-4"><div className="rounded-[22px] border border-white/10 bg-[#020705] p-4"><div className="mb-3 flex items-center gap-2"><Braces className="size-4 text-primary" /><span className="text-xs font-bold text-white/75">index.html</span></div><pre className="h-[720px] overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 text-emerald-50/80">{html}</pre></div></div>}
+          {!html ? <div className="flex min-h-[720px] items-center justify-center p-8 text-center"><div><div className="mx-auto flex size-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10"><WandSparkles className="size-6 text-primary" /></div><p className="mt-4 text-sm font-black text-foreground">{c.empty}</p></div></div> : view === "preview" ? <div className="bg-[#040907] p-3 sm:p-5"><div className="mx-auto overflow-hidden rounded-[22px] border border-white/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,.35)] transition-[width]" style={{ width, maxWidth: "100%" }}><div className="flex items-center justify-between border-b border-black/10 bg-[#f6f7f7] px-3 py-2"><span className="text-[10px] font-semibold text-black/45">customer-app.local</span></div><iframe title="HEGEVA X10 preview" srcDoc={preparePreviewHtml(html)} sandbox="allow-scripts" className="h-[720px] w-full bg-white" /></div></div> : <div className="bg-[#07100d] p-4"><div className="rounded-[22px] border border-white/10 bg-[#020705] p-4"><div className="mb-3 flex items-center gap-2"><Braces className="size-4 text-primary" /><span className="text-xs font-bold text-white/75">index.html</span></div><pre className="h-[720px] overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 text-emerald-50/80">{html}</pre></div></div>}
         </section>
       </div>
     </div>

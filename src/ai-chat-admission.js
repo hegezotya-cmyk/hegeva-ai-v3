@@ -1,0 +1,239 @@
+export async function handleAiChatAdmission({
+  request,
+  user,
+  planInfo,
+  period,
+  body,
+  runtime,
+  reserve,
+  reserveTopUp = null,
+  resolveTier = null,
+  validateProviderInput = null,
+  reserveDaily = null,
+  releaseDaily = null,
+  readTopUpBalance = null,
+  reserveGlobal = null,
+  releaseReservation = null,
+  readUsage,
+  execute,
+  distributed,
+  now = Date.now,
+  cooldownMs = 1500,
+}) {
+  if (!user) {
+    return Response.json({ error: "Authentication required." }, { status: 401 })
+  }
+
+  const input = body || await request.json()
+  const message = typeof input.message === "string" ? input.message.trim() : ""
+  if (!message) return Response.json({ error: "Please enter a message." }, { status: 400 })
+  if (message.length > 2500) return Response.json({ error: "Message is too long." }, { status: 400 })
+  // Existing non-public callers retain their established Standard-only
+  // contract. The public route always supplies the authoritative resolver.
+  const tierSelection = typeof resolveTier === "function"
+    ? resolveTier({ tier: input.tier, plan: planInfo.plan })
+    : { ok: true, tier: { id: "standard", reservation: { neurons: 1 } } }
+  if (!tierSelection?.ok) {
+    const advanced = input.tier === "advanced"
+    return Response.json(
+      { error: advanced ? "Advanced Assistant requires an eligible Premium or Pro plan and configured access." : "AI service is temporarily unavailable." },
+      { status: advanced ? 403 : 400 },
+    )
+  }
+  // Validate the fully bounded tier payload before any customer credit, daily
+  // capacity, or global-cost reservation. This prevents invalid input from
+  // becoming a charge/refund lifecycle at all.
+  if (typeof validateProviderInput === "function") {
+    const providerInput = validateProviderInput({ message, tier: tierSelection.tier })
+    if (!providerInput?.ok) {
+      const tooLarge = providerInput?.reason === "provider-input-too-large"
+      return Response.json(
+        { error: tooLarge ? "Message is too long for this Assistant mode." : "AI service is temporarily unavailable." },
+        { status: tooLarge ? 413 : 400 },
+      )
+    }
+  }
+
+  const rawHistory = Array.isArray(input.history) ? input.history.slice(-10) : []
+  let totalChars = 0
+  const safeHistory = []
+  for (const item of rawHistory) {
+    if (!item || !["user", "assistant"].includes(item.role) || typeof item.content !== "string") continue
+    const content = item.content.slice(0, 1200)
+    if (totalChars + content.length > 7000) break
+    totalChars += content.length
+    safeHistory.push({ role: item.role, content })
+  }
+
+  const aiUserKey = String(user.id)
+  const current = now()
+
+  const lastRequest = Number(runtime.lastRequest.get(aiUserKey) || 0)
+  const retryAfterMs = cooldownMs - (current - lastRequest)
+  if (retryAfterMs > 0) {
+    return Response.json(
+      { error: "Please wait a moment before sending another AI request.", retryAfterMs },
+      { status: 429, headers: { "Retry-After": String(Math.max(1, Math.ceil(retryAfterMs / 1000))) } },
+    )
+  }
+
+  if (runtime.inFlight.has(aiUserKey)) {
+    return Response.json({ error: "An AI request is already running. Please wait for it to finish." }, { status: 429 })
+  }
+
+  runtime.inFlight.add(aiUserKey)
+  let distributedAcquired = false
+  let distributedToken = null
+  try {
+    if (!distributed) {
+      console.error("HEGEVA_AI_ADMISSION_FAILURE", { reason: "distributed_binding_missing" })
+      return Response.json({ error: "AI service is temporarily unavailable." }, { status: 503 })
+    }
+    let distributedResult
+    try {
+      distributedResult = await distributed.admit(current)
+    } catch (error) {
+      console.error("HEGEVA_AI_ADMISSION_FAILURE", {
+        reason: "distributed_admit_threw",
+        errorName: error instanceof Error ? error.name : "Unknown",
+      })
+      return Response.json({ error: "AI service is temporarily unavailable." }, { status: 503 })
+    }
+    if (!distributedResult?.allowed) {
+      return Response.json(
+        { error: "Too many AI requests. Please try again shortly." },
+        { status: 429, headers: { "Retry-After": String(Math.max(1, Math.ceil(Number(distributedResult?.retryAfterMs || 1_000) / 1000))) } },
+      )
+    }
+    if (typeof distributedResult.token !== "string" || !distributedResult.token) {
+      console.error("HEGEVA_AI_ADMISSION_FAILURE", {
+        reason: "invalid_distributed_admission_token",
+        resultType: typeof distributedResult,
+        allowedType: typeof distributedResult?.allowed,
+        allowed: distributedResult?.allowed === true,
+        tokenType: typeof distributedResult?.token,
+        tokenPresent: Boolean(distributedResult?.token),
+        retryAfterMsType: typeof distributedResult?.retryAfterMs,
+      })
+      return Response.json({ error: "AI service is temporarily unavailable." }, { status: 503 })
+    }
+    distributedToken = distributedResult.token
+    distributedAcquired = true
+    const reservation = await reserve(user.id, period, planInfo.limit, tierSelection.tier)
+    let activeReservation = reservation
+    let creditSource = "monthly"
+    if (!reservation.reserved && reservation.reason === "assistant_quota_unavailable" && typeof reserveTopUp === "function") {
+      const topUpReservation = await reserveTopUp(user.id, tierSelection.tier)
+      if (topUpReservation?.reserved) {
+        activeReservation = topUpReservation
+        creditSource = "topup"
+      } else if (topUpReservation?.reason === "duplicate_topup_operation") {
+        return Response.json({ error: "This Assistant request was already received." }, { status: 409 })
+      } else if (topUpReservation?.reason && topUpReservation.reason !== "topup_credit_unavailable") {
+        console.error("HEGEVA_AI_ADMISSION_FAILURE", { reason: "topup_reservation_failed" })
+        return Response.json({ error: "AI service is temporarily unavailable." }, { status: 503 })
+      }
+    }
+    if (!reservation.reserved && !activeReservation.reserved) {
+      if (input.actionKind === "x20") {
+        console.info("HEGEVA_X20_LIFECYCLE", {
+          event: "x20_reservation_denied",
+          reason: typeof reservation.reason === "string" ? reservation.reason : "unknown",
+        })
+      }
+      if (activeReservation.reason === "duplicate_attempt") {
+        return Response.json({ error: "This X20 attempt was already received." }, { status: 409 })
+      }
+      if (activeReservation.reason === "duplicate_assistant_operation") {
+        return Response.json({ error: "This Assistant request was already received." }, { status: 409 })
+      }
+      if (activeReservation.reason === "invalid_assistant_operation") {
+        return Response.json({ error: "A valid Assistant operation is required." }, { status: 400 })
+      }
+      if (activeReservation.reason === "expired_assistant_operation") {
+        return Response.json({ error: "This Assistant request has expired. Please start a new request." }, { status: 409 })
+      }
+      if (activeReservation.reason === "invalid_assistant_plan_limit") {
+        return Response.json({ error: "AI service is temporarily unavailable." }, { status: 503 })
+      }
+      if (input.actionKind === "x20") {
+        const x20Messages = {
+          x20_allowance_exhausted: ["Monthly X20 action allowance reached.", 429],
+          attempt_cap: ["X20 build attempts are exhausted for this action.", 429],
+          duplicate_attempt: ["This X20 attempt was already received.", 409],
+          duplicate_action_start: ["This X20 build was already started.", 409],
+          expired_action: ["This X20 action has expired. Please start a new build.", 409],
+          invalid_action_identity: ["This X20 action is not valid for the current session.", 409],
+          invalid_attempt_request: ["A valid X20 attempt is required.", 400],
+          x20_allowance_unavailable: ["X20 service is temporarily unavailable.", 503],
+        }
+        const [error, status] = x20Messages[activeReservation.reason] || ["X20 action could not be admitted.", 429]
+        return Response.json({ error }, { status })
+      }
+      const used = await readUsage(user.id, period)
+      const topUpBalance = typeof readTopUpBalance === "function" ? await readTopUpBalance(user.id) : 0
+      if (input.actionKind !== "x20") {
+        console.error("HEGEVA_MONITOR", {
+          scope: "ai_quota",
+          outcome: "monthly_ai_limit",
+          reason: typeof activeReservation.reason === "string" ? activeReservation.reason : "quota_unavailable",
+        })
+      }
+      return Response.json(
+        {
+          error: "Monthly AI message limit reached.",
+          code: "ASSISTANT_CREDITS_EXHAUSTED",
+          plan: planInfo.plan,
+          limit: planInfo.limit,
+          used,
+          topUpBalance,
+          upgradeRequired: true,
+          upgradePath: "/pricing",
+          message: "You've used your monthly AI allowance. Upgrade your plan to continue using the AI Assistant now, or wait until your allowance resets next month.",
+        },
+        { status: 429 },
+      )
+    }
+    let dailyReservation = null
+    if (typeof reserveDaily === "function") {
+      dailyReservation = await reserveDaily({ operationId: input.assistantOperationId, tier: tierSelection.tier })
+      if (!dailyReservation?.reserved) {
+        if (typeof releaseReservation === "function") {
+          const released = await releaseReservation({ creditSource, reason: dailyReservation?.reason || "daily_admission_unavailable" })
+          if (!released?.settled) throw new Error("HEGEVA_ASSISTANT_QUOTA_RELEASE_UNAVAILABLE")
+        }
+        return Response.json({ error: "AI service is temporarily unavailable.", code: "ASSISTANT_DAILY_LIMIT_UNAVAILABLE" }, { status: 429 })
+      }
+    }
+    let globalReservation = null
+    // The public Assistant uses the global cost guard. X20 remains on its
+    // existing independent action/credit accounting path.
+    if (typeof reserveGlobal === "function" && input.actionKind !== "x20") {
+      try {
+        globalReservation = await reserveGlobal({ creditSource, operationId: input.assistantOperationId, period, tier: tierSelection.tier })
+      } catch (error) {
+        console.error("HEGEVA_AI_ADMISSION_FAILURE", { reason: "cost_guard_reservation_failed", errorName: error instanceof Error ? error.name : "Unknown" })
+        globalReservation = { reserved: false, reason: "cost_guard_unavailable" }
+      }
+      if (!globalReservation?.reserved) {
+        console.info("HEGEVA_COST_GUARD", { outcome: "denied", reason: globalReservation?.reason || "cost_guard_unavailable", fundingClass: creditSource })
+        if (typeof releaseReservation === "function") {
+          const released = await releaseReservation({ creditSource, reason: globalReservation?.reason || "cost_guard_unavailable" })
+          if (!released?.settled) throw new Error("HEGEVA_ASSISTANT_QUOTA_RELEASE_UNAVAILABLE")
+        }
+        if (dailyReservation && typeof releaseDaily === "function") {
+          const released = await releaseDaily({ operationId: dailyReservation.operationId })
+          if (!released?.settled) throw new Error("HEGEVA_ASSISTANT_DAILY_RELEASE_UNAVAILABLE")
+        }
+        return Response.json({ error: "AI service is temporarily unavailable.", code: "ASSISTANT_COST_GUARD_UNAVAILABLE" }, { status: 503 })
+      }
+    }
+    runtime.lastRequest.set(aiUserKey, current)
+    return await execute({ input, message, safeHistory, user, planInfo, period, creditSource, tier: tierSelection.tier, dailyReservation, globalReservation })
+  } finally {
+    if (distributed && distributedAcquired) {
+      try { await distributed.release(distributedToken) } catch {}
+    }
+    runtime.inFlight.delete(aiUserKey)
+  }
+}

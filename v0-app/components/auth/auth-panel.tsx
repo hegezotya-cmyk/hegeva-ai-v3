@@ -1,18 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { authClient, signIn, signUp, useSession } from "@/lib/auth-client"
+import { HEGEVA_EMAIL_VERIFICATION_CALLBACK } from "@/lib/auth-verification"
+import { captureReferralAttribution, clearReferralAttribution, trackRegistrationSubmitted } from "@/lib/conversion-tracking"
 import { useI18n } from "@/lib/i18n/provider"
 import { AUTH_COPY } from "@/lib/i18n/auth-copy"
 import { SkeletonSurface } from "@/components/visual-engine"
-import { trackConversion } from "@/lib/conversion-tracking"
 
 export function AuthPanel() {
   const router = useRouter()
   const { locale } = useI18n()
   const c = AUTH_COPY[locale]
   const { data: session, isPending } = useSession()
+  const [hydrated, setHydrated] = useState(false)
   const [mode, setMode] = useState<"login" | "register" | "forgot">("login")
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -20,7 +22,22 @@ export function AuthPanel() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [verificationPending, setVerificationPending] = useState(false)
   const [passwordRecoveryAvailable, setPasswordRecoveryAvailable] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("mode") === "register") setMode("register")
+  }, [])
+
+  useEffect(() => {
+    if (mode === "register" && !isPending && !session?.user) {
+      window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event: "registration_start", path: "/login" } }))
+    }
+  }, [mode, isPending, session?.user])
 
   async function checkPasswordRecovery() {
     if (passwordRecoveryAvailable !== null) return passwordRecoveryAvailable
@@ -41,9 +58,17 @@ export function AuthPanel() {
     }
   }
 
-  function safeCallbackURL() {
+  function safeCallbackURL(fallback = "/command-center") {
     const value = new URLSearchParams(window.location.search).get("callbackURL")
-    return value?.startsWith("/") && !value.startsWith("//") ? value : "/command-center"
+    return value?.startsWith("/") && !value.startsWith("//") ? value : fallback
+  }
+
+  async function attributeCapturedReferral() {
+    const referral = captureReferralAttribution()
+    if (!referral) return false
+    const response = await fetch("/api/referrals/attribute", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: referral.code }) }).catch(() => null)
+    if (response?.ok) clearReferralAttribution()
+    return true
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -51,7 +76,6 @@ export function AuthPanel() {
     setError("")
     setSuccess("")
     setBusy(true)
-
     try {
       if (mode === "forgot") {
         const recoveryAvailable = await checkPasswordRecovery()
@@ -79,21 +103,37 @@ export function AuthPanel() {
           name: name.trim(),
           email: email.trim(),
           password,
+          callbackURL: HEGEVA_EMAIL_VERIFICATION_CALLBACK,
         })
 
         if (result.error) {
           setError(c.authFailed)
           return
         }
-        trackConversion("registration_submitted")
+        trackRegistrationSubmitted()
+        const referralCaptured = await attributeCapturedReferral()
+        if (referralCaptured) {
+          window.dispatchEvent(new CustomEvent("hegeva:analytics-event", {
+            detail: { event: "referral_signup", path: "/login" },
+          }))
+        }
+        setVerificationPending(true)
+        setSuccess(c.verificationRequired)
+        return
       } else {
         const result = await signIn.email({
           email: email.trim(),
           password,
+          callbackURL: HEGEVA_EMAIL_VERIFICATION_CALLBACK,
         })
 
         if (result.error) {
-          setError(c.authFailed)
+          if (result.error.code === "EMAIL_NOT_VERIFIED") {
+            setVerificationPending(true)
+            setError(c.verificationRequired)
+          } else {
+            setError(c.authFailed)
+          }
           return
         }
       }
@@ -104,6 +144,7 @@ export function AuthPanel() {
         return
       }
 
+      await attributeCapturedReferral()
       router.push(safeCallbackURL())
       router.refresh()
     } catch {
@@ -113,7 +154,35 @@ export function AuthPanel() {
     }
   }
 
-  if (isPending) {
+  async function resendVerification() {
+    setError("")
+    setSuccess("")
+    setBusy(true)
+
+    try {
+      const result = await authClient.sendVerificationEmail({
+        email: email.trim(),
+        callbackURL: HEGEVA_EMAIL_VERIFICATION_CALLBACK,
+      })
+
+      if (result.error) {
+        if (result.error.code === "EMAIL_ALREADY_VERIFIED") {
+          setSuccess(c.alreadyVerified)
+        } else {
+          setError(c.verificationUnavailable)
+        }
+        return
+      }
+
+      setSuccess(c.verificationResent)
+    } catch {
+      setError(c.verificationUnavailable)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!hydrated || isPending) {
     return <SkeletonSurface lines={4} className="min-h-64" />
   }
 
@@ -160,7 +229,7 @@ export function AuthPanel() {
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} data-registration-active={mode === "register" ? "true" : undefined} className="space-y-4">
         {mode === "register" && (
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium">{c.name}</span>
@@ -230,6 +299,17 @@ export function AuthPanel() {
           <p className="rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-foreground">
             {success}
           </p>
+        )}
+
+        {verificationPending && (
+          <button
+            type="button"
+            onClick={() => void resendVerification()}
+            disabled={busy || !email.trim()}
+            className="w-full rounded-xl border border-input px-4 py-3 text-sm font-semibold text-foreground disabled:opacity-60"
+          >
+            {c.resendVerification}
+          </button>
         )}
 
         <button

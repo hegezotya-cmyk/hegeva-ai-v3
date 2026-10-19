@@ -23,13 +23,16 @@ import {
   WandSparkles,
 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
+import { AICore } from "@/components/visual-engine"
 import {
   downloadTextFile,
   looksLikeHtmlDocument,
   runStudioAI,
+  type X20ActionContext,
   stripCodeFence,
   type StudioLocale,
 } from "@/lib/app-studio-ai"
+import { preparePreviewHtml, verifyGeneratedHtml } from "@/lib/app-studio-boundary"
 
 type BuildMode = "starter" | "premium" | "growth"
 type ViewMode = "preview" | "code" | "split"
@@ -42,7 +45,20 @@ const HTML_KEY = "hegeva:x20:studio:html"
 const MODE_KEY = "hegeva:x20:studio:mode"
 const BUILD_KEY = "hegeva:x20:studio:build-mode"
 const VERSION_KEY = "hegeva:x20:studio:version"
+const META_KEY = "hegeva:x20:studio:result-meta"
+const REPAIR_KEY = "hegeva:x20:capability-repair-key"
+const REPAIR_ATTEMPTS_KEY = "hegeva:x20:capability-repair-attempts"
+const BUILD_INTENT_KEY = "hegeva:x20:studio:build-intent"
+const BUILD_SESSION_KEY = "hegeva:x20:studio:build-session"
+const SCOPE_KEY = "hegeva:x20:studio:scope"
 const VERSION = "studio-wow-2026-08-25-2"
+const stageCopy={
+  en:{stages:["Request","Build","Verify","Result"],states:["Ready for a request","Building and checking","Build needs attention","Verified result ready"],summary:"User-safe X20 status"},
+  hu:{stages:["Kérés","Építés","Ellenőrzés","Eredmény"],states:["Kérésre kész","Építés és ellenőrzés","A build figyelmet igényel","Ellenőrzött eredmény kész"],summary:"Biztonságos X20 állapot"},
+  de:{stages:["Anfrage","Build","Prüfung","Ergebnis"],states:["Bereit für eine Anfrage","Build und Prüfung","Build benötigt Aufmerksamkeit","Geprüftes Ergebnis bereit"],summary:"Sicherer X20-Status"},
+  fr:{stages:["Demande","Build","Vérification","Résultat"],states:["Prêt pour une demande","Construction et vérification","Le build nécessite une attention","Résultat vérifié prêt"],summary:"Statut X20 sûr"},
+  es:{stages:["Solicitud","Build","Verificación","Resultado"],states:["Listo para una solicitud","Construyendo y verificando","El build requiere atención","Resultado verificado listo"],summary:"Estado X20 seguro"},
+} as const
 
 const copy = {
   en: {
@@ -170,6 +186,7 @@ function health(html: string) {
 export function BuildMyAppX20StudioWow() {
   const { locale } = useI18n()
   const c = copy[locale]
+  const stage=stageCopy[locale]
   const [idea, setIdea] = useState("")
   const [html, setHtml] = useState("")
   const [mode, setMode] = useState<BuildMode>("premium")
@@ -181,12 +198,18 @@ export function BuildMyAppX20StudioWow() {
 
   useEffect(() => {
     try {
+      const scope = sessionStorage.getItem(SCOPE_KEY) || crypto.randomUUID()
+      sessionStorage.setItem(SCOPE_KEY, scope)
       const version = localStorage.getItem(VERSION_KEY)
       const saved = localStorage.getItem(HTML_KEY) || ""
-      setIdea(localStorage.getItem(IDEA_KEY) || "")
+      const savedIdea = localStorage.getItem(IDEA_KEY) || ""
+      setIdea(savedIdea)
+      const meta = JSON.parse(localStorage.getItem(META_KEY) || "null") as { version?: number; scope?: string; fingerprint?: string; fidelity?: string } | null
       const savedMode = localStorage.getItem(BUILD_KEY) as BuildMode | null
       if (savedMode === "starter" || savedMode === "premium" || savedMode === "growth") setMode(savedMode)
-      if (version === VERSION && saved && looksLikeHtmlDocument(saved)) setHtml(saved)
+      if (version === VERSION && saved && meta?.version === 1 && meta.scope === scope && meta.fingerprint === `${localStorage.getItem(BUILD_KEY) || "premium"}:${savedIdea.trim().toLowerCase()}` && meta.fidelity === "passed" && looksLikeHtmlDocument(saved)) {
+        try { verifyGeneratedHtml(saved); setHtml(saved) } catch { localStorage.removeItem(HTML_KEY) }
+      }
       else {
         localStorage.removeItem(HTML_KEY)
         localStorage.removeItem(MODE_KEY)
@@ -202,13 +225,16 @@ export function BuildMyAppX20StudioWow() {
   const appQuality = html ? quality(html) : 0
   const width = device === "mobile" ? "390px" : device === "tablet" ? "820px" : "100%"
 
-  function save(next: string, label: string) {
+  function save(next: string, label: string, actionId?: string) {
+    verifyGeneratedHtml(next)
     setHtml(next)
     setHistory((current) => [{ html: next, label, at: Date.now() }, ...current].slice(0, 6))
     try {
       localStorage.setItem(HTML_KEY, next)
       localStorage.setItem(MODE_KEY, label)
       localStorage.setItem(VERSION_KEY, VERSION)
+      const scope = sessionStorage.getItem(SCOPE_KEY) || ""
+      localStorage.setItem(META_KEY, JSON.stringify({ version: 1, scope, fingerprint: `${mode}:${idea.trim().toLowerCase()}`, actionId: actionId || null, fidelity: "passed", updatedAt: Date.now() }))
     } catch {}
   }
 
@@ -217,19 +243,36 @@ export function BuildMyAppX20StudioWow() {
     if (!request || busy) return
     setBusy(true)
     setError("")
+    setHtml("")
+    const buildSessionId = crypto.randomUUID()
     try {
-      let next = stripCodeFence(await runStudioAI(buildInstruction(request, locale, mode), locale as StudioLocale))
+      localStorage.removeItem(HTML_KEY)
+      localStorage.removeItem(META_KEY)
+      localStorage.removeItem(REPAIR_KEY)
+      localStorage.removeItem(REPAIR_ATTEMPTS_KEY)
+      localStorage.setItem(BUILD_SESSION_KEY, buildSessionId)
+      localStorage.setItem(BUILD_INTENT_KEY, buildSessionId)
+    } catch {}
+    try {
+      const action: X20ActionContext = { startRequestId: crypto.randomUUID() }
+      let next = stripCodeFence(await runStudioAI(buildInstruction(request, locale, mode), locale as StudioLocale, action))
       if (!looksLikeHtmlDocument(next)) throw new Error("HEGEVA could not verify this build.")
       const minimum = mode === "starter" ? 45 : mode === "premium" ? 60 : 72
       if (quality(next) < minimum) {
-        const retry = stripCodeFence(await runStudioAI(buildInstruction(request, locale, mode, true), locale as StudioLocale))
+        const retry = stripCodeFence(await runStudioAI(buildInstruction(request, locale, mode, true), locale as StudioLocale, action))
         if (looksLikeHtmlDocument(retry) && quality(retry) > quality(next)) next = retry
       }
-      save(next, `${c.modes[mode][0]} build`)
+      save(next, `${c.modes[mode][0]} build`, action.actionId || action.startRequestId)
       setView("preview")
     } catch (e) {
       setError(e instanceof Error ? e.message : "HEGEVA build failed.")
     } finally {
+      try {
+        if (localStorage.getItem(BUILD_SESSION_KEY) === buildSessionId) {
+          localStorage.removeItem(BUILD_INTENT_KEY)
+          localStorage.removeItem(BUILD_SESSION_KEY)
+        }
+      } catch {}
       setBusy(false)
     }
   }
@@ -257,6 +300,12 @@ export function BuildMyAppX20StudioWow() {
     { key: "dashboard", label: "Dashboard layer", icon: Gauge },
     { key: "accessibility", label: "Accessibility", icon: ShieldCheck },
   ]
+  const buildStages=[
+    {label:stage.stages[0],done:Boolean(idea.trim()),active:!idea.trim()},
+    {label:stage.stages[1],done:Boolean(html),active:busy},
+    {label:stage.stages[2],done:Boolean(html)&&score>=75,active:Boolean(html)&&score<75},
+    {label:stage.stages[3],done:Boolean(html)&&score>=75,active:false},
+  ]
 
   return (
     <div className="mx-auto max-w-[1560px] px-4 py-8 sm:px-6 lg:px-8">
@@ -274,6 +323,8 @@ export function BuildMyAppX20StudioWow() {
           </div>
         </div>
       </section>
+
+      <section className="x20-stage-rail" aria-label="X20 build workflow"><div><AICore state={busy?"working":error?"warning":html?"completed":"ready"}/><span><b>{busy?stage.states[1]:error?stage.states[2]:html?stage.states[3]:stage.states[0]}</b><small>{stage.summary}</small></span></div><ol>{buildStages.map((item,index)=><li key={item.label} className={item.done?"is-done":item.active?"is-active":""}><span>{item.done?<CheckCircle2 aria-hidden/>:String(index+1).padStart(2,"0")}</span><b>{item.label}</b></li>)}</ol></section>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[.78fr_1.22fr]">
         <section className="glass-panel rounded-3xl p-5 sm:p-6">
@@ -314,7 +365,7 @@ export function BuildMyAppX20StudioWow() {
           </div>
 
           {!html ? <div className="flex min-h-[760px] items-center justify-center p-8 text-center"><div><div className="mx-auto flex size-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10"><WandSparkles className="size-6 text-primary" /></div><p className="mt-4 text-sm font-black text-foreground">{c.empty}</p><p className="mt-2 text-xs text-muted-foreground">Build → verify → preview → improve → export</p></div></div> : <div className={view === "split" ? "grid 2xl:grid-cols-2" : "block"}>
-            {(view === "preview" || view === "split") && <div className={`${view === "split" ? "border-b 2xl:border-b-0 2xl:border-r" : ""} border-border bg-[#040907] p-3 sm:p-5`}><div className="mx-auto overflow-hidden rounded-[22px] border border-white/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,.35)] transition-[width] duration-300" style={{ width, maxWidth: "100%" }}><div className="flex items-center justify-between border-b border-black/10 bg-[#f6f7f7] px-3 py-2"><div className="flex gap-1.5"><span className="size-2.5 rounded-full bg-red-400" /><span className="size-2.5 rounded-full bg-amber-400" /><span className="size-2.5 rounded-full bg-emerald-400" /></div><span className="text-[10px] font-semibold text-black/45">customer-app.local</span><span className="w-8" /></div><iframe title="HEGEVA customer app preview" srcDoc={html} sandbox="allow-scripts" className="h-[760px] w-full bg-white" /></div></div>}
+            {(view === "preview" || view === "split") && <div className={`${view === "split" ? "border-b 2xl:border-b-0 2xl:border-r" : ""} border-border bg-[#040907] p-3 sm:p-5`}><div className="mx-auto overflow-hidden rounded-[22px] border border-white/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,.35)] transition-[width] duration-300" style={{ width, maxWidth: "100%" }}><div className="flex items-center justify-between border-b border-black/10 bg-[#f6f7f7] px-3 py-2"><div className="flex gap-1.5"><span className="size-2.5 rounded-full bg-red-400" /><span className="size-2.5 rounded-full bg-amber-400" /><span className="size-2.5 rounded-full bg-emerald-400" /></div><span className="text-[10px] font-semibold text-black/45">customer-app.local</span><span className="w-8" /></div><iframe title="HEGEVA customer app preview" srcDoc={preparePreviewHtml(html)} sandbox="allow-scripts" className="h-[760px] w-full bg-white" /></div></div>}
             {(view === "code" || view === "split") && <div className="bg-[#07100d] p-3 sm:p-5"><div className="rounded-[22px] border border-white/10 bg-[#020705] p-4"><div className="mb-3 flex items-center justify-between"><div className="flex items-center gap-2"><Braces className="size-4 text-primary" /><span className="text-xs font-bold text-white/75">index.html</span></div><span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-primary">verified</span></div><pre className="h-[748px] overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 text-emerald-50/80">{html}</pre></div></div>}
           </div>}
         </section>

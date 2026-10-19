@@ -1,0 +1,43 @@
+name: Subscription Analytics Regression
+
+on:
+  push:
+    branches:
+      - fix-consented-subscription-tracking-20261018
+      - growth-acquisition-conversion-sprint-03-20261001
+  pull_request:
+    branches:
+      - growth-acquisition-conversion-sprint-03-20261001
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analytics-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Subscription consent and deduplication regression
+        run: node v0-app/scripts/subscription-consent-tracking-audit.mjs
+      - name: Campaign attribution regression
+        run: node v0-app/scripts/campaign-attribution-ga4-audit.mjs
+      - name: Install application dependencies
+        working-directory: v0-app
+        run: npm ci
+      - name: TypeScript validation
+        working-directory: v0-app
+        run: npx --no-install tsc --noEmit --incremental false
+      - name: Billing readiness audit
+        run: node v0-app/scripts/billing-readiness-audit.mjs
+      - name: Next.js production build
+        working-directory: v0-app
+        run: npm run build
+      - name: OpenNext Cloudflare build
+        working-directory: v0-app
+        run: npm run cf:build
+      - name: Diff whitespace validation
+        run: git diff --check
