@@ -3,6 +3,16 @@ import { betterAuth } from "better-auth";
 export const HEGEVA_EMAIL_FROM =
   "HEGEVA AI <noreply@hegevaai.co.uk>";
 
+function emailFrom(env) {
+  const configured =
+    typeof env.EMAIL_FROM === "string"
+      ? env.EMAIL_FROM.trim()
+      : "";
+  return configured && configured.length <= 320 && !/[\r\n]/.test(configured)
+    ? configured
+    : HEGEVA_EMAIL_FROM;
+}
+
 export const HEGEVA_EMAIL_VERIFICATION_CALLBACK =
   "/email-verification?status=verified";
 
@@ -38,7 +48,7 @@ export async function sendResendEmail(
           : {})
       },
       body: JSON.stringify({
-        from: HEGEVA_EMAIL_FROM,
+        from: emailFrom(env),
         to: [to],
         subject,
         html,
@@ -178,10 +188,10 @@ export function createAuth(env, request, ctx) {
     baseURL:
       publicAppUrl,
 
-    trustedOrigins: [
-      publicAppUrl,
-      "https://www.hegevaai.co.uk"
-    ],
+    trustedOrigins:
+      publicAppUrl === "https://hegevaai.co.uk"
+        ? [publicAppUrl, "https://www.hegevaai.co.uk"]
+        : [publicAppUrl],
 
     advanced: {
       // Authentication is exposed through the same-origin Next.js proxy at

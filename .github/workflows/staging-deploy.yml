@@ -1,0 +1,99 @@
+name: HEGEVA Staging Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "Staging operation"
+        required: true
+        default: "check"
+        type: choice
+        options: [check, deploy-api, deploy-ui, smoke, full]
+
+permissions:
+  contents: read
+
+env:
+  NEXT_PUBLIC_APP_ENV: staging
+  NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.STAGING_GA_MEASUREMENT_ID }}
+  NEXT_PUBLIC_GA_DEBUG_MODE: enabled
+  NEXT_PUBLIC_CLARITY_PROJECT_ID: ""
+
+concurrency:
+  group: hegeva-staging-deploy
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            v0-app/package-lock.json
+      - run: npm ci
+      - run: npm --prefix v0-app ci
+      - run: node scripts/staging-isolation-audit.mjs
+      - run: npm run worker:check
+      - run: npx tsc --noEmit
+        working-directory: v0-app
+      - run: npm run build
+        working-directory: v0-app
+      - run: npm run cf:build
+        working-directory: v0-app
+
+  preflight:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run staging:preflight
+
+  deploy:
+    needs: [verify, preflight]
+    if: ${{ inputs.stage != 'check' }}
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+      STAGING_APP_URL: ${{ vars.STAGING_APP_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            v0-app/package-lock.json
+      - run: npm ci
+      - run: npm --prefix v0-app ci
+      - run: npm run staging:db:migrate
+        if: ${{ inputs.stage == 'deploy-api' || inputs.stage == 'full' }}
+      - run: npm run staging:api:deploy
+        if: ${{ inputs.stage == 'deploy-api' || inputs.stage == 'full' }}
+      - run: npm run staging:ui:deploy
+        if: ${{ inputs.stage == 'deploy-ui' || inputs.stage == 'full' }}
+      - name: Smoke-test staging only
+        if: ${{ inputs.stage == 'smoke' || inputs.stage == 'full' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$STAGING_APP_URL"
+          case "$STAGING_APP_URL" in
+            https://hegevaai.co.uk*|https://www.hegevaai.co.uk*) exit 1 ;;
+          esac
+          curl --fail --silent --show-error --location "$STAGING_APP_URL/"
