@@ -1,17 +1,11 @@
-# UI release branch
+# Production release branch
 
-The production UI release branch is
-`growth-acquisition-conversion-sprint-03-20261001`. The repository's `main`
-branch contains the API/Worker source only and does not contain `v0-app`, so
-UI fixes must not be cherry-picked or merged into `main` as a release step.
+The single production branch is `v0-rebuild`. It contains the complete HEGEVA
+UI and API history. Feature branches must target this branch.
 
-Changes to `v0-app` on the UI release branch run the
-`HEGEVA Growth Acquisition UI Release` workflow. It installs dependencies in a
-clean Linux runner, runs the Enterprise and API-proxy regressions, type-checks,
-builds the Next/OpenNext artifact, and deploys only after every check passes.
-The workflow requires the existing `CLOUDFLARE_API_TOKEN` and
-`CLOUDFLARE_ACCOUNT_ID` repository secrets.
+Changes below `v0-app` on `v0-rebuild` run the `HEGEVA V0 UI Auto Deploy`
+workflow. It validates TypeScript, Next.js, OpenNext and the X20 runtime before
+deploying the UI, then smoke-tests the production domains and core routes.
 
-Production UI releases are tagged from this branch after a verified deploy.
-The `ui-production-20261004-614903b` tag identifies the release that prevents
-anonymous visitors from seeing Enterprise workspace controls.
+The API is released only through the staged manual `release.yml` workflow.
+No other branch may auto-deploy to the production UI or API Workers.
