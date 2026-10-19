@@ -14,9 +14,9 @@
   "vars": {
     "PAYMENT_PROVIDER": "stripe",
     "PAYMENT_MODE": "test",
-    "PUBLIC_APP_URL": "https://REPLACE_WITH_STAGING_APP_HOST",
-    "STRIPE_PREMIUM_PRICE_ID": "REPLACE_WITH_STRIPE_TEST_PREMIUM_PRICE_ID",
-    "STRIPE_PRO_PRICE_ID": "REPLACE_WITH_STRIPE_TEST_PRO_PRICE_ID",
+    "PUBLIC_APP_URL": "https://staging.hegevaai.co.uk",
+    "STRIPE_PREMIUM_PRICE_ID": "price_1U4YwrHH1vUED8ZNhhfKfzNK",
+    "STRIPE_PRO_PRICE_ID": "price_1U4YzOHH1vUED8ZNWbKbl3FH",
     "STAGING_SECRETS_CONFIGURED": "pending",
     "EMAIL_DELIVERY_ENABLED": "enabled",
     "EMAIL_DELIVERY_TEST_MODE_ENABLED": "enabled",
@@ -27,7 +27,7 @@
     {
       "binding": "DB",
       "database_name": "hegeva-ai-staging-db",
-      "database_id": "REPLACE_WITH_STAGING_D1_DATABASE_ID",
+      "database_id": "0a80696d-66ae-424a-a16b-ba00f91dcad9",
       "migrations_dir": "./migrations"
     }
   ],
