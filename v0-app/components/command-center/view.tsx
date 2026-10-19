@@ -38,6 +38,7 @@ import { OpportunityExecutiveV2 } from "@/components/command-center/opportunity-
 import { IntelligenceAutopilot } from "@/components/command-center/intelligence-autopilot"
 import { ExternalIntelligenceLayer } from "@/components/command-center/external-intelligence-layer"
 import { LiveCorePriority } from "@/components/command-center/live-core-priority"
+import { RevenuePath } from "@/components/command-center/revenue-path"
 import { useAiAvailability } from "@/lib/ai-availability"
 
 type ModuleDef = {
@@ -103,6 +104,7 @@ export function CommandCenterView() {
       <section className="command-crown"><div><p>HEGEVA / MISSION CONTROL</p><h1>{t.commandCenter.title}</h1><span>{t.commandCenter.subtitle}</span><div className="command-connection">{displaySession?.user ? <Cloud aria-hidden /> : <Info aria-hidden />}<p>{!hydrated || isPending ? t.commandCenter.checking : displaySession?.user ? t.commandCenter.connected : t.commandCenter.previewNote}</p></div><Link href={displaySession?.user ? "/assistant" : "/login?mode=register"} className={cn(buttonVariants({ size: "lg" }), "hegeva-primary mt-7 h-12 px-6")}>{displaySession?.user ? t.commandCenter.openAssistant : t.dashboard.connect}</Link></div><div className="command-radar" aria-hidden><span/><span/><span/><AICore state={displaySession?.user?"ready":"warning"}/><b>MISSION<br/>CONTROL</b></div></section>
 
       <OutcomeLauncher compact />
+      <RevenuePath />
       <GoalMode />
       <GoalAdaptCycle />
       <OpportunityExecutiveV2 />
