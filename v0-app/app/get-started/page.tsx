@@ -14,6 +14,7 @@ import { activationIdentity } from "@/lib/activation-measurement"
 import { FirstWowQuickStart } from "@/components/get-started/first-wow"
 
 type WorkspaceItem = { id: string }
+type WorkspaceDocument = { id: string; type: "invoice" | "quote"; status?: string }
 
 export default function GetStartedPage() {
   const router = useRouter()
@@ -21,10 +22,11 @@ export default function GetStartedPage() {
   const { locale } = useI18n()
   const c = FIRST_CUSTOMER_COPY[locale]
   const { items: customers } = useWorkspaceData<WorkspaceItem>("customers")
-  const { items: invoices } = useWorkspaceData<WorkspaceItem>("invoice_documents")
-  const { items: goals } = useWorkspaceData<WorkspaceItem>("goal_mode")
-  const hasBusinessRecord = customers.length > 0 || invoices.length > 0
-  const completedSteps = [customers.length > 0, goals.length > 0, invoices.length > 0]
+  const { items: documents } = useWorkspaceData<WorkspaceDocument>("invoice_documents")
+  const quotes = documents.filter((item) => item.type === "quote")
+  const sentQuotes = quotes.filter((item) => ["sent", "accepted", "invoiced"].includes(item.status || "draft"))
+  const hasBusinessRecord = customers.length > 0 || documents.length > 0
+  const completedSteps = [customers.length > 0, quotes.length > 0, sentQuotes.length > 0]
   const nextStepIndex = completedSteps.findIndex((complete) => !complete)
   const nextStep = nextStepIndex >= 0 ? c.steps[nextStepIndex] : null
   const completedCount = completedSteps.filter(Boolean).length
