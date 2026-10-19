@@ -1,3 +1,17 @@
+function londonMonthStart(now) {
+  const calendar = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/London', year: 'numeric', month: '2-digit', timeZoneName: 'longOffset'
+  }).formatToParts(now);
+  const value = key => calendar.find(part => part.type === key)?.value || '';
+  const year = Number(value('year'));
+  const month = Number(value('month'));
+  const offset = value('timeZoneName').match(/^GMT([+-])(\d{2}):(\d{2})$/);
+  const offsetMs = offset ? (offset[1] === '-' ? -1 : 1) * (Number(offset[2]) * 60 + Number(offset[3])) * 60_000 : 0;
+  return new Date(Date.UTC(year, month - 1, 1) - offsetMs).toISOString();
+}
+
+const count = value => Number.isFinite(Number(value)) ? Number(value) : 0;
+
 export async function listOwnerRegistrations(request, env, user) {
   const headers = { 'Cache-Control': 'private, no-store' };
   if (request.method !== 'GET') return Response.json({ error: 'Method not allowed.' }, { status: 405, headers });
@@ -10,10 +24,54 @@ export async function listOwnerRegistrations(request, env, user) {
     return Response.json({ error: 'Invalid page.' }, { status: 400, headers });
   }
   try {
+    const generatedAt = new Date();
+    const sevenDaysAgo = new Date(generatedAt.getTime() - 7 * 86_400_000);
+    const thirtyDaysAgo = new Date(generatedAt.getTime() - 30 * 86_400_000);
+    const currentMonthStart = londonMonthStart(generatedAt);
+    const metricRow = await env.DB.prepare(`
+      SELECT
+        (SELECT COUNT(*) FROM "user") AS registrationTotal,
+        (SELECT COUNT(*) FROM "user" WHERE emailVerified = 1) AS registrationVerified,
+        (SELECT COUNT(*) FROM "user" WHERE createdAt >= ?1) AS registrations7d,
+        (SELECT COUNT(*) FROM "user" WHERE createdAt >= ?2) AS registrations30d,
+        (SELECT COUNT(DISTINCT userId) FROM workspace_data) AS workspaceUsers,
+        (SELECT COUNT(DISTINCT userId) FROM workspace_data WHERE updatedAt >= ?3) AS workspaceActive7d,
+        (SELECT COUNT(DISTINCT userId) FROM workspace_data WHERE updatedAt >= ?4) AS workspaceActive30d,
+        (SELECT COUNT(*) FROM assistant_usage_settlements WHERE createdAt >= ?5) AS assistantOperationsMonth,
+        (SELECT COUNT(*) FROM assistant_usage_settlements WHERE createdAt >= ?5 AND outcome = 'success') AS assistantSuccessMonth,
+        (SELECT COUNT(*) FROM assistant_usage_settlements WHERE createdAt >= ?5 AND outcome = 'failure') AS assistantFailureMonth,
+        (SELECT COUNT(*) FROM assistant_usage_settlements WHERE createdAt >= ?5 AND outcome = 'timeout') AS assistantTimeoutMonth,
+        (SELECT COUNT(DISTINCT userId) FROM assistant_usage_settlements WHERE createdAt >= ?5) AS assistantActiveUsersMonth,
+        (SELECT ROUND(AVG(elapsedMs)) FROM assistant_usage_settlements WHERE createdAt >= ?5 AND outcome = 'success') AS assistantAverageResponseMs,
+        (SELECT COUNT(*) FROM stripe_customers WHERE subscriptionStatus = 'active') AS subscriptionActive,
+        (SELECT COUNT(*) FROM stripe_customers WHERE subscriptionStatus = 'trialing') AS subscriptionTrialing,
+        (SELECT COUNT(*) FROM stripe_customers WHERE subscriptionStatus = 'past_due') AS subscriptionPastDue
+    `).bind(sevenDaysAgo.getTime(), thirtyDaysAgo.getTime(), sevenDaysAgo.toISOString(), thirtyDaysAgo.toISOString(), currentMonthStart).first();
     const result = await env.DB.prepare(`SELECT id, name, email, emailVerified, createdAt FROM "user" ORDER BY createdAt DESC, id DESC LIMIT ?1 OFFSET ?2`).bind(51, offset).all();
     const rows = Array.isArray(result?.results) ? result.results : [];
     const users = rows.slice(0, 50).map(row => ({ id: row.id, name: row.name, email: row.email, emailVerified: row.emailVerified === true || row.emailVerified === 1, createdAt: row.createdAt }));
-    return Response.json({ users, nextOffset: rows.length > 50 ? offset + 50 : null }, { headers });
+    const metrics = {
+      generatedAt: generatedAt.toISOString(),
+      windows: { timeZone: 'Europe/London', currentMonthStart },
+      registrations: {
+        total: count(metricRow?.registrationTotal), verified: count(metricRow?.registrationVerified),
+        last7Days: count(metricRow?.registrations7d), last30Days: count(metricRow?.registrations30d),
+      },
+      activation: {
+        workspaceUsers: count(metricRow?.workspaceUsers), active7Days: count(metricRow?.workspaceActive7d),
+        active30Days: count(metricRow?.workspaceActive30d),
+      },
+      assistant: {
+        operationsThisMonth: count(metricRow?.assistantOperationsMonth), successfulThisMonth: count(metricRow?.assistantSuccessMonth),
+        failedThisMonth: count(metricRow?.assistantFailureMonth), timedOutThisMonth: count(metricRow?.assistantTimeoutMonth),
+        activeUsersThisMonth: count(metricRow?.assistantActiveUsersMonth),
+        averageResponseMs: metricRow?.assistantAverageResponseMs == null ? null : count(metricRow.assistantAverageResponseMs),
+      },
+      subscriptions: {
+        active: count(metricRow?.subscriptionActive), trialing: count(metricRow?.subscriptionTrialing), pastDue: count(metricRow?.subscriptionPastDue),
+      },
+    };
+    return Response.json({ users, nextOffset: rows.length > 50 ? offset + 50 : null, metrics }, { headers });
   } catch {
     return Response.json({ error: 'Registrations are temporarily unavailable.' }, { status: 503, headers });
   }
