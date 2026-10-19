@@ -8,6 +8,7 @@ const consent = read("components/analytics-consent.tsx")
 const getStarted = read("lib/i18n/first-customer-copy.ts")
 const firstWow = read("components/get-started/first-wow.tsx")
 const has = (pattern) => pattern.test(ui)
+const startAnalytics = ui.match(/recordAnalyticsEvent\("own_business_start"[\s\S]*?\}\)/)?.[0] || ""
 
 const checks = [
   [ui.includes('useWorkspaceData<Customer>("customers")') && ui.includes('useWorkspaceData<Task>("planner")') && ui.includes('useWorkspaceData<Doc>("invoice_documents")'), "real workspace records"],
@@ -34,6 +35,10 @@ const checks = [
   [ui.includes('useWorkspaceData<LaunchDraft>("one_click_business_drafts")'), "single launch draft workspace"],
   [ui.includes("draftHydrated") && ui.includes("normalizeLaunchDraft") && ui.includes("setDrafts([{ id: \"current\""), "one-time draft hydration and single-record persistence"],
   [ui.includes("setDrafts([])") && ui.includes("setCustomers") && ui.includes("setDocs") && ui.includes("setTasks"), "draft-only clear after completion"],
+  [ui.includes("fieldErrors") && ui.includes("aria-invalid") && ui.includes("aria-describedby") && ui.includes("fieldRefs.current[firstError]?.focus()"), "field-level validation feedback"],
+  [ui.includes("max-sm:sticky") && ui.includes("max-sm:bottom-3"), "mobile preview action"],
+  [ui.includes('href: "/business/invoices"') && ui.includes("primaryHandoff"), "primary quote handoff"],
+  [startAnalytics.includes("entry_mode") && startAnalytics.includes("customer_mode") && !startAnalytics.includes("brief."), "content-free entry analytics"],
 ]
 
 for (const [ok, name] of checks) if (!ok) throw new Error(`One-Click Business audit failed: ${name}`)
