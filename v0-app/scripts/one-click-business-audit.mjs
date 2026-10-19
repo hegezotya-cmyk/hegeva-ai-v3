@@ -21,6 +21,9 @@ const checks = [
   [firstWow.includes('href="/business/launch"'), "first-WOW entry"],
   [ui.includes('recordAnalyticsEvent("own_business_start", "/business/launch"') && ui.includes('recordAnalyticsEvent("own_business_result", "/business/launch"'), "consented start and result measurement"],
   [consent.includes('"/business/launch"'), "analytics path allowlist"],
+  [ui.includes('useWorkspaceData<BusinessProfile>("business_profile")') && ui.includes("profiles[0]?.name"), "saved business-name prefill"],
+  [ui.includes("activeRunId") && ui.includes("setActiveRunId(id)"), "current-session result selection"],
+  [ui.includes("newOpportunity") && ui.includes("setActiveRunId(null)"), "explicit new-opportunity reset"],
 ]
 
 for (const [ok, name] of checks) if (!ok) throw new Error(`One-Click Business audit failed: ${name}`)
