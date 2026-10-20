@@ -17,7 +17,7 @@
     "PUBLIC_APP_URL": "https://staging.hegevaai.co.uk",
     "STRIPE_PREMIUM_PRICE_ID": "price_1U4YwrHH1vUED8ZNhhfKfzNK",
     "STRIPE_PRO_PRICE_ID": "price_1U4YzOHH1vUED8ZNWbKbl3FH",
-    "STAGING_SECRETS_CONFIGURED": "pending",
+    "STAGING_SECRETS_CONFIGURED": "confirmed",
     "EMAIL_DELIVERY_ENABLED": "enabled",
     "EMAIL_DELIVERY_TEST_MODE_ENABLED": "enabled",
     "FINANCIAL_GUARD_ENABLED": "enabled"
