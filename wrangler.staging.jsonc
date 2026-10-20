@@ -1,0 +1,44 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "hegeva-ai-v3-staging",
+  "main": "src/index-ledger.js",
+  "compatibility_date": "2026-09-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "keep_vars": true,
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "head_sampling_rate": 1 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.05 }
+  },
+  "vars": {
+    "PAYMENT_PROVIDER": "stripe",
+    "PAYMENT_MODE": "test",
+    "PUBLIC_APP_URL": "https://staging.hegevaai.co.uk",
+    "STRIPE_PREMIUM_PRICE_ID": "price_1U4YwrHH1vUED8ZNhhfKfzNK",
+    "STRIPE_PRO_PRICE_ID": "price_1U4YzOHH1vUED8ZNWbKbl3FH",
+    "STAGING_SECRETS_CONFIGURED": "pending",
+    "EMAIL_DELIVERY_ENABLED": "enabled",
+    "EMAIL_DELIVERY_TEST_MODE_ENABLED": "enabled",
+    "FINANCIAL_GUARD_ENABLED": "enabled"
+  },
+  "ai": { "binding": "AI" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "hegeva-ai-staging-db",
+      "database_id": "0a80696d-66ae-424a-a16b-ba00f91dcad9",
+      "migrations_dir": "./migrations"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "RATE_LIMITER", "class_name": "UserRateLimiter" }]
+  },
+  "migrations": [{ "tag": "staging-v2-rate-limiter", "new_sqlite_classes": ["UserRateLimiter"] }],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "single-page-application"
+  }
+}

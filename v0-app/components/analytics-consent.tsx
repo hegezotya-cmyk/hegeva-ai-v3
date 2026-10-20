@@ -7,7 +7,9 @@ import { analyticsPageLocation, campaignAttribution, captureReferralAttribution,
 import { analyticsReferrerOrigin } from "@/lib/analytics-referrer.mjs"
 import { useI18n } from "@/lib/i18n/provider"
 
-const MEASUREMENT_ID = "G-TK99HP2BG7"
+const IS_STAGING = process.env.NEXT_PUBLIC_APP_ENV === "staging"
+const MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || (IS_STAGING ? "" : "G-TK99HP2BG7")
+const ANALYTICS_DEBUG_MODE = process.env.NEXT_PUBLIC_GA_DEBUG_MODE === "enabled"
 const CLARITY_PROJECT_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID || ""
 const CONSENT_KEY = "hegeva:analytics-consent:v1"
 const PENDING_CTA_KEY = "hegeva:pending-acquisition:v1"
@@ -45,6 +47,7 @@ function queueConsentDefault() {
 }
 
 function enableAnalytics(pageReferrer = analyticsReferrerOrigin(document.referrer, window.location.origin)) {
+  if (!MEASUREMENT_ID) return
   queueConsentDefault()
   window.gtag?.("consent", "update", { analytics_storage: "granted" })
   window.gtag?.("js", new Date())
@@ -57,6 +60,7 @@ function enableAnalytics(pageReferrer = analyticsReferrerOrigin(document.referre
     anonymize_ip: true,
     allow_google_signals: false,
     allow_ad_personalization_signals: false,
+    ...(ANALYTICS_DEBUG_MODE ? { debug_mode: true } : {}),
   })
   if (!document.getElementById("hegeva-google-analytics")) {
     const script = document.createElement("script")
@@ -114,7 +118,7 @@ export function AnalyticsConsent() {
       const rewardParams = detail.event === "referral_reward_reviewed" && ["approved", "rejected"].includes(String(detail.params?.outcome || "")) && ["approved", "rejected"].includes(String(detail.params?.status || "")) && detail.params?.methodologyVersion === "referral-reward-review-v1"
         ? { outcome: detail.params.outcome, status: detail.params.status, methodologyVersion: "referral-reward-review-v1" }
         : ["referral_link_copy", "referral_paid_qualified"].includes(detail.event || "") ? {} : detail.params || {}
-      const analyticsParams = detail.event === "referral_reward_reviewed" ? rewardParams : { page_path: detail.path, page_location: analyticsPageLocation(detail.path), page_title: "HEGEVA AI", page_referrer: currentPageReferrer.current, ...campaignAttribution(), ...rewardParams }
+      const analyticsParams = detail.event === "referral_reward_reviewed" ? rewardParams : { page_path: detail.path, page_location: analyticsPageLocation(detail.path), page_title: "HEGEVA AI", page_referrer: currentPageReferrer.current, ...campaignAttribution(), ...rewardParams, ...(ANALYTICS_DEBUG_MODE ? { debug_mode: true } : {}) }
       window.gtag("event", detail.event, analyticsParams)
     }
     window.addEventListener("hegeva:analytics-event", receive)
@@ -139,6 +143,7 @@ export function AnalyticsConsent() {
         page_title: "HEGEVA AI",
         page_referrer: pageReferrer,
         ...campaignAttribution(),
+        ...(ANALYTICS_DEBUG_MODE ? { debug_mode: true } : {}),
       })
     }
     // Native static-page navigation replaces dataLayer. Consume the consented CTA
