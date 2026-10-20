@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
+import { headers } from "next/headers"
 import { PublicDocumentView } from "@/components/business/public-document-view"
 import { isPublicPortalSnapshot } from "@/lib/client-portal-public-types"
+import { portalOrigin } from "@/lib/client-portal-origin"
 
 export const metadata: Metadata = { robots: { index: false, follow: false } }
 export const dynamic = "force-dynamic"
@@ -13,7 +15,8 @@ function isLegacySnapshot(value: unknown): value is LegacySnapshot {
 
 export default async function Page({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  const base = process.env.NEXT_PUBLIC_APP_URL || "https://hegevaai.co.uk"
+  const base = portalOrigin((await headers()).get("host"))
+  if (!base) return <main className="mx-auto max-w-3xl p-8"><h1 className="font-display text-3xl">Portal unavailable</h1><p className="mt-3 text-muted-foreground">This private link is invalid, expired or revoked.</p></main>
   const response = await fetch(`${base}/api/client-portal/public/${encodeURIComponent(token)}`, { cache: "no-store" })
   if (!response.ok) return <main className="mx-auto max-w-3xl p-8"><h1 className="font-display text-3xl">Portal unavailable</h1><p className="mt-3 text-muted-foreground">This private link is invalid, expired or revoked.</p></main>
   const data: unknown = await response.json()
