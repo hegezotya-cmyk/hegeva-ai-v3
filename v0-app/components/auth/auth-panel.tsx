@@ -23,6 +23,7 @@ export function AuthPanel() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [verificationPending, setVerificationPending] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
   const [passwordRecoveryAvailable, setPasswordRecoveryAvailable] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -38,6 +39,12 @@ export function AuthPanel() {
       window.dispatchEvent(new CustomEvent("hegeva:analytics-event", { detail: { event: "registration_start", path: "/login" } }))
     }
   }, [mode, isPending, session?.user])
+
+  useEffect(() => {
+    if (!verificationPending || resendCooldown <= 0) return
+    const timer = window.setTimeout(() => setResendCooldown((seconds) => Math.max(0, seconds - 1)), 1000)
+    return () => window.clearTimeout(timer)
+  }, [verificationPending, resendCooldown])
 
   async function checkPasswordRecovery() {
     if (passwordRecoveryAvailable !== null) return passwordRecoveryAvailable
@@ -118,6 +125,7 @@ export function AuthPanel() {
           }))
         }
         setVerificationPending(true)
+        setResendCooldown(30)
         setSuccess(c.verificationRequired)
         return
       } else {
@@ -130,6 +138,7 @@ export function AuthPanel() {
         if (result.error) {
           if (result.error.code === "EMAIL_NOT_VERIFIED") {
             setVerificationPending(true)
+            setResendCooldown(30)
             setError(c.verificationRequired)
           } else {
             setError(c.authFailed)
@@ -175,6 +184,7 @@ export function AuthPanel() {
       }
 
       setSuccess(c.verificationResent)
+      setResendCooldown(30)
     } catch {
       setError(c.verificationUnavailable)
     } finally {
@@ -199,6 +209,43 @@ export function AuthPanel() {
           {c.open}
         </button>
       </div>
+    )
+  }
+
+  if (verificationPending) {
+    return (
+      <section className="ve-panel rounded-3xl p-6 sm:p-8" aria-live="polite">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-xl text-primary" aria-hidden="true">✓</div>
+        <h1 className="mt-5 text-center text-2xl font-semibold">{c.checkInboxTitle}</h1>
+        <p className="mt-3 text-center text-sm leading-relaxed text-muted-foreground">{c.checkInboxBody}</p>
+        <p className="mt-3 break-all rounded-xl border border-border bg-muted/30 px-4 py-3 text-center text-sm font-semibold text-foreground">{email.trim()}</p>
+        <p className="mt-3 text-center text-xs leading-relaxed text-muted-foreground">{c.spamHint}</p>
+
+        {error && <p className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+        {success && <p className="mt-4 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-foreground">{success}</p>}
+
+        <button
+          type="button"
+          onClick={() => void resendVerification()}
+          disabled={busy || resendCooldown > 0 || !email.trim()}
+          className="mt-5 w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          {busy ? c.wait : resendCooldown > 0 ? c.resendIn.replace("{seconds}", String(resendCooldown)) : c.resendVerification}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setVerificationPending(false)
+            setResendCooldown(0)
+            setMode("register")
+            setError("")
+            setSuccess("")
+          }}
+          className="mt-3 w-full rounded-xl border border-input px-4 py-3 text-sm font-semibold text-foreground"
+        >
+          {c.useDifferentEmail}
+        </button>
+      </section>
     )
   }
 
@@ -299,17 +346,6 @@ export function AuthPanel() {
           <p className="rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-foreground">
             {success}
           </p>
-        )}
-
-        {verificationPending && (
-          <button
-            type="button"
-            onClick={() => void resendVerification()}
-            disabled={busy || !email.trim()}
-            className="w-full rounded-xl border border-input px-4 py-3 text-sm font-semibold text-foreground disabled:opacity-60"
-          >
-            {c.resendVerification}
-          </button>
         )}
 
         <button

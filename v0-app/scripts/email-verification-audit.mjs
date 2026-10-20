@@ -29,10 +29,17 @@ assert.match(authPanel, /authClient\.sendVerificationEmail/, "unverified account
 assert.match(authPanel, /EMAIL_NOT_VERIFIED/, "unverified sign-in must be explained without creating a session")
 assert.match(authPanel, /signIn\.email\(\{[\s\S]*callbackURL: HEGEVA_EMAIL_VERIFICATION_CALLBACK/, "unverified sign-in resends must use the fixed callback")
 assert.match(authPanel, /setSuccess\(c\.verificationRequired\)/, "registration must not claim verification delivery before Better Auth confirms it")
+assert.match(authPanel, /if \(verificationPending\) \{[\s\S]*c\.checkInboxTitle/, "registration must switch to a dedicated check-your-inbox state")
+assert.match(authPanel, /c\.spamHint/, "the verification state must explain where to look when the email is missing")
+assert.match(authPanel, /setResendCooldown\(30\)/, "verification resend must start a visible cooldown")
+assert.match(authPanel, /c\.useDifferentEmail/, "the verification state must let the user correct their email address")
 assert.match(verificationPage, /TOKEN_EXPIRED/, "expired tokens need a dedicated user-facing state")
 assert.match(verificationPage, /verificationInvalid/, "invalid tokens need a dedicated user-facing state")
 assert.match(authCopy, /verificationSuccessful/, "all locales must include verification success copy")
 assert.match(authCopy, /resendVerification/, "all locales must include resend copy")
+for (const key of ["checkInboxTitle", "checkInboxBody", "spamHint", "useDifferentEmail", "resendIn"]) {
+  assert.match(authCopy, new RegExp(`${key}:`), `all locales must include ${key} copy`)
+}
 
 assert.deepEqual(authRoutePolicy("send-verification-email"), {
   limit: 3,
