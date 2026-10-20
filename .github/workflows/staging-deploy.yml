@@ -40,6 +40,8 @@ jobs:
       - run: npm --prefix v0-app ci
       - run: node scripts/staging-isolation-audit.mjs
       - run: npm run worker:check
+      - run: node scripts/staging-auth-origin-test.cjs
+        working-directory: v0-app
       - run: npx tsc --noEmit
         working-directory: v0-app
       - run: npm run build
