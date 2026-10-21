@@ -8,7 +8,7 @@ on:
         required: true
         default: "check"
         type: choice
-        options: [check, deploy-api, deploy-ui, smoke, full]
+        options: [check, deploy-api, deploy-api-no-migrate, deploy-ui, smoke, full]
 
 permissions:
   contents: read
@@ -39,6 +39,9 @@ jobs:
       - run: npm ci
       - run: npm --prefix v0-app ci
       - run: node scripts/staging-isolation-audit.mjs
+      - run: node scripts/staging-no-migrate-gate-test.mjs
+      - run: node v0-app/scripts/client-portal-log-protection-test.mjs
+      - run: node v0-app/scripts/client-portal-service-binding-test.mjs
       - run: npm run worker:check
       - run: node scripts/staging-auth-origin-test.cjs
         working-directory: v0-app
@@ -86,7 +89,7 @@ jobs:
       - run: npm run staging:db:migrate
         if: ${{ inputs.stage == 'deploy-api' || inputs.stage == 'full' }}
       - run: npm run staging:api:deploy
-        if: ${{ inputs.stage == 'deploy-api' || inputs.stage == 'full' }}
+        if: ${{ inputs.stage == 'deploy-api' || inputs.stage == 'deploy-api-no-migrate' || inputs.stage == 'full' }}
       - run: npm run staging:ui:deploy
         if: ${{ inputs.stage == 'deploy-ui' || inputs.stage == 'full' }}
       - name: Smoke-test staging only
