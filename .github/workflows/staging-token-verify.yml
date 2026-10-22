@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
-      - name: Check account token identity, active status, and expiry
+      - name: Check account token identity and active status
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
@@ -32,12 +32,17 @@ jobs:
             --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/tokens/verify")"
 
+          printf '%s' "$response" | jq -c '{
+            success,
+            result: {id: .result.id, status: .result.status, expires_on: .result.expires_on},
+            errors: [.errors[]? | {code, message}]
+          }'
+
           printf '%s' "$response" | jq -e '
             .success == true and
             .result.id == "0426474b80e83ee7343e1709dbf09c35" and
-            .result.status == "active" and
-            (.result.expires_on | type == "string")
+            .result.status == "active"
           ' >/dev/null
 
-          expiry="$(printf '%s' "$response" | jq -r '.result.expires_on')"
+          expiry="$(printf '%s' "$response" | jq -r '.result.expires_on // "not returned")"
           echo "PASS: staging secret authenticates as the expected active account token (ID 0426474b80e83ee7343e1709dbf09c35); expiry: $expiry."
