@@ -44,5 +44,5 @@ jobs:
             .result.status == "active"
           ' >/dev/null
 
-          expiry="$(printf '%s' "$response" | jq -r '.result.expires_on // "not returned")"
+          expiry="$(printf '%s' "$response" | jq -r '.result.expires_on // "not returned"')"
           echo "PASS: staging secret authenticates as the expected active account token (ID 0426474b80e83ee7343e1709dbf09c35); expiry: $expiry."
