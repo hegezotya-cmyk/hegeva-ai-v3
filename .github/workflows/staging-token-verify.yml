@@ -1,0 +1,36 @@
+name: HEGEVA Staging Token Verification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-token:
+    name: Verify staging token only
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Check token identity and active status
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+            echo "::error::Staging Cloudflare token secret is missing."
+            exit 1
+          fi
+
+          response="$(curl --fail --silent --show-error --max-time 20 \
+            --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            https://api.cloudflare.com/client/v4/user/tokens/verify)"
+
+          printf '%s' "$response" | jq -e '
+            .success == true and
+            .result.id == "0426474b80e83ee7343e1709dbf09c35" and
+            .result.status == "active"
+          ' >/dev/null
+
+          echo "PASS: the staging secret authenticates as the expected active Cloudflare token (ID 0426474b80e83ee7343e1709dbf09c35)."
