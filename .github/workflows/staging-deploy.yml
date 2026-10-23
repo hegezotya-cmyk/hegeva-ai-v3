@@ -41,6 +41,7 @@ jobs:
       - run: npm --prefix v0-app ci
       - run: node scripts/staging-isolation-audit.mjs
       - run: node scripts/staging-no-migrate-gate-test.mjs
+      - run: node scripts/staging-topup-config-test.mjs
       - run: node v0-app/scripts/client-portal-log-protection-test.mjs
       - run: node v0-app/scripts/client-portal-service-binding-test.mjs
       - run: node scripts/client-portal-revocation-test.mjs
