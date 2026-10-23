@@ -43,6 +43,7 @@ jobs:
       - run: node scripts/staging-no-migrate-gate-test.mjs
       - run: node v0-app/scripts/client-portal-log-protection-test.mjs
       - run: node v0-app/scripts/client-portal-service-binding-test.mjs
+      - run: node scripts/client-portal-revocation-test.mjs
       - run: npm run worker:check
       - run: node scripts/staging-auth-origin-test.cjs
         working-directory: v0-app
