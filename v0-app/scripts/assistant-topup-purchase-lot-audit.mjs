@@ -74,9 +74,8 @@ try {
   assert.equal(await readAssistantTopUpBalance(env,userId),0);
   const indexSource=fs.readFileSync(path.join(root,"src/index.js"),"utf8");
   assert.doesNotMatch(indexSource,/payment_method_types\[0\].*card/);
-  assert.match(indexSource,/payment_status.*paid/);
-  assert.match(indexSource,/amount_total.*pack\.amount/);
-  assert.match(indexSource,/currency.*pack\.currency/);
+  assert.match(indexSource,/validateAssistantTopUpCheckoutPayment/);
+  assert.match(indexSource,/amountTotal: checkoutPayment\.amountTotal/);
   assert.match(indexSource,/charge\.refunded|refund\.created/);
   assert.match(indexSource,/reconcileAssistantTopUpFinancialEvent/);
   assert.match(indexSource,/dispute_created/);
