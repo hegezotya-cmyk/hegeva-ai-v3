@@ -8,7 +8,7 @@ on:
         required: true
         default: "check"
         type: choice
-        options: [check, deploy-api, deploy-api-no-migrate, deploy-ui, smoke, full]
+        options: [check, asset-probe, deploy-api, deploy-api-no-migrate, deploy-ui, smoke, full]
 
 permissions:
   contents: read
@@ -25,6 +25,7 @@ concurrency:
 
 jobs:
   verify:
+    if: ${{ inputs.stage != 'asset-probe' }}
     runs-on: ubuntu-latest
     environment: staging
     steps:
@@ -53,6 +54,7 @@ jobs:
         working-directory: v0-app
 
   preflight:
+    if: ${{ inputs.stage != 'asset-probe' }}
     needs: verify
     runs-on: ubuntu-latest
     environment: staging
@@ -68,7 +70,7 @@ jobs:
 
   deploy:
     needs: [verify, preflight]
-    if: ${{ inputs.stage != 'check' }}
+    if: ${{ inputs.stage != 'check' && inputs.stage != 'asset-probe' }}
     runs-on: ubuntu-latest
     environment: staging
     env:
@@ -102,3 +104,23 @@ jobs:
             https://hegevaai.co.uk*|https://www.hegevaai.co.uk*) exit 1 ;;
           esac
           curl --fail --silent --show-error --location "$STAGING_APP_URL/"
+
+  asset-probe:
+    if: ${{ inputs.stage == 'asset-probe' }}
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 3
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Validate probe safeguards
+        run: node scripts/staging-asset-probe-test.mjs
+      - name: Check staging upload session permission
+        shell: bash
+        run: |
+          node --input-type=module -e 'import { probe } from "./scripts/staging-asset-probe.mjs"; const result = await probe(process.env.CLOUDFLARE_ACCOUNT_ID || "", process.env.CLOUDFLARE_API_TOKEN || ""); console.log(JSON.stringify(result)); if (result.result !== "SESSION_CREATED") process.exitCode = 1;'
