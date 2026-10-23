@@ -8,7 +8,7 @@ on:
         required: true
         default: "check"
         type: choice
-        options: [check, deploy-api, deploy-ui, smoke, full]
+        options: [check, deploy-api, deploy-ui, deploy-no-migrate, smoke, full]
 
 permissions:
   contents: read
@@ -84,9 +84,9 @@ jobs:
       - run: npm run staging:db:migrate
         if: ${{ inputs.stage == 'deploy-api' || inputs.stage == 'full' }}
       - run: npm run staging:api:deploy
-        if: ${{ inputs.stage == 'deploy-api' || inputs.stage == 'full' }}
+        if: ${{ inputs.stage == 'deploy-api' || inputs.stage == 'deploy-no-migrate' || inputs.stage == 'full' }}
       - run: npm run staging:ui:deploy
-        if: ${{ inputs.stage == 'deploy-ui' || inputs.stage == 'full' }}
+        if: ${{ inputs.stage == 'deploy-ui' || inputs.stage == 'deploy-no-migrate' || inputs.stage == 'full' }}
       - name: Smoke-test staging only
         if: ${{ inputs.stage == 'smoke' || inputs.stage == 'full' }}
         shell: bash
