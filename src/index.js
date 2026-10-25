@@ -9,7 +9,7 @@ import { createAuthRateLimiter, clientIpKey } from "./auth-rate-limiter.js";
 import { handleAiChatAdmission } from "./ai-chat-admission.js";
 import { isX20RequestId, registerX20Attempt, startX20Action, finishX20Attempt } from "./x20-ledger.js";
 import { readAssistantUsage, startAssistantOperation, finishAssistantOperation } from "./assistant-quota.js";
-import { ASSISTANT_TOPUP_PACKS, readAssistantTopUpBalance, reserveAssistantTopUpCredit, finishAssistantTopUpCredit, grantAssistantTopUpPurchase, reconcileAssistantTopUpFinancialEvent } from "./assistant-topup.js";
+import { ASSISTANT_TOPUP_PACKS, readAssistantTopUpBalance, reserveAssistantTopUpCredit, finishAssistantTopUpCredit, grantAssistantTopUpPurchase, reconcileAssistantTopUpFinancialEvent, validateAssistantTopUpCheckoutPayment } from "./assistant-topup.js";
 import { readAssistantCostGuardConfig, reserveAssistantCostGuard, settleAssistantCostGuard } from "./assistant-cost-guard.js";
 import { readAssistantDailyAdmissionConfig, reserveAssistantDailyAdmission, settleAssistantDailyAdmission, releaseAssistantDailyAdmission } from "./assistant-daily-admission.js";
 import { isX30OperationId, startX30Generation, finishX30Generation, X30_MONTHLY_LIMIT, X30_WORKSPACE_LIMIT } from "./x30-generation-ledger.js";
@@ -2436,10 +2436,8 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           metadata?.hegevaPurchaseType === "assistant_topup"
         ) {
           const pack = getAssistantTopUpPack(env, metadata?.topUpPack);
-          const paymentComplete = object?.mode === "payment" && object?.payment_status === "paid";
-          const amountMatches = pack && Number(object?.amount_total) === pack.amount;
-          const currencyMatches = pack && String(object?.currency || "").toLowerCase() === pack.currency;
-          if (userId && pack && paymentComplete && amountMatches && currencyMatches && typeof event.id === "string" && typeof object?.id === "string") {
+          const checkoutPayment = validateAssistantTopUpCheckoutPayment(pack, object);
+          if (userId && pack && checkoutPayment.eligible && typeof event.id === "string" && typeof object?.id === "string") {
             const grant = await grantAssistantTopUpPurchase(env, {
               purchaseId: `topup-${object.id}`,
               userId,
@@ -2449,7 +2447,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
               stripeEventId: event.id,
               packCode: pack.code,
               credits: pack.credits,
-              amountTotal: pack.amount,
+              amountTotal: checkoutPayment.amountTotal,
               currency: pack.currency,
             });
             entitlementChanged = Boolean(grant.granted);
