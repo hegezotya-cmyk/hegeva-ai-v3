@@ -1,4 +1,4 @@
-import { listOwnerRegistrations } from "./admin-registrations.js";
+import { listOwnerRegistrations, readOwnerAccess } from "./admin-registrations.js";
 import {
   createAuth,
   getLoggedInUser,
@@ -1987,6 +1987,11 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
     if (url.pathname === "/api/admin/registrations") {
       const user = await getLoggedInUserFn(request, env, ctx);
       return listOwnerRegistrations(request, env, user);
+    }
+
+    if (url.pathname === "/api/admin/access") {
+      const user = await getLoggedInUserFn(request, env, ctx);
+      return readOwnerAccess(request, env, user);
     }
 
     if (

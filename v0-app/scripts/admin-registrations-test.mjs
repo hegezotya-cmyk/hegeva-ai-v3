@@ -26,13 +26,21 @@ const db = { prepare(sql) {
 } }
 const env = { ADMIN_EMAIL: 'owner@example.test', DB: db, ASSETS: { fetch: async () => new Response('not found', { status: 404 }) } }
 const request = (suffix = '', method = 'GET') => new Request(`https://hegevaai.co.uk/api/admin/registrations${suffix}`, { method })
+const accessRequest = (method = 'GET') => new Request('https://hegevaai.co.uk/api/admin/access', { method })
 for (const user of [null, { id: 'other', email: 'other@example.test' }]) {
   const handler = createRequestHandler({ getLoggedInUserFn: async () => user })
   assert.equal((await handler.fetch(request(), env, {})).status, 403)
+  assert.equal((await handler.fetch(accessRequest(), env, {})).status, 403)
 }
 assert.equal(reads, 0, 'non-owner requests must not read the user table')
 const owner = createRequestHandler({ getLoggedInUserFn: async () => ({ id: 'owner', email: 'OWNER@example.test' }) })
 assert.equal((await owner.fetch(request(), { ...env, ADMIN_EMAIL: '' }, {})).status, 403)
+assert.equal((await owner.fetch(accessRequest('POST'), env, {})).status, 405)
+const ownerAccess = await owner.fetch(accessRequest(), env, {})
+assert.equal(ownerAccess.status, 200)
+assert.match(ownerAccess.headers.get('Cache-Control'), /no-store/)
+assert.deepEqual(await ownerAccess.json(), { owner: true })
+assert.equal(reads, 0, 'the navigation access check must not query owner dashboard data')
 assert.equal((await owner.fetch(request('', 'POST'), env, {})).status, 405)
 assert.equal((await owner.fetch(request('?offset=-1'), env, {})).status, 400)
 assert.equal(reads, 0)
@@ -59,10 +67,14 @@ const unavailable = await owner.fetch(request(), { ...env, DB: { prepare: () => 
 assert.equal(unavailable.status, 503)
 const pageSource = readFileSync(new URL('../app/admin/registrations/page.tsx', import.meta.url), 'utf8')
 const copySource = readFileSync(new URL('../lib/i18n/registrations-copy.ts', import.meta.url), 'utf8')
+const commandRailSource = readFileSync(new URL('../components/desktop-command-rail.tsx', import.meta.url), 'utf8')
 for (const marker of ['metrics.registrations', 'metrics.activation', 'metrics.assistant', 'metrics.subscriptions', 'metrics.generatedAt']) {
   assert(pageSource.includes(marker), `owner dashboard must render ${marker}`)
 }
 for (const label of ['metricsTitle', 'registrationTotal', 'workspaceActive7d', 'firstValueUsers', 'customerUsers', 'quoteUsers', 'invoiceUsers', 'plannerUsers', 'messageUsers', 'assistantOperationsMonth', 'subscriptionActive', 'measurementDefinitions']) {
   assert(copySource.includes(label), `owner dashboard copy is missing ${label}`)
+}
+for (const marker of ['/api/admin/access', '/admin/registrations', 'isOwner &&', 'Tulajdonosi áttekintő']) {
+  assert(commandRailSource.includes(marker), `desktop navigation must include protected owner dashboard marker: ${marker}`)
 }
 console.log('Owner registrations test passed: owner-only, read-only, bounded, no sensitive authentication fields')

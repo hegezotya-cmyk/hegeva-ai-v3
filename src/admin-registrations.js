@@ -12,11 +12,22 @@ function londonMonthStart(now) {
 
 const count = value => Number.isFinite(Number(value)) ? Number(value) : 0;
 
+const isOwner = (env, user) => {
+  const ownerEmail = typeof env.ADMIN_EMAIL === 'string' ? env.ADMIN_EMAIL.trim().toLowerCase() : '';
+  return Boolean(ownerEmail && user?.email && user.email.trim().toLowerCase() === ownerEmail);
+};
+
+export async function readOwnerAccess(request, env, user) {
+  const headers = { 'Cache-Control': 'private, no-store' };
+  if (request.method !== 'GET') return Response.json({ error: 'Method not allowed.' }, { status: 405, headers });
+  if (!isOwner(env, user)) return Response.json({ error: 'Owner access required.' }, { status: 403, headers });
+  return Response.json({ owner: true }, { headers });
+}
+
 export async function listOwnerRegistrations(request, env, user) {
   const headers = { 'Cache-Control': 'private, no-store' };
   if (request.method !== 'GET') return Response.json({ error: 'Method not allowed.' }, { status: 405, headers });
-  const ownerEmail = typeof env.ADMIN_EMAIL === 'string' ? env.ADMIN_EMAIL.trim().toLowerCase() : '';
-  if (!ownerEmail || !user?.email || user.email.trim().toLowerCase() !== ownerEmail) {
+  if (!isOwner(env, user)) {
     return Response.json({ error: 'Owner access required.' }, { status: 403, headers });
   }
   const offset = Number(new URL(request.url).searchParams.get('offset') || '0');
