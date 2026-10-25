@@ -7,9 +7,9 @@
   "workers_dev": true,
   "keep_vars": true,
   "observability": {
-    "enabled": true,
-    "logs": { "enabled": true, "head_sampling_rate": 1 },
-    "traces": { "enabled": true, "head_sampling_rate": 0.05 }
+    "enabled": false,
+    "logs": { "enabled": false, "head_sampling_rate": 1, "invocation_logs": false },
+    "traces": { "enabled": false }
   },
   "vars": {
     "PAYMENT_PROVIDER": "stripe",
@@ -17,6 +17,9 @@
     "PUBLIC_APP_URL": "https://staging.hegevaai.co.uk",
     "STRIPE_PREMIUM_PRICE_ID": "price_1U4YwrHH1vUED8ZNhhfKfzNK",
     "STRIPE_PRO_PRICE_ID": "price_1U4YzOHH1vUED8ZNWbKbl3FH",
+    "STRIPE_TOPUP_SMALL_PRICE_ID": "price_1UTmuVHH1vUED8ZN7kCgySC4",
+    "STRIPE_TOPUP_MEDIUM_PRICE_ID": "price_1UTmv3HH1vUED8ZNHyiZ0A0L",
+    "STRIPE_TOPUP_LARGE_PRICE_ID": "price_1UTmvYHH1vUED8ZNY6tARNgO",
     "STAGING_SECRETS_CONFIGURED": "confirmed",
     "EMAIL_DELIVERY_ENABLED": "enabled",
     "EMAIL_DELIVERY_TEST_MODE_ENABLED": "enabled",

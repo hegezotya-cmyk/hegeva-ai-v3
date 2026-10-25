@@ -4,6 +4,24 @@ export const ASSISTANT_TOPUP_PACKS = Object.freeze({
   medium: Object.freeze({ code: "medium", credits: 300, amount: 399, currency: "gbp" }),
   large: Object.freeze({ code: "large", credits: 1000, amount: 799, currency: "gbp" }),
 })
+export function validateAssistantTopUpCheckoutPayment(pack, checkout) {
+  const subtotal = Number(checkout?.amount_subtotal)
+  const amountTotal = Number(checkout?.amount_total)
+  const expectedAmount = Number(pack?.amount)
+  const currency = String(checkout?.currency || "").toLowerCase()
+  const eligible = Boolean(
+    pack &&
+    checkout?.mode === "payment" &&
+    checkout?.payment_status === "paid" &&
+    Number.isSafeInteger(expectedAmount) &&
+    Number.isSafeInteger(subtotal) &&
+    Number.isSafeInteger(amountTotal) &&
+    subtotal === expectedAmount &&
+    amountTotal >= subtotal &&
+    currency === String(pack.currency || "").toLowerCase()
+  )
+  return eligible ? { eligible: true, amountTotal } : { eligible: false }
+}
 function iso(value = new Date()) { return (value instanceof Date ? value : new Date(value)).toISOString() }
 async function fifoLot(env, userId) {
   return env.DB.prepare(`SELECT lotId FROM assistant_topup_credit_lots WHERE userId=?1 AND remainingCredits>0 AND paymentState='paid' ORDER BY createdAt, lotId LIMIT 1`).bind(userId).first()
