@@ -37,7 +37,7 @@ assert.deepEqual(selectMoneyTodayActions(coreWithPaymentRisk), [{
   count: 2,
   amount: 1200,
   currency: "GBP",
-  href: "/business/invoices?prepare=payment",
+  href: "/business/invoices?focus=payment-followup",
 }])
 
 assert.deepEqual(selectMoneyTodayActions(core({
@@ -65,7 +65,7 @@ const mixedCurrencyAndDuplicateRules = core({
 })
 
 assert.deepEqual(selectMoneyTodayActions(mixedCurrencyAndDuplicateRules), [
-  { id: "stale-quotes", priority: 2, count: 1, href: "/business/invoices?prepare=quote" },
+  { id: "stale-quotes", priority: 2, count: 1, href: "/business/invoices?focus=quote-followup" },
   { id: "customer-followups", priority: 1, count: 3, href: "/business/customers" },
 ])
 

@@ -18,8 +18,8 @@ const definitions: Record<MoneyTodayAction["id"], { priority: number; radarKind?
 }
 
 const destinations: Record<MoneyTodayAction["id"], string> = {
-  "overdue-invoices": "/business/invoices?prepare=payment",
-  "stale-quotes": "/business/invoices?prepare=quote",
+  "overdue-invoices": "/business/invoices?focus=payment-followup",
+  "stale-quotes": "/business/invoices?focus=quote-followup",
   "customer-followups": "/business/customers",
 }
 

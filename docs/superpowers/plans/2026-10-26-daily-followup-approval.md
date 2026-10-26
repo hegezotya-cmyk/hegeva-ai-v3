@@ -4,7 +4,7 @@
 
 **Goal:** Let an authenticated owner move safely from a Money Today item to the existing invoice or quote follow-up preparation flow, without creating duplicate drafts or sending any customer message.
 
-**Architecture:** Money Today remains read-only prioritisation. Its action links use existing invoice-workspace query parameters to focus the right review card. The invoice page stays the only place that calls the protected draft-preparation endpoints, retaining authentication, workspace sync, payment-state and idempotency protections.
+**Architecture:** Money Today remains read-only prioritisation. Its action links use a dedicated invoice-workspace `focus` query parameter to focus the right review card without conflicting with the existing `prepare=quote` document-creation flow. The invoice page stays the only place that calls the protected draft-preparation endpoints, retaining authentication, workspace sync, payment-state and idempotency protections.
 
 **Tech Stack:** Next.js App Router, React, TypeScript, existing HEGEVA Core decision hook, existing invoice workspace and Node assertion audits.
 
@@ -36,13 +36,13 @@
 
 **Interfaces:**
 - Consumes: `CoreDecisionResponse` and its existing decision kinds.
-- Produces: `selectMoneyTodayActions(response): MoneyTodayAction[]`, where `href` is a fixed internal route and, for invoice/quote actions, includes a constrained `prepare` value.
+- Produces: `selectMoneyTodayActions(response): MoneyTodayAction[]`, where `href` is a fixed internal route and, for invoice/quote actions, includes a constrained `focus` value.
 
 - [ ] **Step 1: Write failing selector tests for focused follow-up destinations**
 
 ```ts
-assert.equal(overdue.href, "/business/invoices?prepare=payment")
-assert.equal(staleQuote.href, "/business/invoices?prepare=quote")
+assert.equal(overdue.href, "/business/invoices?focus=payment-followup")
+assert.equal(staleQuote.href, "/business/invoices?focus=quote-followup")
 assert.equal(customerFollowUp.href, "/business/customers")
 ```
 
@@ -76,14 +76,14 @@ git commit -m "feat: focus money actions on follow-up review"
 - Create: `v0-app/scripts/money-today-followup-audit.mjs`
 
 **Interfaces:**
-- Consumes: fixed `prepare=payment` and `prepare=quote` values from Task 1.
+- Consumes: fixed `focus=payment-followup` and `focus=quote-followup` values from Task 1.
 - Produces: focused invoice-workspace state that surfaces the relevant existing review card but does not invoke preparation itself.
 
 - [ ] **Step 1: Write a failing static regression audit**
 
 ```js
-assert.match(page, /prepare=payment/)
-assert.match(page, /prepare=quote/)
+assert.match(page, /focus=payment-followup/)
+assert.match(page, /focus=quote-followup/)
 assert.doesNotMatch(page, /fetch\([^)]*external-actions[^)]*useEffect/)
 ```
 
