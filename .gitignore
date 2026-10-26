@@ -14,3 +14,6 @@ hegeva-*-polished.zip
 # HEGEVA local development backups
 backups/
 *.before-*
+
+# Local implementation ledgers and review packages
+.superpowers/
