@@ -9,6 +9,8 @@ export type MoneyTodayAction = {
   href: string
 }
 
+export type MoneyTodayState = "loading" | "unauthenticated" | "unavailable" | "empty" | "ready"
+
 const definitions: Record<MoneyTodayAction["id"], { priority: number; radarKind?: string }> = {
   "overdue-invoices": { priority: 3, radarKind: "payment-risk" },
   "stale-quotes": { priority: 2, radarKind: "quote-leakage" },
@@ -35,4 +37,9 @@ export function selectMoneyTodayActions(response: CoreDecisionResponse): MoneyTo
     items.push({ id: rule.kind, priority: definition.priority, count: rule.count, ...(amount === undefined ? {} : { amount, currency: "GBP" }), href: rule.href })
   }
   return items.sort((left, right) => right.priority - left.priority).slice(0, 5)
+}
+
+export function getMoneyTodayState(status: "loading" | "ready" | "unauthenticated" | "unavailable", actions: MoneyTodayAction[]): MoneyTodayState {
+  if (status !== "ready") return status
+  return actions.length ? "ready" : "empty"
 }

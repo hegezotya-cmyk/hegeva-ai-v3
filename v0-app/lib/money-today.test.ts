@@ -1,8 +1,13 @@
 import assert from "node:assert/strict"
 import type { CoreDecisionResponse } from "./use-core-decision.ts"
-import { selectMoneyTodayActions } from "./money-today.ts"
+// @ts-expect-error Node's local TypeScript runner requires the extension.
+import { getMoneyTodayState, selectMoneyTodayActions } from "./money-today.ts"
 
-const coreWithPaymentRisk = {
+function core(input: object): CoreDecisionResponse {
+  return input as CoreDecisionResponse
+}
+
+const coreWithPaymentRisk = core({
   businessRules: [{
     ruleId: "overdue-invoice",
     kind: "overdue-invoices",
@@ -24,7 +29,7 @@ const coreWithPaymentRisk = {
     impactValue: 1300,
     href: "/business/intelligence#customer-follow-up",
   }],
-} as CoreDecisionResponse
+})
 
 assert.deepEqual(selectMoneyTodayActions(coreWithPaymentRisk), [{
   id: "overdue-invoices",
@@ -35,12 +40,12 @@ assert.deepEqual(selectMoneyTodayActions(coreWithPaymentRisk), [{
   href: "/business/intelligence#customer-follow-up",
 }])
 
-assert.deepEqual(selectMoneyTodayActions({
+assert.deepEqual(selectMoneyTodayActions(core({
   businessRules: [],
   opportunityRadar: [],
-} as CoreDecisionResponse), [])
+})), [])
 
-const mixedCurrencyAndDuplicateRules = {
+const mixedCurrencyAndDuplicateRules = core({
   businessRules: [
     { ruleId: "quote-a", kind: "stale-quotes", sourceIds: ["quote-1"], count: 1, severity: "high", role: "Sales", href: "/business/intelligence#customer-follow-up", requiresApproval: true },
     { ruleId: "follow-up", kind: "customer-followups", sourceIds: ["customer-1"], count: 3, severity: "high", role: "Sales", href: "/business/customers", requiresApproval: true },
@@ -57,11 +62,17 @@ const mixedCurrencyAndDuplicateRules = {
     impactValue: 930,
     href: "/business/intelligence#customer-follow-up",
   }],
-} as CoreDecisionResponse
+})
 
 assert.deepEqual(selectMoneyTodayActions(mixedCurrencyAndDuplicateRules), [
   { id: "stale-quotes", priority: 2, count: 1, href: "/business/intelligence#customer-follow-up" },
   { id: "customer-followups", priority: 1, count: 3, href: "/business/customers" },
 ])
+
+assert.equal(getMoneyTodayState("loading", []), "loading")
+assert.equal(getMoneyTodayState("unauthenticated", []), "unauthenticated")
+assert.equal(getMoneyTodayState("unavailable", []), "unavailable")
+assert.equal(getMoneyTodayState("ready", []), "empty")
+assert.equal(getMoneyTodayState("ready", [{ id: "customer-followups", priority: 1, count: 1, href: "/business/customers" }]), "ready")
 
 console.log("Money Today selector contracts passed.")
