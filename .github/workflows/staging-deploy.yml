@@ -42,6 +42,7 @@ jobs:
       - run: node scripts/staging-isolation-audit.mjs
       - run: node scripts/staging-no-migrate-gate-test.mjs
       - run: node scripts/staging-topup-config-test.mjs
+      - run: node scripts/staging-smoke-gate-test.mjs
       - run: node v0-app/scripts/client-portal-log-protection-test.mjs
       - run: node v0-app/scripts/client-portal-service-binding-test.mjs
       - run: node scripts/client-portal-revocation-test.mjs
@@ -97,15 +98,17 @@ jobs:
       - run: npm run staging:ui:deploy
         if: ${{ inputs.stage == 'deploy-ui' || inputs.stage == 'full' }}
       - name: Smoke-test staging only
-        if: ${{ inputs.stage == 'smoke' || inputs.stage == 'full' }}
+        # An upload is not proof that the deployed UI/API serves the expected routes.
+        # Reuse the guarded smoke suite after every staging deployment operation.
+        if: ${{ inputs.stage == 'smoke' || inputs.stage == 'full' || inputs.stage == 'deploy-ui' || inputs.stage == 'deploy-api' || inputs.stage == 'deploy-api-no-migrate' }}
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$STAGING_APP_URL"
           case "$STAGING_APP_URL" in
-            https://hegevaai.co.uk*|https://www.hegevaai.co.uk*) exit 1 ;;
+            https://staging.hegevaai.co.uk|https://hegeva-ai-v3-v0-staging.hegezotya.workers.dev) ;;
+            *) echo "Refusing smoke test against an unapproved/non-staging URL"; exit 1 ;;
           esac
-          curl --fail --silent --show-error --location "$STAGING_APP_URL/"
+          HEGEVA_BASE_URL="$STAGING_APP_URL" npm run release:smoke
 
   asset-probe:
     if: ${{ inputs.stage == 'asset-probe' }}
