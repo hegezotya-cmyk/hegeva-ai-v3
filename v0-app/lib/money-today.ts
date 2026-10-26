@@ -17,6 +17,12 @@ const definitions: Record<MoneyTodayAction["id"], { priority: number; radarKind?
   "customer-followups": { priority: 1 },
 }
 
+const destinations: Record<MoneyTodayAction["id"], string> = {
+  "overdue-invoices": "/business/invoices?prepare=payment",
+  "stale-quotes": "/business/invoices?prepare=quote",
+  "customer-followups": "/business/customers",
+}
+
 function validGbpAmount(finding: OpportunityRadarFinding | undefined) {
   return finding?.currency === "GBP" && Number.isFinite(finding.amount) && Number(finding.amount) >= 0
     ? Number(finding.amount)
@@ -34,7 +40,7 @@ export function selectMoneyTodayActions(response: CoreDecisionResponse): MoneyTo
     const amount = validGbpAmount(definition.radarKind
       ? response.opportunityRadar.find((candidate) => candidate.kind === definition.radarKind)
       : undefined)
-    items.push({ id: rule.kind, priority: definition.priority, count: rule.count, ...(amount === undefined ? {} : { amount, currency: "GBP" }), href: rule.href })
+    items.push({ id: rule.kind, priority: definition.priority, count: rule.count, ...(amount === undefined ? {} : { amount, currency: "GBP" }), href: destinations[rule.kind] })
   }
   return items.sort((left, right) => right.priority - left.priority).slice(0, 5)
 }
