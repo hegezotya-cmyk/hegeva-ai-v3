@@ -5,7 +5,7 @@ type LegalDocument = { eyebrow: string; title: string; updated: string; intro: s
 type LegalSet = { privacy: LegalDocument; terms: LegalDocument; privacyLink: string; termsLink: string }
 
 const business = "HEGEVA AI, 34 Ogden Road, Stoke-on-Trent, ST1 3BX, United Kingdom"
-const email = "hegezotya@gmx.com"
+const email = "hegevaai85@gmail.com"
 
 const en: LegalSet = {
   privacyLink: "Privacy", termsLink: "Terms",
