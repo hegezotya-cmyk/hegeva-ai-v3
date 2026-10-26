@@ -67,6 +67,10 @@ jobs:
         working-directory: v0-app
         run: npm run audit:money-today-followup
 
+      - name: Weekly money review safety check
+        working-directory: v0-app
+        run: npm run audit:weekly-money-review
+
       - name: TypeScript check
         working-directory: v0-app
         run: npx tsc --noEmit
