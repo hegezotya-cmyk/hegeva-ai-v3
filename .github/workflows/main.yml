@@ -63,6 +63,10 @@ jobs:
         working-directory: v0-app
         run: npm run x20:stability
 
+      - name: Money Today follow-up safety check
+        working-directory: v0-app
+        run: npm run audit:money-today-followup
+
       - name: TypeScript check
         working-directory: v0-app
         run: npx tsc --noEmit
