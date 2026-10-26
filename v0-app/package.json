@@ -39,6 +39,7 @@
     "audit:money-today": "node scripts/money-today-audit.mjs",
     "audit:money-today-followup": "node scripts/money-today-followup-audit.mjs",
     "audit:weekly-money-review": "node scripts/weekly-money-review-audit.mjs",
+    "audit:owner-operating-picture": "node scripts/owner-operating-picture-audit.mjs",
     "audit:goal-v4": "node scripts/goal-mode-v4-audit.mjs && node scripts/opportunity-radar-v2-audit.mjs",
     "audit:business-twin": "node scripts/business-twin-audit.mjs",
     "audit:fix-business": "node scripts/fix-my-business-audit.mjs",
