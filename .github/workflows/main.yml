@@ -52,6 +52,9 @@ jobs:
       - name: Worker deploy dry run
         run: npm run deploy:dry-run
 
+      - name: Production UI workflow runtime check
+        run: node scripts/production-ui-runtime-test.mjs
+
       - name: Install V0 dependencies
         working-directory: v0-app
         run: npm ci
