@@ -1,7 +1,7 @@
 # Message-to-Next-Step Design
 
 **Date:** 2026-10-27  
-**Status:** Draft for owner approval  
+**Status:** Approved for implementation  
 **Repository base:** `v0-rebuild` at `3c17638506b027ed188028ac7ec6db291c4cfcf3`
 
 ## Intent
