@@ -102,5 +102,5 @@ jobs:
         run: npm run deploy:ui
 
       - name: Run live smoke test
-        if: ${{ inputs.stage == 'smoke' || inputs.stage == 'full' }}
+        if: ${{ inputs.stage == 'smoke' || inputs.stage == 'full' || inputs.stage == 'deploy-api' || inputs.stage == 'deploy-ui' }}
         run: npm run release:smoke
