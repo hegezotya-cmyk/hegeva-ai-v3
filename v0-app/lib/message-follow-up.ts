@@ -9,6 +9,7 @@ export type MessageFollowUpTask = {
 
 type FollowUpInput = {
   draftId: string
+  legacySourceId?: string
   title: string
   due: string
   locale: string
@@ -16,10 +17,10 @@ type FollowUpInput = {
 
 export function upsertMessageFollowUpTask<T extends MessageFollowUpTask>(
   tasks: T[],
-  { draftId, title, due }: FollowUpInput,
+  { draftId, legacySourceId, title, due }: FollowUpInput,
 ): T[] {
   if (!draftId || !due) return tasks
-  const existing = tasks.find((task) => task.sourceId === draftId)
+  const existing = tasks.find((task) => task.sourceId === draftId || Boolean(legacySourceId && task.sourceId === legacySourceId))
   const next: MessageFollowUpTask = {
     id: existing?.id || `message-follow-up-${draftId}`,
     title,
