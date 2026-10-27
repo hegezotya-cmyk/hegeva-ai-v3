@@ -132,6 +132,7 @@ try {
 
   assert.equal((await anonymousHandler.fetch(post("/api/external-actions/discard", { actionId }), { DB: workspace.db }, {})).status, 401, "anonymous discard must be rejected")
   assert.equal((await otherHandler.fetch(post("/api/external-actions/discard", { actionId }), { DB: workspace.db }, {})).status, 404, "cross-tenant discard must not reveal or alter another tenant's action")
+  assert.equal((await ownerHandler.fetch(post("/api/external-actions/discard", { actionId }), { DB: workspace.db }, {})).status, 409, "an action already marked ready cannot be discarded")
 
   const stored = JSON.parse(workspace.records.get("owner:messages").data)
   const discardCandidate = {
