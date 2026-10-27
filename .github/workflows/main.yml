@@ -80,6 +80,10 @@ jobs:
         working-directory: v0-app
         run: npm run audit:message-follow-up
 
+      - name: External action governance audit
+        working-directory: v0-app
+        run: npm run audit:external-actions
+
       - name: TypeScript check
         working-directory: v0-app
         run: npx tsc --noEmit
