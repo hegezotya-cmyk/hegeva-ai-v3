@@ -25,7 +25,7 @@ import { runCoreV1Decision } from "./core-v1-decision.js";
 import { prepareOverdueInvoiceEmailDraft } from "./email-draft-action.js";
 import { prepareQuoteEmailDraft } from "./quote-email-draft-action.js";
 import { prepareQuoteFollowUpEmailDraft } from "./quote-followup-email-draft-action.js";
-import { approveGovernedExternalAction, markGovernedExternalActionReady } from "./external-action-governance.js";
+import { approveGovernedExternalAction, markGovernedExternalActionReady, discardGovernedExternalAction } from "./external-action-governance.js";
 import { applyEmailDeliveryState, canConfirmEmailDelivery, emailContentDigest } from "./email-delivery-governance.js";
 import { synchronizePreparedWork, transitionPreparedWork } from "./prepared-work-review.js";
 import { BUSINESS_SCORE_METHODOLOGY, deriveBusinessScoreShare, hashBusinessScoreToken, newBusinessScoreToken, normalizeShareExpiry } from "./business-score-share.js";
@@ -3767,6 +3767,57 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
       } catch (error) {
         logFailure("external_action_approval_failed", error);
         return Response.json({ error: "Owner approval is temporarily unavailable." }, { status: 503 });
+      }
+    }
+
+    if (url.pathname === "/api/external-actions/discard") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+      try {
+        const user = await getLoggedInUserFn(request, env, ctx);
+        if (!user) return Response.json({ error: "Authentication required." }, { status: 401 });
+
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: "Invalid JSON body." }, { status: 400 });
+        }
+        const actionId = typeof body?.actionId === "string" ? body.actionId.trim() : "";
+        if (!/^[A-Za-z0-9_-]{1,100}$/.test(actionId)) {
+          return Response.json({ error: "A valid action is required." }, { status: 400 });
+        }
+
+        const row = await env.DB.prepare(
+          "SELECT data, updatedAt FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1",
+        ).bind(user.id, "messages").first();
+        let messages;
+        try {
+          messages = row?.data ? JSON.parse(row.data) : [];
+        } catch {
+          return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+        }
+        if (!Array.isArray(messages)) return Response.json({ error: "Workspace data is unavailable." }, { status: 503 });
+
+        const current = messages.find((message) => message?.id === actionId);
+        if (!current) return Response.json({ error: "Action not found." }, { status: 404 });
+        const now = new Date().toISOString();
+        const discarded = discardGovernedExternalAction(current, { actorHash: await sha256Hex(user.id), now });
+        if (!discarded.ok) return Response.json({ error: "Only pending, unsent actions can be discarded." }, { status: 409 });
+
+        const nextMessages = messages.map((message) => message?.id === actionId ? discarded.action : message);
+        const update = await env.DB.prepare(
+          "UPDATE workspace_data SET data = ?1, updatedAt = ?2 WHERE userId = ?3 AND dataType = 'messages' AND updatedAt = ?4",
+        ).bind(JSON.stringify(nextMessages), now, user.id, row?.updatedAt).run();
+        if (Number(update?.meta?.changes || 0) !== 1) {
+          return Response.json({ error: "The action changed; reload and try again." }, { status: 409 });
+        }
+        emitMonitor("external_action_discard", "discarded", { actionType: discarded.action.actionType });
+        return Response.json({ state: "discarded", action: discarded.action }, { headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+      } catch (error) {
+        logFailure("external_action_discard_failed", error);
+        return Response.json({ error: "Action could not be discarded right now." }, { status: 503 });
       }
     }
 

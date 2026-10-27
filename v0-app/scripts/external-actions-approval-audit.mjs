@@ -130,7 +130,31 @@ try {
   assert.equal((await otherHandler.fetch(post("/api/external-actions/ready", { actionId }), { DB: workspace.db }, {})).status, 404, "cross-tenant ready transition must not reveal or alter another tenant's action")
   assert.equal((await ownerHandler.fetch(post("/api/external-actions/approve", { actionId: "missing-action" }), { DB: workspace.db }, {})).status, 404, "a missing action must be rejected")
 
+  assert.equal((await anonymousHandler.fetch(post("/api/external-actions/discard", { actionId }), { DB: workspace.db }, {})).status, 401, "anonymous discard must be rejected")
+  assert.equal((await otherHandler.fetch(post("/api/external-actions/discard", { actionId }), { DB: workspace.db }, {})).status, 404, "cross-tenant discard must not reveal or alter another tenant's action")
+  assert.equal((await ownerHandler.fetch(post("/api/external-actions/discard", { actionId }), { DB: workspace.db }, {})).status, 409, "an action already marked ready cannot be discarded")
+
   const stored = JSON.parse(workspace.records.get("owner:messages").data)
+  const discardCandidate = {
+    ...preparedBody.draft,
+    id: "discard-test-action",
+    actionKey: "discard-test-action-key",
+  }
+  stored.push(discardCandidate)
+  const currentRow = workspace.records.get("owner:messages")
+  workspace.records.set("owner:messages", { data: JSON.stringify(stored), updatedAt: currentRow.updatedAt })
+  const discardedResponse = await ownerHandler.fetch(post("/api/external-actions/discard", { actionId: discardCandidate.id }), { DB: workspace.db }, {})
+  assert.equal(discardedResponse.status, 200, "the owner must be able to discard a pending action")
+  const discardedBody = await discardedResponse.json()
+  assert.equal(discardedBody.state, "discarded")
+  assert.equal(discardedBody.action.approvalState, "discarded")
+  assert.equal(discardedBody.action.deliveryStatus, "not-sent")
+  assert.equal(discardedBody.action.executionStatus, "not-executed")
+  assert.equal(discardedBody.action.audit.at(-1).previousState, "awaiting-approval")
+  assert.equal(discardedBody.action.audit.at(-1).newState, "discarded")
+  assert.equal(typeof discardedBody.action.discardedAt, "string")
+  assert.equal((await ownerHandler.fetch(post("/api/external-actions/approve", { actionId: discardCandidate.id }), { DB: workspace.db }, {})).status, 409, "a discarded action cannot later be approved")
+  assert.equal((await ownerHandler.fetch(post("/api/external-actions/discard", { actionId: discardCandidate.id }), { DB: workspace.db }, {})).status, 409, "discard is limited to pending actions")
   stored.push({ id: "invalid-state", actionType: "email-draft", approvalState: "prepared", deliveryStatus: "not-sent", executionStatus: "not-executed" })
   workspace.records.set("owner:messages", { data: JSON.stringify(stored), updatedAt: workspace.records.get("owner:messages").updatedAt })
   assert.equal((await ownerHandler.fetch(post("/api/external-actions/approve", { actionId: "invalid-state" }), { DB: workspace.db }, {})).status, 409, "only awaiting approval actions may transition to approved")
@@ -140,6 +164,6 @@ try {
 
 assert.equal(externalProviderCalls, 0, "approval must make zero external provider calls")
 const studio = fs.readFileSync(new URL("../components/business/message-studio.tsx", import.meta.url), "utf8")
-assert(studio.includes('"/api/external-actions/approve"') && studio.includes('"/api/external-actions/ready"') && studio.includes("approvalState === \"awaiting-approval\"") && studio.includes("approvalState === \"approved\""), "Message Studio must use the server-side governed approval and readiness boundaries")
+assert(studio.includes('"/api/external-actions/approve"') && studio.includes('"/api/external-actions/ready"') && studio.includes('"/api/external-actions/discard"') && studio.includes("approvalState === \"awaiting-approval\"") && studio.includes("approvalState === \"approved\""), "Message Studio must use the server-side governed approval and readiness boundaries")
 assert(studio.includes("notSent") && studio.includes("notExecuted"), "Message Studio must distinguish approval from delivery and execution")
 console.log("External Actions approval audit passed: server-side owner approval, tenant isolation, idempotency, auditability, and no execution.")
