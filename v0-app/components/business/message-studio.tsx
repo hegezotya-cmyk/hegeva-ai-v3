@@ -123,7 +123,7 @@ export function MessageStudio() {
     })
     if (linkedSourceId) setTasks((current) => current.map((task) => task.sourceId === linkedSourceId ? { ...task, done: false } : task))
     const followUpTitle = editCopy.followPrefix + ": " + (subject.trim() || type)
-    setTasks((current) => upsertMessageFollowUpTask(current, { draftId, title: followUpTitle, due: followUpAt, locale }))
+    setTasks((current) => upsertMessageFollowUpTask(current, { draftId, legacySourceId: linkedSourceId, title: followUpTitle, due: followUpAt, locale }))
     resetForm()
   }
 
