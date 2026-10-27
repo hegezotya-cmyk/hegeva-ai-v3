@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import fs from "node:fs"
 import { isLinkedMessageFollowUpTask, upsertMessageFollowUpTask } from "../lib/message-follow-up.ts"
 
 const original = [{ id: "unrelated", title: "Call supplier", priority: "low", done: false }]
@@ -28,4 +29,7 @@ assert.deepEqual(cleared, edited, "clearing a date should not silently delete an
 assert.deepEqual(upsertMessageFollowUpTask(original, {
   draftId: "draft-2", title: "Follow up: no date", due: "", locale: "en",
 }), original, "an undated draft should not create a planner task")
+const messageStudio = fs.readFileSync(new URL("../components/business/message-studio.tsx", import.meta.url), "utf8")
+assert(messageStudio.includes("isLinkedMessageFollowUpTask(task, draft.id, draft.sourceId)"), "Message Studio should display and complete planner tasks linked by draft ID while retaining legacy links")
+
 console.log("Message follow-up audit passed: date creates, edits update, and clearing does not delete tasks.")
