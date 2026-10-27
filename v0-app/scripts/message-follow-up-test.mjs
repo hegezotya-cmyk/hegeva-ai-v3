@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { upsertMessageFollowUpTask } from "../lib/message-follow-up.ts"
+import { isLinkedMessageFollowUpTask, upsertMessageFollowUpTask } from "../lib/message-follow-up.ts"
 
 const original = [{ id: "unrelated", title: "Call supplier", priority: "low", done: false }]
 const first = upsertMessageFollowUpTask(original, {
@@ -9,6 +9,9 @@ assert.equal(first.length, 2, "a dated draft should create one planner task")
 assert.equal(first[0].sourceId, "draft-1", "the planner task should link back to its message draft")
 assert.equal(first[0].due, "2026-11-02")
 assert.equal(first[0].done, false)
+assert.equal(isLinkedMessageFollowUpTask(first[0], "draft-1"), true, "a new planner task should resolve from its draft id")
+assert.equal(isLinkedMessageFollowUpTask({ sourceId: "legacy-task-source" }, "draft-legacy", "legacy-task-source"), true, "legacy message-task links should remain readable")
+assert.equal(isLinkedMessageFollowUpTask(first[0], "other-draft"), false, "planner tasks must not link to a different draft")
 
 const edited = upsertMessageFollowUpTask(first, {
   draftId: "draft-1", title: "Follow up: updated quote", due: "2026-11-06", locale: "en",
