@@ -6,6 +6,7 @@ on:
     branches:
       - v0-rebuild
       - x20-studio-wow
+      - codex/message-to-next-step-design
     paths:
       - "v0-app/**"
       - "src/**"
@@ -74,6 +75,10 @@ jobs:
       - name: Owner operating picture safety check
         working-directory: v0-app
         run: npm run audit:owner-operating-picture
+
+      - name: Message follow-up audit
+        working-directory: v0-app
+        run: npm run audit:message-follow-up
 
       - name: TypeScript check
         working-directory: v0-app
