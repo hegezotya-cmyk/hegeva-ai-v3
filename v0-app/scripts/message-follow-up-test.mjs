@@ -22,6 +22,16 @@ assert.equal(edited[0].id, first[0].id)
 assert.equal(edited[0].title, "Follow up: updated quote")
 assert.equal(edited[0].due, "2026-11-06")
 
+const legacyTasks = [{ id: "legacy-task", title: "Old follow-up", due: "2026-10-01", priority: "medium", done: true, sourceId: "legacy-source" }]
+const migrated = upsertMessageFollowUpTask(legacyTasks, {
+  draftId: "draft-legacy", legacySourceId: "legacy-source", title: "Follow up: edited legacy", due: "2026-11-07", locale: "en",
+})
+assert.equal(migrated.length, 1, "editing a legacy-linked draft should not create a duplicate planner task")
+assert.equal(migrated[0].id, "legacy-task", "the existing planner task ID should be retained")
+assert.equal(migrated[0].sourceId, "draft-legacy", "the existing task should migrate to stable draft-ID linkage")
+assert.equal(migrated[0].due, "2026-11-07")
+assert.equal(migrated[0].done, false)
+
 const cleared = upsertMessageFollowUpTask(edited, {
   draftId: "draft-1", title: "Follow up: updated quote", due: "", locale: "en",
 })
