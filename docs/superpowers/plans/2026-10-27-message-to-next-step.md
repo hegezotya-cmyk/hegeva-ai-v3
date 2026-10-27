@@ -67,11 +67,11 @@
 - If the owner clears the date on an existing draft, leave its existing Planner task unchanged; the owner can manage it in Planner.
 
 - [ ] **Step 1: Add failing helper assertions** for first creation, repeat save, edit/date update, preserving completion on edit, no task without a date, clearing a date without deleting a prior task, and two different drafts remaining separate.
-- [ ] **Step 2: Add `audit:message-follow-up`** to `v0-app/package.json` using `node --experimental-strip-types scripts/message-follow-up-test.mjs`; run it and confirm the new assertions fail before implementation.
+- [ ] **Step 2: Run `node --experimental-strip-types scripts/message-follow-up-test.mjs`** and confirm the new assertions fail before implementation.
 - [ ] **Step 3: Implement `upsertMessageFollowUpTask(tasks, draft)`** in `v0-app/lib/message-follow-up.ts`; match by `sourceId`, use a stable task ID, and update due/title without duplicating or reopening a completed task.
 - [ ] **Step 4: Update `MessageStudio.saveDraft`** to assign the draft ID before state updates, save the draft, and upsert its Planner task only when a follow-up date is selected. Use the same draft ID for edits.
 - [ ] **Step 5: Add `v0-app/scripts/message-next-step-audit.mjs`** assertions that First Wow's existing seed handoff reaches Message Studio and that analytics contain only input/result categories, never pasted text; include the new link and no-auto-send behavior.
-- [ ] **Step 6: Run `npm --prefix v0-app run audit:message-follow-up`** and confirm PASS.
+- [ ] **Step 6: Add `audit:message-follow-up`** to `v0-app/package.json` to run both `message-follow-up-test.mjs` and `message-next-step-audit.mjs`; run `npm --prefix v0-app run audit:message-follow-up` and confirm PASS.
 - [ ] **Step 7: Commit** as `feat: link message drafts to planner follow-ups`.
 
 ### Task 3: Add the dismissed-actions view and discard control
