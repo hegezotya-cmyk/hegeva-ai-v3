@@ -30,7 +30,7 @@ export function upsertMessageFollowUpTask<T extends MessageFollowUpTask>(
     sourceId: draftId,
   }
   return existing
-    ? tasks.map((task) => task.sourceId === draftId ? { ...task, ...next } as T : task)
+    ? tasks.map((task) => task.id === existing?.id ? { ...task, ...next } as T : task)
     : [next as T, ...tasks]
 }
 
