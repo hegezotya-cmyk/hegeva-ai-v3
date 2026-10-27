@@ -32,3 +32,11 @@ export function upsertMessageFollowUpTask<T extends MessageFollowUpTask>(
     ? tasks.map((task) => task.sourceId === draftId ? { ...task, ...next } as T : task)
     : [next as T, ...tasks]
 }
+
+export function isLinkedMessageFollowUpTask(
+  task: Pick<MessageFollowUpTask, "sourceId">,
+  draftId: string,
+  legacySourceId?: string,
+): boolean {
+  return task.sourceId === draftId || Boolean(legacySourceId && task.sourceId === legacySourceId)
+}
