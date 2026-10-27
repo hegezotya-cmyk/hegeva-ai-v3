@@ -17,7 +17,7 @@ export function isGovernedExternalAction(action) {
     text(action.actionKey, 200) &&
     action.deliveryStatus === "not-sent" &&
     action.executionStatus === "not-executed" &&
-    ["awaiting-approval", "approved", "ready-to-execute"].includes(action.approvalState) &&
+    ["awaiting-approval", "approved", "ready-to-execute", "discarded"].includes(action.approvalState) &&
     Array.isArray(action.audit) && action.audit.every(validAuditEntry),
   )
 }
@@ -86,6 +86,37 @@ export function approveGovernedExternalAction(action, { actorHash, now }) {
       approvedAt: now,
       approvedByActorHash: text(actorHash, 128),
       approvalVersion,
+      audit: [...action.audit, auditEntry],
+      updatedAt: now,
+    },
+  }
+}
+
+export function discardGovernedExternalAction(action, { actorHash, now }) {
+  if (!isGovernedExternalAction(action) || !text(actorHash, 128) || !Number.isFinite(Date.parse(now))) {
+    return { ok: false, reason: "invalid-action" }
+  }
+  if (action.approvalState !== "awaiting-approval") return { ok: false, reason: "invalid-transition" }
+  const auditEntry = {
+    event: "discarded",
+    actionType: action.actionType,
+    target: text(action.recipient, 200),
+    previousState: "awaiting-approval",
+    newState: "discarded",
+    occurredAt: now,
+    actorHash: text(actorHash, 128),
+    deliveryStatus: "not-sent",
+    executionStatus: "not-executed",
+  }
+  return {
+    ok: true,
+    idempotent: false,
+    action: {
+      ...action,
+      approvalState: "discarded",
+      workflowStatus: "discarded",
+      discardedAt: now,
+      discardedByActorHash: text(actorHash, 128),
       audit: [...action.audit, auditEntry],
       updatedAt: now,
     },
