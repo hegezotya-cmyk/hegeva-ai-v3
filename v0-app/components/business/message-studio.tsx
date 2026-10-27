@@ -5,6 +5,7 @@ import { CalendarClock, CheckCircle2, Cloud, CloudOff, Copy, Pencil, Plus, Shiel
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { useI18n } from "@/lib/i18n/provider"
 import { getBusinessModulesCopy } from "@/lib/i18n/business-modules-copy"
+import { upsertMessageFollowUpTask } from "@/lib/message-follow-up"
 
 type Draft = {
   id: string
@@ -17,8 +18,8 @@ type Draft = {
   body: string
   createdAt: string
   followUpAt?: string
-  workflowStatus?: "draft" | "approved" | "ready-to-execute" | "sending" | "sent" | "failed" | "uncertain" | "completed"
-  approvalState?: "awaiting-approval" | "approved" | "ready-to-execute" | "sending" | "sent" | "failed" | "uncertain"
+  workflowStatus?: "draft" | "approved" | "ready-to-execute" | "sending" | "sent" | "failed" | "uncertain" | "completed" | "discarded"
+  approvalState?: "awaiting-approval" | "approved" | "ready-to-execute" | "sending" | "sent" | "failed" | "uncertain" | "discarded"
   approvalVersion?: number
   approvedAt?: string
   approvedByActorHash?: string | null
@@ -48,6 +49,8 @@ export function MessageStudio() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const [approvalNotice, setApprovalNotice] = useState("")
+  const [draftView, setDraftView] = useState<"active" | "dismissed">("active")
+  const [discardingId, setDiscardingId] = useState<string | null>(null)
   useEffect(() => {
     try {
       const key = "hegeva:first-wow-message-seed:v1"
@@ -70,7 +73,7 @@ export function MessageStudio() {
   }, [])
 
   const editCopy = {
-    en:{edit:"Edit draft",update:"Update draft",cancel:"Cancel",follow:"Follow-up date",draft:"Draft",approve:"Approve",approved:"Approved",complete:"Complete follow-up",completed:"Completed",due:"Follow-up due",linked:"Linked planner task",awaiting:"Awaiting approval",notSent:"Not sent",notExecuted:"Not executed",approveAction:"Approve action",approving:"Approving…",failed:"Approval could not be completed. Reload and try again.",evidence:"Evidence"},hu:{edit:"Vázlat szerkesztése",update:"Vázlat frissítése",cancel:"Mégse",follow:"Utánkövetés dátuma",draft:"Vázlat",approve:"Jóváhagyás",approved:"Jóváhagyva",complete:"Utánkövetés lezárása",completed:"Lezárva",due:"Utánkövetés esedékes",linked:"Kapcsolódó tervezőfeladat",awaiting:"Jóváhagyásra vár",notSent:"Nincs elküldve",notExecuted:"Nincs végrehajtva",approveAction:"Művelet jóváhagyása",approving:"Jóváhagyás…",failed:"A jóváhagyás nem sikerült. Töltsd újra az oldalt, majd próbáld újra.",evidence:"Bizonyíték"},de:{edit:"Entwurf bearbeiten",update:"Entwurf aktualisieren",cancel:"Abbrechen",follow:"Nachfassdatum",draft:"Entwurf",approve:"Freigeben",approved:"Freigegeben",complete:"Nachfassung abschließen",completed:"Abgeschlossen",due:"Nachfassung fällig",linked:"Verknüpfte Planeraufgabe",awaiting:"Wartet auf Freigabe",notSent:"Nicht gesendet",notExecuted:"Nicht ausgeführt",approveAction:"Aktion freigeben",approving:"Freigabe…",failed:"Die Freigabe konnte nicht abgeschlossen werden. Bitte neu laden und erneut versuchen.",evidence:"Nachweis"},fr:{edit:"Modifier le brouillon",update:"Mettre à jour",cancel:"Annuler",follow:"Date de suivi",draft:"Brouillon",approve:"Approuver",approved:"Approuvé",complete:"Terminer le suivi",completed:"Terminé",due:"Suivi dû",linked:"Tâche liée au planificateur",awaiting:"En attente d’approbation",notSent:"Non envoyé",notExecuted:"Non exécuté",approveAction:"Approuver l’action",approving:"Approbation…",failed:"L’approbation n’a pas pu être effectuée. Rechargez puis réessayez.",evidence:"Preuve"},es:{edit:"Editar borrador",update:"Actualizar borrador",cancel:"Cancelar",follow:"Fecha de seguimiento",draft:"Borrador",approve:"Aprobar",approved:"Aprobado",complete:"Completar seguimiento",completed:"Completado",due:"Seguimiento pendiente",linked:"Tarea vinculada del planificador",awaiting:"Pendiente de aprobación",notSent:"No enviado",notExecuted:"No ejecutado",approveAction:"Aprobar acción",approving:"Aprobando…",failed:"No se pudo completar la aprobación. Recarga e inténtalo de nuevo.",evidence:"Evidencia"},
+    en:{edit:"Edit draft",update:"Update draft",cancel:"Cancel",follow:"Follow-up date",draft:"Draft",approve:"Approve",approved:"Approved",complete:"Complete follow-up",completed:"Completed",due:"Follow-up due",linked:"Linked planner task",awaiting:"Awaiting approval",notSent:"Not sent",notExecuted:"Not executed",approveAction:"Approve action",approving:"Approving…",failed:"Approval could not be completed. Reload and try again.",evidence:"Evidence",active:"Active",dismissed:"Dismissed",discard:"Discard",discardQuestion:"Discard this pending action? It will stay in your dismissed history.",confirmDiscard:"Confirm discard",cancelDiscard:"Cancel",discarding:"Discarding…",discardFailed:"The action could not be discarded. Reload and try again.",followPrefix:"Follow up"},hu:{edit:"Vázlat szerkesztése",update:"Vázlat frissítése",cancel:"Mégse",follow:"Utánkövetés dátuma",draft:"Vázlat",approve:"Jóváhagyás",approved:"Jóváhagyva",complete:"Utánkövetés lezárása",completed:"Lezárva",due:"Utánkövetés esedékes",linked:"Kapcsolódó tervezőfeladat",awaiting:"Jóváhagyásra vár",notSent:"Nincs elküldve",notExecuted:"Nincs végrehajtva",approveAction:"Művelet jóváhagyása",approving:"Jóváhagyás…",failed:"A jóváhagyás nem sikerült. Töltsd újra az oldalt, majd próbáld újra.",evidence:"Bizonyíték",active:"Aktív",dismissed:"Elvetettek",discard:"Elvetés",discardQuestion:"Elveted ezt a függő műveletet? Az előzmények között megmarad.",confirmDiscard:"Elvetés megerősítése",cancelDiscard:"Mégse",discarding:"Elvetés…",discardFailed:"Nem sikerült elvetni. Töltsd újra az oldalt, majd próbáld újra.",followPrefix:"Utánkövetés"},de:{edit:"Entwurf bearbeiten",update:"Entwurf aktualisieren",cancel:"Abbrechen",follow:"Nachfassdatum",draft:"Entwurf",approve:"Freigeben",approved:"Freigegeben",complete:"Nachfassung abschließen",completed:"Abgeschlossen",due:"Nachfassung fällig",linked:"Verknüpfte Planeraufgabe",awaiting:"Wartet auf Freigabe",notSent:"Nicht gesendet",notExecuted:"Nicht ausgeführt",approveAction:"Aktion freigeben",approving:"Freigabe…",failed:"Die Freigabe konnte nicht abgeschlossen werden. Bitte neu laden und erneut versuchen.",evidence:"Nachweis",active:"Aktiv",dismissed:"Verworfen",discard:"Verwerfen",discardQuestion:"Diese ausstehende Aktion verwerfen? Sie bleibt im Verlauf erhalten.",confirmDiscard:"Verwerfen bestätigen",cancelDiscard:"Abbrechen",discarding:"Wird verworfen…",discardFailed:"Aktion konnte nicht verworfen werden. Bitte neu laden und erneut versuchen.",followPrefix:"Nachfassen"},fr:{edit:"Modifier le brouillon",update:"Mettre à jour",cancel:"Annuler",follow:"Date de suivi",draft:"Brouillon",approve:"Approuver",approved:"Approuvé",complete:"Terminer le suivi",completed:"Terminé",due:"Suivi dû",linked:"Tâche liée au planificateur",awaiting:"En attente d’approbation",notSent:"Non envoyé",notExecuted:"Non exécuté",approveAction:"Approuver l’action",approving:"Approbation…",failed:"L’approbation n’a pas pu être effectuée. Rechargez puis réessayez.",evidence:"Preuve",active:"Actifs",dismissed:"Ignorés",discard:"Ignorer",discardQuestion:"Ignorer cette action en attente ? Elle restera dans l’historique.",confirmDiscard:"Confirmer",cancelDiscard:"Annuler",discarding:"Ignorée…",discardFailed:"Impossible d’ignorer l’action. Rechargez puis réessayez.",followPrefix:"Relance"},es:{edit:"Editar borrador",update:"Actualizar borrador",cancel:"Cancelar",follow:"Fecha de seguimiento",draft:"Borrador",approve:"Aprobar",approved:"Aprobado",complete:"Completar seguimiento",completed:"Completado",due:"Seguimiento pendiente",linked:"Tarea vinculada del planificador",awaiting:"Pendiente de aprobación",notSent:"No enviado",notExecuted:"No ejecutado",approveAction:"Aprobar acción",approving:"Aprobando…",failed:"No se pudo completar la aprobación. Recarga e inténtalo de nuevo.",evidence:"Evidencia",active:"Activas",dismissed:"Descartadas",discard:"Descartar",discardQuestion:"¿Descartar esta acción pendiente? Se conservará en el historial.",confirmDiscard:"Confirmar descarte",cancelDiscard:"Cancelar",discarding:"Descartando…",discardFailed:"No se pudo descartar. Recarga e inténtalo de nuevo.",followPrefix:"Seguimiento"},
   }[locale]
   const readyCopy = { en: "Ready to execute", hu: "Végrehajtásra kész", de: "Bereit zur Ausführung", fr: "Prêt à exécuter", es: "Listo para ejecutar" }[locale]
   const readyActionCopy = { en: "Mark ready to execute", hu: "Végrehajtásra készítés", de: "Als ausführungsbereit markieren", fr: "Marquer prêt à exécuter", es: "Marcar listo para ejecutar" }[locale]
@@ -99,10 +102,11 @@ export function MessageStudio() {
     const clean = body.trim()
     if (!clean) return
     const linkedSourceId = editingId ? drafts.find((draft) => draft.id === editingId)?.sourceId : undefined
+    const draftId = editingId || crypto.randomUUID()
     setDrafts((current) => {
       const existing = editingId ? current.find((draft) => draft.id === editingId) : undefined
       const next: Draft = {
-        id: existing?.id || crypto.randomUUID(),
+        id: existing?.id || draftId,
         type,
         tone,
         recipient: recipient.trim() || undefined,
@@ -118,7 +122,34 @@ export function MessageStudio() {
       return existing ? current.map((draft) => draft.id === existing.id ? next : draft) : [next, ...current]
     })
     if (linkedSourceId) setTasks((current) => current.map((task) => task.sourceId === linkedSourceId ? { ...task, done: false } : task))
+    const followUpTitle = editCopy.followPrefix + ": " + (subject.trim() || type)
+    setTasks((current) => upsertMessageFollowUpTask(current, { draftId, title: followUpTitle, due: followUpAt, locale }))
     resetForm()
+  }
+
+  async function discardGovernedAction(draft: Draft) {
+    setApprovingId(draft.id)
+    setApprovalNotice("")
+    try {
+      const response = await fetch("/api/external-actions/discard", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ actionId: draft.id }),
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.action || payload.action.approvalState !== "discarded") {
+        setApprovalNotice(editCopy.discardFailed)
+        return
+      }
+      setDrafts((all) => all.map((item) => item.id === draft.id ? payload.action as Draft : item))
+      setDiscardingId(null)
+      setDraftView("dismissed")
+    } catch {
+      setApprovalNotice(editCopy.discardFailed)
+    } finally {
+      setApprovingId(null)
+    }
   }
 
   async function approveGovernedAction(draft: Draft) {
@@ -203,15 +234,19 @@ export function MessageStudio() {
 
       <section>
         <section className="mb-4 rounded-xl border border-amber-300/35 bg-amber-300/10 p-4"><p className="text-xs font-bold tracking-wide text-amber-200">TEST MODE · OWNER ONLY</p><p className="mt-1 text-xs text-muted-foreground">Recipient, subject, and body are fixed server-side. Available only when both delivery gates are enabled.</p><button type="button" onClick={ownerDeliveryTest} className="mt-3 min-h-10 rounded-lg border border-amber-300/40 px-3 text-xs font-semibold text-amber-200">Preview owner delivery test</button></section>
+        <div className="mb-3 flex gap-2" role="group" aria-label="Message history">
+          <button type="button" onClick={() => setDraftView("active")} aria-pressed={draftView === "active"} className="min-h-10 rounded-lg border border-border px-3 text-xs font-semibold">{editCopy.active} ({drafts.filter((draft) => draft.approvalState !== "discarded").length})</button>
+          <button type="button" onClick={() => setDraftView("dismissed")} aria-pressed={draftView === "dismissed"} className="min-h-10 rounded-lg border border-border px-3 text-xs font-semibold">{editCopy.dismissed} ({drafts.filter((draft) => draft.approvalState === "discarded").length})</button>
+        </div>
         {approvalNotice && <p role="status" className="mb-3 rounded-xl border border-destructive/35 bg-destructive/10 px-4 py-3 text-sm text-destructive">{approvalNotice}</p>}
-        {drafts.length === 0 ? (
+        {drafts.filter((draft) => (draft.approvalState === "discarded") === (draftView === "dismissed")).length === 0 ? (
           <div className="glass-panel rounded-2xl p-8 text-center">
-            <p className="font-medium text-foreground">{c.empty}</p>
+            <p className="font-medium text-foreground">{draftView === "dismissed" ? editCopy.dismissed : c.empty}</p>
             <p className="mt-2 text-sm text-muted-foreground">{c.emptyBody}</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {drafts.map((draft) => {
+            {drafts.filter((draft) => (draft.approvalState === "discarded") === (draftView === "dismissed")).map((draft) => {
               const governed = draft.actionType === "email-draft" && Boolean(draft.approvalState)
               return <article key={draft.id} className="glass-panel rounded-2xl p-5">
                 <div className="flex items-start justify-between gap-4">
@@ -230,7 +265,14 @@ export function MessageStudio() {
                   </div>}
                 </div>
                 <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{draft.body}</p>
-                <div className="mt-4 flex flex-wrap gap-2">{governed ? <>{draft.approvalState === "awaiting-approval" && <button type="button" onClick={() => approveGovernedAction(draft)} disabled={approvingId === draft.id} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60">{approvingId === draft.id ? editCopy.approving : editCopy.approveAction}</button>}{draft.approvalState === "approved" && <button type="button" onClick={() => markReady(draft)} disabled={approvingId === draft.id} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60">{approvingId === draft.id ? readyingCopy : readyActionCopy}</button>}{draft.approvalState === "ready-to-execute" && <button type="button" onClick={() => confirmEmailDelivery(draft)} disabled={approvingId === draft.id} className="min-h-10 rounded-lg bg-destructive px-3 text-xs font-semibold text-destructive-foreground">Send email now</button>}</> : <>{draft.workflowStatus !== "approved" && draft.workflowStatus !== "completed" && <button type="button" onClick={() => setDrafts(all => all.map(x => x.id === draft.id ? {...x, workflowStatus:"approved", approvedAt:new Date().toISOString()} : x))} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary">{editCopy.approve}</button>}{draft.workflowStatus === "approved" && <button type="button" onClick={() => {const completedAt=new Date().toISOString();setDrafts(all => all.map(x => x.id === draft.id ? {...x, workflowStatus:"completed", completedAt} : x));if(draft.sourceId)setTasks(all => all.map(task => task.sourceId === draft.sourceId ? {...task,done:true} : task))}} className="min-h-10 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground">{editCopy.complete}</button>}</>}</div>
+                {discardingId === draft.id && <div role="alertdialog" aria-label={editCopy.confirmDiscard} className="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/5 p-3 text-sm">
+                  <p>{editCopy.discardQuestion}</p>
+                  <div className="mt-3 flex gap-2">
+                    <button type="button" onClick={() => discardGovernedAction(draft)} disabled={approvingId === draft.id} className="min-h-10 rounded-lg border border-destructive/40 px-3 text-xs font-semibold text-destructive">{approvingId === draft.id ? editCopy.discarding : editCopy.confirmDiscard}</button>
+                    <button type="button" onClick={() => setDiscardingId(null)} disabled={approvingId === draft.id} className="min-h-10 rounded-lg border border-border px-3 text-xs">{editCopy.cancelDiscard}</button>
+                  </div>
+                </div>}
+                <div className="mt-4 flex flex-wrap gap-2">{governed ? <>{draft.approvalState === "awaiting-approval" && <button type="button" onClick={() => approveGovernedAction(draft)} disabled={approvingId === draft.id} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60">{approvingId === draft.id ? editCopy.approving : editCopy.approveAction}</button>}{draft.approvalState === "approved" && <button type="button" onClick={() => markReady(draft)} disabled={approvingId === draft.id} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60">{approvingId === draft.id ? readyingCopy : readyActionCopy}</button>}{draft.approvalState === "ready-to-execute" && <button type="button" onClick={() => confirmEmailDelivery(draft)} disabled={approvingId === draft.id} className="min-h-10 rounded-lg bg-destructive px-3 text-xs font-semibold text-destructive-foreground">Send email now</button>}{draft.approvalState === "awaiting-approval" && draft.deliveryStatus === "not-sent" && draft.executionStatus === "not-executed" && <button type="button" onClick={() => setDiscardingId(draft.id)} className="min-h-10 rounded-lg border border-destructive/40 px-3 text-xs font-semibold text-destructive">{editCopy.discard}</button>}</> : <>{draft.workflowStatus !== "approved" && draft.workflowStatus !== "completed" && <button type="button" onClick={() => setDrafts(all => all.map(x => x.id === draft.id ? {...x, workflowStatus:"approved", approvedAt:new Date().toISOString()} : x))} className="min-h-10 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary">{editCopy.approve}</button>}{draft.workflowStatus === "approved" && <button type="button" onClick={() => {const completedAt=new Date().toISOString();setDrafts(all => all.map(x => x.id === draft.id ? {...x, workflowStatus:"completed", completedAt} : x));if(draft.sourceId)setTasks(all => all.map(task => task.sourceId === draft.sourceId ? {...task,done:true} : task))}} className="min-h-10 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground">{editCopy.complete}</button>}</>}</div>
                 <p className="mt-4 text-[11px] text-muted-foreground">{c.saved} {new Date(draft.createdAt).toLocaleString(locale)}</p>
               </article>
             })}
