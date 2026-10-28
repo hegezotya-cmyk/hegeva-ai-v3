@@ -75,6 +75,10 @@ jobs:
         working-directory: v0-app
         run: npm run audit:owner-operating-picture
 
+      - name: Customer reengagement checks
+        working-directory: v0-app
+        run: npm run test:customer-reengagement
+
       - name: TypeScript check
         working-directory: v0-app
         run: npx tsc --noEmit
