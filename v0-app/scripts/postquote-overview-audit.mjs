@@ -1,0 +1,16 @@
+import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+const read = path=>readFileSync(new URL(path,import.meta.url),"utf8")
+const panel = read("../components/business/postquote-overview.tsx")
+const selector = read("../lib/postquote-overview.ts")
+const page = read("../app/business/invoices/page.tsx")
+assert.doesNotMatch(panel,/\bfetch\s*\(|\.setItems\b|\bsetItems\b|\bsetTasks\b|\bsetMessages\b|localStorage|sessionStorage|trackActivationEvent|external-actions/)
+assert.doesNotMatch(selector,/\bfetch\s*\(|localStorage|sessionStorage|crypto\.randomUUID|Date\.now|trackActivationEvent/)
+assert.match(panel,/useWorkspaceData<OverviewTask>\("planner"\)/)
+assert.match(panel,/useWorkspaceData<OverviewMessage>\("messages"\)/)
+assert.match(panel,/taskData\.workspaceIdentity !== identity/)
+assert.match(page,/overviewSelection\?\.identity===workspaceIdentity&&syncState!=="checking"/)
+assert.match(page,/openOverviewQuote&&<PostquoteOverview/)
+assert.match(panel,/c\.legacyNote/)
+assert.match(panel,/c\.deliveryNote/)
+console.log("Postquote safety audit PASS: read-only panel, lazy source hooks, identity guards, legacy distinction and honest delivery labels.")
