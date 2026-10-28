@@ -117,13 +117,16 @@ export function boundAssistantProviderPayload(tier, projection) {
     { role: "user", content: projection.prompt.trim() },
   ]
   if (!messages[1].content) return { ok: false, reason: "invalid-projection" }
-  // UTF-8 byte length is a conservative token upper bound for this plain-text,
-  // JSON-serialized request. It covers system text and every transmitted field.
-  const inputTokens = encoder.encode(JSON.stringify({ messages, max_tokens: tier.maxOutputTokens })).byteLength
+  // Responses counts the complete serialized input. Keep the established
+  // Standard admission boundary unchanged in this model-specific repair.
+  const payload = tier.id === "advanced"
+    ? { input: messages, max_output_tokens: tier.maxOutputTokens, reasoning: { effort: "low" }, temperature: 0.2, stream: false }
+    : { messages, max_tokens: tier.maxOutputTokens, temperature: 0.2, stream: false }
+  const inputTokens = encoder.encode(JSON.stringify(tier.id === "advanced" ? payload : { messages, max_tokens: tier.maxOutputTokens })).byteLength
   if (inputTokens > tier.maxInputTokens) return { ok: false, reason: "provider-input-too-large" }
   return {
     ok: true,
-    request: Object.freeze({ model: tier.model, messages, max_tokens: tier.maxOutputTokens, temperature: 0.2, stream: false }),
+    request: Object.freeze({ model: tier.model, ...payload }),
     reservation: Object.freeze({ ...tier.reservation, inputTokens, outputTokens: tier.maxOutputTokens }),
   }
 }
@@ -330,17 +333,18 @@ export async function invokeAssistantWorkersAiText(env, projection, { tier, sign
     }, config.timeoutMs)
   })
   try {
+    const { model, ...input } = bounded.request
     const response = await Promise.race([
-      env.AI.run(bounded.request.model, {
-        messages: bounded.request.messages,
-        max_tokens: bounded.request.max_tokens,
-        temperature: bounded.request.temperature,
-        stream: false,
-      }, { signal: signal || controller.signal }),
+      env.AI.run(model, input, { signal: signal || controller.signal }),
       timeoutPromise,
     ])
     const providerUsage = normalizeWorkersAiUsage(response?.usage)
     const metrics = { ...providerUsage, durationMs: Math.max(0, Date.now() - startedAt), reservation: bounded.reservation }
+    if (tier.id === "advanced") {
+      const text = completedResponsesText(response)
+      if (!text) return { ok: false, reason: "missing-response", metrics }
+      return { ok: true, response: text, metrics }
+    }
     if (!response || typeof response.response !== "string") return { ok: false, reason: "missing-response", metrics }
     return { ok: true, response: response.response.slice(0, 12_000), metrics }
   } catch (error) {
@@ -350,4 +354,22 @@ export async function invokeAssistantWorkersAiText(env, projection, { tier, sign
       metrics: { inputTokens: null, outputTokens: null, totalTokens: null, neuronUsage: null, durationMs: Math.max(0, Date.now() - startedAt), reservation: bounded.reservation },
     }
   } finally { clearTimeout(timeoutId) }
+}
+
+// GPT-OSS uses Responses even through the Workers AI binding. Only final
+// assistant text belongs in chat; reasoning, tools and partial output do not.
+function completedResponsesText(response) {
+  if (response?.status !== "completed" || response.error || response.incomplete_details || !Array.isArray(response.output)) return null
+  const parts = []
+  for (const item of response.output) {
+    if (item?.type === "reasoning") continue
+    if (item?.type !== "message" || item.role !== "assistant" || item.status !== "completed" || !Array.isArray(item.content)) return null
+    for (const part of item.content) {
+      if (part?.type !== "output_text" || typeof part.text !== "string") return null
+      parts.push(part.text)
+    }
+  }
+  const text = parts.join("").trim()
+  // Reject oversized answers instead of silently cutting a Hungarian sentence.
+  return text && text.length <= 12_000 ? text : null
 }
