@@ -8,9 +8,12 @@ import { useI18n } from "@/lib/i18n/provider"
 import { useWorkspaceData } from "@/lib/use-workspace-data"
 import { trackActivationEvent } from "@/lib/conversion-tracking"
 import { hasAcknowledgedRecord } from "@/lib/activation-measurement"
+import { isValidContactDate, localCalendarDay, selectCustomerReengagement } from "@/lib/customer-reengagement"
+import { customerReengagementCopy } from "@/lib/i18n/customer-reengagement-copy"
+import { CustomerReengagementPreview } from "./customer-reengagement-preview"
 
 type Kind = "customers" | "documents" | "expenses"
-type RecordItem = { id: string; title: string; meta?: string; amount?: number; notes?: string; followUp?: string; customerStatus?: "lead" | "active" | "paused"; createdAt: string }
+type RecordItem = { id: string; title: string; meta?: string; amount?: number; notes?: string; followUp?: string; lastContactAt?: string; customerStatus?: "lead" | "active" | "paused"; createdAt: string }
 
 const config: Record<Kind, { title: string; singular: string; subtitle: string; placeholder: string }> = {
   customers: {
@@ -65,10 +68,32 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
   const [amount, setAmount] = useState("")
   const [notes, setNotes] = useState("")
   const [followUp, setFollowUp] = useState("")
+  const [lastContactAt, setLastContactAt] = useState("")
+  const [contactError, setContactError] = useState(false)
+  const [today, setToday] = useState(() => localCalendarDay(new Date()))
+  const reengagementCopy = customerReengagementCopy[locale]
+  const identity = workspaceIdentity || "guest"
+  const [previewSelection, setPreviewSelection] = useState<{ id: string; identity: string } | null>(null)
   const [customerStatus, setCustomerStatus] = useState<RecordItem["customerStatus"]>("lead")
   const [query, setQuery] = useState("")
-  const [customerFilter, setCustomerFilter] = useState<"all"|"due">("all")
+  const [customerFilter, setCustomerFilter] = useState<"all"|"due"|"reengage">("all")
   const [editingId, setEditingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const refresh = () => setToday(localCalendarDay(new Date()))
+    const timer = window.setInterval(refresh, 30000)
+    window.addEventListener("focus", refresh)
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", refresh) }
+  }, [])
+  useEffect(() => {
+    setPreviewSelection(null)
+    resetForm()
+  }, [identity, kind])
+
+  const reengagement = useMemo(() => selectCustomerReengagement(items, today), [items, today])
+  const candidates = new Map(reengagement.map(candidate => [candidate.customer.id, candidate]))
+  const selectedCustomer = previewSelection?.identity === identity && syncState !== "checking"
+    ? items.find(item => item.id === previewSelection.id && candidates.has(item.id)) : undefined
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -78,9 +103,14 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
 
     if (kind !== "customers" || customerFilter === "all") return searched
 
-    const now = new Date().toISOString().slice(0,10)
-    return searched.filter((item) => Boolean(item.followUp) && item.followUp! <= now)
-  }, [items, query, kind, customerFilter])
+    if (customerFilter === "reengage") {
+      const ids = new Set(searched.map(item => item.id))
+      const records = new Map(searched.map(item => [item.id, item]))
+      return reengagement.filter(candidate => ids.has(candidate.customer.id)).map(candidate => records.get(candidate.customer.id)!)
+    }
+
+    return searched.filter((item) => Boolean(item.followUp) && item.followUp! <= today)
+  }, [items, query, kind, customerFilter, reengagement, today])
 
   const total = useMemo(() => items.reduce((sum, item) => sum + (item.amount || 0), 0), [items])
 
@@ -97,6 +127,8 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
     setAmount("")
     setNotes("")
     setFollowUp("")
+    setLastContactAt("")
+    setContactError(false)
     setCustomerStatus("lead")
     setEditingId(null)
   }
@@ -108,6 +140,8 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
     setAmount(typeof item.amount === "number" ? String(item.amount) : "")
     setNotes(item.notes || "")
     setFollowUp(item.followUp || "")
+    setLastContactAt(item.lastContactAt || "")
+    setContactError(false)
     setCustomerStatus(item.customerStatus || "lead")
   }
 
@@ -115,6 +149,7 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
     e.preventDefault()
     const clean = title.trim()
     if (!clean) return
+    if (kind === "customers" && lastContactAt && !isValidContactDate(lastContactAt, today)) { setContactError(true); return }
     const parsedAmount = kind === "expenses" && amount ? Number(amount) : undefined
     if (kind === "expenses" && parsedAmount !== undefined && (!Number.isFinite(parsedAmount) || parsedAmount < 0)) return
 
@@ -123,12 +158,14 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
     setItems((current) => {
       const existing = editingId ? current.find((item) => item.id === editingId) : undefined
       const next: RecordItem = {
+        ...existing,
         id: existing?.id || newRecordId!,
         title: clean,
         meta: meta.trim() || undefined,
         amount: parsedAmount,
         notes: notes.trim() || undefined,
         followUp: kind === "customers" ? followUp || undefined : undefined,
+        lastContactAt: kind === "customers" ? lastContactAt || undefined : existing?.lastContactAt,
         customerStatus: kind === "customers" ? customerStatus : undefined,
         createdAt: existing?.createdAt || new Date().toISOString(),
       }
@@ -202,35 +239,51 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
             <input aria-label={kind === "customers" ? detail.customerMeta : kind === "documents" ? detail.documentMeta : detail.expenseMeta} value={meta} onChange={(e) => setMeta(e.target.value)} placeholder={kind === "customers" ? detail.customerMeta : kind === "documents" ? detail.documentMeta : detail.expenseMeta} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
             {kind === "expenses" && <input aria-label={ui.amount} type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={ui.amount} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />}
             {kind === "customers" && <><select aria-label={`${cfg.title} status`} value={customerStatus} onChange={(e) => setCustomerStatus(e.target.value as RecordItem["customerStatus"])} className="w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50"><option value="lead">{crm.lead}</option><option value="active">{crm.active}</option><option value="paused">{crm.paused}</option></select><label className="block text-xs text-muted-foreground">{crm.followUp}<input type="date" value={followUp} onChange={(e)=>setFollowUp(e.target.value)} className="mt-1 w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50"/></label></>}
+            {kind === "customers" && <label className="block text-xs text-muted-foreground">{reengagementCopy.contact}
+              <input type="date" max={today} value={lastContactAt} aria-invalid={contactError} onChange={event => { setLastContactAt(event.target.value); setContactError(false) }} className="mt-1 w-full rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
+              {contactError && <span role="alert" className="mt-2 block text-destructive">{reengagementCopy.invalidDate}</span>}
+            </label>}
             <textarea aria-label={ui.notes} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={ui.notes} rows={4} className="w-full resize-none rounded-xl border border-border bg-input/30 px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50" />
           </div>
           <div className="mt-4 flex gap-2"><Button type="submit" className="flex-1">{editingId ? ui.update : ui.save}</Button>{editingId && <Button type="button" variant="outline" onClick={resetForm} aria-label={ui.cancel}><X className="size-4" /> {ui.cancel}</Button>}</div>
         </form>
 
-        <section>
-          {kind === "customers" && <div className="mb-3 flex gap-2">{(["all","due"] as const).map((value)=><button aria-label={value==="all"?crm.all:crm.due} aria-pressed={customerFilter===value} key={value} type="button" onClick={()=>setCustomerFilter(value)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${customerFilter===value?"border-primary bg-primary/10 text-primary":"border-border text-muted-foreground"}`}>{value==="all"?crm.all:crm.due}</button>)}</div>}
+        <section className="min-w-0">
+          {kind === "customers" && <div className="mb-3 flex flex-wrap gap-2">{(["all","due","reengage"] as const).map(value => {
+            const label = value === "all" ? crm.all : value === "due" ? crm.due : reengagementCopy.filter
+            return <button aria-label={label} aria-pressed={customerFilter===value} key={value} type="button" onClick={()=>setCustomerFilter(value)} className={`min-h-11 rounded-lg border px-3 py-2 text-xs font-semibold ${customerFilter===value?"border-primary bg-primary/10 text-primary":"border-border text-muted-foreground"}`}>{label}</button>
+          })}</div>}
+          {kind === "customers" && customerFilter === "reengage" && <p className="mb-3 text-xs leading-relaxed text-muted-foreground">{reengagementCopy.criteria}</p>}
           <div className="glass-panel flex items-center gap-2 rounded-xl px-3 py-2.5">
             <Search className="size-4 text-muted-foreground" />
             <input aria-label={`${ui.search}: ${cfg.title}`} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`${ui.search}: ${cfg.title}`} className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
           </div>
 
+          {kind === "customers" && selectedCustomer && <CustomerReengagementPreview key={`${identity}:${selectedCustomer.id}`} customer={selectedCustomer} identity={identity} locale={locale} onClose={() => setPreviewSelection(null)} />}
+
           <div className="mt-4 space-y-3">
-            {filtered.length === 0 ? (
+            {syncState === "checking" ? <p role="status" className="p-5 text-sm text-muted-foreground">{ui.checking}</p> : filtered.length === 0 ? (
               <div className="glass-panel rounded-2xl p-8 text-center">
-                <p className="font-medium text-foreground">{ui.start}</p>
-                <p className="mt-2 text-sm text-muted-foreground">{ui.empty}</p>
+                <p className="font-medium text-foreground">{kind === "customers" && (customerFilter !== "all" || query.trim()) ? reengagementCopy.noResults : ui.start}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{kind === "customers" && (customerFilter !== "all" || query.trim()) ? reengagementCopy.empty : ui.empty}</p>
               </div>
             ) : filtered.map((item) => (
               <article key={item.id} className="glass-panel flex flex-col items-stretch justify-between gap-4 rounded-2xl p-5 sm:flex-row sm:items-start">
                 <div className="min-w-0">
-                  <h2 className="font-semibold text-foreground">{item.title}</h2>
+                  <h2 className="break-words font-semibold text-foreground">{item.title}</h2>
                   {item.meta && <p className="mt-1 text-sm text-muted-foreground">{item.meta}</p>}
                   {typeof item.amount === "number" && <p className="mt-2 text-lg font-semibold text-primary">£{item.amount.toFixed(2)}</p>}
                   {item.notes && <p className="mt-2 text-sm leading-relaxed text-foreground/75">{item.notes}</p>}
                   {kind === "customers" && <div className="mt-3 flex flex-wrap items-center gap-2"><span className="rounded-full border border-border px-2 py-1 text-[11px] text-muted-foreground">{item.customerStatus === "active" ? crm.active : item.customerStatus === "paused" ? crm.paused : crm.lead}</span>{item.followUp && <span className={`rounded-full border px-2 py-1 text-[11px] ${item.followUp <= new Date().toISOString().slice(0,10)?"border-gold/40 bg-gold/10 text-gold":"border-border text-muted-foreground"}`}>{item.followUp === new Date().toISOString().slice(0,10)?crm.today:item.followUp < new Date().toISOString().slice(0,10)?crm.overdue:`${crm.followUp}: ${item.followUp}`}</span>}{item.followUp && item.followUp <= new Date().toISOString().slice(0,10) && <button type="button" onClick={()=>setItems((current)=>current.map((entry)=>entry.id===item.id?{...entry,followUp:undefined}:entry))} className="rounded-lg border border-primary/30 px-2 py-1 text-[11px] text-primary">{crm.markDone}</button>}</div>}
+                  {kind === "customers" && customerFilter === "reengage" && <div className="mt-3 space-y-2 text-sm">
+                    <p className="text-primary">{candidates.get(item.id)?.reason === "follow-up" ? reengagementCopy.due : reengagementCopy.inactive}</p>
+                    <p className="text-muted-foreground">{crm.followUp}: {item.followUp && isValidContactDate(item.followUp, "9999-12-31") ? item.followUp : reengagementCopy.unknown}</p>
+                    <p className="text-muted-foreground">{reengagementCopy.contact}: {item.lastContactAt && isValidContactDate(item.lastContactAt, today) ? item.lastContactAt : reengagementCopy.unknown}</p>
+                    <button type="button" onClick={() => setPreviewSelection({ id: item.id, identity })} className="min-h-11 rounded-xl border border-primary/40 px-3 text-primary">{reengagementCopy.prepare}</button>
+                  </div>}
                   <p className="mt-3 text-[11px] text-muted-foreground">{ui.saved} {new Date(item.createdAt).toLocaleString(locale)}</p>
                 </div>
-                <div className="flex shrink-0 justify-end gap-2"><button type="button" onClick={() => editItem(item)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary" aria-label={`${ui.edit} ${item.title}`}><Pencil className="size-4" /></button><button type="button" onClick={() => { setItems((current) => current.filter((x) => x.id !== item.id)); if (editingId === item.id) resetForm() }} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive" aria-label={`${ui.del} ${item.title}`}><Trash2 className="size-4" /></button></div>
+                <div className="flex shrink-0 justify-end gap-2"><button type="button" onClick={() => editItem(item)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary" aria-label={`${ui.edit} ${item.title}`}><Pencil className="size-4" /></button><button type="button" onClick={() => { setItems((current) => current.filter((x) => x.id !== item.id)); if (editingId === item.id) resetForm(); if (previewSelection?.id === item.id) setPreviewSelection(null) }} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive" aria-label={`${ui.del} ${item.title}`}><Trash2 className="size-4" /></button></div>
               </article>
             ))}
           </div>
