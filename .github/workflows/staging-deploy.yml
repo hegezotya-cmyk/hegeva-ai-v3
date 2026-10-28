@@ -47,6 +47,11 @@ jobs:
       - run: node v0-app/scripts/client-portal-service-binding-test.mjs
       - run: node scripts/client-portal-revocation-test.mjs
       - run: npm run worker:check
+      - name: Assistant Responses and credit settlement regressions
+        run: |
+          node --test v0-app/scripts/assistant-responses-api-test.mjs
+          node v0-app/scripts/assistant-economics-v1-audit.mjs
+          node v0-app/scripts/assistant-dual-model-cost-boundary-audit.mjs
       - run: node scripts/staging-auth-origin-test.cjs
         working-directory: v0-app
       - run: npx tsc --noEmit
