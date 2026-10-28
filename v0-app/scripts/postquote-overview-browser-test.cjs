@@ -11,7 +11,7 @@ const documents=[
  {...common,id:"wrong",type:"invoice",status:"paid",number:"INV-PREFIX",notes:"Created from quote QUO-10"},
 ]
 const tasks=[{id:"t",title:"Direct linked task",sourceId:"q",due:"2026-10-28",done:true},{id:"t2",title:"Launch follow-up task",sourceId:"one-click:run-1:task",due:"2026-10-29",done:false},{id:"long",title:"LongUnbrokenTaskTitle".repeat(25),sourceId:"q",done:false},{id:"foreign",title:"UNRELATED TASK",sourceId:"qq"}]
-const messages=[{id:"m",sourceId:"q",followUpAt:"2026-10-01",workflowStatus:"completed"},{id:"m2",sourceId:"q",followUpAt:"2026-10-29",workflowStatus:"approved"}]
+const messages=[{id:"m",sourceId:"q",followUpAt:"2026-10-01",workflowStatus:"completed"},{id:"m2",sourceId:"q",followUpAt:"2026-10-29",workflowStatus:"approved"},...['ready-to-execute','sending','sent','failed','uncertain'].map((workflowStatus,index)=>({id:`state-${index}`,sourceId:"q",followUpAt:"2026-11-01",workflowStatus})),{id:"conflict",sourceId:"q",followUpAt:"2026-10-01",workflowStatus:"draft",approvalState:"uncertain",deliveryStatus:"failed"}]
 ;(async()=>{
  const browser=await chromium.launch({headless:true})
  try{
@@ -57,7 +57,10 @@ const messages=[{id:"m",sourceId:"q",followUpAt:"2026-10-01",workflowStatus:"com
   assert.equal(await panel.getByRole("region",{name:"Legacy references — review required",exact:true}).getByText("INV-LEGACY",{exact:true}).count(),1)
   assert.equal(await panel.getByText("INV-PREFIX",{exact:true}).count(),0)
   await panel.getByText("Completed record",{exact:true}).waitFor()
-  assert.match(await panel.innerText(),/2026-10-01/)
+  await panel.getByText("Next recorded follow-up: 2026-10-29",{exact:true}).waitFor()
+  for(const status of ["Ready record","Sending record","Recorded as sent","Failed record","Uncertain outcome"])await panel.getByText(status,{exact:true}).first().waitFor()
+  await panel.getByText("Approval state: Uncertain outcome",{exact:true}).waitFor()
+  await panel.getByText("Sending record status: Failed record",{exact:true}).waitFor()
   assert.equal(writes,0)
   for(const width of [390,1440]){await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:`../.superpowers/sdd/2026-10-28-postquote-overview/browser-${width}.png`,fullPage:true})}
   await panel.getByRole("button",{name:"Close overview",exact:true}).click()

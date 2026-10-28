@@ -1,6 +1,6 @@
 export type OverviewDocument = { id:string; type:string; status?:string; number?:string; sourceId?:string; sourceQuoteId?:string; notes?:string }
 export type OverviewTask = { id:string; title?:string; due?:string; done?:boolean; sourceId?:string }
-export type OverviewMessage = { id:string; sourceId?:string; followUpAt?:string; workflowStatus?:string }
+export type OverviewMessage = { id:string; sourceId?:string; followUpAt?:string; workflowStatus?:string; approvalState?:string; deliveryStatus?:string }
 export type PostQuoteOverview = { tasks:OverviewTask[]; invoices:OverviewDocument[]; legacyInvoices:OverviewDocument[]; followups:OverviewMessage[]; nextFollowup:OverviewMessage|null }
 
 const nonempty = (value:unknown):value is string => typeof value === "string" && value.trim().length > 0
@@ -21,6 +21,16 @@ function byDate<T extends {id:string}>(items:T[], getDate:(item:T)=>unknown):T[]
     const left = getDate(a), right = getDate(b)
     return compare(isOverviewDay(left) ? left : "~", isOverviewDay(right) ? right : "~") || compare(a.id,b.id)
   })
+}
+
+function isPendingFollowup(message:OverviewMessage):boolean {
+  const pendingWorkflow = ["draft","approved","ready-to-execute"]
+  const pendingApproval = ["awaiting-approval","approved","ready-to-execute"]
+  if (message.deliveryStatus !== undefined && message.deliveryStatus !== "not-sent") return false
+  if (message.approvalState !== undefined && !pendingApproval.includes(message.approvalState)) return false
+  return message.workflowStatus === undefined
+    ? message.approvalState !== undefined && pendingApproval.includes(message.approvalState)
+    : pendingWorkflow.includes(message.workflowStatus)
 }
 
 export function selectPostQuoteOverview({quoteId,documents,tasks,messages,today}:{quoteId:string;documents:OverviewDocument[];tasks:OverviewTask[];messages:OverviewMessage[];today:string}):PostQuoteOverview|null {
@@ -52,6 +62,6 @@ export function selectPostQuoteOverview({quoteId,documents,tasks,messages,today}
     legacyInvoices:legacyInvoices.sort((a,b)=>compare(a.id,b.id)),
     followups,
     // ISO calendar-day ordering selects the earliest overdue/due record, otherwise the nearest future record.
-    nextFollowup:isOverviewDay(today) ? followups.find(message=>isOverviewDay(message.followUpAt)) || null : null,
+    nextFollowup:isOverviewDay(today) ? followups.find(message=>isPendingFollowup(message) && isOverviewDay(message.followUpAt)) || null : null,
   }
 }

@@ -4,13 +4,14 @@ import { useEffect, useId, useRef, useState } from "react"
 import Link from "next/link"
 import { useWorkspaceData, type WorkspaceSyncState } from "@/lib/use-workspace-data"
 import { useI18n } from "@/lib/i18n/provider"
-import { postquoteOverviewCopy } from "@/lib/i18n/postquote-overview-copy"
+import { postquoteOverviewCopy, postquoteMessageStateCopy } from "@/lib/i18n/postquote-overview-copy"
 import { localCalendarDay } from "@/lib/customer-reengagement"
 import { isOverviewDay, selectPostQuoteOverview, type OverviewDocument, type OverviewMessage, type OverviewTask } from "@/lib/postquote-overview"
 
 export function PostquoteOverview({quoteId,documents,documentSyncState,identity,onClose}:{quoteId:string;documents:OverviewDocument[];documentSyncState:WorkspaceSyncState;identity:string|null;onClose:()=>void}) {
   const {locale} = useI18n()
   const c = postquoteOverviewCopy[locale]
+  const states = postquoteMessageStateCopy[locale]
   const taskData = useWorkspaceData<OverviewTask>("planner")
   const messageData = useWorkspaceData<OverviewMessage>("messages")
   const [today,setToday] = useState(()=>localCalendarDay(new Date()))
@@ -34,7 +35,10 @@ export function PostquoteOverview({quoteId,documents,documentSyncState,identity,
   const text = (value:unknown,fallback:string) => typeof value === "string" && value.trim() ? value : fallback
   const sectionClass = "min-w-0 rounded-2xl border border-border p-4"
   const invoiceStatus = (status?:string) => status === "paid" ? c.paid : status === "draft" ? c.draft : status === "sent" ? c.sent : c.unknown
-  const messageStatus = (status?:string) => status === "draft" ? c.draft : status === "approved" ? c.approved : status === "completed" ? c.completed : c.unknown
+  const messageStatus = (status?:string) => {
+    const labels:Record<string,string> = {draft:c.draft,approved:c.approved,completed:c.completed,"awaiting-approval":states.awaiting,"ready-to-execute":states.ready,sending:states.sending,sent:states.sent,failed:states.failed,uncertain:states.uncertain}
+    return typeof status === "string" && Object.hasOwn(labels,status) ? labels[status] : c.unknown
+  }
   return <section aria-labelledby={titleId} className="glass-panel mt-6 min-w-0 rounded-3xl border border-primary/25 p-5 sm:p-7">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0"><h2 id={titleId} tabIndex={-1} ref={heading} className="text-xl font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary">{c.title}</h2><p className="mt-1 break-words text-sm text-primary">{text(quote?.number,c.unknown)}</p></div>
@@ -51,7 +55,7 @@ export function PostquoteOverview({quoteId,documents,documentSyncState,identity,
         <Link href="/business/invoices" className="mt-3 inline-flex min-h-11 items-center text-sm text-primary">{c.openInvoices}</Link>
       </section>
       <section aria-label={c.followups} className={sectionClass}><h3 className="font-semibold">{c.followups}</h3><p role="status" className="mt-2 text-xs text-muted-foreground">{statusNote(messageData.syncState)}</p>
-        {ready(messageData.syncState) && <><p className="mt-3 text-sm">{c.next}: {date(result.nextFollowup?.followUpAt)}</p>{result.followups.length ? <ul className="mt-3 space-y-2">{result.followups.map(message=><li key={message.id} className="text-sm"><span>{messageStatus(message.workflowStatus)}</span><span className="text-muted-foreground"> · {date(message.followUpAt)}</span></li>)}</ul> : <p className="mt-3 text-sm text-muted-foreground">{empty(messageData.syncState)}</p>}</>}
+        {ready(messageData.syncState) && <><p className="mt-3 text-sm">{c.next}: {date(result.nextFollowup?.followUpAt)}</p>{result.followups.length ? <ul className="mt-3 space-y-2">{result.followups.map(message=><li key={message.id} className="text-sm"><span>{messageStatus(message.workflowStatus)}</span><span className="text-muted-foreground"> · {date(message.followUpAt)}</span>{message.approvalState !== undefined && <p className="text-xs text-muted-foreground">{states.approval}: {messageStatus(message.approvalState)}</p>}{message.deliveryStatus !== undefined && <p className="text-xs text-muted-foreground">{states.delivery}: {message.deliveryStatus === "not-sent" ? states.notSent : message.deliveryStatus === "sent" ? states.sent : message.deliveryStatus === "failed" ? states.failed : c.unknown}</p>}</li>)}</ul> : <p className="mt-3 text-sm text-muted-foreground">{empty(messageData.syncState)}</p>}</>}
         <Link href="/business/messages" className="mt-3 inline-flex min-h-11 items-center text-sm text-primary">{c.openMessages}</Link>
       </section>
       {ready(documentSyncState) && result.legacyInvoices.length > 0 && <section aria-label={c.legacy} className={`${sectionClass} border-amber-400/30`}><h3 className="font-semibold">{c.legacy}</h3><p className="mt-2 text-xs leading-relaxed text-muted-foreground">{c.legacyNote}</p><ul className="mt-3 space-y-2">{result.legacyInvoices.map(invoice=><li key={invoice.id} className="break-words text-sm">{text(invoice.number,c.invoices)}</li>)}</ul></section>}

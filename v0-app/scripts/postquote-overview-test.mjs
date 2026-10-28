@@ -44,10 +44,10 @@ assert.equal(result.followups.find(x=>x.id==="overdue-b").workflowStatus,"comple
 assert.equal(result.followups.some(x=>"delivered" in x || "sent" in x),false)
 assert.equal(result.followups.length,5,"Invalid/undated linked messages remain visible as records")
 assert.deepEqual(input,before)
-assert.equal(select({messages:[{id:"future",sourceId:"q",followUpAt:"2026-12-01"},{id:"near",sourceId:"q",followUpAt:"2026-10-29"}]}).nextFollowup.id,"near")
-assert.equal(select({messages:[{id:"today",sourceId:"q",followUpAt:base.today}]}).nextFollowup.id,"today")
-assert.equal(select({messages:[{id:"leap",sourceId:"q",followUpAt:"2024-02-29"}]}).nextFollowup.id,"leap")
-assert.equal(select({messages:[{id:"bad",sourceId:"q",followUpAt:"2025-02-29"},{id:"missing",sourceId:"q"}]}).nextFollowup,null)
+assert.equal(select({messages:[{id:"future",sourceId:"q",followUpAt:"2026-12-01",workflowStatus:"draft"},{id:"near",sourceId:"q",followUpAt:"2026-10-29",workflowStatus:"draft"}]}).nextFollowup.id,"near")
+assert.equal(select({messages:[{id:"today",sourceId:"q",followUpAt:base.today,workflowStatus:"draft"}]}).nextFollowup.id,"today")
+assert.equal(select({messages:[{id:"leap",sourceId:"q",followUpAt:"2024-02-29",workflowStatus:"draft"}]}).nextFollowup.id,"leap")
+assert.equal(select({messages:[{id:"bad",sourceId:"q",followUpAt:"2025-02-29",workflowStatus:"draft"},{id:"missing",sourceId:"q",workflowStatus:"draft"}]}).nextFollowup,null)
 assert.equal(select({today:"2026-02-30"}).nextFollowup,null)
 assert.equal(select({documents:[...input.documents,{id:"q2",type:"quote",number:"QUO-1"}]}).legacyInvoices.length,0)
 assert.equal(select({documents:[{...quote,number:""},{id:"legacy",type:"invoice",notes:"Created from quote "}]}).legacyInvoices.length,0)
@@ -57,4 +57,17 @@ for(const sourceId of ["one-click::quote","one-click:run-1:quote:extra","one-cli
 assert.equal(select({documents:[{...quote,sourceId:undefined}],tasks:[{id:"x",sourceId:"q"}]}).tasks.length,1)
 assert.deepEqual(select({documents:[quote,null,{id:"bad",type:"invoice",notes:12}],tasks:[null,{id:"bad",sourceId:3}],messages:[null,{id:"m",sourceId:"q",followUpAt:12}]}).invoices,[])
 assert.equal(select({documents:[quote,{id:"bad",type:"invoice",sourceQuoteId:12,notes:"Created from quote QUO-1"}]}).legacyInvoices.length,0)
+const futurePending={id:"next",sourceId:"q",followUpAt:"2026-10-29",workflowStatus:"approved"}
+for(const workflowStatus of ["completed","sent","sending","failed","uncertain",undefined,"unknown"]) {
+  assert.equal(select({messages:[{id:"past",sourceId:"q",followUpAt:"2026-10-01",workflowStatus},futurePending]}).nextFollowup.id,"next",`${workflowStatus} must not outrank a pending follow-up`)
+}
+for(const approvalState of ["sent","sending","failed","uncertain"]) {
+  assert.equal(select({messages:[{id:"blocked",sourceId:"q",followUpAt:"2026-10-01",workflowStatus:"draft",approvalState},futurePending]}).nextFollowup.id,"next")
+}
+for(const deliveryStatus of ["sent","failed"]) {
+  assert.equal(select({messages:[{id:"delivered",sourceId:"q",followUpAt:"2026-10-01",workflowStatus:"approved",deliveryStatus},futurePending]}).nextFollowup.id,"next")
+}
+assert.equal(select({messages:[{id:"ready",sourceId:"q",followUpAt:"2026-10-28",workflowStatus:"ready-to-execute"},futurePending]}).nextFollowup.id,"ready")
+assert.equal(select({messages:[{id:"approval",sourceId:"q",followUpAt:"2026-10-28",approvalState:"awaiting-approval"},futurePending]}).nextFollowup.id,"approval")
+assert.equal(select({messages:[{id:"only-completed",sourceId:"q",followUpAt:"2026-10-01",workflowStatus:"completed"}]}).nextFollowup,null)
 console.log("Postquote overview logic PASS: exact evidence, one-click origins, explicit conflicts, legacy isolation, calendar dates, deterministic ordering, malformed data and immutability.")
