@@ -5,7 +5,7 @@ const base = process.env.TEST_BASE_URL || "http://localhost:3018"
 ;(async () => {
   const browser = await chromium.launch({ headless: true })
   try {
-    const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId:"Europe/London" })
     await context.addInitScript(() => {
       localStorage.setItem("hegeva:analytics-consent:v1", "denied")
       if (!localStorage.getItem("hegeva.locale")) localStorage.setItem("hegeva.locale", "en")
@@ -62,6 +62,7 @@ const base = process.env.TEST_BASE_URL || "http://localhost:3018"
     await articles.first().getByRole("button",{name:"Prepare message",exact:true}).click()
     const preview=page.getByRole("region",{name:"Message preview"})
     await preview.waitFor()
+    assert.equal(await preview.getByRole("textbox",{name:"Message text"}).evaluate(el=>el===document.activeElement),true,"Preparing a message must move focus to the editor")
     await preview.getByRole("textbox",{name:"Message text"}).fill("Edited preview only")
     await page.evaluate(()=>Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:async text=>{window.copiedText=text}}}))
     await preview.getByRole("button",{name:"Copy text",exact:true}).click()
@@ -131,6 +132,19 @@ const base = process.env.TEST_BASE_URL || "http://localhost:3018"
       await page.getByRole("button",{name:label,exact:true}).waitFor()
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
     }
+    // BST midnight is still yesterday in UTC: filtering, badge and completion must agree.
+    await page.evaluate(()=>localStorage.setItem("hegeva.locale","en"))
+    owner="reengagement-test"
+    records=[{id:"midnight",title:"Midnight customer",customerStatus:"active",followUp:"2026-06-05",createdAt:"2025-01-01"}]
+    const midnight=await context.newPage()
+    await midnight.clock.setFixedTime(new Date("2026-06-05T00:30:00+01:00"))
+    await midnight.goto(`${base}/business/customers`,{waitUntil:"domcontentloaded"})
+    await midnight.getByText("Cloud synced",{exact:true}).waitFor()
+    await midnight.getByRole("button",{name:"Re-engage customers",exact:true}).click()
+    await midnight.getByRole("heading",{name:"Midnight customer",exact:true}).waitFor()
+    await midnight.getByText("Follow-up today",{exact:true}).waitFor({timeout:3000})
+    await midnight.getByRole("button",{name:"Complete follow-up",exact:true}).waitFor({timeout:3000})
+    await midnight.close()
     console.log("Customer reengagement browser tests passed: filtering, ranking, search, preview isolation, copy/error, form validation, persistence, account switch, loading and mobile fit.")
   } finally { await browser.close() }
 })().catch(error=>{console.error(error);process.exitCode=1})

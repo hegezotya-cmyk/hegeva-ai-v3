@@ -74,6 +74,7 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
   const reengagementCopy = customerReengagementCopy[locale]
   const identity = workspaceIdentity || "guest"
   const [previewSelection, setPreviewSelection] = useState<{ id: string; identity: string } | null>(null)
+  const previewTrigger = useRef<HTMLButtonElement | null>(null)
   const [customerStatus, setCustomerStatus] = useState<RecordItem["customerStatus"]>("lead")
   const [query, setQuery] = useState("")
   const [customerFilter, setCustomerFilter] = useState<"all"|"due"|"reengage">("all")
@@ -87,6 +88,7 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
   }, [])
   useEffect(() => {
     setPreviewSelection(null)
+    previewTrigger.current = null
     resetForm()
   }, [identity, kind])
 
@@ -259,7 +261,7 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
             <input aria-label={`${ui.search}: ${cfg.title}`} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`${ui.search}: ${cfg.title}`} className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
           </div>
 
-          {kind === "customers" && selectedCustomer && <CustomerReengagementPreview key={`${identity}:${selectedCustomer.id}`} customer={selectedCustomer} identity={identity} locale={locale} onClose={() => setPreviewSelection(null)} />}
+          {kind === "customers" && selectedCustomer && <CustomerReengagementPreview key={`${identity}:${selectedCustomer.id}`} customer={selectedCustomer} identity={identity} locale={locale} onClose={() => { setPreviewSelection(null); previewTrigger.current?.focus() }} />}
 
           <div className="mt-4 space-y-3">
             {syncState === "checking" ? <p role="status" className="p-5 text-sm text-muted-foreground">{ui.checking}</p> : filtered.length === 0 ? (
@@ -274,12 +276,12 @@ export function LocalWorkspace({ kind }: { kind: Kind }) {
                   {item.meta && <p className="mt-1 text-sm text-muted-foreground">{item.meta}</p>}
                   {typeof item.amount === "number" && <p className="mt-2 text-lg font-semibold text-primary">£{item.amount.toFixed(2)}</p>}
                   {item.notes && <p className="mt-2 text-sm leading-relaxed text-foreground/75">{item.notes}</p>}
-                  {kind === "customers" && <div className="mt-3 flex flex-wrap items-center gap-2"><span className="rounded-full border border-border px-2 py-1 text-[11px] text-muted-foreground">{item.customerStatus === "active" ? crm.active : item.customerStatus === "paused" ? crm.paused : crm.lead}</span>{item.followUp && <span className={`rounded-full border px-2 py-1 text-[11px] ${item.followUp <= new Date().toISOString().slice(0,10)?"border-gold/40 bg-gold/10 text-gold":"border-border text-muted-foreground"}`}>{item.followUp === new Date().toISOString().slice(0,10)?crm.today:item.followUp < new Date().toISOString().slice(0,10)?crm.overdue:`${crm.followUp}: ${item.followUp}`}</span>}{item.followUp && item.followUp <= new Date().toISOString().slice(0,10) && <button type="button" onClick={()=>setItems((current)=>current.map((entry)=>entry.id===item.id?{...entry,followUp:undefined}:entry))} className="rounded-lg border border-primary/30 px-2 py-1 text-[11px] text-primary">{crm.markDone}</button>}</div>}
+                  {kind === "customers" && <div className="mt-3 flex flex-wrap items-center gap-2"><span className="rounded-full border border-border px-2 py-1 text-[11px] text-muted-foreground">{item.customerStatus === "active" ? crm.active : item.customerStatus === "paused" ? crm.paused : crm.lead}</span>{item.followUp && <span className={`rounded-full border px-2 py-1 text-[11px] ${item.followUp <= today?"border-gold/40 bg-gold/10 text-gold":"border-border text-muted-foreground"}`}>{item.followUp === today?crm.today:item.followUp < today?crm.overdue:`${crm.followUp}: ${item.followUp}`}</span>}{item.followUp && item.followUp <= today && <button type="button" onClick={()=>setItems((current)=>current.map((entry)=>entry.id===item.id?{...entry,followUp:undefined}:entry))} className="rounded-lg border border-primary/30 px-2 py-1 text-[11px] text-primary">{crm.markDone}</button>}</div>}
                   {kind === "customers" && customerFilter === "reengage" && <div className="mt-3 space-y-2 text-sm">
                     <p className="text-primary">{candidates.get(item.id)?.reason === "follow-up" ? reengagementCopy.due : reengagementCopy.inactive}</p>
                     <p className="text-muted-foreground">{crm.followUp}: {item.followUp && isValidContactDate(item.followUp, "9999-12-31") ? item.followUp : reengagementCopy.unknown}</p>
                     <p className="text-muted-foreground">{reengagementCopy.contact}: {item.lastContactAt && isValidContactDate(item.lastContactAt, today) ? item.lastContactAt : reengagementCopy.unknown}</p>
-                    <button type="button" onClick={() => setPreviewSelection({ id: item.id, identity })} className="min-h-11 rounded-xl border border-primary/40 px-3 text-primary">{reengagementCopy.prepare}</button>
+                    <button type="button" onClick={event => { previewTrigger.current = event.currentTarget; setPreviewSelection({ id: item.id, identity }) }} className="min-h-11 rounded-xl border border-primary/40 px-3 text-primary">{reengagementCopy.prepare}</button>
                   </div>}
                   <p className="mt-3 text-[11px] text-muted-foreground">{ui.saved} {new Date(item.createdAt).toLocaleString(locale)}</p>
                 </div>

@@ -83,7 +83,7 @@
     "audit:owner-registrations": "node --import ./scripts/audit-runtime-register.mjs scripts/admin-registrations-test.mjs",
     "audit:overnight": "node scripts/overnight-demo-followup-audit.mjs",
     "test:customer-reengagement": "node --experimental-strip-types scripts/customer-reengagement-test.mjs && node scripts/customer-reengagement-audit.mjs",
-    "test:customer-reengagement-browser": "node scripts/customer-reengagement-browser-test.cjs"
+    "test:customer-reengagement-browser": "node scripts/customer-reengagement-browser-test.cjs && node scripts/customer-reengagement-review-test.cjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

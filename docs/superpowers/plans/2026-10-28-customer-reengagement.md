@@ -1,6 +1,6 @@
 # Customer Reengagement Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add the approved “Újra megkeresendő” customer view with evidence-based ranking and an editable, copy-only message preview.
 
@@ -33,10 +33,10 @@
 
 **Interfaces:** Export `ReengagementCustomer = {id:string;title:string;customerStatus?:string;followUp?:string;lastContactAt?:string}`; `localCalendarDay(date:Date):string`; `isValidContactDate(value:string,today:string):boolean`; `selectCustomerReengagement(customers:ReengagementCustomer[],today:string):Array<{customer:ReengagementCustomer;reason:"follow-up"|"inactive";date:string}>`.
 
-- [ ] Write Node assertion tests importing the TypeScript module, following existing `--experimental-strip-types` script usage. Assert 89 days excluded, 90 and 91 included; due/today follow-ups precede inactivity; future follow-up suppresses even an old contact; paused/lead/missing status excluded; impossible/leap-day/future/missing dates handled; IDs break date ties deterministically; input records remain unchanged. Assert calendar dates around DST and midnight via local date components and integer day arithmetic.
-- [ ] Run `node --experimental-strip-types scripts/customer-reengagement-test.mjs` from `v0-app`; confirm failure is the missing module.
-- [ ] Implement strict calendar validation (round-trip components), convert validated dates to UTC day ordinals only for subtraction, and sort fresh result arrays. Use local calendar components for today, never UTC slicing.
-- [ ] Rerun tests and confirm PASS; commit only task files.
+- [x] Write Node assertion tests importing the TypeScript module, following existing `--experimental-strip-types` script usage. Assert 89 days excluded, 90 and 91 included; due/today follow-ups precede inactivity; future follow-up suppresses even an old contact; paused/lead/missing status excluded; impossible/leap-day/future/missing dates handled; IDs break date ties deterministically; input records remain unchanged. Assert calendar dates around DST and midnight via local date components and integer day arithmetic.
+- [x] Run `node --experimental-strip-types scripts/customer-reengagement-test.mjs` from `v0-app`; confirm failure is the missing module.
+- [x] Implement strict calendar validation (round-trip components), convert validated dates to UTC day ordinals only for subtraction, and sort fresh result arrays. Use local calendar components for today, never UTC slicing.
+- [x] Rerun tests and confirm PASS; commit only task files.
 
 ### Task 2: Customer form, filtered results and preview
 
@@ -44,12 +44,12 @@
 
 **Interfaces:** Use Task 1 exports. Export a preview component accepting `{customer:{id:string;title:string};identity:string;locale:Locale;onClose:()=>void}` using the existing locale type. It receives no record setter, sender or persistence function. Store preview selection with its workspace identity and render only when that identity matches the current identity and loading has finished.
 
-- [ ] Write Playwright coverage against a local app with controlled workspace/auth responses: current filters still work; new filter searches and orders eligible records; render reason/date/missing-contact labels; exclude paused/leads/future follow-up; invalid form dates rejected; contact field preserved through edit, PUT and reload; preview edits/copy cause no workspace PUT or send request; copy rejection shows fallback; workspace switch hides preview; deletion closes the selected preview. Confirm tests fail on absent controls.
-- [ ] Add optional `lastContactAt` to `RecordItem`, form load/reset/save and explicit date validation with localized feedback. Preserve unrelated record fields during edits. Leave customer status and follow-up behavior intact.
-- [ ] Add third filter with wrapping buttons and accessible pressed state. Combine existing search with selector results without reordering the original array. Show localized criterion, evidence, missing-date and honest no-result copy; checking state must not show a final empty conclusion. Retain local/error/saving status.
-- [ ] Implement inline labelled editable preview, close action and copy button with success/error feedback. Text is neutral, refers only to the customer name, and is labelled not sent/not saved to Messages. No contact-address inference, persistence or analytics. Clear selection on identity change and deletion; guard async clipboard completion after identity change/unmount.
-- [ ] Supply all new labels and neutral templates in en/hu/de/fr/es. Verify long names, keyboard operation, 390px and 1440px layouts, and no horizontal overflow. Preview state has no record-writing capability.
-- [ ] Run Task 1 and browser tests; inspect changed files and commit only feature/test files, preserving the existing `tsconfig.tsbuildinfo` modification.
+- [x] Write Playwright coverage against a local app with controlled workspace/auth responses: current filters still work; new filter searches and orders eligible records; render reason/date/missing-contact labels; exclude paused/leads/future follow-up; invalid form dates rejected; contact field preserved through edit, PUT and reload; preview edits/copy cause no workspace PUT or send request; copy rejection shows fallback; workspace switch hides preview; deletion closes the selected preview. Confirm tests fail on absent controls.
+- [x] Add optional `lastContactAt` to `RecordItem`, form load/reset/save and explicit date validation with localized feedback. Preserve unrelated record fields during edits. Leave customer status and follow-up behavior intact.
+- [x] Add third filter with wrapping buttons and accessible pressed state. Combine existing search with selector results without reordering the original array. Show localized criterion, evidence, missing-date and honest no-result copy; checking state must not show a final empty conclusion. Retain local/error/saving status.
+- [x] Implement inline labelled editable preview, close action and copy button with success/error feedback. Text is neutral, refers only to the customer name, and is labelled not sent/not saved to Messages. No contact-address inference, persistence or analytics. Clear selection on identity change and deletion; guard async clipboard completion after identity change/unmount.
+- [x] Supply all new labels and neutral templates in en/hu/de/fr/es. Verify long names, keyboard operation, 390px and 1440px layouts, and no horizontal overflow. Preview state has no record-writing capability.
+- [x] Run Task 1 and browser tests; inspect changed files and commit only feature/test files, preserving the existing `tsconfig.tsbuildinfo` modification.
 
 ### Task 3: Release verification and review
 
@@ -64,3 +64,6 @@
 ## Execution preparation
 
 Before implementation, read applicable repository instructions and the executing-plans, test-driven-development and using-git-worktrees skills. Reuse the attached checkout where suitable, preserve the pre-existing generated-file change, and base the implementation branch on the latest verified `origin/v0-rebuild`. Carry the approved spec and this plan forward without pushing directly to the production branch.
+
+## Execution result
+Tasks 1 and 2 complete. Task 3 local checks and fresh code review complete: final release:check PASS, browser suite PASS, review regressions 3/3 PASS, actual CSP audit and negative probe PASS. Authenticated staging and remote CI remain release gates after the integration choice; no remote branch or environment changed.

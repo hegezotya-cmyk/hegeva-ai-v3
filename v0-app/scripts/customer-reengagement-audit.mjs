@@ -12,9 +12,24 @@ assert.match(preview, /generation\.current === current/)
 assert.match(workspace, /previewSelection\?\.identity === identity && syncState !== "checking"/)
 assert.match(workspace, /\.\.\.existing/)
 assert.match(config, /NODE_ENV === "development" && process\.env\.HEGEVA_UI_TEST === "1"/)
-// Production must never receive the webpack-only local test CSP exception.
-for (const NODE_ENV of ["production", "development"]) for (const flag of [undefined, "1"]) {
-  const localTestEval = NODE_ENV === "development" && flag === "1" ? " 'unsafe-eval'" : ""
-  assert.equal(localTestEval.includes("unsafe-eval"), NODE_ENV === "development" && flag === "1")
+// Inspect actual exported headers, including an accidentally enabled test flag.
+const previousEnv = process.env.NODE_ENV
+const previousFlag = process.env.HEGEVA_UI_TEST
+try {
+  process.env.NODE_ENV = "production"
+  for (const flag of [undefined, "1"]) {
+    if (flag === undefined) delete process.env.HEGEVA_UI_TEST
+    else process.env.HEGEVA_UI_TEST = flag
+    const { default: nextConfig } = await import(new URL(`../next.config.mjs?csp-audit=${flag ?? "unset"}`, import.meta.url))
+    const headers = await nextConfig.headers()
+    const csp = headers.flatMap(entry => entry.headers).find(header => header.key === "Content-Security-Policy")
+    assert.ok(csp, "Production CSP must exist")
+    assert.doesNotMatch(csp.value, /unsafe-eval/, `Production CSP with HEGEVA_UI_TEST=${flag}`)
+  }
+} finally {
+  if (previousEnv === undefined) delete process.env.NODE_ENV
+  else process.env.NODE_ENV = previousEnv
+  if (previousFlag === undefined) delete process.env.HEGEVA_UI_TEST
+  else process.env.HEGEVA_UI_TEST = previousFlag
 }
 console.log("Customer reengagement safety audit passed: copy-only preview, no transport/storage, account guard, preserved fields and development-only test CSP.")
