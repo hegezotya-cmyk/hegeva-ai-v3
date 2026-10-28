@@ -80,6 +80,12 @@ test("Standard preserves its chat payload, response and token accounting", async
 test("Standard retains the previously admitted input boundary", () => {
   assert.equal(boundAssistantProviderPayload(standard, { ...projection, prompt: "a".repeat(365) }).ok, true)
 })
+test("Staging Advanced resolves the configured eight-credit mode", () => {
+  const staging = JSON.parse(readFileSync(new URL("../../wrangler.staging.jsonc", import.meta.url), "utf8"))
+  const resolved = resolveAssistantModelTier({ tier: "advanced", plan: "premium", env: staging.vars })
+  assert.equal(resolved.ok, true)
+  assert.equal(resolved.tier.customerCreditCost, 8)
+})
 function accounting() {
   const db = new DatabaseSync(":memory:")
   for (const name of ["0009_assistant_ai_usage.sql", "0022_assistant_usage_settlement.sql", "0026_assistant_topup_credits.sql", "0028_assistant_topup_purchase_lots.sql", "0030_assistant_weighted_credits.sql"]) {

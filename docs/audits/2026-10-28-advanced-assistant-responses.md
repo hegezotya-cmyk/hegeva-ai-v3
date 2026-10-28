@@ -26,3 +26,5 @@ Standard keeps its request, response parser, 512-token output ceiling, one-credi
 ## Remaining release gates
 
 Full local release check, exact-head Linux check and authenticated staging verification must finish before results are presented for production approval. No production release is authorized by this task. Staging uses API-only deployment without database migrations; temporary branch-policy changes require owner approval and must be removed after testing.
+
+Staging preparation found the existing service enabled but Advanced unavailable because its eight-credit configuration was absent. Added only AI_ADVANCED_ASSISTANT_CREDIT_COST=8 to staging; reproduced this missing configuration RED and verified GREEN. Suite now has 17 passing tests. Production configuration and entitlement checks are unchanged.
