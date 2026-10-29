@@ -73,13 +73,13 @@ export const ASSISTANT_MODEL_TIERS = Object.freeze({
     id: "advanced",
     model: "@cf/openai/gpt-oss-120b",
     maxInputTokens: 4_096,
-    maxOutputTokens: 1_024,
+    maxOutputTokens: 2_048,
     inputNeuronsPerMillion: 31_818,
     outputNeuronsPerMillion: 68_182,
     inputUsdPerMillion: 0.35,
     outputUsdPerMillion: 0.75,
     customerCreditCost: 8,
-    maxRequestNeurons: 201,
+    maxRequestNeurons: 271,
   }),
 })
 

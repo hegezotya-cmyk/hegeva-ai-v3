@@ -36,7 +36,7 @@ test("Advanced sends Responses input with bounded output and Hungarian system po
   let observed
   await invokeAssistantWorkersAiText(envFor(completed(), (model, input) => { observed = { model, input } }), projection, { tier: advanced })
   assert.equal(observed.model, "@cf/openai/gpt-oss-120b")
-  assert.equal(observed.input.max_output_tokens, 1024)
+  assert.equal(observed.input.max_output_tokens, 2048, "Advanced must allow reasoning plus a complete developed business answer")
   assert.equal(observed.input.stream, false)
   assert.equal(observed.input.reasoning.effort, "low")
   assert.equal(observed.input.temperature, 1, "Advanced must use GPT-OSS publisher-recommended sampling, independently of Standard")

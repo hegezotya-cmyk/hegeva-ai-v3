@@ -37,7 +37,7 @@ assert.equal(payload.reservation.neurons, ASSISTANT_MODEL_TIERS.standard.maxRequ
 assert.equal(payload.reservation.usd.toFixed(8), "0.00027648")
 const advanced = resolveAssistantModelTier({ tier: "advanced", plan: "premium", env: { AI_ADVANCED_ASSISTANT_CREDIT_COST: "8" } })
 assert.equal(advanced.tier.reservation.neurons, ASSISTANT_MODEL_TIERS.advanced.maxRequestNeurons)
-assert.equal(advanced.tier.reservation.usd.toFixed(8), "0.00220160")
+assert.equal(advanced.tier.reservation.usd.toFixed(8), "0.00296960")
 
 const oversized = boundAssistantProviderPayload(standard.tier, {
   operation: "assistant",
@@ -76,9 +76,9 @@ try {
   assert.equal(next.reserved, true)
   assert.equal((await releaseAssistantDailyAdmission(env, { operationId: next.operationId })).settled, true)
 
-  const concurrentConfig = readAssistantDailyAdmissionConfig({ AI_DAILY_REQUEST_CEILING: "2", AI_DAILY_NEURON_CEILING: "201" })
+  const concurrentConfig = readAssistantDailyAdmissionConfig({ AI_DAILY_REQUEST_CEILING: "2", AI_DAILY_NEURON_CEILING: "271" })
   const concurrent = await Promise.all([
-    reserveAssistantDailyAdmission(env, { operationId: "44444444-4444-4444-8444-444444444444", day: "2026-09-26", tier: "advanced", reservationNeurons: 201, config: concurrentConfig }),
+    reserveAssistantDailyAdmission(env, { operationId: "44444444-4444-4444-8444-444444444444", day: "2026-09-26", tier: "advanced", reservationNeurons: 271, config: concurrentConfig }),
     reserveAssistantDailyAdmission(env, { operationId: "55555555-5555-4555-8555-555555555555", day: "2026-09-26", tier: "standard", reservationNeurons: 26, config: concurrentConfig }),
   ])
   assert.equal(concurrent.filter((result) => result.reserved).length, 1, "neuron ceiling must atomically block concurrent tier reservations")
