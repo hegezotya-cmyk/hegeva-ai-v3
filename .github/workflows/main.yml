@@ -55,6 +55,8 @@ jobs:
       - name: Assistant Responses and credit settlement regressions
         run: |
           node --test v0-app/scripts/assistant-responses-api-test.mjs
+          node --test v0-app/scripts/assistant-timing-test.mjs
+          node v0-app/scripts/durable-rate-limit-audit.mjs
           node v0-app/scripts/assistant-economics-v1-audit.mjs
           node v0-app/scripts/assistant-dual-model-cost-boundary-audit.mjs
 

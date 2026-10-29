@@ -11,7 +11,7 @@ assert(index.includes('from "./cloudflare-ai-provider.js"'), "worker must import
 assert(index.includes('buildWorkersAiProjection({ operation: "assistant"'), "assistant must reach adapter projection")
 assert(index.includes("invokeWorkersAiText(env, projection)"), "assistant must invoke prepared adapter")
 assert(index.indexOf("await handleAiChatAdmission") < index.indexOf("invokeWorkersAiText(env, projection)"), "admission must precede adapter")
-assert(index.includes("const isX20Action = body.actionKind === \"x20\""), "X20 operation boundary must remain explicit")
+assert(index.includes("isX20Action = body.actionKind === \"x20\""), "X20 operation boundary must remain explicit")
 assert(index.includes("if (!isX20Action)"), "assistant adapter branch must exclude X20")
 assert(adapter.includes("reserveUsage") && adapter.includes("reserveFinancial"), "shared reservation contract must remain available")
 assert(adapter.includes("releaseUsage?.()") && adapter.includes("releaseFinancial?.()"), "failure reconciliation must remain bounded")

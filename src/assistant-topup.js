@@ -52,7 +52,12 @@ export async function finishAssistantTopUpCredit(env, { operationId, status, now
   const normalized = status === "succeeded" ? "succeeded" : status === "timed_out" ? "timed_out" : "failed"
   const result = await env.DB.prepare("UPDATE assistant_topup_operations SET status=?1,updatedAt=?2 WHERE operationId=?3 AND status='reserved'").bind(normalized,iso(now),operationId).run()
   const settled = Number(result?.meta?.changes || 0) === 1
-  return { settled, duplicate:!settled, status:normalized }
+  let creditsRefunded = false
+  if (settled && normalized === "timed_out") {
+    const lot = await env.DB.prepare("SELECT l.paymentState FROM assistant_topup_operations o JOIN assistant_topup_credit_lots l ON l.lotId=o.lotId WHERE o.operationId=?1 AND o.status='timed_out' LIMIT 1").bind(operationId).first()
+    creditsRefunded = lot?.paymentState === "paid"
+  }
+  return { settled, duplicate:!settled, status:normalized, creditsRefunded }
 }
 export async function grantAssistantTopUpPurchase(env, { purchaseId,userId,stripeCheckoutSessionId,stripePaymentIntentId=null,stripeChargeId=null,stripeEventId,packCode,credits,amountTotal,currency,now=new Date() }) {
   if (!purchaseId || !userId || !stripeCheckoutSessionId || !stripeEventId || !packCode) return { granted:false, reason:"invalid_topup_purchase" }

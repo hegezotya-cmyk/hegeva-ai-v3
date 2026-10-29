@@ -1,5 +1,6 @@
 ﻿// Provider-neutral Workers AI boundary. Disabled unless every gate is
 // explicitly configured; this module never falls back to another provider.
+import { ADVANCED_ASSISTANT_TIMING } from "./assistant-timing.js"
 export const WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast"
 const encoder = new TextEncoder()
 const ASSISTANT_SYSTEM_PROMPT = [
@@ -113,7 +114,7 @@ export function boundAssistantProviderPayload(tier, projection) {
   const languagePolicy = ASSISTANT_LANGUAGE_POLICIES[projection.locale]
   if (!languagePolicy) return { ok: false, reason: "invalid-projection" }
   const messages = [
-    { role: "system", content: `${ASSISTANT_SYSTEM_PROMPT} ${languagePolicy}` },
+    { role: "system", content: `${ASSISTANT_SYSTEM_PROMPT} ${languagePolicy}${tier.id === "advanced" ? " For business advice, prioritize practical next steps with a brief reason, realistic timing and a measurable outcome. State assumptions when business facts are missing; ask one focused question only if it would materially change the advice. Tailor advice to facts actually supplied. Avoid generic filler, invented targets presented as facts, and unnecessary length. Finish the requested number of steps in complete sentences within the response budget." : ""}` },
     { role: "user", content: projection.prompt.trim() },
   ]
   if (!messages[1].content) return { ok: false, reason: "invalid-projection" }
@@ -330,7 +331,7 @@ export async function invokeAssistantWorkersAiText(env, projection, { tier, sign
     timeoutId = setTimeout(() => {
       controller.abort()
       reject(timeoutError)
-    }, config.timeoutMs)
+    }, tier?.id === "advanced" ? ADVANCED_ASSISTANT_TIMING.providerMs : config.timeoutMs)
   })
   try {
     const { model, ...input } = bounded.request

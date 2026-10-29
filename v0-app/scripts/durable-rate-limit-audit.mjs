@@ -15,7 +15,7 @@ export default {
   async fetch(request, env) {
     const input = await request.json()
     const distributed = env.RATE_LIMITER.getByName(input.name)
-    if (input.action === "admit") return Response.json(await distributed.admit(input.now))
+    if (input.action === "admit") return Response.json(await distributed.admit(input.now, input.leaseMs))
     if (input.action === "release") return Response.json(await distributed.release(input.token))
     if (input.action === "caller") {
       let reservations = 0
@@ -39,6 +39,7 @@ const mf = new Miniflare(convertV4MiniflareOptions({
     { type: "ESModule", path: entryPath.pathname, contents: rpcEntry },
     { type: "ESModule", path: limiterPath.pathname, contents: readFileSync(limiterPath, "utf8") },
     { type: "ESModule", path: admissionPath.pathname, contents: readFileSync(admissionPath, "utf8") },
+    { type: "ESModule", path: new URL("src/assistant-timing.js", root).pathname, contents: readFileSync(new URL("src/assistant-timing.js", root), "utf8") },
   ],
   durableObjects: { RATE_LIMITER: { className: "UserRateLimiter", useSQLite: true } },
 }))
@@ -61,6 +62,12 @@ async function captureConsoleErrors(run) {
     console.error = original
   }
 }
+
+const advancedLease = await rpc({ action: "admit", name: "advanced-deadline", now: 100000, leaseMs: 65000 })
+assert.equal(advancedLease.allowed, true)
+assert.equal((await rpc({ action: "admit", name: "advanced-deadline", now: 140000 })).allowed, false, "Advanced must not overlap after the old 35-second lease")
+assert.equal((await rpc({ action: "release", name: "advanced-deadline", token: advancedLease.token })).released, true)
+assert.equal((await rpc({ action: "admit", name: "advanced-deadline", now: 140001 })).allowed, true, "settled request releases its extended lease")
 
 for (let i = 0; i < 5; i += 1) { const admission = await rpc({ action: "admit", name: "burst", now: i * 100 }); assert.equal(admission.allowed, true); await rpc({ action: "release", name: "burst", token: admission.token }) }
 const burstRejected = await rpc({ action: "admit", name: "burst", now: 900 })

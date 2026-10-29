@@ -14,6 +14,7 @@ import { createCompanionProjection, createWorkspacePulseProjection } from "@/lib
 import { selectHegevaCorePriority } from "@/lib/hegeva-core"
 import { useAiAvailability } from "@/lib/ai-availability"
 import { ComingSoonCard } from "@/components/coming-soon-state"
+import { assistantClientTimeout, confirmedAssistantTimeout } from "@/lib/assistant-request-policy.mjs"
 
 type ChatMessage = {
   role: "user" | "assistant"
@@ -244,7 +245,7 @@ export function AssistantChat() {
     }
 
     const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), 30000)
+    const timeout = window.setTimeout(() => controller.abort(), assistantClientTimeout(tier))
 
     let responseStatus = 0
     let clearPendingOnError = false
@@ -271,6 +272,18 @@ export function AssistantChat() {
 
       if (!response.ok) {
         const copy = failureCopy[locale]
+        if (confirmedAssistantTimeout(response.status, data)) {
+          clearPendingOnError = true
+          await loadUsage()
+          const timeoutCopy = {
+            en: "The answer took too long. Your reserved credits were returned. You can try again.",
+            hu: "A válasz túl sokáig tartott. A lefoglalt kreditjeidet visszakaptad. Újra próbálkozhatsz.",
+            de: "Die Antwort dauerte zu lange. Ihre reservierten Credits wurden zurückgegeben. Sie können es erneut versuchen.",
+            fr: "La réponse a pris trop de temps. Vos crédits réservés ont été restitués. Vous pouvez réessayer.",
+            es: "La respuesta tardó demasiado. Tus créditos reservados fueron devueltos. Puedes intentarlo de nuevo.",
+          }
+          throw new Error(timeoutCopy[locale])
+        }
         if (response.status === 401) {
           clearPendingOnError = true
           throw new Error(copy.session)

@@ -11,7 +11,8 @@ export class UserRateLimiter extends DurableObject {
     })
   }
 
-  admit(now = Date.now()) {
+  admit(now = Date.now(), leaseMs = 35_000) {
+    const holdMs = Number.isSafeInteger(leaseMs) && leaseMs >= 35_000 && leaseMs <= 65_000 ? leaseMs : 35_000
     const shortSince = now - 10_000
     const sustainedSince = now - 60_000
     this.ctx.storage.sql.exec("DELETE FROM rate_events WHERE at < ?", sustainedSince)
@@ -29,7 +30,7 @@ export class UserRateLimiter extends DurableObject {
     }
     this.ctx.storage.sql.exec("INSERT INTO rate_events (at) VALUES (?)", now)
     const token = crypto.randomUUID()
-    this.ctx.storage.sql.exec("UPDATE active_leases SET active_token = ?, active_until = ? WHERE id = 1", token, now + 35_000)
+    this.ctx.storage.sql.exec("UPDATE active_leases SET active_token = ?, active_until = ? WHERE id = 1", token, now + holdMs)
     return { allowed: true, token, retryAfterMs: 0 }
   }
 

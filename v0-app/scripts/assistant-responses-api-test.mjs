@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
+import { createRequestHandler } from "../../src/index.js"
 import { DatabaseSync } from "node:sqlite"
 import { readFileSync } from "node:fs"
 import { invokeAssistantWorkersAiText, resolveAssistantModelTier, boundAssistantProviderPayload } from "../../src/cloudflare-ai-provider.js"
@@ -105,6 +106,40 @@ function accounting() {
   }
   return { db, env: { DB } }
 }
+test("Real chat HTTP route returns a confirmed timeout only after refunding all eight credits and releasing concurrency", async () => {
+  const { db, env } = accounting()
+  let released = false
+  try {
+    for (const name of ["0027_assistant_cost_guard.sql", "0029_assistant_daily_model_admission.sql"]) db.exec(readFileSync(new URL(`../../migrations/${name}`, import.meta.url), "utf8"))
+    db.exec("CREATE TABLE user_plans(userId TEXT PRIMARY KEY,plan TEXT,createdAt TEXT,updatedAt TEXT); INSERT INTO user_plans VALUES('route-timeout','premium','2026-10-29','2026-10-29')")
+    Object.assign(env, { AI_PROVIDER_ENABLED: "enabled", AI_GLOBAL_KILL_SWITCH: "disabled", AI_PUBLIC_ASSISTANT_ENABLED: "enabled", AI_ADVANCED_ASSISTANT_CREDIT_COST: "8", AI_DAILY_REQUEST_CEILING: "6", AI_DAILY_NEURON_CEILING: "1000", AI_GLOBAL_INCLUDED_BUDGET_UNITS: "1000", AI_GLOBAL_PREPAID_BUDGET_UNITS: "1000", AI_GLOBAL_EMERGENCY_CAP_UNITS: "1000", AI_GLOBAL_REQUEST_RESERVATION_UNITS: "201", AI: { async run() { throw new DOMException("Timed out", "AbortError") } }, RATE_LIMITER: { getByName() { return { async admit(now, leaseMs) { assert.equal(leaseMs, 65000); return { allowed: true, token: "test-lease" } }, async release(token) { assert.equal(token, "test-lease"); released = true } } } } })
+    const operationId = crypto.randomUUID()
+    const handler = createRequestHandler({ getLoggedInUserFn: async () => ({ id: "route-timeout", email: "synthetic@example.invalid" }) })
+    const response = await handler.fetch(new Request("https://example.test/api/chat", { method: "POST", headers: { cookie: "fixture=session", "content-type": "application/json" }, body: JSON.stringify({ message: projection.prompt, language: "hu", tier: "advanced", assistantOperationId: operationId }) }), env, {})
+    assert.equal(response.status, 504)
+    const body = await response.json()
+    assert.equal(body.code, "ASSISTANT_TIMEOUT")
+    assert.equal(body.creditsRefunded, true)
+    assert.equal(body.assistantOperationId, operationId)
+    assert.equal(released, true)
+    assert.equal(db.prepare("SELECT aiMessages FROM assistant_ai_usage WHERE userId='route-timeout'").get().aiMessages, 0)
+    assert.equal(db.prepare("SELECT quotaSettlementState FROM assistant_usage_settlements WHERE operationId=?").get(operationId).quotaSettlementState, "refunded")
+  } finally { db.close() }
+})
+test("Top-up timeout confirms spendable refund only for a still-paid purchase lot", async () => {
+  const { db, env } = accounting()
+  try {
+    for (const paymentState of ["paid", "refunded"]) {
+      const userId = `timeout-${paymentState}`, operationId = crypto.randomUUID()
+      await grantAssistantTopUpPurchase(env, { purchaseId: userId, userId, stripeCheckoutSessionId: `cs-${userId}`, stripeEventId: `evt-${userId}`, packCode: "small", credits: 100, amountTotal: 199, currency: "gbp" })
+      const reserved = await reserveAssistantTopUpCredit(env, { operationId, userId, credits: 8 })
+      assert.equal(reserved.reserved, true)
+      if (paymentState !== "paid") db.prepare("UPDATE assistant_topup_credit_lots SET paymentState=? WHERE lotId=?").run(paymentState, reserved.lotId)
+      const settled = await finishAssistantTopUpCredit(env, { operationId, status: "timed_out" })
+      assert.equal(settled.creditsRefunded, paymentState === "paid")
+    }
+  } finally { db.close() }
+})
 for (const funding of ["monthly", "topup"]) test(`Responses outcomes settle ${funding} credits exactly once: success 8, failure 0, Standard 1`, async () => {
   const { db, env } = accounting()
   const userId = "responses-test-user", period = "2026-10"
