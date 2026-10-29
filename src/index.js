@@ -4529,7 +4529,7 @@ QUALITY RULES:
                   const startedAt = Date.now();
                   let adapted = null;
                   try {
-                    const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage });
+                    const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage, history: admittedHistory, businessContext });
                     adapted = await invokeAssistantWorkersAiText(env, projection, { tier });
                     if (dailyReservation && !assistantDailySettlementAttempted) {
                       assistantDailySettlementAttempted = true;
