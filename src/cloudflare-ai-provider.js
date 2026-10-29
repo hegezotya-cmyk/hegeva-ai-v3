@@ -121,7 +121,7 @@ export function boundAssistantProviderPayload(tier, projection) {
   // Responses counts the complete serialized input. Keep the established
   // Standard admission boundary unchanged in this model-specific repair.
   const payload = tier.id === "advanced"
-    ? { input: messages, max_output_tokens: tier.maxOutputTokens, reasoning: { effort: "low" }, temperature: 0.2, stream: false }
+    ? { input: messages, max_output_tokens: tier.maxOutputTokens, reasoning: { effort: "low" }, temperature: 1, top_p: 1, stream: false }
     : { messages, max_tokens: tier.maxOutputTokens, temperature: 0.2, stream: false }
   const inputTokens = encoder.encode(JSON.stringify(tier.id === "advanced" ? payload : { messages, max_tokens: tier.maxOutputTokens })).byteLength
   if (inputTokens > tier.maxInputTokens) return { ok: false, reason: "provider-input-too-large" }

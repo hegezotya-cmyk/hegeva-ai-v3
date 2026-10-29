@@ -39,6 +39,8 @@ test("Advanced sends Responses input with bounded output and Hungarian system po
   assert.equal(observed.input.max_output_tokens, 1024)
   assert.equal(observed.input.stream, false)
   assert.equal(observed.input.reasoning.effort, "low")
+  assert.equal(observed.input.temperature, 1, "Advanced must use GPT-OSS publisher-recommended sampling, independently of Standard")
+  assert.equal(observed.input.top_p, 1)
   assert.match(observed.input.input[0].content, /Respond in Hungarian\./)
   assert.equal(observed.input.input[1].content, projection.prompt)
   assert.equal("messages" in observed.input, false)
