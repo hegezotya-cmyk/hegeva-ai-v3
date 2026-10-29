@@ -1,3 +1,5 @@
+import { assistantLeaseTimeout } from "./assistant-timing.js"
+
 export async function handleAiChatAdmission({
   request,
   user,
@@ -91,7 +93,7 @@ export async function handleAiChatAdmission({
     }
     let distributedResult
     try {
-      distributedResult = await distributed.admit(current)
+      distributedResult = await distributed.admit(current, assistantLeaseTimeout(tierSelection.tier.id))
     } catch (error) {
       console.error("HEGEVA_AI_ADMISSION_FAILURE", {
         reason: "distributed_admit_threw",

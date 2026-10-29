@@ -7,6 +7,7 @@ import {
 import { reserveAIUsage } from "./ai-quota-reservation.js";
 import { createAuthRateLimiter, clientIpKey } from "./auth-rate-limiter.js";
 import { handleAiChatAdmission } from "./ai-chat-admission.js";
+import { assistantRefundedFailureResponse } from "./assistant-timing.js";
 import { isX20RequestId, registerX20Attempt, startX20Action, finishX20Attempt } from "./x20-ledger.js";
 import { readAssistantUsage, startAssistantOperation, finishAssistantOperation } from "./assistant-quota.js";
 import { ASSISTANT_TOPUP_PACKS, readAssistantTopUpBalance, reserveAssistantTopUpCredit, finishAssistantTopUpCredit, grantAssistantTopUpPurchase, reconcileAssistantTopUpFinancialEvent, validateAssistantTopUpCheckoutPayment } from "./assistant-topup.js";
@@ -4125,6 +4126,10 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         );
       }
 
+      let isX20Action = false;
+      let assistantOperationId = null;
+      let x20Action = null;
+      let x20Attempt = null;
       try {
         const user =
           await getLoggedInUserFn(
@@ -4148,7 +4153,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         const body =
           await request.json();
 
-        const isX20Action = body.actionKind === "x20";
+        isX20Action = body.actionKind === "x20";
         const isX10StudioProfile = !isX20Action && body.appStudioProfile === "x10";
         if (!isX20Action) {
           const flags = parseProviderFlags(env);
@@ -4399,9 +4404,6 @@ QUALITY RULES:
               lastRequest: new Map()
             });
 
-          let x20Action = null;
-          let x20Attempt = null;
-          let assistantOperationId = null;
           let assistantOperationReserved = false;
           let assistantOperationSettlementAttempted = false;
           let assistantCreditSource = null;
@@ -4527,7 +4529,7 @@ QUALITY RULES:
                   const startedAt = Date.now();
                   let adapted = null;
                   try {
-                    const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage });
+                    const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage, history: admittedHistory, businessContext });
                     adapted = await invokeAssistantWorkersAiText(env, projection, { tier });
                     if (dailyReservation && !assistantDailySettlementAttempted) {
                       assistantDailySettlementAttempted = true;
@@ -4557,6 +4559,7 @@ QUALITY RULES:
                     if (!adapted.ok) {
                       const unavailable = new Error("Workers AI unavailable");
                       unavailable.name = timedOut ? "HEGEVA_AI_TIMEOUT" : "HEGEVA_PROVIDER_UNAVAILABLE";
+                      unavailable.creditsRefunded = settlement.quotaSettlementState === "refunded" || settlement.creditsRefunded === true;
                       throw unavailable;
                     }
                     return { response: adapted.response };
@@ -4708,6 +4711,11 @@ QUALITY RULES:
         });
       } catch (error) {
         logFailure("ai_chat_handler_failed", error);
+
+        if (!isX20Action) {
+          const timeoutResponse = assistantRefundedFailureResponse(error, assistantOperationId);
+          if (timeoutResponse) return timeoutResponse;
+        }
 
         return Response.json(
           {
