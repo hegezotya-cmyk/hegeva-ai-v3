@@ -39,6 +39,7 @@ test("Advanced sends Responses input with bounded output and Hungarian system po
   assert.equal(observed.input.max_output_tokens, 2048, "Advanced must allow reasoning plus a complete developed business answer")
   assert.equal(observed.input.stream, false)
   assert.equal(observed.input.reasoning.effort, "low")
+  assert.equal(observed.input.input[0].role, "developer", "GPT-OSS application instructions belong in the Harmony developer role")
   assert.equal(observed.input.temperature, 1, "Advanced must use GPT-OSS publisher-recommended sampling, independently of Standard")
   assert.equal(observed.input.top_p, 1)
   assert.match(observed.input.input[0].content, /Respond in Hungarian\./)
@@ -71,6 +72,7 @@ test("Standard preserves its chat payload, response and token accounting", async
   const result = await invokeAssistantWorkersAiText(envFor({ response: answer, usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 } }, (model, input) => {
     assert.equal(model, "@cf/qwen/qwen3-30b-a3b-fp8")
     assert.equal(input.max_tokens, 512)
+    assert.equal(input.messages[0].role, "system")
     assert.equal(input.messages[1].content, projection.prompt)
     assert.equal(input.temperature, 0.2)
     assert.equal(input.stream, false)

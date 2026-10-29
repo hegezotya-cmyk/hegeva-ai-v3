@@ -121,7 +121,7 @@ export function boundAssistantProviderPayload(tier, projection) {
   const languagePolicy = ASSISTANT_LANGUAGE_POLICIES[projection.locale]
   if (!languagePolicy) return { ok: false, reason: "invalid-projection" }
   const messages = [
-    { role: "system", content: `${ASSISTANT_SYSTEM_PROMPT} ${languagePolicy}${tier.id === "advanced" ? ` ${ADVANCED_BUSINESS_GUIDANCE}` : ""}` },
+    { role: tier.id === "advanced" ? "developer" : "system", content: `${ASSISTANT_SYSTEM_PROMPT} ${languagePolicy}${tier.id === "advanced" ? ` ${ADVANCED_BUSINESS_GUIDANCE}` : ""}` },
     { role: "user", content: projection.prompt.trim() },
   ]
   if (!messages[1].content) return { ok: false, reason: "invalid-projection" }
