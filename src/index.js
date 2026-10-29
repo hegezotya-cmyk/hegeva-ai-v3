@@ -7,7 +7,7 @@ import {
 import { reserveAIUsage } from "./ai-quota-reservation.js";
 import { createAuthRateLimiter, clientIpKey } from "./auth-rate-limiter.js";
 import { handleAiChatAdmission } from "./ai-chat-admission.js";
-import { assistantTimeoutResponse } from "./assistant-timing.js";
+import { assistantRefundedFailureResponse } from "./assistant-timing.js";
 import { isX20RequestId, registerX20Attempt, startX20Action, finishX20Attempt } from "./x20-ledger.js";
 import { readAssistantUsage, startAssistantOperation, finishAssistantOperation } from "./assistant-quota.js";
 import { ASSISTANT_TOPUP_PACKS, readAssistantTopUpBalance, reserveAssistantTopUpCredit, finishAssistantTopUpCredit, grantAssistantTopUpPurchase, reconcileAssistantTopUpFinancialEvent, validateAssistantTopUpCheckoutPayment } from "./assistant-topup.js";
@@ -4713,7 +4713,7 @@ QUALITY RULES:
         logFailure("ai_chat_handler_failed", error);
 
         if (!isX20Action) {
-          const timeoutResponse = assistantTimeoutResponse(error, assistantOperationId);
+          const timeoutResponse = assistantRefundedFailureResponse(error, assistantOperationId);
           if (timeoutResponse) return timeoutResponse;
         }
 

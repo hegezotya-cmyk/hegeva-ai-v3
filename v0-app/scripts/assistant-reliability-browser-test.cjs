@@ -19,6 +19,7 @@ const base = process.env.TEST_BASE_URL || 'http://localhost:3021'
       if(path==='/api/chat') {
         const body=req.postDataJSON(); requests.push(body)
         if(responseMode==='timeout') return reply({code:'ASSISTANT_TIMEOUT',creditsRefunded:true,assistantOperationId:body.assistantOperationId},504)
+        if(responseMode==='incomplete') return reply({code:'ASSISTANT_REQUEST_FAILED',creditsRefunded:true,assistantOperationId:body.assistantOperationId},502)
         if(responseMode==='delayed') await answerGate
         used+=8
         return reply({response:'Hétfőn válassz célcsoportot. Kedden készíts ajánlatot. Pénteken értékeld a válaszokat.'})
@@ -53,6 +54,18 @@ const base = process.env.TEST_BASE_URL || 'http://localhost:3021'
     await page.waitForFunction(()=>document.querySelector('.partner-state')?.innerText.includes('16/300'))
     assert.equal(requests.length,3)
     assert.notEqual(requests[2].assistantOperationId,timedOutId,'explicit retry after confirmed refund needs a new operation identity')
+    responseMode='incomplete'
+    await message.fill('Félbeszakadt válasz próbája.')
+    await page.getByRole('button',{name:'Küldés',exact:true}).click()
+    await page.getByText('A válasz nem készült el teljesen. A lefoglalt kreditjeidet visszakaptad. Újra próbálkozhatsz.',{exact:true}).waitFor()
+    assert.equal(requests.length,4)
+    const failedId=requests[3].assistantOperationId
+    responseMode='success'
+    await message.fill('Félbeszakadt válasz próbája.')
+    await page.getByRole('button',{name:'Küldés',exact:true}).click()
+    await page.waitForFunction(()=>document.querySelector('.partner-state')?.innerText.includes('24/300'))
+    assert.equal(requests.length,5)
+    assert.notEqual(requests[4].assistantOperationId,failedId,'confirmed incomplete refund also needs a fresh retry identity')
     console.log('Assistant browser reliability PASS: Advanced waits beyond30s, localized confirmed refund, refreshed credits, manual retry fresh identity, no automatic retry')
   } finally {await browser.close()}
 })().catch(error=>{console.error(error);process.exitCode=1})

@@ -14,7 +14,7 @@ import { createCompanionProjection, createWorkspacePulseProjection } from "@/lib
 import { selectHegevaCorePriority } from "@/lib/hegeva-core"
 import { useAiAvailability } from "@/lib/ai-availability"
 import { ComingSoonCard } from "@/components/coming-soon-state"
-import { assistantClientTimeout, confirmedAssistantTimeout } from "@/lib/assistant-request-policy.mjs"
+import { assistantClientTimeout, confirmedAssistantTimeout, confirmedAssistantRefund } from "@/lib/assistant-request-policy.mjs"
 
 type ChatMessage = {
   role: "user" | "assistant"
@@ -272,7 +272,7 @@ export function AssistantChat() {
 
       if (!response.ok) {
         const copy = failureCopy[locale]
-        if (confirmedAssistantTimeout(response.status, data)) {
+        if (confirmedAssistantRefund(response.status, data)) {
           clearPendingOnError = true
           await loadUsage()
           const timeoutCopy = {
@@ -282,7 +282,14 @@ export function AssistantChat() {
             fr: "La réponse a pris trop de temps. Vos crédits réservés ont été restitués. Vous pouvez réessayer.",
             es: "La respuesta tardó demasiado. Tus créditos reservados fueron devueltos. Puedes intentarlo de nuevo.",
           }
-          throw new Error(timeoutCopy[locale])
+          const failureCopy = {
+            en: "The answer could not be completed. Your reserved credits were returned. You can try again.",
+            hu: "A válasz nem készült el teljesen. A lefoglalt kreditjeidet visszakaptad. Újra próbálkozhatsz.",
+            de: "Die Antwort konnte nicht abgeschlossen werden. Ihre reservierten Credits wurden zurückgegeben. Sie können es erneut versuchen.",
+            fr: "La réponse n’a pas pu être terminée. Vos crédits réservés ont été restitués. Vous pouvez réessayer.",
+            es: "La respuesta no pudo completarse. Tus créditos reservados fueron devueltos. Puedes intentarlo de nuevo.",
+          }
+          throw new Error(confirmedAssistantTimeout(response.status, data) ? timeoutCopy[locale] : failureCopy[locale])
         }
         if (response.status === 401) {
           clearPendingOnError = true

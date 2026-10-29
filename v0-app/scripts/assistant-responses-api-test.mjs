@@ -108,19 +108,20 @@ function accounting() {
   }
   return { db, env: { DB } }
 }
-test("Real chat HTTP route returns a confirmed timeout only after refunding all eight credits and releasing concurrency", async () => {
+for (const failureKind of ["timeout", "incomplete"]) test(`Real chat HTTP route confirms ${failureKind} only after refunding all eight credits and releasing concurrency`, async () => {
   const { db, env } = accounting()
   let released = false
   try {
     for (const name of ["0027_assistant_cost_guard.sql", "0029_assistant_daily_model_admission.sql"]) db.exec(readFileSync(new URL(`../../migrations/${name}`, import.meta.url), "utf8"))
     db.exec("CREATE TABLE user_plans(userId TEXT PRIMARY KEY,plan TEXT,createdAt TEXT,updatedAt TEXT); INSERT INTO user_plans VALUES('route-timeout','premium','2026-10-29','2026-10-29')")
-    Object.assign(env, { AI_PROVIDER_ENABLED: "enabled", AI_GLOBAL_KILL_SWITCH: "disabled", AI_PUBLIC_ASSISTANT_ENABLED: "enabled", AI_ADVANCED_ASSISTANT_CREDIT_COST: "8", AI_DAILY_REQUEST_CEILING: "6", AI_DAILY_NEURON_CEILING: "1000", AI_GLOBAL_INCLUDED_BUDGET_UNITS: "1000", AI_GLOBAL_PREPAID_BUDGET_UNITS: "1000", AI_GLOBAL_EMERGENCY_CAP_UNITS: "1000", AI_GLOBAL_REQUEST_RESERVATION_UNITS: "201", AI: { async run() { throw new DOMException("Timed out", "AbortError") } }, RATE_LIMITER: { getByName() { return { async admit(now, leaseMs) { assert.equal(leaseMs, 65000); return { allowed: true, token: "test-lease" } }, async release(token) { assert.equal(token, "test-lease"); released = true } } } } })
+    Object.assign(env, { AI_PROVIDER_ENABLED: "enabled", AI_GLOBAL_KILL_SWITCH: "disabled", AI_PUBLIC_ASSISTANT_ENABLED: "enabled", AI_ADVANCED_ASSISTANT_CREDIT_COST: "8", AI_DAILY_REQUEST_CEILING: "6", AI_DAILY_NEURON_CEILING: "1000", AI_GLOBAL_INCLUDED_BUDGET_UNITS: "1000", AI_GLOBAL_PREPAID_BUDGET_UNITS: "1000", AI_GLOBAL_EMERGENCY_CAP_UNITS: "1000", AI_GLOBAL_REQUEST_RESERVATION_UNITS: "271", AI: { async run() { if (failureKind === "timeout") throw new DOMException("Timed out", "AbortError"); return { ...completed(), status: "incomplete", incomplete_details: { reason: "max_output_tokens" } } } }, RATE_LIMITER: { getByName() { return { async admit(now, leaseMs) { assert.equal(leaseMs, 65000); return { allowed: true, token: "test-lease" } }, async release(token) { assert.equal(token, "test-lease"); released = true } } } } })
     const operationId = crypto.randomUUID()
+    delete globalThis.__hegevaAiRuntime
     const handler = createRequestHandler({ getLoggedInUserFn: async () => ({ id: "route-timeout", email: "synthetic@example.invalid" }) })
     const response = await handler.fetch(new Request("https://example.test/api/chat", { method: "POST", headers: { cookie: "fixture=session", "content-type": "application/json" }, body: JSON.stringify({ message: projection.prompt, language: "hu", tier: "advanced", assistantOperationId: operationId }) }), env, {})
-    assert.equal(response.status, 504)
+    assert.equal(response.status, failureKind === "timeout" ? 504 : 502)
     const body = await response.json()
-    assert.equal(body.code, "ASSISTANT_TIMEOUT")
+    assert.equal(body.code, failureKind === "timeout" ? "ASSISTANT_TIMEOUT" : "ASSISTANT_REQUEST_FAILED")
     assert.equal(body.creditsRefunded, true)
     assert.equal(body.assistantOperationId, operationId)
     assert.equal(released, true)

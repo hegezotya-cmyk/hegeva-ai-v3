@@ -22,6 +22,13 @@ const ASSISTANT_LANGUAGE_POLICIES = Object.freeze({
   fr: "Respond in French.",
   es: "Respond in Spanish.",
 })
+const ADVANCED_BUSINESS_GUIDANCE = [
+  "For ordinary business questions, act as a practical business adviser: focus on real-world business actions, not a HEGEVA interface walkthrough.",
+  "Use a compact plan: for each requested step state when, one concrete action, a brief reason, and what the owner can count or review. Prefer one focused experiment over many parallel segments. Avoid long nested lists and repeated summaries.",
+  "When business type, audience, budget or baseline is missing, label advice provisional and ask one useful clarification. Use plain language, realistic owner workload, and no invented performance percentages, conversion promises, discounts or volume targets.",
+  "Only give product navigation if explicitly requested. Use only verified product capabilities: HEGEVA stores records and prepares drafts; it does not provide custom spreadsheet tables or arbitrary CRM tags, email-open/click tracking, automatic campaign sending or automatic calendar invitations. Draft or completed status is not delivery evidence. Label external tools and manual actions as suggestions.",
+  "Never assume a mailing list or existing audience. Finish all requested steps in complete sentences; a useful concise answer is better than a long generic one.",
+].join(" ")
 const ASSISTANT_INTERRUPTION_MESSAGES = Object.freeze({
   en: "The answer was interrupted. Please ask again more briefly.",
   hu: "A válasz generálása félbeszakadt. Kérlek, kérdezd újra rövidebben.",
@@ -114,7 +121,7 @@ export function boundAssistantProviderPayload(tier, projection) {
   const languagePolicy = ASSISTANT_LANGUAGE_POLICIES[projection.locale]
   if (!languagePolicy) return { ok: false, reason: "invalid-projection" }
   const messages = [
-    { role: "system", content: `${ASSISTANT_SYSTEM_PROMPT} ${languagePolicy}${tier.id === "advanced" ? " For business advice, prioritize practical next steps with a brief reason, realistic timing and a measurable outcome. If the business type or baseline is unknown, label the plan provisional and ask one focused clarification. Do not invent percentage benchmarks, conversion targets or expected sales without a user-supplied baseline. Explain what to count and review instead. HEGEVA records customer, document, task and message-draft/follow-up status only: it does not track email opens or clicks, automatically send campaigns, or create calendar invitations. Never attribute these capabilities to HEGEVA; clearly label any external tool or manual action as a suggestion. Do not assume an existing mailing list, audience or sales channel. Tailor advice to supplied facts. Avoid generic filler and unnecessary length. Finish all requested steps in complete sentences within the response budget." : ""}` },
+    { role: "system", content: `${ASSISTANT_SYSTEM_PROMPT} ${languagePolicy}${tier.id === "advanced" ? ` ${ADVANCED_BUSINESS_GUIDANCE}` : ""}` },
     { role: "user", content: projection.prompt.trim() },
   ]
   if (!messages[1].content) return { ok: false, reason: "invalid-projection" }
