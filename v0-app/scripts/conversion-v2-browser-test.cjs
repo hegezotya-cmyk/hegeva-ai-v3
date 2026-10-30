@@ -93,20 +93,17 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
     assert.deepEqual(errors, [])
     await context.close()
     // Exercise the actual form with isolated auth responses, not synthetic success events.
-    for (const outcome of ['rejected', 'missing-session', 'mismatched-session', 'success', 'success-without-consent']) {
+    // Email verification is required: accepted signup has no authenticated session.
+    for (const outcome of ['rejected', 'success', 'success-without-consent']) {
       const testContext = await browser.newContext()
       await testContext.addInitScript(consent => localStorage.setItem('hegeva:analytics-consent:v1', consent), outcome === 'success-without-consent' ? 'denied' : 'granted')
-      let submitted = false
       const user = {id: 'conversion-fixture', name: 'Test', email: 'conversion@example.invalid', emailVerified: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()}
       await testContext.route('**/api/**', async route => {
         const url = new URL(route.request().url())
         if (url.pathname.endsWith('/sign-up/email')) {
-          submitted = true
-          return route.fulfill({status: outcome === 'rejected' ? 400 : 200, contentType: 'application/json', body: JSON.stringify(outcome === 'rejected' ? {code:'USER_ALREADY_EXISTS', message:'Test rejection'} : {token:'fixture-token',user})})
+          return route.fulfill({status: outcome === 'rejected' ? 400 : 200, contentType: 'application/json', body: JSON.stringify(outcome === 'rejected' ? {code:'USER_ALREADY_EXISTS', message:'Test rejection'} : {token:null,user})})
         }
-        const hasSession = submitted && !['rejected','missing-session'].includes(outcome)
-        const body = url.pathname.endsWith('/get-session') && hasSession ? {user:{...user,id: outcome === 'mismatched-session' ? 'other-fixture' : user.id},session:{id:'fixture-session',userId:user.id,token:'fixture-token',expiresAt:'2099-01-01T00:00:00.000Z'}} : null
-        return route.fulfill({status: url.pathname.includes('/core/decide') ? 401 : 200, contentType:'application/json',body:JSON.stringify(body)})
+        return route.fulfill({status: url.pathname.includes('/core/decide') ? 401 : 200, contentType:'application/json',body:'null'})
       })
       await testContext.route('**/*googletagmanager.com/**', route => route.fulfill({status:200,contentType:'application/javascript',body:''}))
       await testContext.route('**/*google-analytics.com/**', route => route.abort())
@@ -118,11 +115,12 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
       await testPage.locator('button[type="submit"]').click()
       if (outcome === 'rejected') {
         await testPage.getByText('Authentication failed.', {exact:false}).waitFor()
-      } else if (outcome === 'missing-session') {
-        await testPage.getByText('Verify your email address before signing in.', {exact:false}).waitFor()
-      } else { await testPage.waitForURL('**/pricing') }
-      const emitted = await testPage.evaluate(() => (window.dataLayer || []).filter(x => x[0] === 'event' && x[1] === 'registration_completed'))
-      assert.equal(emitted.length, ['success', 'missing-session', 'mismatched-session'].includes(outcome) ? 1 : 0, outcome)
+      } else {
+        await testPage.getByText('Check your inbox', {exact:false}).waitFor()
+      }
+      const emitted = await testPage.evaluate(() => (window.dataLayer || []).filter(x => x[0] === 'event' && x[1] === 'registration_submitted'))
+      assert.equal(emitted.length, outcome === 'success' ? 1 : 0, outcome)
+      assert.equal(await testPage.evaluate(() => (window.dataLayer || []).filter(x => x[0] === 'event' && ['registration_completed', 'email_verified'].includes(x[1])).length), 0, 'unverified signup is not completion or verification')
       assert.equal(JSON.stringify(await testPage.evaluate(() => window.dataLayer || [])).includes(user.email), false)
       await testContext.close()
     }
@@ -140,7 +138,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
         }
         if (consent) localStorage.setItem('hegeva:analytics-consent:v1', consent)
       }, { consent })
-      const user = {id:'billing-fixture',name:'Billing test',email:'billing@example.invalid',emailVerified:false,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}
+      const user = {id:'billing-fixture',name:'Billing test',email:'billing@example.invalid',emailVerified:true,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}
       await testContext.route('**/api/**', async route => {
         const path = new URL(route.request().url()).pathname
         if (path.endsWith('/get-session')) return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({user,session:{id:'billing-session',userId:user.id,token:'fixture-token',expiresAt:'2099-01-01T00:00:00.000Z'}})})
@@ -153,7 +151,14 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
       const page = await testContext.newPage()
       await page.goto(base + '/account?billing=success', {waitUntil:'domcontentloaded'})
       await page.waitForFunction(() => document.body.innerText.includes('Account details'))
-      const waitForBillingReturn = () => page.waitForFunction(() => !new URL(window.location.href).searchParams.has('billing'))
+      const waitForBillingReturn = async () => {
+        if (plan === 'premium') {
+          await page.waitForFunction(() => !new URL(window.location.href).searchParams.has('billing'))
+        } else {
+          await page.getByRole('alert').filter({hasText:'entitlement_pending'}).waitFor()
+          assert.equal(new URL(page.url()).searchParams.get('billing'), 'success', 'unconfirmed return remains available for retry')
+        }
+      }
       await waitForBillingReturn()
       if (consent === 'granted' && plan === 'premium') {
         await page.waitForFunction(() => window.dataLayer?.some(x => x[0] === 'event' && x[1] === 'subscription_success'))
