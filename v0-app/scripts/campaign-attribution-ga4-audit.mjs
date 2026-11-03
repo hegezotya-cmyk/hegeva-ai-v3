@@ -40,7 +40,7 @@ for (let day = 1; day <= 8; day++) {
   assert.equal(track().campaign_content, `fb_day${dayLabel}`, `Facebook day ${dayLabel} content must be retained`)
 }
 
-window.location.search = "?utm_source=facebook&utm_medium=organic_social&utm_campaign=unknown&utm_content=fb_day01"
+// Published HEGEVA campaign names must survive safe attribution filtering.\nwindow.location.search = "?utm_source=tiktok&utm_medium=organic_social&utm_campaign=hegeva_sep17_v2&utm_content=video_3"\nassert.equal(track().campaign_name, "hegeva_sep17_v2", "published TikTok campaign must be retained")\nwindow.location.search = "?utm_source=instagram&utm_medium=organic&utm_campaign=ig_launch_2026_10&utm_content=video_1"\nassert.equal(track().campaign_name, "ig_launch_2026_10", "approved Instagram launch campaign must be retained")\n\nwindow.location.search = "?utm_source=facebook&utm_medium=organic_social&utm_campaign=unknown&utm_content=fb_day01"
 assert.equal(track().campaign_name, undefined, "unapproved campaign values must still be rejected")
 assert.equal(track().campaign_content, "fb_day01", "valid content labels can be retained independently of a campaign label")
 
