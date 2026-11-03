@@ -4,8 +4,7 @@ import fs from "node:fs"
 const tracking = fs.readFileSync(new URL("../lib/conversion-tracking.ts", import.meta.url), "utf8")
 const legal = fs.readFileSync(new URL("../lib/i18n/legal-copy.ts", import.meta.url), "utf8")
 const allowed = tracking.match(/const allowed = (\{[\s\S]*?\}) as const/)?.[1]
-const campaignAttribution = tracking.match(/export function campaignAttribution\(\): Record<string, string> \{[\s\S]*?
-\}/)?.[0]
+const campaignAttribution = tracking.match(/export function campaignAttribution\(\): Record<string, string> \{[\s\S]*?\n\}/)?.[0]
 assert.ok(allowed, "campaign allowlist must exist")
 assert.ok(campaignAttribution, "campaignAttribution helper must exist")
 
