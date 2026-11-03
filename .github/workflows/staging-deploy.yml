@@ -8,7 +8,7 @@ on:
         required: true
         default: "check"
         type: choice
-        options: [check, upload-ui-version, asset-probe, metadata-probe, deploy-api, deploy-api-no-migrate, deploy-ui, smoke, full]
+        options: [check, asset-probe, metadata-probe, deploy-api, deploy-api-no-migrate, deploy-ui, smoke, full]
 
 permissions:
   contents: read
@@ -100,15 +100,6 @@ jobs:
         if: ${{ inputs.stage == 'deploy-api' || inputs.stage == 'full' }}
       - run: npm run staging:api:deploy
         if: ${{ inputs.stage == 'deploy-api' || inputs.stage == 'deploy-api-no-migrate' || inputs.stage == 'full' }}
-      - name: Upload staging UI version without activating it
-        if: ${{ inputs.stage == 'upload-ui-version' }}
-        working-directory: v0-app
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --input-type=module -e 'import fs from "node:fs"; const raw = fs.readFileSync("wrangler.staging.jsonc", "utf8"); const config = JSON.parse(raw); if (config.name !== "hegeva-ai-v3-v0-staging" || config.services?.some(s => s.service !== "hegeva-ai-v3-staging")) process.exit(1)'
-          npm run cf:build
-          npx --no-install wrangler versions upload --config wrangler.staging.jsonc --message "HEGEVA GA4 staging validation (not activated)"
       - run: npm run staging:ui:deploy
         if: ${{ inputs.stage == 'deploy-ui' || inputs.stage == 'full' }}
       - name: Smoke-test staging only
