@@ -37,6 +37,9 @@ jobs:
       - name: X20 full audit
         run: npm run x20:audit
 
+      - name: Analytics campaign and registration regression
+        run: npm run audit:acquisition && npm run audit:registration-measurement
+
       - name: TypeScript check
         run: npx tsc --noEmit
 
