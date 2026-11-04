@@ -22,16 +22,24 @@ export async function assessStagingUiVersion(account, token, version, request = 
     get("/deployments?per_page=5"),
   ])
   const exists = uploaded.status === 200 && uploaded.result?.id === version
-  const items = Array.isArray(deployments.result?.deployments)
-    ? deployments.result.deployments
-    : Array.isArray(deployments.result) ? deployments.result : []
-  const active = deployments.status === 200 && items.some(d => Array.isArray(d?.versions) && d.versions.some(v => v.version_id === version && v.percentage > 0))
+  // Cloudflare lists the CURRENT traffic-serving deployment first; older entries
+  // are history and must not be treated as active.
+  const items = deployments.result?.deployments
+  const current = Array.isArray(items) ? items[0] : null
+  const versions = current?.versions
+  const validCurrent = deployments.status === 200 && Array.isArray(versions) &&
+    versions.length > 0 && versions.every(v =>
+      UUID.test(v?.version_id || "") && Number.isFinite(v?.percentage) &&
+      v.percentage > 0 && v.percentage <= 100
+    ) && Math.abs(versions.reduce((sum, v) => sum + v.percentage, 0) - 100) < 0.000001
+  const active = validCurrent && versions.some(v => v.version_id === version)
   return {
     worker: NAME, version, versionReadStatus: uploaded.status,
     deploymentsReadStatus: deployments.status,
-    versionVerified: Boolean(exists), alreadyDeployed: Boolean(active),
-    // No activation allowed: this is a read-only assessment, not a release decision.
-    readyForReview: Boolean(exists && deployments.status === 200 && !active),
+    versionVerified: Boolean(exists), currentDeploymentVerified: Boolean(validCurrent),
+    alreadyDeployed: Boolean(active),
+    // Incomplete/malformed deployment data is NOT proof of inactivity.
+    readyForReview: Boolean(exists && validCurrent && !active),
   }
 }
 
