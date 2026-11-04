@@ -1,5 +1,6 @@
 import test from "node:test"
 import assert from "node:assert/strict"
+import fs from "node:fs"
 import { analyticsReferrerOrigin, analyticsIgnoreLegacyReferrer } from "../lib/analytics-referrer.mjs"
 
 test("keeps only the external referrer origin, excluding path, query and fragment", () => {
@@ -49,4 +50,11 @@ test("GA4 ignore_referrer only applies to the exact legacy Netlify host on produ
     assert.equal(analyticsIgnoreLegacyReferrer(other, "https://hegevaai.co.uk"), false, other)
   assert.equal(analyticsIgnoreLegacyReferrer(old, "https://staging.hegevaai.co.uk"), false)
   assert.equal(analyticsIgnoreLegacyReferrer("", "https://hegevaai.co.uk"), false)
+})
+
+test("consent-gated GA4 configuration wires legacy source exclusion without blanket disabling referrals", () => {
+  const source = fs.readFileSync(new URL("../components/analytics-consent.tsx", import.meta.url), "utf8")
+  assert.match(source, /import \{ analyticsReferrerOrigin, analyticsIgnoreLegacyReferrer \} from "@\/lib\/analytics-referrer\.mjs"/)
+  assert.match(source, /page_referrer: pageReferrer,\s*\.\.\.\(analyticsIgnoreLegacyReferrer\(document\.referrer, window\.location\.origin\) \? \{ ignore_referrer: true \} : \{\}\)/)
+  assert.doesNotMatch(source, /ignore_referrer:\s*true\s*,\s*\n\s*\.\.\.campaignAttribution/, "do not exclude all referral sources")
 })
