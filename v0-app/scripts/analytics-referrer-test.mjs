@@ -1,6 +1,6 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { analyticsReferrerOrigin } from "../lib/analytics-referrer.mjs"
+import { analyticsReferrerOrigin, analyticsIgnoreLegacyReferrer } from "../lib/analytics-referrer.mjs"
 
 test("keeps only the external referrer origin, excluding path, query and fragment", () => {
   assert.equal(
@@ -39,4 +39,14 @@ test("unrelated Netlify and social referrers remain external", () => {
 
 test("spoofed legacy hostname is not accepted as first party", () => {
   assert.equal(analyticsReferrerOrigin("https://shiny-stardust-e0dcb3.netlify.app.evil.example/", "https://hegevaai.co.uk"), "https://shiny-stardust-e0dcb3.netlify.app.evil.example/")
+})
+
+test("GA4 ignore_referrer only applies to the exact legacy Netlify host on production", () => {
+  const old = "https://shiny-stardust-e0dcb3.netlify.app/old?secret=1"
+  for (const site of ["https://hegevaai.co.uk", "https://www.hegevaai.co.uk"])
+    assert.equal(analyticsIgnoreLegacyReferrer(old, site), true)
+  for (const other of ["https://www.google.com/search", "https://m.facebook.com/hello", "https://other.netlify.app", "https://shiny-stardust-e0dcb3.netlify.app.evil.com"])
+    assert.equal(analyticsIgnoreLegacyReferrer(other, "https://hegevaai.co.uk"), false, other)
+  assert.equal(analyticsIgnoreLegacyReferrer(old, "https://staging.hegevaai.co.uk"), false)
+  assert.equal(analyticsIgnoreLegacyReferrer("", "https://hegevaai.co.uk"), false)
 })
