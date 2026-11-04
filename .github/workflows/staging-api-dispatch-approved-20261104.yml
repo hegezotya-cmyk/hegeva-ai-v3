@@ -19,7 +19,7 @@ jobs:
   dispatch-api-no-migrate:
     if: ${{ github.repository == 'hegezotya-cmyk/hegeva-ai-v3' && github.ref == 'refs/heads/audit/dependency-advisories-20261104' }}
     runs-on: ubuntu-latest
-    environment: staging
+    # Dispatcher only; actual deployment and secrets remain gated by the staging environment in staging-deploy.yml.
     timeout-minutes: 3
     steps:
       - name: Trigger existing guarded staging-only API release (no migration)
