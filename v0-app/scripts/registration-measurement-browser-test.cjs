@@ -13,6 +13,10 @@ const { chromium } = require("playwright")
       }, scenario === "no-consent" ? "denied" : "granted")
       const interceptedPaths = []
       const failedPaths = []
+      const outgoingPaths = []
+      const blockedHosts = []
+      const browserErrorTypes = []
+      const localOrigin = new URL(process.env.TEST_BASE_URL || "http://localhost:3010").origin
       await context.route("**/api/**", (route) => {
         const path = new URL(route.request().url()).pathname
         interceptedPaths.push(route.request().method() + " " + path)
@@ -24,7 +28,23 @@ const { chromium } = require("playwright")
       })
       await context.route("**/*googletagmanager.com/**", (route) => route.fulfill({ status: 200, contentType: "application/javascript", body: "" }))
       await context.route("**/*google-analytics.com/**", (route) => route.abort())
+      // Fail closed on all external hosts in the isolated fixture. The local
+      // registration page and its mocked local API are the only trusted network.
+      await context.route("**/*", async (route) => {
+        const target = new URL(route.request().url())
+        if (target.origin === localOrigin || target.protocol === "data:" || target.protocol === "blob:") return route.fallback()
+        if (/^(?:www\\.)?(?:googletagmanager\\.com|google-analytics\\.com)$/.test(target.hostname)) return route.fallback()
+        blockedHosts.push(target.hostname)
+        return route.abort("blockedbyclient")
+      })
       const page = await context.newPage()
+      page.on("pageerror", (error) => browserErrorTypes.push(error.name || "Error"))
+      page.on("request", (request) => {
+        const url = new URL(request.url())
+        if (/\\/api\\/|auth|sign-up/.test(url.pathname) || url.origin !== localOrigin) {
+          outgoingPaths.push({ host: url.hostname, method: request.method(), path: url.pathname.slice(0, 120) })
+        }
+      })
       // Record only method and URL pathname: never capture request/response bodies or email.
       page.on("requestfailed", (request) => {
         if (request.url().includes("/api/")) {
@@ -35,6 +55,12 @@ const { chromium } = require("playwright")
       await page.locator('input[autocomplete="name"]').fill("Test")
       await page.locator('input[type="email"]').fill("test@example.invalid")
       await page.locator('input[type="password"]').fill("Fixture-password-123")
+      await page.evaluate(() => {
+        window.__hegevaSubmitSeen = false
+        window.__hegevaInvalidTypes = []
+        document.addEventListener("submit", () => { window.__hegevaSubmitSeen = true }, true)
+        document.addEventListener("invalid", (event) => { window.__hegevaInvalidTypes.push(event.target.type) }, true)
+      })
       await page.locator('button[type="submit"]').click()
       try {
         await page.getByText(scenario === "rejected" ? "Authentication failed." : "Check your inbox", { exact: false }).waitFor()
@@ -43,6 +69,11 @@ const { chromium } = require("playwright")
           scenario,
           interceptedPaths,
           failedPaths,
+          outgoingPaths,
+          blockedHosts,
+          browserErrorTypes,
+          formIsValid: await page.locator("form[data-registration-active='true']").evaluate(form => form.checkValidity()),
+          formEventState: await page.evaluate(() => ({ submitSeen: window.__hegevaSubmitSeen, invalidTypes: window.__hegevaInvalidTypes })),
           registrationFormVisible: await page.locator("form[data-registration-active='true']").isVisible(),
           authFailureVisible: await page.getByText("Authentication failed.", { exact: false }).isVisible(),
           checkInboxVisible: await page.getByRole("heading", { name: "Check your inbox" }).isVisible(),
