@@ -21,6 +21,9 @@ const sql=args[args.indexOf('--command')+1];
 if(!sql.startsWith('SELECT ') || /\\b(UPDATE|INSERT|DELETE|DROP|CREATE|ALTER|REPLACE|PRAGMA)\\b/i.test(sql)) fail('Unsafe SQL');
 if(process.env.MOCK_WRANGLER_FAIL==='1') { console.error('secret customer cus_private_fixture token fixture-read-only-token'); process.exit(12); }
 if(process.env.MOCK_WRANGLER_BAD_JSON==='1') { console.log('secret customer cus_private_fixture garbage JSON'); process.exit(0); }
+if(process.env.MOCK_WRANGLER_EMPTY==='1') { console.log('[]'); process.exit(0); }
+if(process.env.MOCK_WRANGLER_MISSING_RESULTS==='1') { console.log(JSON.stringify([{success:true}])); process.exit(0); }
+if(process.env.MOCK_WRANGLER_FAILED==='1') { console.log(JSON.stringify([{success:false,results:[]}])); process.exit(0); }
 let results;
 if(sql.includes('FROM stripe_customers')) results=[{userId:'private-test-uid',stripeCustomerId:'cus_private_fixture',stripeSubscriptionId:'sub_private_fixture',subscriptionStatus:'active',updatedAt:'2026-11-04T00:00:00Z'}];
 else if(sql.includes('FROM user_plans')) results=[{userId:'private-test-uid',plan:'premium'}];
@@ -59,7 +62,15 @@ console.log(JSON.stringify([{results,success:true}]));
     CLOUDFLARE_ACCOUNT_ID:'fixture-account',MOCK_WRANGLER_BAD_JSON:'1'
   }});
   assert.notEqual(badJson.status,0,'unexpected D1 JSON must fail closed');
-  for (const attempt of [withoutToken,denied,badJson]) {
+  const malformedEnvelopes=['MOCK_WRANGLER_EMPTY','MOCK_WRANGLER_MISSING_RESULTS','MOCK_WRANGLER_FAILED'].map(flag => {
+    const attempt=spawnSync(process.execPath,[file,'--execute'],{encoding:'utf8',env:{
+      ...process.env,PATH:dir+':'+process.env.PATH,CLOUDFLARE_API_TOKEN:'fixture-read-only-token',
+      CLOUDFLARE_ACCOUNT_ID:'fixture-account',[flag]:'1'
+    }});
+    assert.notEqual(attempt.status,0,flag+' must fail closed');
+    return attempt;
+  });
+  for (const attempt of [withoutToken,denied,badJson,...malformedEnvelopes]) {
     const visible=attempt.stdout+'\n'+attempt.stderr;
     for (const raw of ['private-test-uid','cus_private_fixture','sub_private_fixture','fixture-read-only-token']) {
       assert(!visible.includes(raw),'Failed checks must not leak fixture credentials or IDs');
