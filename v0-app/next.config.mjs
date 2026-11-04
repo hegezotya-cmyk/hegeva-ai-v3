@@ -4,6 +4,9 @@ import { fileURLToPath } from "node:url"
 
 const appRoot = dirname(fileURLToPath(import.meta.url))
 const localTestEval = process.env.NODE_ENV === "development" && process.env.HEGEVA_UI_TEST === "1" ? " 'unsafe-eval'" : ""
+// Preview URLs use a workers.dev origin but call the separate staging API host.
+// Never broaden the live site's connect-src allowlist.
+const stagingApiConnectSrc = process.env.NEXT_PUBLIC_APP_ENV === "staging" ? " https://staging.hegevaai.co.uk" : ""
 
 if (process.env.NODE_ENV === "development") {
   // Browser fixtures use local routes and must never connect to the live API.
@@ -50,7 +53,7 @@ const nextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'${localTestEval} https://www.googletagmanager.com https://www.clarity.ms https://scripts.clarity.ms; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://www.google-analytics.com https://www.clarity.ms; font-src 'self' data:; connect-src 'self' https://hegevaai.co.uk https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://www.clarity.ms https://c.clarity.ms; frame-src 'self' https://checkout.stripe.com https://billing.stripe.com; upgrade-insecure-requests`,
+            value: `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'${localTestEval} https://www.googletagmanager.com https://www.clarity.ms https://scripts.clarity.ms; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://www.google-analytics.com https://www.clarity.ms; font-src 'self' data:; connect-src 'self' https://hegevaai.co.uk${stagingApiConnectSrc} https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://www.clarity.ms https://c.clarity.ms; frame-src 'self' https://checkout.stripe.com https://billing.stripe.com; upgrade-insecure-requests`,
           },
         ],
       },
