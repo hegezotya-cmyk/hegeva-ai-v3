@@ -1,0 +1,42 @@
+name: Stripe Duplicate Checkout PR Checks
+
+on:
+  pull_request:
+    branches:
+      - integration/security-growth-validation-20261104
+    paths:
+      - "src/index.js"
+      - "src/stripe-checkout-guard.js"
+      - "src/index-ledger.js"
+      - "scripts/stripe-checkout-duplicate-guard-test.mjs"
+      - "scripts/stripe-checkout-lock-sqlite-test.mjs"
+      - ".github/workflows/stripe-duplicate-guard-pr.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stripe-duplicate-checkout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install from lockfile
+        run: npm ci
+      - name: Check syntax
+        run: |
+          node --check src/index.js
+          node --check src/stripe-checkout-guard.js
+          node --check scripts/stripe-checkout-duplicate-guard-test.mjs
+          node --check scripts/stripe-checkout-lock-sqlite-test.mjs
+      - name: Duplicate guard regression
+        run: node scripts/stripe-checkout-duplicate-guard-test.mjs
+      - name: SQLite lock concurrency semantics
+        run: node scripts/stripe-checkout-lock-sqlite-test.mjs
+      - name: Existing worker checks
+        run: npm run worker:check
