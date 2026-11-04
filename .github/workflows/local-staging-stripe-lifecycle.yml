@@ -7,6 +7,8 @@ on:
       - ".github/workflows/local-staging-stripe-lifecycle.yml"
       - "scripts/stripe-test-lifecycle.mjs"
       - "scripts/stripe-test-state.sql"
+      - "scripts/local-workspace-two-tenants.sql"
+      - "scripts/local-workspace-two-tenants.mjs"
       - "src/**"
       - "migrations/**"
       - "wrangler.staging.jsonc"
@@ -52,6 +54,15 @@ jobs:
             --persist-to "$RUNNER_TEMP/hegeva-local-d1-test" \
             --command "SELECT count(*) AS migrationCount FROM d1_migrations" > "$RUNNER_TEMP/schema-count.txt"
           grep -q "migrationCount" "$RUNNER_TEMP/schema-count.txt"
+      - name: Seed synthetic verified user sessions in LOCAL D1 only
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/wrangler d1 execute hegeva-ai-staging-db \
+            --local --config wrangler.staging.jsonc \
+            --persist-to "$RUNNER_TEMP/hegeva-local-d1-test" \
+            --file scripts/local-workspace-two-tenants.sql > /dev/null
+          echo "Two synthetic verified sessions seeded locally; no remote DB writes."
       - name: Write synthetic LOCAL ONLY Worker bindings with no Stripe API key
         shell: bash
         run: |
@@ -97,6 +108,8 @@ jobs:
           grep -q '"basic"' "$RUNNER_TEMP/final-local-state.txt" || \
             grep -Eiq 'basic' "$RUNNER_TEMP/final-local-state.txt"
           echo "Final entitlement is Basic in local test D1."
+      - name: Two-tenant authenticated workspace persistence (local D1 only)
+        run: node scripts/local-workspace-two-tenants.mjs
       - name: Stop local fixture and delete ephemeral secrets
         if: always()
         shell: bash
