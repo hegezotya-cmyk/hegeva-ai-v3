@@ -48,6 +48,11 @@ jobs:
       - name: X20 runtime stability check
         run: npm run x20:stability
 
+      - name: Registration consent and billing regressions
+        run: |
+          npm run audit:registration-measurement
+          npm run audit:billing
+
       - name: TypeScript check
         run: npx tsc --noEmit
 
