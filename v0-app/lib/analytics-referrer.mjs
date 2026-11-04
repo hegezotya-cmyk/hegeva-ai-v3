@@ -3,6 +3,21 @@
 const PRODUCTION_HOSTS = new Set(["hegevaai.co.uk", "www.hegevaai.co.uk"])
 const LEGACY_FIRST_PARTY_HOSTS = new Set(["shiny-stardust-e0dcb3.netlify.app"])
 
+// GA4 treats ignore_referrer=true as a source-attribution exclusion.
+// Limit this to the exact former first-party host on the live domain.
+export function analyticsIgnoreLegacyReferrer(referrer, currentOrigin) {
+  try {
+    const source = new URL(referrer)
+    const current = new URL(currentOrigin)
+    return ["http:", "https:"].includes(source.protocol)
+      && ["http:", "https:"].includes(current.protocol)
+      && PRODUCTION_HOSTS.has(current.hostname)
+      && LEGACY_FIRST_PARTY_HOSTS.has(source.hostname)
+  } catch {
+    return false
+  }
+}
+
 export function analyticsReferrerOrigin(referrer, currentOrigin) {
   try {
     const source = new URL(referrer)
