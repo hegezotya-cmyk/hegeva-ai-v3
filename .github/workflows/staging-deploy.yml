@@ -78,7 +78,7 @@ jobs:
 
   deploy:
     needs: [verify, preflight]
-    if: ${{ inputs.stage != 'check' && inputs.stage != 'asset-probe' && inputs.stage != 'metadata-probe' }}
+    if: ${{ inputs.stage != 'check' && inputs.stage != 'asset-probe' && inputs.stage != 'metadata-probe' && inputs.stage != 'ui-deployment-read-probe' }}
     runs-on: ubuntu-latest
     environment: staging
     env:
