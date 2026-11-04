@@ -27,7 +27,7 @@ async function signIn(tenant) {
   }
   const cookies = r.headers.getSetCookie()
   const tokenCookie = cookies.map(c => c.split(";")[0])
-    .find(c => /^(?:__Secure-|__Host-)?better-auth\\.session_token=/.test(c))
+    .find(c => ["__Secure-", "__Host-", ""].some(prefix => c.startsWith(prefix + "better-auth.session_token=")))
   assert.ok(tokenCookie, "Better Auth must issue an actual signed session cookie for " + tenant)
   sessions[tenant] = tokenCookie
 }
