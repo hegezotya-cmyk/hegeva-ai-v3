@@ -28,7 +28,7 @@ jobs:
           const token = process.env.CLOUDFLARE_API_TOKEN || ""
           if (!id || !token) { console.error("Staging Cloudflare secret not configured"); process.exit(1) }
           const checks = [
-            ["token-verify", "/user/tokens/verify"],
+            ["account-token-verify", `/accounts/${id}/tokens/verify`],
             ["staging-api-service", `/accounts/${id}/workers/services/hegeva-ai-v3-staging`],
             ["staging-api-script", `/accounts/${id}/workers/scripts/hegeva-ai-v3-staging`],
             ["staging-api-deployments", `/accounts/${id}/workers/scripts/hegeva-ai-v3-staging/deployments`],
