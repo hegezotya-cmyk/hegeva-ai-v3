@@ -93,3 +93,20 @@ jobs:
           NEXT_PUBLIC_GA_MEASUREMENT_ID: G-TESTONLY
           NEXT_PUBLIC_CLARITY_PROJECT_ID: ""
         run: npm run cf:build
+
+      - name: Record offline build provenance (no upload)
+        shell: bash
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test -s .open-next/worker.js
+          bundle_sha="$(sha256sum .open-next/worker.js | cut -d ' ' -f 1)"
+          {
+            echo '### HEGEVA Cloudflare offline build provenance'
+            echo "- Pull request source commit: \`$PR_HEAD_SHA\`"
+            echo "- GitHub CI checkout commit: \`$(git rev-parse HEAD)\`"
+            echo "- Worker bundle SHA-256: \`$bundle_sha\`"
+            echo "- Worker uploaded: **no**"
+            echo "- Worker activated: **no**"
+          } >> "$GITHUB_STEP_SUMMARY"
