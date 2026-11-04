@@ -53,6 +53,12 @@ jobs:
       - name: Production build
         run: npm run build
 
+      - name: Build isolated staging analytics browser fixture
+        env:
+          NEXT_PUBLIC_APP_ENV: staging
+          NEXT_PUBLIC_GA_MEASUREMENT_ID: G-TESTONLY
+        run: npm run build
+
       - name: Install isolated browser for registration regression
         run: npx playwright install --with-deps chromium
 
