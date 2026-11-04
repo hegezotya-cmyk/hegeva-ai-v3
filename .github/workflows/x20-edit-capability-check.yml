@@ -86,3 +86,10 @@ jobs:
             exit 1
           fi
           npm run test:registration-measurement-browser
+
+      - name: Build Cloudflare OpenNext staging bundle (offline, no deploy)
+        env:
+          NEXT_PUBLIC_APP_ENV: staging
+          NEXT_PUBLIC_GA_MEASUREMENT_ID: G-TESTONLY
+          NEXT_PUBLIC_CLARITY_PROJECT_ID: ""
+        run: npm run cf:build
