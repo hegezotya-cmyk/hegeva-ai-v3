@@ -52,6 +52,7 @@ async function browserAudit(browser, label, viewport) {
 async function unauthenticatedApiAudit() {
   const checks = [
     { path: "/api/system/email-status", expected: 200, json: true },
+    { path: "/api/billing/public-status", expected: 200, json: true, billingReadiness: true },
     { path: "/api/plan/status", expected: 401 },
     { path: "/api/billing/status", expected: 401 },
     { path: "/api/workspace", expected: 401 },
@@ -66,7 +67,20 @@ async function unauthenticatedApiAudit() {
     if (check.json) {
       const ct = result.headers.get("content-type") || ""
       assert.match(ct, /application\/json/i, check.path + ": should return JSON")
-      // Never log the payload: providers may expose diagnostic details.
+      // Never log raw payloads: providers may expose diagnostic details.
+      if (check.billingReadiness) {
+        const body = await result.json()
+        const flags = {
+          testMode: body?.mode === "test",
+          stripeSelected: body?.provider === "stripe",
+          connected: body?.connected === true,
+          checkoutEnabled: body?.checkoutEnabled === true,
+          webhookConfigured: body?.webhookConfigured === true,
+        }
+        console.log("Staging billing TEST readiness flags:", JSON.stringify(flags))
+        assert.equal(Object.values(flags).every(Boolean), true,
+          "Staging billing must be in TEST mode with a configured checkout and webhook")
+      }
     }
     const location = result.headers.get("location") || ""
     assert.equal(/https:\/\/(www\.)?hegevaai\.co\.uk(?:\/|$)/i.test(location), false, "No production redirects")
