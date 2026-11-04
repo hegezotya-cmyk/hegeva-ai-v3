@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 
-const baseUrl = String(process.env.HEGEVA_TEST_BASE_URL || "").replace(/\\/$/, "")
+const baseUrl = String(process.env.HEGEVA_TEST_BASE_URL || "").replace(/[/]$/, "")
 assert(/^http:\/\/(127\.0\.0\.1|localhost):[0-9]{2,5}$/.test(baseUrl),
   "This test must be run against a LOCAL loopback Worker only")
 
