@@ -46,4 +46,15 @@ assert.match(source, /catch \(error\)/);
 assert.match(source, /reason: "network_error"/);
 assert.match(source, /status: 409/);
 
+// Guard against accidentally releasing another in-flight request's lock.
+assert.match(source, /lockId: crypto\\.randomUUID\\(\\)/);
+assert.match(source, /AND updatedAt=\\?4 AND data=\\?5/);
+assert.match(source, /data=\\?2/);
+assert.match(source, /await releaseOwnedCheckoutLock\\(\\)/);
+assert.doesNotMatch(
+  source,
+  /DELETE FROM workspace_data WHERE userId=\\?1 AND dataType='stripe_checkout_lock'"/,
+  "unconditional lock deletion can remove a newer request's lock",
+);
+
 console.log("Stripe duplicate-checkout guard test PASS");
