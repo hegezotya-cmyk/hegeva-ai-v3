@@ -149,5 +149,5 @@ jobs:
         with:
           node-version: 22
       - run: node scripts/staging-metadata-probe-test.mjs
-      - name: Read staging metadata status only
-        run: node --input-type=module -e 'import { probe } from "./scripts/staging-metadata-probe.mjs"; const result = await probe(process.env.CLOUDFLARE_ACCOUNT_ID || "", process.env.CLOUDFLARE_API_TOKEN || ""); console.log(JSON.stringify(result)); if (result.some(x => x.status !== 200)) process.exitCode = 1;'
+      - name: Verify rollback and configuration access (read-only)
+        run: node --input-type=module -e 'import { inspectStagingReadiness } from "./scripts/staging-metadata-probe.mjs"; const report = await inspectStagingReadiness(process.env.CLOUDFLARE_ACCOUNT_ID || "", process.env.CLOUDFLARE_API_TOKEN || ""); console.log(JSON.stringify(report)); if (report.result !== "STAGING_READINESS_VERIFIED") process.exitCode = 1;'
