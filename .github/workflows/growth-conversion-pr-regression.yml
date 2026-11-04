@@ -90,6 +90,11 @@ jobs:
           GROWTH_SCREENSHOT_DIR: ../output/growth-browser
         run: node scripts/growth-conversion-browser-test.cjs
 
+      - name: Verify security-owned mocked Better Auth registration (accepted/rejected/no-consent)
+        env:
+          TEST_BASE_URL: http://127.0.0.1:3017
+        run: node scripts/registration-measurement-browser-test.cjs
+
       - name: Upload local-only browser audit screenshots
         if: always()
         uses: actions/upload-artifact@v4
