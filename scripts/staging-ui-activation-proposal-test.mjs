@@ -6,6 +6,7 @@ const verified = {
   versionReadStatus: 200,
   deploymentsReadStatus: 200,
   versionVerified: true,
+  currentDeploymentVerified: true,
   alreadyDeployed: false,
   readyForReview: true,
 }
@@ -22,6 +23,7 @@ for (const change of [
   { worker: "hegeva-ai-v3-v0" },
   { version: "49752f6a-12ed-4667-82a5-cf1f8e83d2d2" },
   { versionVerified: false },
+  { currentDeploymentVerified: false },
   { versionReadStatus: 403 },
   { deploymentsReadStatus: 403 },
   { alreadyDeployed: true },
