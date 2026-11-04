@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Inventory Worker and UI npm advisories (no dependency changes)
+        run: node ../scripts/dependency-security-report.mjs
+
       - name: X20 capability audit
         run: npm run x20:capability
 
