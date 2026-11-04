@@ -43,6 +43,9 @@ jobs:
       - name: Stripe billing and payment journey safety audits
         run: npm run audit:billing && npm run audit:money-journey
 
+      - name: Staging UI deployment permission probe safety test (offline)
+        run: node ../scripts/staging-ui-deployment-read-probe-test.mjs
+
       - name: TypeScript check
         run: npx tsc --noEmit
 
