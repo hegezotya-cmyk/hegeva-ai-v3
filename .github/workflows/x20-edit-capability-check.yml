@@ -6,6 +6,7 @@ on:
       - v0-rebuild
     paths:
       - 'v0-app/**'
+      - 'scripts/staging-ui-*.mjs'
       - '.github/workflows/x20-edit-capability-check.yml'
 
 permissions:
