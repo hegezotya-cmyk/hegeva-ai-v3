@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
+import { inspectStagingReadiness } from "./staging-metadata-probe.mjs"
 
 const config = readFileSync(new URL("../wrangler.staging.jsonc", import.meta.url), "utf8")
 const required = [
@@ -17,4 +18,14 @@ assert.doesNotMatch(config, /"PAYMENT_MODE": "live"/)
 assert.doesNotMatch(config, /hegeva-ai-db/gi)
 assert.doesNotMatch(config, /"PUBLIC_APP_URL": "https:\/\/hegevaai\.co\.uk"/)
 for (const [label, pattern] of required) assert.match(config, pattern, `Missing ${label}`)
+const readiness = await inspectStagingReadiness(
+  process.env.CLOUDFLARE_ACCOUNT_ID,
+  process.env.CLOUDFLARE_API_TOKEN,
+)
+console.log(JSON.stringify(readiness))
+assert.equal(
+  readiness.result,
+  "STAGING_READINESS_VERIFIED",
+  "Staging deployment blocked: read-only rollback or configuration access verification failed",
+)
 console.log("Staging deployment preflight passed")
