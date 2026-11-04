@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 import { analyticsPageLocation, campaignAttribution, captureReferralAttribution, clearReferralAttribution, PUBLIC_ANALYTICS_PATHS } from "@/lib/conversion-tracking"
 import { analyticsReferrerOrigin } from "@/lib/analytics-referrer.mjs"
+import { analyticsCollectionAllowed } from "@/lib/analytics-host-policy.mjs"
 import { useI18n } from "@/lib/i18n/provider"
 
 const IS_STAGING = process.env.NEXT_PUBLIC_APP_ENV === "staging"
@@ -47,7 +48,7 @@ function queueConsentDefault() {
 }
 
 function enableAnalytics(pageReferrer = analyticsReferrerOrigin(document.referrer, window.location.origin)) {
-  if (!MEASUREMENT_ID) return
+  if (!MEASUREMENT_ID || !analyticsCollectionAllowed(window.location.hostname, IS_STAGING)) return
   queueConsentDefault()
   window.gtag?.("consent", "update", { analytics_storage: "granted" })
   window.gtag?.("js", new Date())
@@ -106,7 +107,7 @@ export function AnalyticsConsent() {
 
   useEffect(() => {
     const receive = (event: Event) => {
-      if (consent !== "granted" || !window.gtag) return
+      if (consent !== "granted" || !window.gtag || !analyticsCollectionAllowed(window.location.hostname, IS_STAGING)) return
       const detail = (event as CustomEvent<{ event?: string; path?: string; params?: Record<string, string | number | boolean> }>).detail
       if (!detail || !["landing_page_view", "registration_start", "registration_submitted", "registration_completed", "email_verified", "get_started_entry", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click", "challenge_view", "challenge_start", "business_type_selected", "demo_loaded", "demo_analysis_complete", "priority_viewed", "prepare_action_click", "prepared_action_complete", "challenge_complete", "business_score_view", "try_my_business_click", "own_business_start", "own_business_result", "share_click", "free_tool_use", "free_tool_cta_click", "referral_visit", "referral_signup", "referral_link_copy", "referral_paid_qualified", "referral_reward_reviewed"].includes(detail.event || "")) return
       const activationPaths = ["/get-started", "/business/launch", "/business/customers", "/business/invoices", "/command-center", "/pricing", "/account", "/demo", "/challenge"]
@@ -126,7 +127,7 @@ export function AnalyticsConsent() {
   }, [consent])
 
   useEffect(() => {
-    if (consent !== "granted") return
+    if (consent !== "granted" || !analyticsCollectionAllowed(window.location.hostname, IS_STAGING)) return
     // Keep the standard GA4 page_view in the same consented lifecycle that emits
     // the proven acquisition events. This avoids a first-consent effect race.
     const pageReferrer = firstPageReferrerSent.current
