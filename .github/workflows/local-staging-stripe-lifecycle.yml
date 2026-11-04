@@ -9,6 +9,7 @@ on:
       - "scripts/stripe-test-state.sql"
       - "scripts/local-workspace-two-tenants.sql"
       - "scripts/local-workspace-two-tenants.mjs"
+      - "scripts/local-auth-credential-seed.mjs"
       - "src/**"
       - "migrations/**"
       - "wrangler.staging.jsonc"
@@ -63,6 +64,18 @@ jobs:
             --persist-to "$RUNNER_TEMP/hegeva-local-d1-test" \
             --file scripts/local-workspace-two-tenants.sql > /dev/null
           echo "Two synthetic verified sessions seeded locally; no remote DB writes."
+      - name: Seed real Better Auth password hashes in LOCAL D1 only
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HEGEVA_LOCAL_ACCOUNT_SEED_SQL="$RUNNER_TEMP/hegeva-local-auth-seed.sql"
+          node scripts/local-auth-credential-seed.mjs
+          ./node_modules/.bin/wrangler d1 execute hegeva-ai-staging-db \
+            --local --config wrangler.staging.jsonc \
+            --persist-to "$RUNNER_TEMP/hegeva-local-d1-test" \
+            --file "$HEGEVA_LOCAL_ACCOUNT_SEED_SQL" > /dev/null
+          rm -f "$HEGEVA_LOCAL_ACCOUNT_SEED_SQL"
+          echo "Better Auth fixture password hashes stored only in disposable local D1."
       - name: Write synthetic LOCAL ONLY Worker bindings with no Stripe API key
         shell: bash
         run: |
