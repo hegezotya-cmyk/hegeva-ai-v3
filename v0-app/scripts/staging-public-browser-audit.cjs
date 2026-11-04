@@ -43,6 +43,26 @@ async function browserAudit(browser, label, viewport) {
     assert.deepEqual(browserErrors, [], label + ": uncaught browser runtime error")
     const fits = await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)
     assert.equal(fits, true, label + ": horizontal viewport overflow")
+
+    for (const routePath of [
+      "/email-verification?error=TOKEN_EXPIRED",
+      "/email-verification?error=INVALID_TOKEN",
+      "/reset-password",
+    ]) {
+      const landing = await page.goto(STAGING + routePath, { waitUntil: "domcontentloaded", timeout: 30000 })
+      assert.equal(landing?.status(), 200, label + ": expected HTTP 200 at " + routePath)
+      assert.equal(new URL(page.url()).origin, STAGING, label + ": unexpected cross-origin redirect at " + routePath)
+      const heading = page.locator("h1").first()
+      await heading.waitFor({state: "visible", timeout: 30000})
+      assert.ok((await heading.innerText()).trim().length > 0, label + ": missing accessible heading at " + routePath)
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+        true, label + ": viewport overflow at " + routePath)
+    }
+    assert.deepEqual(unexpectedProductionHosts, [], label + ": auth recovery UI attempted production-domain call")
+    assert.deepEqual(deniedWrites, [], label + ": auth recovery UI attempted an unsolicited write")
+    assert.deepEqual(browserErrors, [], label + ": auth recovery UI has uncaught runtime errors")
+    console.log("PASS " + label + " verification error and reset-password UI routes (no token, no email)")
+
     console.log("PASS " + label + " staging registration renders with no writes or production HEGEVA requests")
   } finally {
     await context.close()
@@ -51,7 +71,7 @@ async function browserAudit(browser, label, viewport) {
 
 async function unauthenticatedApiAudit() {
   const checks = [
-    { path: "/api/system/email-status", expected: 200, json: true },
+    { path: "/api/system/email-status", expected: 200, json: true, emailReadiness: true },
     { path: "/api/billing/public-status", expected: 200, json: true, billingReadiness: true },
     { path: "/api/plan/status", expected: 401 },
     { path: "/api/billing/status", expected: 401 },
@@ -68,6 +88,12 @@ async function unauthenticatedApiAudit() {
       const ct = result.headers.get("content-type") || ""
       assert.match(ct, /application\/json/i, check.path + ": should return JSON")
       // Never log raw payloads: providers may expose diagnostic details.
+      if (check.emailReadiness) {
+        const email = await result.json()
+        assert.equal(email?.passwordRecovery, true,
+          "Staging email recovery/verification provider key must be provisioned")
+        console.log("PASS real staging email provider configured (presence only; delivery not proven)")
+      }
       if (check.billingReadiness) {
         const body = await result.json()
         const flags = {
