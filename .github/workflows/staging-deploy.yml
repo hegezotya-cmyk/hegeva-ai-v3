@@ -40,6 +40,7 @@ jobs:
       - run: npm ci
       - run: npm --prefix v0-app ci
       - run: node scripts/staging-isolation-audit.mjs
+      - run: node scripts/staging-ui-check-policy-test.mjs
       - run: node scripts/staging-no-migrate-gate-test.mjs
       - run: node scripts/staging-topup-config-test.mjs
       - run: node scripts/staging-smoke-gate-test.mjs
