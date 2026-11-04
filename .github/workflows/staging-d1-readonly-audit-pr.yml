@@ -6,6 +6,7 @@ on:
       - integration/security-growth-validation-20261104
     paths:
       - "scripts/stripe-staging-d1-readonly-audit.mjs"
+      - "scripts/stripe-staging-d1-readonly-audit-mock-test.mjs"
       - ".github/workflows/staging-d1-readonly-audit-pr.yml"
   workflow_dispatch:
 
@@ -23,6 +24,8 @@ jobs:
           node-version: "22"
       - name: Syntax check
         run: node --check scripts/stripe-staging-d1-readonly-audit.mjs
+      - name: Mock staging Wrangler SELECT and redaction
+        run: node scripts/stripe-staging-d1-readonly-audit-mock-test.mjs
       - name: Verify default dry-run does not query D1
         shell: bash
         env:
