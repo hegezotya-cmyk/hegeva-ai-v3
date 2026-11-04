@@ -8,6 +8,7 @@ export function prepareStagingUiDeploymentProposal(assessment) {
   if (!assessment || assessment.worker !== WORKER || assessment.version !== VERSION ||
       !UUID.test(assessment.version) || assessment.versionReadStatus !== 200 ||
       assessment.deploymentsReadStatus !== 200 || assessment.versionVerified !== true ||
+      assessment.currentDeploymentVerified !== true ||
       assessment.alreadyDeployed !== false || assessment.readyForReview !== true) {
     throw new Error("Refusing unverified or non-staging deployment proposal")
   }
