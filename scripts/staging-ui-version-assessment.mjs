@@ -51,5 +51,5 @@ if (isCli) {
     process.env.HEGEVA_STAGING_VERSION_ID || "",
   )
   console.log(JSON.stringify(result))
-  if (!result.versionVerified || result.deploymentsReadStatus !== 200) process.exitCode = 1
+  if (!result.versionVerified || result.deploymentsReadStatus !== 200 || !result.currentDeploymentVerified) process.exitCode = 1
 }
