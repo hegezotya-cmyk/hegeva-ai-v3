@@ -32,6 +32,9 @@ jobs:
           set -euo pipefail
           npm update --package-lock-only --ignore-scripts --no-fund --no-audit
           npm --prefix v0-app update --package-lock-only --ignore-scripts --no-fund --no-audit
+          # Reconcile generated lockfiles with the dependency graph before npm ci validation.
+          npm install --ignore-scripts --no-fund --no-audit
+          npm --prefix v0-app install --ignore-scripts --no-fund --no-audit
       - name: Retain lockfiles for review even if subsequent tests fail
         uses: actions/upload-artifact@v4
         with:
@@ -55,7 +58,7 @@ jobs:
           npm --prefix v0-app run audit:billing
           npm --prefix v0-app run audit:registration-measurement
       - name: TypeScript check
-        run: npm --prefix v0-app exec -- tsc --noEmit -p v0-app/tsconfig.json
+        run: cd v0-app && npx tsc --noEmit
       - name: Next.js build
         run: npm --prefix v0-app run build
       - name: Cloudflare build (offline only)
