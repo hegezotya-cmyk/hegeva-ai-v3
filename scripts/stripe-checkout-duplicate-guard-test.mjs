@@ -51,7 +51,10 @@ assert.ok(source.includes("lockId: crypto.randomUUID()"));
 assert.ok(source.includes("AND updatedAt=?4 AND data=?5"));
 assert.ok(source.includes("dataType='stripe_checkout_lock' AND data=?2"));
 assert.ok(source.includes("await releaseOwnedCheckoutLock()"));
-assert.ok(!source.includes("dataType='stripe_checkout_lock'\").bind(String(user.id)).run()"),
-  "unconditional deletion could remove a newer request's lock");
+assert.equal(
+  (source.match(/DELETE FROM workspace_data WHERE userId/g) || []).length,
+  1,
+  "only one owned-lock cleanup query should exist",
+);
 
 console.log("Stripe duplicate-checkout guard test PASS");
