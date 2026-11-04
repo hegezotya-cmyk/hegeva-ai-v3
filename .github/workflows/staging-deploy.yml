@@ -24,10 +24,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Safe branch-level validation: no staging secrets or deployment environment access.
   verify:
     if: ${{ inputs.stage != 'asset-probe' && inputs.stage != 'metadata-probe' && inputs.stage != 'ui-deployment-read-probe' && inputs.stage != 'ui-version-read-probe' }}
     runs-on: ubuntu-latest
-    environment: staging
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -62,7 +62,9 @@ jobs:
         working-directory: v0-app
 
   preflight:
-    if: ${{ inputs.stage != 'asset-probe' && inputs.stage != 'metadata-probe' && inputs.stage != 'ui-deployment-read-probe' && inputs.stage != 'ui-version-read-probe' }}
+    # Keep staging-environment protection on every operation that needs credentials.
+    # The 'check' operation is offline and must not request staging secrets.
+    if: ${{ inputs.stage != 'check' && inputs.stage != 'asset-probe' && inputs.stage != 'metadata-probe' && inputs.stage != 'ui-deployment-read-probe' && inputs.stage != 'ui-version-read-probe' }}
     needs: verify
     runs-on: ubuntu-latest
     environment: staging
