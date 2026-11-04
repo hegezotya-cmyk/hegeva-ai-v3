@@ -21,6 +21,12 @@ jobs:
     name: Growth GA4 privacy, CTA, billing & isolated browser
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # Instrument an isolated localhost UI as staging with a deliberately fake GA4 ID.
+    # All external browser requests and /api/* calls are intercepted below.
+    # The production GA4 ID must never receive local test events.
+    env:
+      NEXT_PUBLIC_APP_ENV: staging
+      NEXT_PUBLIC_GA_MEASUREMENT_ID: G-TEST0000000
     defaults:
       run:
         working-directory: v0-app
