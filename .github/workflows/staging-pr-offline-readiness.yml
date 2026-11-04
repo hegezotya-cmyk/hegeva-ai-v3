@@ -1,0 +1,85 @@
+name: HEGEVA Staging Offline Readiness
+
+on:
+  pull_request:
+    branches:
+      - v0-rebuild
+    paths:
+      - ".github/workflows/staging-pr-offline-readiness.yml"
+      - ".github/workflows/staging-deploy.yml"
+      - "src/**"
+      - "scripts/**"
+      - "v0-app/**"
+      - "wrangler.staging.jsonc"
+      - "package-lock.json"
+
+permissions:
+  contents: read
+
+jobs:
+  offline-verify:
+    # This job never accesses staging environment secrets, Cloudflare or Stripe,
+    # and must not bypass the protected staging deployment workflow.
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_PUBLIC_APP_ENV: staging
+      NEXT_PUBLIC_GA_MEASUREMENT_ID: ""
+      NEXT_PUBLIC_GA_DEBUG_MODE: enabled
+      NEXT_PUBLIC_CLARITY_PROJECT_ID: ""
+    steps:
+      - name: Checkout exact PR candidate
+        uses: actions/checkout@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            v0-app/package-lock.json
+      - name: Install exact Worker dependencies
+        run: npm ci
+      - name: Install exact UI dependencies
+        run: npm --prefix v0-app ci
+      - name: Block critical and high production advisories
+        run: |
+          npm audit --package-lock-only --omit=dev --audit-level=high
+          npm --prefix v0-app audit --package-lock-only --omit=dev --audit-level=high
+      - name: Check staging isolation, no-migration and smoke gates
+        run: |
+          node scripts/staging-isolation-audit.mjs
+          node scripts/staging-no-migrate-gate-test.mjs
+          node scripts/staging-topup-config-test.mjs
+          node scripts/staging-smoke-gate-test.mjs
+      - name: Check portal privacy and service binding safeguards
+        run: |
+          node v0-app/scripts/client-portal-log-protection-test.mjs
+          node v0-app/scripts/client-portal-service-binding-test.mjs
+          node scripts/client-portal-revocation-test.mjs
+      - name: Verify Worker and credit settlement contracts
+        run: |
+          npm run worker:check
+          node --test v0-app/scripts/assistant-responses-api-test.mjs
+          node v0-app/scripts/assistant-economics-v1-audit.mjs
+          node v0-app/scripts/assistant-dual-model-cost-boundary-audit.mjs
+      - name: Check first-party auth, registration and billing regressions
+        working-directory: v0-app
+        run: |
+          node scripts/staging-auth-origin-test.cjs
+          npm run audit:registration-measurement
+          npm run audit:billing
+      - name: TypeScript check
+        working-directory: v0-app
+        run: npx tsc --noEmit
+      - name: Next.js staging build (offline only)
+        working-directory: v0-app
+        run: npm run build
+      - name: Cloudflare OpenNext staging build (offline only)
+        working-directory: v0-app
+        run: npm run cf:build
+      - name: Record non-deployment result
+        if: ${{ success() }}
+        run: |
+          echo "Offline staging readiness PASS on commit $GITHUB_SHA."
+          echo "No staging secrets, Cloudflare deploy, D1 migration, or Stripe charges were used."

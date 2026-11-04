@@ -14,5 +14,7 @@ function origin(env, window) {
 }
 assert.equal(origin('staging', {location: {origin: 'https://staging.hegevaai.co.uk'}}), 'https://staging.hegevaai.co.uk')
 assert.equal(origin('staging'), 'https://staging.hegevaai.co.uk')
+assert.equal(origin('staging', {location: {origin: 'http://127.0.0.1:3010'}}), 'http://127.0.0.1:3010', 'isolated browser fixtures stay local')
+assert.equal(origin('production', {location: {origin: 'https://www.hegevaai.co.uk'}}), 'https://www.hegevaai.co.uk', 'first-party aliases stay same-origin')
 assert.equal(origin('production', {location: {origin: 'https://hegevaai.co.uk'}}), 'https://hegevaai.co.uk')
 console.log('Staging and production auth origins verified')

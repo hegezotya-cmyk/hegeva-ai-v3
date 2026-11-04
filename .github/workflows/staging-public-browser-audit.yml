@@ -1,0 +1,36 @@
+name: HEGEVA Real Staging Read-Only Browser Audit
+
+on:
+  pull_request:
+    branches: [v0-rebuild]
+    paths:
+      - ".github/workflows/staging-public-browser-audit.yml"
+      - "v0-app/scripts/staging-public-browser-audit.cjs"
+
+permissions:
+  contents: read
+
+jobs:
+  read-only-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HEGEVA_BROWSER_TARGET: https://staging.hegevaai.co.uk
+    steps:
+      - name: Checkout PR candidate
+        uses: actions/checkout@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+      - name: Install dependencies without modifying lockfile
+        run: npm ci
+        working-directory: v0-app
+      - name: Install isolated headless Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: v0-app
+      - name: Read-only API/auth guards and mobile + desktop registration UI
+        run: node scripts/staging-public-browser-audit.cjs
+        working-directory: v0-app
