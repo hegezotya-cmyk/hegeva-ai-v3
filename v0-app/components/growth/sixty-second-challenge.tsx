@@ -423,7 +423,7 @@ export function SixtySecondChallenge() {
               <section className="mt-8 rounded-3xl border border-primary/30 bg-primary/[.05] p-6 text-center sm:p-8">
                 <h2 className="font-display text-3xl font-semibold sm:text-4xl">{c.finalTitle}</h2>
                 <p className="mt-3 text-muted-foreground">{c.finalBody}</p>
-                <Link href="/login?mode=register&callbackURL=%2Fget-started" onClick={tryMyBusiness} className="hegeva-primary mt-6 inline-flex min-h-12 items-center gap-2 rounded-xl px-6 text-sm font-bold">
+                <Link href="/login?mode=register&callbackURL=%2Fget-started" data-acquisition-event="primary_cta_click" data-acquisition-cta="challenge_signup" onClick={tryMyBusiness} className="hegeva-primary mt-6 inline-flex min-h-12 items-center gap-2 rounded-xl px-6 text-sm font-bold">
                   {c.tryMine}<ArrowRight className="size-4" aria-hidden />
                 </Link>
                 <p className="mt-3 text-xs text-muted-foreground">{c.signupTrust}</p>

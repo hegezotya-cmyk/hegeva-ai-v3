@@ -1,7 +1,11 @@
 import type { Metadata } from "next"
 
-export const metadata: Metadata = { robots: { index: false, follow: false } }
+export const metadata: Metadata = {
+  title: "Set up your business workspace",
+  alternates: { canonical: "/get-started" },
+  robots: { index: false, follow: false },
+}
 
-export default function GetStartedLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function GetStartedLayout({ children }: { children: React.ReactNode }) {
   return children
 }

@@ -2,8 +2,8 @@
 const allowed = {
   utm_source: ["facebook", "instagram", "tiktok", "linkedin", "reddit", "youtube", "snapchat", "chatgpt", "share", "cold_email", "directory", "referral"],
   utm_medium: ["social", "paid_social", "organic_social", "organic", "referral", "email"],
-  utm_campaign: ["less_admin", "grow_business", "hegeva_launch", "hegeva_growth_2026", "electricians_sep26", "plumbers_sep26", "property_maintenance_sep26", "builders_sep26", "roofers_sep26", "hegeva_8day_oct2026"],
-  utm_content: ["video_1", "video_2", "video_3", "text_post_1", "challenge_share", "v2_challenge", "v2_consultants", "v2_free_tools", "v2_electricians", "v2_builders", "v2_plumbers", "v2_cleaners", "v2_property", "initial", "followup_1", "followup_2", "fb_day01", "ig_day01", "fb_day02", "ig_day02", "fb_day03", "ig_day03", "fb_day04", "ig_day04", "fb_day05", "ig_day05", "fb_day06", "ig_day06", "fb_day07", "ig_day07", "fb_day08", "ig_day08"],
+  utm_campaign: ["less_admin", "grow_business", "hegeva_launch", "hegeva_growth_2026", "electricians_sep26", "plumbers_sep26", "property_maintenance_sep26", "builders_sep26", "roofers_sep26", "hegeva_8day_oct2026", "hegeva_sep17_v2", "ig_launch_2026_10", "uk_trades_nov26"],
+  utm_content: ["video_1", "video_2", "video_3", "text_post_1", "challenge_share", "v2_challenge", "v2_consultants", "v2_free_tools", "v2_electricians", "v2_builders", "v2_plumbers", "v2_cleaners", "v2_property", "initial", "followup_1", "followup_2", "fb_day01", "ig_day01", "fb_day02", "ig_day02", "fb_day03", "ig_day03", "fb_day04", "ig_day04", "fb_day05", "ig_day05", "fb_day06", "ig_day06", "fb_day07", "ig_day07", "fb_day08", "ig_day08", "bio", "quote_followup", "priorities", "plumber_quote", "electrician_invoice", "cleaner_followup", "property_jobs"],
 } as const
 const campaignKey = "hegeva:campaign:v1"
 const referralKey = "hegeva:referral:v1"

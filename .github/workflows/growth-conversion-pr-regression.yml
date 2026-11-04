@@ -1,0 +1,107 @@
+name: HEGEVA Growth Conversion PR Regression
+
+on:
+  pull_request:
+    branches:
+      - v0-rebuild
+    paths:
+      - 'v0-app/**'
+      - '.github/workflows/growth-conversion-pr-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: growth-conversion-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  growth-local-only:
+    name: Growth GA4 privacy, CTA, billing & isolated browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Instrument an isolated localhost UI as staging with a deliberately fake GA4 ID.
+    # All external browser requests and /api/* calls are intercepted below.
+    # The production GA4 ID must never receive local test events.
+    env:
+      NEXT_PUBLIC_APP_ENV: staging
+      NEXT_PUBLIC_GA_MEASUREMENT_ID: G-TEST0000000
+    defaults:
+      run:
+        working-directory: v0-app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Verify GA4 consent, attribution, referrer and privacy constraints
+        run: |
+          npm run audit:registration-measurement
+          npm run audit:acquisition
+          node scripts/analytics-consent-privacy-audit.mjs
+          node scripts/analytics-event-params-test.mjs
+          node scripts/analytics-host-policy-test.mjs
+          node scripts/analytics-referrer-test.mjs
+          node scripts/auth-origin-test.mjs
+
+      - name: Verify billing and mobile audit guards (no Stripe calls)
+        run: |
+          npm run audit:billing
+          npm run audit:money-journey
+          npm run audit:ui-mobile
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Build isolated Next.js UI
+        run: npm run build
+
+      - name: Install isolated Chromium test browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Start local-only preview server
+        run: |
+          nohup npm run start -- --hostname 127.0.0.1 -p 3017 > /tmp/hegeva-growth-next.log 2>&1 &
+          echo $! > /tmp/hegeva-growth-next.pid
+          for i in $(seq 1 90); do
+            if curl --silent --fail --output /dev/null http://127.0.0.1:3017/tt; then
+              echo "Local server is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/hegeva-growth-next.log
+          exit 1
+
+      - name: Check consented Challenge-to-register path at 390px and 1440px
+        env:
+          TEST_BASE_URL: http://127.0.0.1:3017
+          GROWTH_SCREENSHOT_DIR: ../output/growth-browser
+        run: node scripts/growth-conversion-browser-test.cjs
+
+      - name: Upload local-only browser audit screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: growth-browser-screenshots
+          path: output/growth-browser/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Shut down local server
+        if: always()
+        run: |
+          if test -f /tmp/hegeva-growth-next.pid; then
+            kill "$(cat /tmp/hegeva-growth-next.pid)" || true
+          fi
