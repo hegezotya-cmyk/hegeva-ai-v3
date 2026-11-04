@@ -76,6 +76,8 @@ const { chromium } = require("playwright")
           formEventState: await page.evaluate(() => ({ submitSeen: window.__hegevaSubmitSeen, invalidTypes: window.__hegevaInvalidTypes })),
           registrationFormVisible: await page.locator("form[data-registration-active='true']").isVisible(),
           authFailureVisible: await page.getByText("Authentication failed.", { exact: false }).isVisible(),
+          authUnavailableVisible: await page.getByText("Authentication is temporarily unavailable.", { exact: false }).isVisible(),
+          visibleVerificationRequired: await page.getByText("Verify your email address before signing in.", { exact: false }).isVisible(),
           checkInboxVisible: await page.getByRole("heading", { name: "Check your inbox" }).isVisible(),
           submitDisabled: await page.locator('button[type="submit"]').isDisabled(),
         }
