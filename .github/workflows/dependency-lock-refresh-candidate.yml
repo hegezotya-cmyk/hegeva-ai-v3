@@ -1,0 +1,62 @@
+name: HEGEVA Safe Dependency Lock Refresh Candidate
+
+on:
+  push:
+    branches:
+      - audit/dependency-advisories-20261104
+    paths:
+      - '.github/workflows/dependency-lock-refresh-candidate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  refresh-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout isolated security branch
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            v0-app/package-lock.json
+      - name: Resolve compatible lockfile upgrades (no scripts, no deploy)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm update --package-lock-only --ignore-scripts --no-fund --no-audit
+          npm --prefix v0-app update --package-lock-only --ignore-scripts --no-fund --no-audit
+      - name: Retain lockfiles for review even if subsequent tests fail
+        uses: actions/upload-artifact@v4
+        with:
+          name: hegeva-candidate-lockfiles
+          retention-days: 7
+          path: |
+            package-lock.json
+            v0-app/package-lock.json
+      - name: Install exact candidate dependencies
+        run: |
+          npm ci
+          npm --prefix v0-app ci
+      - name: Inventory residual advisories
+        run: node scripts/dependency-security-report.mjs
+      - name: Worker and authentication checks
+        run: npm run worker:check
+      - name: Staging isolation checks
+        run: node scripts/staging-isolation-audit.mjs
+      - name: Billing and registration regression checks
+        run: |
+          npm --prefix v0-app run audit:billing
+          npm --prefix v0-app run audit:registration-measurement
+      - name: TypeScript check
+        run: npm --prefix v0-app exec -- tsc --noEmit -p v0-app/tsconfig.json
+      - name: Next.js build
+        run: npm --prefix v0-app run build
+      - name: Cloudflare build (offline only)
+        run: npm --prefix v0-app run cf:build
