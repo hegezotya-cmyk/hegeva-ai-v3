@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 import { analyticsPageLocation, campaignAttribution, captureReferralAttribution, clearReferralAttribution, PUBLIC_ANALYTICS_PATHS } from "@/lib/conversion-tracking"
-import { analyticsReferrerOrigin } from "@/lib/analytics-referrer.mjs"
+import { analyticsReferrerOrigin, analyticsIgnoreLegacyReferrer } from "@/lib/analytics-referrer.mjs"
 import { analyticsCollectionAllowed } from "@/lib/analytics-host-policy.mjs"
 import { useI18n } from "@/lib/i18n/provider"
 
@@ -57,6 +57,7 @@ function enableAnalytics(pageReferrer = analyticsReferrerOrigin(document.referre
     page_location: analyticsPageLocation(window.location.pathname),
     page_title: "HEGEVA AI",
     page_referrer: pageReferrer,
+    ...(analyticsIgnoreLegacyReferrer(document.referrer, window.location.origin) ? { ignore_referrer: true } : {}),
     ...campaignAttribution(),
     anonymize_ip: true,
     allow_google_signals: false,
