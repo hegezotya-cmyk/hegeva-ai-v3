@@ -31,8 +31,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Worker lockfile exactly
+        working-directory: .
+        run: npm ci
+
       - name: Inventory Worker and UI npm advisories (no dependency changes)
         run: node ../scripts/dependency-security-report.mjs
+
+      - name: Block high or critical production npm advisories
+        run: |
+          npm --prefix .. audit --package-lock-only --omit=dev --audit-level=high
+          npm audit --package-lock-only --omit=dev --audit-level=high
+
+      - name: Registration and billing regression checks
+        run: |
+          npm run audit:registration-measurement
+          npm run audit:billing
 
       - name: X20 capability audit
         run: npm run x20:capability
