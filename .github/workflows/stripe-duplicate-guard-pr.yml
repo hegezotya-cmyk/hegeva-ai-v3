@@ -37,6 +37,6 @@ jobs:
       - name: Duplicate guard regression
         run: node scripts/stripe-checkout-duplicate-guard-test.mjs
       - name: SQLite lock concurrency semantics
-        run: node --disable-warning=ExperimentalWarning scripts/stripe-checkout-lock-sqlite-test.mjs
+        run: node scripts/stripe-checkout-lock-sqlite-test.mjs
       - name: Existing worker checks
         run: npm run worker:check
