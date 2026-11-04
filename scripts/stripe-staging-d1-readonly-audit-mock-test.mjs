@@ -19,6 +19,8 @@ for(const flag of ['--remote','--config','--json','--command']) if(!args.include
 if(args[args.indexOf('--config')+1]!=='wrangler.staging.jsonc') fail('Incorrect config');
 const sql=args[args.indexOf('--command')+1];
 if(!sql.startsWith('SELECT ') || /\\b(UPDATE|INSERT|DELETE|DROP|CREATE|ALTER|REPLACE|PRAGMA)\\b/i.test(sql)) fail('Unsafe SQL');
+if(process.env.MOCK_WRANGLER_FAIL==='1') { console.error('secret customer cus_private_fixture token fixture-read-only-token'); process.exit(12); }
+if(process.env.MOCK_WRANGLER_BAD_JSON==='1') { console.log('secret customer cus_private_fixture garbage JSON'); process.exit(0); }
 let results;
 if(sql.includes('FROM stripe_customers')) results=[{userId:'private-test-uid',stripeCustomerId:'cus_private_fixture',stripeSubscriptionId:'sub_private_fixture',subscriptionStatus:'active',updatedAt:'2026-11-04T00:00:00Z'}];
 else if(sql.includes('FROM user_plans')) results=[{userId:'private-test-uid',plan:'premium'}];
@@ -42,6 +44,26 @@ console.log(JSON.stringify([{results,success:true}]));
   assert.equal(data.users[0].appliedWebhookCount,1);
   for (const raw of ['private-test-uid','cus_private_fixture','sub_private_fixture','fixture-read-only-token']) {
     assert(!result.stdout.includes(raw),'No raw IDs or token may appear');
+  }
+  const withoutToken=spawnSync(process.execPath,[file,'--execute'],{encoding:'utf8',env:{
+    ...process.env,PATH:dir+':'+process.env.PATH,CLOUDFLARE_API_TOKEN:'',CLOUDFLARE_ACCOUNT_ID:''
+  }});
+  assert.notEqual(withoutToken.status,0,'--execute must fail without scoped credentials');
+  const denied=spawnSync(process.execPath,[file,'--execute'],{encoding:'utf8',env:{
+    ...process.env,PATH:dir+':'+process.env.PATH,CLOUDFLARE_API_TOKEN:'fixture-read-only-token',
+    CLOUDFLARE_ACCOUNT_ID:'fixture-account',MOCK_WRANGLER_FAIL:'1'
+  }});
+  assert.notEqual(denied.status,0,'failed D1 query must fail closed');
+  const badJson=spawnSync(process.execPath,[file,'--execute'],{encoding:'utf8',env:{
+    ...process.env,PATH:dir+':'+process.env.PATH,CLOUDFLARE_API_TOKEN:'fixture-read-only-token',
+    CLOUDFLARE_ACCOUNT_ID:'fixture-account',MOCK_WRANGLER_BAD_JSON:'1'
+  }});
+  assert.notEqual(badJson.status,0,'unexpected D1 JSON must fail closed');
+  for (const attempt of [withoutToken,denied,badJson]) {
+    const visible=attempt.stdout+'\n'+attempt.stderr;
+    for (const raw of ['private-test-uid','cus_private_fixture','sub_private_fixture','fixture-read-only-token']) {
+      assert(!visible.includes(raw),'Failed checks must not leak fixture credentials or IDs');
+    }
   }
   console.log('Mocked Wrangler staging D1 audit PASS');
 } finally {rmSync(dir,{force:true,recursive:true});}
