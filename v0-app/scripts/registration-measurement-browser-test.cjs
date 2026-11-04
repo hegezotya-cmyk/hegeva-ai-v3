@@ -84,6 +84,8 @@ const { chromium } = require("playwright")
         console.error("Registration browser sanitized diagnostic:", JSON.stringify(state))
         throw error
       }
+      assert.ok(interceptedPaths.some((entry) => entry.includes("POST ") && entry.endsWith("/sign-up/email")), "registration must hit the isolated local API fixture")
+      assert.equal(outgoingPaths.some(({ host }) => ["hegevaai.co.uk", "www.hegevaai.co.uk", "staging.hegevaai.co.uk"].includes(host)), false, "browser must not contact any production or staging HEGEVA host")
       const events = await page.evaluate(() => (window.dataLayer || []).filter((item) => item[0] === "event" && item[1] === "registration_submitted").map((item) => Array.from(item)))
       assert.equal(events.length, scenario === "accepted" ? 1 : 0, scenario)
       assert.equal(JSON.stringify(events).includes("test@example.invalid"), false, "analytics must not contain the email")
