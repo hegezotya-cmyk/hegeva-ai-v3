@@ -10,6 +10,7 @@ export const metadata: Metadata = {
     title: "HEGEVA 60-Second Business Challenge",
     description: "Give HEGEVA 60 seconds and see what a small business could be missing.",
     url: "/challenge",
+    images: [{ url: "/hegeva-social-card.webp", width: 1200, height: 630, alt: "HEGEVA AI fictional business demo" }],
     type: "website",
   },
 }

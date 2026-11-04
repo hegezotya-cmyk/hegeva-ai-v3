@@ -19,7 +19,7 @@ export default function LoginPage() {
   const { data: session, isPending } = authClient.useSession()
   const c = AUTH_COPY[locale]
   const features = {
-    en:["Better Auth session security","Cloudflare D1 account data","Protected AI endpoints","Password recovery checks live email availability"],
+    en:["Customers and follow-ups in one place","Quotes and invoices in your workspace","Start with Free Basic — no card required","Verify your email, then add your first customer"],
     hu:["Biztonságos Better Auth munkamenet","Cloudflare D1 fiókadatok","Védett AI-végpontok","A jelszó-visszaállítás ellenőrzi az élő email-elérhetőséget"],
     de:["Sichere Better-Auth-Sitzungen","Cloudflare-D1-Kontodaten","Geschützte KI-Endpunkte","Passwort-Wiederherstellung prüft die Live-E-Mail-Verfügbarkeit"],
     fr:["Sessions Better Auth sécurisées","Données de compte Cloudflare D1","Points d’accès IA protégés","La récupération du mot de passe vérifie la disponibilité réelle des e-mails"],
@@ -33,17 +33,17 @@ export default function LoginPage() {
   }, [isPending, router, session?.user])
 
   return (
-    <AppShell>
-      <main className="mx-auto grid min-h-[70vh] max-w-5xl gap-10 px-6 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+    <AppShell workspaceNavigation={false}>
+      <main className="mx-auto grid min-h-[70vh] max-w-5xl gap-6 px-6 py-8 lg:gap-10 lg:py-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
         <section>
           <p className="mb-3 text-sm font-medium text-primary">HEGEVA AI</p>
-          <h1 className="max-w-2xl text-4xl font-bold tracking-tight sm:text-5xl">
+          <h1 className="max-w-2xl text-3xl font-bold tracking-tight sm:text-5xl">
             {c.title}
           </h1>
           <p className="mt-4 max-w-xl text-muted-foreground">
             {c.subtitle}
           </p>
-          <div className="mt-8 grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
+          <div className="mt-8 hidden gap-3 text-sm text-muted-foreground lg:grid lg:grid-cols-2">
             {features.map((feature)=><div key={feature} className="glass-panel rounded-xl p-4">{feature}</div>)}
           </div>
         </section>

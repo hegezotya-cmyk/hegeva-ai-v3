@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
 
 export default function CampaignRedirect() {
-  redirect("/?utm_source=tiktok&utm_medium=organic&utm_campaign=hegeva_growth_2026")
+  redirect("/challenge?utm_source=tiktok&utm_medium=organic_social&utm_campaign=uk_trades_nov26&utm_content=bio")
 }

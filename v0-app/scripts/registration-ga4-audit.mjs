@@ -2,6 +2,8 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import { execFileSync } from "node:child_process"
 import ts from "typescript"
+import { safeAnalyticsParams } from "../lib/analytics-event-params.mjs"
+import { analyticsCollectionAllowed } from "../lib/analytics-host-policy.mjs"
 
 const read = (name) => fs.readFileSync(new URL(`../${name}`, import.meta.url), "utf8")
 const auth = read("components/auth/auth-panel.tsx")
@@ -20,8 +22,8 @@ for (const consent of [null, "denied", "granted"]) {
   const calls = []
   const values = new Map(consent ? [["hegeva:analytics-consent:v1", consent]] : [])
   const storage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) }
-  const window = { gtag: (...args) => calls.push(args) }
-  const receive = new Function("window", "consent", "sent", "PUBLIC_ANALYTICS_PATHS", "analyticsPageLocation", "currentPageReferrer", "campaignAttribution", "ANALYTICS_DEBUG_MODE", `${compile(receiver)}; return receive`)(window, consent, { current: new Set() }, ["/login"], (path) => `https://hegevaai.co.uk${path}`, { current: "" }, () => ({}), false)
+  const window = { location: { hostname: "hegevaai.co.uk" }, gtag: (...args) => calls.push(args) }
+  const receive = new Function("window", "consent", "sent", "PUBLIC_ANALYTICS_PATHS", "analyticsPageLocation", "currentPageReferrer", "campaignAttribution", "ANALYTICS_DEBUG_MODE", "analyticsCollectionAllowed", "IS_STAGING", "safeAnalyticsParams", `${compile(receiver)}; return receive`)(window, consent, { current: new Set() }, ["/login"], (path) => `https://hegevaai.co.uk${path}`, { current: "" }, () => ({}), false, analyticsCollectionAllowed, false, safeAnalyticsParams)
   window.dispatchEvent = (event) => receive(event)
   class CustomEvent { constructor(type, options) { this.type = type; this.detail = options.detail } }
   const track = new Function("window", "localStorage", "sessionStorage", "CustomEvent", `${compile(tracker.replace("export function", "function"))}; return trackRegistrationSubmitted`)(window, storage, storage, CustomEvent)
