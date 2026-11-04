@@ -6,6 +6,8 @@ on:
       - audit/dependency-advisories-20261104
     paths:
       - '.github/workflows/dependency-lock-refresh-candidate.yml'
+      - 'v0-app/wrangler.jsonc'
+      - 'v0-app/wrangler.staging.jsonc'
   workflow_dispatch:
 
 permissions:
