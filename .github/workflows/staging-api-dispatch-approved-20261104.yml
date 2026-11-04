@@ -1,0 +1,37 @@
+name: HEGEVA Approved Staging-Only API Dispatch 2026-11-04
+
+on:
+  push:
+    branches:
+      - audit/dependency-advisories-20261104
+    paths:
+      - ".github/workflows/staging-api-dispatch-approved-20261104.yml"
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: hegeva-staging-api-dispatch-approved-20261104
+  cancel-in-progress: false
+
+jobs:
+  dispatch-api-no-migrate:
+    if: ${{ github.repository == 'hegezotya-cmyk/hegeva-ai-v3' && github.ref == 'refs/heads/audit/dependency-advisories-20261104' }}
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 3
+    steps:
+      - name: Trigger existing guarded staging-only API release (no migration)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN"
+          # All deployment, secret and route guards live in staging-deploy.yml.
+          # Dispatch only the no-migration stage, never deploy-api or full.
+          curl --fail --silent --show-error --retry 2             -X POST             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             -H "X-GitHub-Api-Version: 2022-11-28"             "https://api.github.com/repos/hegezotya-cmyk/hegeva-ai-v3/actions/workflows/staging-deploy.yml/dispatches"             -d '{"ref":"audit/dependency-advisories-20261104","inputs":{"stage":"deploy-api-no-migrate"}}'
+          echo "Dispatched staging API no-migrate check on branch audit/dependency-advisories-20261104."
+          echo "Source sha: $SOURCE_SHA"
