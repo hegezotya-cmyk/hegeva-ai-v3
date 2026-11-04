@@ -45,7 +45,7 @@ jobs:
         run: npm run audit:billing && npm run audit:money-journey
 
       - name: Staging UI deployment permission probe safety test (offline)
-        run: node ../scripts/staging-ui-deployment-read-probe-test.mjs && node ../scripts/staging-ui-version-assessment-test.mjs && node ../scripts/staging-ui-activation-proposal-test.mjs
+        run: node ../scripts/staging-ui-deployment-read-probe-test.mjs && node ../scripts/staging-ui-version-assessment-test.mjs && node ../scripts/staging-ui-activation-proposal-test.mjs && node ../scripts/staging-ui-live-proposal-test.mjs
 
       - name: TypeScript check
         run: npx tsc --noEmit
