@@ -1251,7 +1251,7 @@ async function createStripeCheckoutSession(
   }
 
   const checkoutLockNow = new Date().toISOString();
-  const lockData = JSON.stringify({ plan, createdAt: checkoutLockNow });
+  const lockData = JSON.stringify({ plan, createdAt: checkoutLockNow, lockId: crypto.randomUUID() });
   const existingLock = await env.DB.prepare(`
     SELECT data, updatedAt FROM workspace_data
     WHERE userId = ?1 AND dataType = 'stripe_checkout_lock' LIMIT 1
@@ -1264,7 +1264,7 @@ async function createStripeCheckoutSession(
     };
   }
   const lockResult = existingLock
-    ? await env.DB.prepare(`UPDATE workspace_data SET data=?1, updatedAt=?2 WHERE userId=?3 AND dataType='stripe_checkout_lock' AND updatedAt=?4`).bind(lockData, checkoutLockNow, String(user.id), existingLock.updatedAt).run()
+    ? await env.DB.prepare(`UPDATE workspace_data SET data=?1, updatedAt=?2 WHERE userId=?3 AND dataType='stripe_checkout_lock' AND updatedAt=?4 AND data=?5`).bind(lockData, checkoutLockNow, String(user.id), existingLock.updatedAt, existingLock.data).run()
     : await env.DB.prepare(`INSERT INTO workspace_data (id,userId,dataType,data,createdAt,updatedAt) VALUES (?1,?2,'stripe_checkout_lock',?3,?4,?4) ON CONFLICT(userId,dataType) DO NOTHING`).bind(crypto.randomUUID(), String(user.id), lockData, checkoutLockNow).run();
   if (!lockResult?.meta?.changes) {
     return {
@@ -1273,6 +1273,14 @@ async function createStripeCheckoutSession(
       error: "A Stripe checkout is already in progress for this account."
     };
   }
+
+  // Release only the lock acquired by this request. A stale request must never
+  // delete a replacement lock acquired by a later Checkout request.
+  const releaseOwnedCheckoutLock = async () => {
+    await env.DB.prepare(
+      "DELETE FROM workspace_data WHERE userId=?1 AND dataType='stripe_checkout_lock' AND data=?2"
+    ).bind(String(user.id), lockData).run();
+  };
 
   if (existingCustomer?.stripeCustomerId) {
     form.set(
@@ -1334,7 +1342,7 @@ async function createStripeCheckoutSession(
       }
     );
   } catch (error) {
-    await env.DB.prepare("DELETE FROM workspace_data WHERE userId=?1 AND dataType='stripe_checkout_lock'").bind(String(user.id)).run();
+    await releaseOwnedCheckoutLock();
     console.error("HEGEVA_PROVIDER_FAILURE", { provider: "stripe", operation: "checkout", reason: "network_error" });
     return { ok: false, status: 502, error: "Stripe test checkout could not be created." };
   }
@@ -1347,7 +1355,7 @@ async function createStripeCheckoutSession(
   } catch {}
 
   if (!response.ok) {
-    await env.DB.prepare("DELETE FROM workspace_data WHERE userId=?1 AND dataType='stripe_checkout_lock'").bind(String(user.id)).run();
+    await releaseOwnedCheckoutLock();
     console.error("HEGEVA_PROVIDER_FAILURE", {
       provider: "stripe",
       operation: "checkout",
@@ -1371,7 +1379,7 @@ async function createStripeCheckoutSession(
     !data?.id ||
     !data?.url
   ) {
-    await env.DB.prepare("DELETE FROM workspace_data WHERE userId=?1 AND dataType='stripe_checkout_lock'").bind(String(user.id)).run();
+    await releaseOwnedCheckoutLock();
     return {
       ok: false,
 
