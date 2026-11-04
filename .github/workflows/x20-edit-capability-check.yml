@@ -60,5 +60,43 @@ jobs:
       - name: Production build
         run: npm run build
 
+      - name: Build staging analytics browser fixture
+        env:
+          NEXT_PUBLIC_APP_ENV: staging
+          NEXT_PUBLIC_GA_MEASUREMENT_ID: G-TESTONLY
+        run: npm run build
+
+      - name: Install isolated Chromium test browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify registration behavior with mocked API
+        shell: bash
+        env:
+          NEXT_PUBLIC_APP_ENV: staging
+          NEXT_PUBLIC_GA_MEASUREMENT_ID: G-TESTONLY
+          TEST_BASE_URL: http://127.0.0.1:3010
+        run: |
+          set -euo pipefail
+          PORT=3010 npm run start -- --hostname 127.0.0.1 > /tmp/hegeva-registration-browser.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for i in {1..40}; do
+            if curl -fsS 'http://127.0.0.1:3010/login?mode=register' > /dev/null; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then
+            tail -80 /tmp/hegeva-registration-browser.log
+            exit 1
+          fi
+          npm run test:registration-measurement-browser
+
       - name: Cloudflare OpenNext build (offline only)
+        env:
+          NEXT_PUBLIC_APP_ENV: staging
+          NEXT_PUBLIC_GA_MEASUREMENT_ID: G-TESTONLY
+          NEXT_PUBLIC_CLARITY_PROJECT_ID: ""
         run: npm run cf:build
