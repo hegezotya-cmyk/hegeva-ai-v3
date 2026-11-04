@@ -14,6 +14,7 @@ const mock = async (url, options) => {
 const a = await assessStagingUiVersion(account, "secret", id, mock)
 assert.equal(a.versionVerified, true)
 assert.equal(a.readyForReview, true)
+assert.equal(a.currentDeploymentVerified, true)
 assert.equal(a.alreadyDeployed, false)
 assert.equal(calls.length, 2)
 assert.ok(calls.every(c => c.options.method === "GET" && c.options.redirect === "error"))
@@ -29,6 +30,35 @@ const active = await assessStagingUiVersion(account, "secret", id, async (url) =
 }))
 assert.equal(active.alreadyDeployed, true)
 assert.equal(active.readyForReview, false)
+
+// An older historical deployment must not be confused with the active version.
+const historical = await assessStagingUiVersion(account, "secret", id, async (url) => ({
+  status: 200, async json() {
+    return url.endsWith("/versions/" + id)
+      ? { success: true, result: { id } }
+      : { success: true, result: { deployments: [
+          { versions: [{ version_id: "49752f6a-12ed-4667-82a5-cf1f8e83d2d2", percentage: 100 }] },
+          { versions: [{ version_id: id, percentage: 100 }] },
+        ] } }
+  },
+}))
+assert.equal(historical.currentDeploymentVerified, true)
+assert.equal(historical.alreadyDeployed, false)
+assert.equal(historical.readyForReview, true)
+
+// Absent or malformed current deployment cannot authorize a proposal.
+for (const deployments of [[], [{ versions: [] }], [{ versions: [{ version_id: id, percentage: 50 }] }]]) {
+  const uncertain = await assessStagingUiVersion(account, "secret", id, async (url) => ({
+    status: 200, async json() {
+      return url.endsWith("/versions/" + id)
+        ? { success: true, result: { id } }
+        : { success: true, result: { deployments } }
+    },
+  }))
+  assert.equal(uncertain.currentDeploymentVerified, false)
+  assert.equal(uncertain.readyForReview, false)
+}
+
 const forbidden = await assessStagingUiVersion(account, "secret", id, async () => ({ status: 403 }))
 assert.equal(forbidden.readyForReview, false)
 assert.equal(forbidden.versionVerified, false)
