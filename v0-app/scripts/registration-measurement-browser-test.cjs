@@ -11,6 +11,10 @@ const { chromium } = require("playwright")
         localStorage.setItem("hegeva:analytics-consent:v1", consent)
         localStorage.setItem("hegeva.locale", "en")
       }, scenario === "no-consent" ? "denied" : "granted")
+      await context.route("**/*", route => {
+        const url = new URL(route.request().url())
+        return ["localhost", "127.0.0.1"].includes(url.hostname) ? route.continue() : route.abort()
+      })
       await context.route("**/api/**", (route) => {
         const path = new URL(route.request().url()).pathname
         if (path.endsWith("/sign-up/email")) {
@@ -22,6 +26,7 @@ const { chromium } = require("playwright")
       await context.route("**/*googletagmanager.com/**", (route) => route.fulfill({ status: 200, contentType: "application/javascript", body: "" }))
       await context.route("**/*google-analytics.com/**", (route) => route.abort())
       const page = await context.newPage()
+      page.on("console", msg => { if (msg.type() === "error") console.log("browser error:", msg.text().slice(0,500)) })
       await page.goto((process.env.TEST_BASE_URL || "http://localhost:3010") + "/login?mode=register")
       await page.locator('input[autocomplete="name"]').fill("Test")
       await page.locator('input[type="email"]').fill("test@example.invalid")

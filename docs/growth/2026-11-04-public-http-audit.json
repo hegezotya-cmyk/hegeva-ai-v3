@@ -1,0 +1,190 @@
+[
+  {
+    "requested": "https://hegevaai.co.uk/",
+    "url": "https://hegevaai.co.uk/",
+    "status": 200,
+    "title": [
+      "HEGEVA AI \u2014 Less admin. More business."
+    ],
+    "canonical": [
+      "<link rel=\"canonical\" href=\"https://hegevaai.co.uk\"/>"
+    ],
+    "robots": [
+      "<meta name=\"robots\" content=\"index, follow\"/>"
+    ],
+    "og": [
+      "<meta property=\"og:title\" content=\"HEGEVA AI \u2014 Less admin. More business.\"/>",
+      "<meta property=\"og:description\" content=\"One workspace for customers, invoices and today&#x27;s priorities. Stay in control with HEGEVA Core.\"/>",
+      "<meta property=\"og:url\" content=\"https://hegevaai.co.uk\"/>",
+      "<meta property=\"og:site_name\" content=\"HEGEVA AI\"/>",
+      "<meta property=\"og:image\" content=\"https://hegevaai.co.uk/hegeva-social-card.webp\"/>",
+      "<meta property=\"og:image:width\" content=\"1200\"/>",
+      "<meta property=\"og:image:height\" content=\"630\"/>",
+      "<meta property=\"og:image:alt\" content=\"HEGEVA AI business workspace\"/>",
+      "<meta property=\"og:type\" content=\"website\"/>"
+    ],
+    "text": null
+  },
+  {
+    "requested": "https://hegevaai.co.uk/challenge",
+    "url": "https://hegevaai.co.uk/challenge",
+    "status": 200,
+    "title": [
+      "60-Second Business Challenge | HEGEVA AI"
+    ],
+    "canonical": [
+      "<link rel=\"canonical\" href=\"https://hegevaai.co.uk/challenge\"/>"
+    ],
+    "robots": [
+      "<meta name=\"robots\" content=\"index, follow\"/>"
+    ],
+    "og": [
+      "<meta property=\"og:title\" content=\"HEGEVA 60-Second Business Challenge\"/>",
+      "<meta property=\"og:description\" content=\"Give HEGEVA 60 seconds and see what a small business could be missing.\"/>",
+      "<meta property=\"og:url\" content=\"https://hegevaai.co.uk/challenge\"/>",
+      "<meta property=\"og:type\" content=\"website\"/>"
+    ],
+    "text": null
+  },
+  {
+    "requested": "https://hegevaai.co.uk/pricing",
+    "url": "https://hegevaai.co.uk/pricing",
+    "status": 200,
+    "title": [
+      "HEGEVA AI \u2014 AI Business Workspace"
+    ],
+    "canonical": [
+      "<link rel=\"canonical\" href=\"https://hegevaai.co.uk\"/>"
+    ],
+    "robots": [
+      "<meta name=\"robots\" content=\"index, follow\"/>"
+    ],
+    "og": [
+      "<meta property=\"og:title\" content=\"HEGEVA AI \u2014 AI Business Workspace\"/>",
+      "<meta property=\"og:description\" content=\"Practical AI and connected tools for freelancers and small businesses.\"/>",
+      "<meta property=\"og:url\" content=\"https://hegevaai.co.uk\"/>",
+      "<meta property=\"og:site_name\" content=\"HEGEVA AI\"/>",
+      "<meta property=\"og:image\" content=\"https://hegevaai.co.uk/hegeva-social-card.webp\"/>",
+      "<meta property=\"og:image:width\" content=\"1200\"/>",
+      "<meta property=\"og:image:height\" content=\"630\"/>",
+      "<meta property=\"og:image:alt\" content=\"HEGEVA AI business workspace\"/>",
+      "<meta property=\"og:type\" content=\"website\"/>"
+    ],
+    "text": null
+  },
+  {
+    "requested": "https://hegevaai.co.uk/login?mode=register",
+    "url": "https://hegevaai.co.uk/login?mode=register",
+    "status": 200,
+    "title": [
+      "HEGEVA AI \u2014 AI Business Workspace"
+    ],
+    "canonical": [
+      "<link rel=\"canonical\" href=\"https://hegevaai.co.uk\"/>"
+    ],
+    "robots": [
+      "<meta name=\"robots\" content=\"noindex, nofollow\"/>"
+    ],
+    "og": [
+      "<meta property=\"og:title\" content=\"HEGEVA AI \u2014 AI Business Workspace\"/>",
+      "<meta property=\"og:description\" content=\"Practical AI and connected tools for freelancers and small businesses.\"/>",
+      "<meta property=\"og:url\" content=\"https://hegevaai.co.uk\"/>",
+      "<meta property=\"og:site_name\" content=\"HEGEVA AI\"/>",
+      "<meta property=\"og:image\" content=\"https://hegevaai.co.uk/hegeva-social-card.webp\"/>",
+      "<meta property=\"og:image:width\" content=\"1200\"/>",
+      "<meta property=\"og:image:height\" content=\"630\"/>",
+      "<meta property=\"og:image:alt\" content=\"HEGEVA AI business workspace\"/>",
+      "<meta property=\"og:type\" content=\"website\"/>"
+    ],
+    "text": null
+  },
+  {
+    "requested": "https://hegevaai.co.uk/get-started",
+    "url": "https://hegevaai.co.uk/get-started",
+    "status": 200,
+    "title": [
+      "HEGEVA AI \u2014 AI Business Workspace"
+    ],
+    "canonical": [
+      "<link rel=\"canonical\" href=\"https://hegevaai.co.uk\"/>"
+    ],
+    "robots": [
+      "<meta name=\"robots\" content=\"noindex, nofollow\"/>"
+    ],
+    "og": [
+      "<meta property=\"og:title\" content=\"HEGEVA AI \u2014 AI Business Workspace\"/>",
+      "<meta property=\"og:description\" content=\"Practical AI and connected tools for freelancers and small businesses.\"/>",
+      "<meta property=\"og:url\" content=\"https://hegevaai.co.uk\"/>",
+      "<meta property=\"og:site_name\" content=\"HEGEVA AI\"/>",
+      "<meta property=\"og:image\" content=\"https://hegevaai.co.uk/hegeva-social-card.webp\"/>",
+      "<meta property=\"og:image:width\" content=\"1200\"/>",
+      "<meta property=\"og:image:height\" content=\"630\"/>",
+      "<meta property=\"og:image:alt\" content=\"HEGEVA AI business workspace\"/>",
+      "<meta property=\"og:type\" content=\"website\"/>"
+    ],
+    "text": null
+  },
+  {
+    "requested": "https://hegevaai.co.uk/robots.txt",
+    "url": "https://hegevaai.co.uk/robots.txt",
+    "status": 200,
+    "title": [],
+    "canonical": [],
+    "robots": [],
+    "og": [],
+    "text": "# As a condition of accessing this website, you agree to abide by the following\n# content signals:\n\n# (a)  If a Content-Signal = yes, you may collect content for the corresponding\n#      use.\n# (b)  If a Content-Signal = no, you may not collect content for the\n#      corresponding use.\n# (c)  If the website operator does not include a Content-Signal for a\n#      corresponding use, the website operator neither grants nor restricts\n#      permission via Content-Signal with respect to the corresponding use.\n\n# The content signals and their meanings are:\n\n# search:   building a search index and providing search results (e.g., returning\n#           hyperlinks and short excerpts from your website's contents). Search does not\n#           include providing AI-generated search summaries.\n# ai-input: inputting content into one or more AI models (e.g., retrieval\n#           augmented generation, grounding, or other real-time taking of content for\n#           generative AI search answers).\n# ai-train: training or fine-tuning AI models.\n# use:      how AI systems may consume the content (immediate, reference, or full).\n\n# ANY RESTRICTIONS EXPRESSED VIA CONTENT SIGNALS ARE EXPRESS RESERVATIONS OF\n# RIGHTS UNDER ARTICLE 4 OF THE EUROPEAN UNION DIRECTIVE 2019/790 ON COPYRIGHT\n# AND RELATED RIGHTS IN THE DIGITAL SINGLE MARKET.\n\n# BEGIN Cloudflare Managed content\n\n\nUser-agent: *\nContent-Signal: search=yes,ai-train=no,use=reference\nAllow: /\n\n# Training crawlers\nUser-agent: Amazonbot\nDisallow: /\n\nUser-agent: Applebot-Extended\nDisallow: /\n\nUser-agent: Bytespider\nDisallow: /\n\nUser-agent: CCBot\nDisallow: /\n\nUser-agent: ClaudeBot\nDisallow: /\n\nUser-agent: Diffbot\nDisallow: /\n\nUser-agent: Google-Extended\nDisallow: /\n\nUser-agent: GPTBot\nDisallow: /\n\nUser-agent: omgili\nDisallow: /\n\nUser-agent: anthropic-ai\nDisallow: /\n\nUser-agent: Claude-Web\nDisallow: /\n\nUser-agent: cohere-ai\nDisallow: /\n\nUser-agent: MistralAI-Training\nDisallow: /\n\nUser-agent: meta-externalagent\nDisallow: /\n\nUser-agent: GoogleOther\nDisallow: /\n\nUser-agent: Baiduspider\nDisallow: /\n\nUser-agent: PetalBot\nDisallow: /\n\nUser-agent: AwarioSmartBot\nUser-agent: AwarioRssBot\nDisallow: /\n\nUser-agent: Google-CloudVertexBot\nDisallow: /\n\nUser-agent: QualifiedBot\nDisallow: /\n\nUser-agent: Cotoyogi\nDisallow: /\n\nUser-agent: ICC-Crawler\nDisallow: /\n\nUser-agent: atlassian-bot\nDisallow: /\n\nUser-agent: FishBot\nDisallow: /\n\nUser-agent: BorderxBot\nDisallow: /\n\nUser-agent: NavuBot\nDisallow: /\n\nUser-agent: SemrushBot-SWA\nDisallow: /\n\nUser-agent: WARDBot\nDisallow: /\n\nUser-agent: magpie-crawler\nDisallow: /\n\nUser-agent: KimiBot\nDisallow: /\n\nUser-agent: CitibotSiteCrawler\nDisallow: /\n\n# END Cloudflare Managed Content\n\nUser-Agent: *\nAllow: /\nDisallow: /api/\nDisallow: /reset-password\nDisallow: /login\nDisallow: /get-started\nDisallow: /account\nDisallow: /assistant\nDisallow: /command-center\nDisallow: /business\nDisallow: /app-studio\nDisallow: /admin\nDisallow: /bots\nDisallow: /enterprise\n\nHost: https://hegevaai.co.uk\nSitemap: https://hegevaai.co.uk/sitemap.xml\n"
+  },
+  {
+    "requested": "https://hegevaai.co.uk/sitemap.xml",
+    "url": "https://hegevaai.co.uk/sitemap.xml",
+    "status": 200,
+    "title": [],
+    "canonical": [],
+    "robots": [],
+    "og": [],
+    "text": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n<url>\n<loc>https://hegevaai.co.uk</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>weekly</changefreq>\n<priority>1</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/challenge</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.9</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/ai-for-small-business</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.7</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/ai-business-assistant</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.7</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/quote-and-invoice-software</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.7</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/ai-for-trades</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.7</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/ai-for-electricians</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.7</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/for-electricians</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.7</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/for-builders</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.7</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/for-plumbers</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.7</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/for-cleaners</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.7</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/for-property-maintenance</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.7</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/for-consultants</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.7</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/free-tools</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.7</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/pricing</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.8</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/enterprise</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.7</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/contact</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.8</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/privacy</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.5</priority>\n</url>\n<url>\n<loc>https://hegevaai.co.uk/terms</loc>\n<lastmod>2026-11-04T19:34:07.368Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.5</priority>\n</url>\n</urlset>\n"
+  },
+  {
+    "requested": "https://staging.hegevaai.co.uk/",
+    "url": "https://staging.hegevaai.co.uk/",
+    "status": 200,
+    "title": [
+      "HEGEVA AI \u2014 Less admin. More business."
+    ],
+    "canonical": [
+      "<link rel=\"canonical\" href=\"https://hegevaai.co.uk\"/>"
+    ],
+    "robots": [
+      "<meta name=\"robots\" content=\"index, follow\"/>"
+    ],
+    "og": [
+      "<meta property=\"og:title\" content=\"HEGEVA AI \u2014 Less admin. More business.\"/>",
+      "<meta property=\"og:description\" content=\"One workspace for customers, invoices and today&#x27;s priorities. Stay in control with HEGEVA Core.\"/>",
+      "<meta property=\"og:url\" content=\"https://hegevaai.co.uk\"/>",
+      "<meta property=\"og:site_name\" content=\"HEGEVA AI\"/>",
+      "<meta property=\"og:image\" content=\"https://hegevaai.co.uk/hegeva-social-card.webp\"/>",
+      "<meta property=\"og:image:width\" content=\"1200\"/>",
+      "<meta property=\"og:image:height\" content=\"630\"/>",
+      "<meta property=\"og:image:alt\" content=\"HEGEVA AI business workspace\"/>",
+      "<meta property=\"og:type\" content=\"website\"/>"
+    ],
+    "text": null
+  },
+  {
+    "requested": "https://shiny-stardust-e0dcb3.netlify.app/",
+    "url": "https://shiny-stardust-e0dcb3.netlify.app/",
+    "status": 200,
+    "title": [
+      "Less admin. More business. | HEGEVA AI"
+    ],
+    "canonical": [],
+    "robots": [],
+    "og": [
+      "<meta property=\"og:type\" content=\"website\">",
+      "<meta property=\"og:title\" content=\"Less admin. More business. | HEGEVA AI\">",
+      "<meta property=\"og:description\" content=\"See how HEGEVA brings customers, quotes, invoices and next steps into one clear workspace. Try the free 60-second demo.\">",
+      "<meta property=\"og:image\" content=\"https://hegevaai.co.uk/hegeva-logo-gold-official.png\">"
+    ],
+    "text": null
+  }
+]
