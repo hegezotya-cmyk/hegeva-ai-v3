@@ -32,6 +32,7 @@ import { BUSINESS_SCORE_METHODOLOGY, deriveBusinessScoreShare, hashBusinessScore
 import { createReferralCode, revokeReferralCode, recordReferralTouch, attributeReferral, listReferralAttributions } from "./referral-attribution.js";
 import { reconcileReferralRewardForUser, listReferralRewardReviews, listReferralRewardSummary, reviewReferralReward } from "./referral-reward-review.js";
 import { PLAN_LIMITS, resolveAssistantPlan } from "./assistant-plan.js";
+import { checkoutLockIsFresh, hasActiveStripeSubscription } from "./stripe-checkout-guard.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -1233,13 +1234,45 @@ async function createStripeCheckoutSession(
   const existingCustomer =
     await env.DB
       .prepare(`
-        SELECT stripeCustomerId
+        SELECT stripeCustomerId, subscriptionStatus
         FROM stripe_customers
         WHERE userId = ?1
         LIMIT 1
       `)
       .bind(String(user.id))
       .first();
+
+  if (hasActiveStripeSubscription(existingCustomer)) {
+    return {
+      ok: false,
+      status: 409,
+      error: "An active Stripe subscription already exists for this account."
+    };
+  }
+
+  const checkoutLockNow = new Date().toISOString();
+  const lockData = JSON.stringify({ plan, createdAt: checkoutLockNow });
+  const existingLock = await env.DB.prepare(`
+    SELECT data, updatedAt FROM workspace_data
+    WHERE userId = ?1 AND dataType = 'stripe_checkout_lock' LIMIT 1
+  `).bind(String(user.id)).first();
+  if (existingLock && checkoutLockIsFresh(existingLock)) {
+    return {
+      ok: false,
+      status: 409,
+      error: "A Stripe checkout is already in progress for this account."
+    };
+  }
+  const lockResult = existingLock
+    ? await env.DB.prepare(`UPDATE workspace_data SET data=?1, updatedAt=?2 WHERE userId=?3 AND dataType='stripe_checkout_lock' AND updatedAt=?4`).bind(lockData, checkoutLockNow, String(user.id), existingLock.updatedAt).run()
+    : await env.DB.prepare(`INSERT INTO workspace_data (id,userId,dataType,data,createdAt,updatedAt) VALUES (?1,?2,'stripe_checkout_lock',?3,?4,?4) ON CONFLICT(userId,dataType) DO NOTHING`).bind(crypto.randomUUID(), String(user.id), lockData, checkoutLockNow).run();
+  if (!lockResult?.meta?.changes) {
+    return {
+      ok: false,
+      status: 409,
+      error: "A Stripe checkout is already in progress for this account."
+    };
+  }
 
   if (existingCustomer?.stripeCustomerId) {
     form.set(
@@ -1287,25 +1320,24 @@ async function createStripeCheckoutSession(
     plan
   );
 
-  const response =
-    await fetch(
+  let response;
+  try {
+    response = await fetch(
       "https://api.stripe.com/v1/checkout/sessions",
       {
-        method:
-          "POST",
-
+        method: "POST",
         headers: {
-          Authorization:
-            `Bearer ${secretKey}`,
-
-          "Content-Type":
-            "application/x-www-form-urlencoded"
+          Authorization: `Bearer ${secretKey}`,
+          "Content-Type": "application/x-www-form-urlencoded"
         },
-
-        body:
-          form.toString()
+        body: form.toString()
       }
     );
+  } catch (error) {
+    await env.DB.prepare("DELETE FROM workspace_data WHERE userId=?1 AND dataType='stripe_checkout_lock'").bind(String(user.id)).run();
+    console.error("HEGEVA_PROVIDER_FAILURE", { provider: "stripe", operation: "checkout", reason: "network_error" });
+    return { ok: false, status: 502, error: "Stripe test checkout could not be created." };
+  }
 
   let data = null;
 
@@ -1315,6 +1347,7 @@ async function createStripeCheckoutSession(
   } catch {}
 
   if (!response.ok) {
+    await env.DB.prepare("DELETE FROM workspace_data WHERE userId=?1 AND dataType='stripe_checkout_lock'").bind(String(user.id)).run();
     console.error("HEGEVA_PROVIDER_FAILURE", {
       provider: "stripe",
       operation: "checkout",
@@ -1338,6 +1371,7 @@ async function createStripeCheckoutSession(
     !data?.id ||
     !data?.url
   ) {
+    await env.DB.prepare("DELETE FROM workspace_data WHERE userId=?1 AND dataType='stripe_checkout_lock'").bind(String(user.id)).run();
     return {
       ok: false,
 
