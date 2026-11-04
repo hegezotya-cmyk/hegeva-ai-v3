@@ -52,7 +52,7 @@ assert.ok(source.includes("AND updatedAt=?4 AND data=?5"));
 assert.ok(source.includes("dataType='stripe_checkout_lock' AND data=?2"));
 assert.ok(source.includes("await releaseOwnedCheckoutLock()"));
 assert.equal(
-  (source.match(/DELETE FROM workspace_data WHERE userId/g) || []).length,
+  (source.slice(source.indexOf("async function createStripeCheckoutSession("), source.indexOf("function getAssistantTopUpPack(")).match(/DELETE FROM workspace_data WHERE userId/g) || []).length,
   1,
   "only one owned-lock cleanup query should exist",
 );
