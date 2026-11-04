@@ -1,0 +1,50 @@
+name: HEGEVA Approved Staging UI Gated Once 2026-11-04
+
+on:
+  push:
+    branches: [audit/dependency-advisories-20261104]
+    paths: [".github/workflows/staging-approved-ui-gated-20261104.yml"]
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: hegeva-approved-staging-ui-gated-20261104
+  cancel-in-progress: false
+
+jobs:
+  verify-api-and-dispatch-ui:
+    if: ${{ github.repository == 'hegezotya-cmyk/hegeva-ai-v3' && github.ref == 'refs/heads/audit/dependency-advisories-20261104' }}
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 3
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Confirm the previously approved no-migrate staging API run succeeded
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          const url = "https://api.github.com/repos/hegezotya-cmyk/hegeva-ai-v3/actions/runs/41873702151"
+          const r = await fetch(url, {headers: {
+            Authorization: "Bearer " + process.env.GH_TOKEN,
+            Accept: "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28"
+          }})
+          if (!r.ok) throw new Error("Could not verify staging API run")
+          const run = await r.json()
+          const valid = run.conclusion === "success" &&
+            run.status === "completed" &&
+            run.head_branch === "audit/dependency-advisories-20261104" &&
+            run.head_sha === "d19f6685e20b423478e9b763d15b036b66fb4c05"
+          console.log(JSON.stringify({stagingApiRun:run.id,status:run.status,conclusion:run.conclusion,approvedSourceMatches:valid}))
+          if (!valid) process.exit(1)
+          NODE
+      - name: Dispatch existing protected staging UI-only deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error             -X POST             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             -H "X-GitHub-Api-Version: 2022-11-28"             "https://api.github.com/repos/hegezotya-cmyk/hegeva-ai-v3/actions/workflows/staging-deploy.yml/dispatches"             -d '{"ref":"audit/dependency-advisories-20261104","inputs":{"stage":"deploy-ui"}}'
+          echo "Requested staging UI only. No API deploy, D1 migration, or production changes."
