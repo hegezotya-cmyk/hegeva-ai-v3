@@ -45,8 +45,18 @@ function queryReadOnly(query) {
   let parsed;
   try { parsed = JSON.parse(raw); } catch { throw new Error('Unexpected Wrangler JSON response; no data printed.'); }
   const blocks = Array.isArray(parsed) ? parsed : [parsed];
-  const records = blocks.flatMap(block => Array.isArray(block?.results) ? block.results : []);
-  if (!blocks.every(block => block?.success !== false)) throw new Error('Staging D1 reported unsuccessful read.');
+  // Empty/malformed API envelopes must never be reported as a successful empty database.
+  if (blocks.length === 0 || !blocks.every(block =>
+    block && typeof block === 'object' &&
+    block.success === true &&
+    Array.isArray(block.results)
+  )) {
+    throw new Error('Staging D1 response incomplete or unsuccessful; no data printed.');
+  }
+  const records = blocks.flatMap(block => block.results);
+  if (!records.every(row => row && typeof row === 'object' && !Array.isArray(row))) {
+    throw new Error('Staging D1 response contains malformed rows; no data printed.');
+  }
   return records;
 }
 const identities = queryReadOnly(sql.identities);
