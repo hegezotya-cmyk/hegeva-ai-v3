@@ -1,0 +1,108 @@
+name: HEGEVA Isolated D1 and Stripe TEST Lifecycle
+
+on:
+  pull_request:
+    branches: [v0-rebuild]
+    paths:
+      - ".github/workflows/local-staging-stripe-lifecycle.yml"
+      - "scripts/stripe-test-lifecycle.mjs"
+      - "scripts/stripe-test-state.sql"
+      - "src/**"
+      - "migrations/**"
+      - "wrangler.staging.jsonc"
+      - "package-lock.json"
+
+permissions:
+  contents: read
+
+jobs:
+  local-test-webhook-and-d1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      WRANGLER_SEND_METRICS: "false"
+      STRIPE_TEST_WEBHOOK_SECRET: whsec_fixture_local_no_real_stripe_secret_20261104
+      HEGEVA_TEST_BASE_URL: http://127.0.0.1:8788
+      HEGEVA_TEST_USER_ID: stripe-lifecycle-user
+    steps:
+      - name: Checkout exact PR candidate
+        uses: actions/checkout@v5
+      - name: Node.js setup
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install exact dependencies
+        run: npm ci
+      - name: Verify isolation and migration guards
+        run: |
+          node scripts/staging-isolation-audit.mjs
+          node scripts/staging-no-migrate-gate-test.mjs
+      - name: Apply all migrations to a fresh LOCAL ONLY SQLite/D1 fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hegeva-local-d1-test"
+          ./node_modules/.bin/wrangler d1 migrations apply hegeva-ai-staging-db \
+            --local --config wrangler.staging.jsonc \
+            --persist-to "$RUNNER_TEMP/hegeva-local-d1-test"
+          ./node_modules/.bin/wrangler d1 execute hegeva-ai-staging-db \
+            --local --config wrangler.staging.jsonc \
+            --persist-to "$RUNNER_TEMP/hegeva-local-d1-test" \
+            --command "SELECT count(*) AS migrationCount FROM d1_migrations" > "$RUNNER_TEMP/schema-count.txt"
+          grep -q "migrationCount" "$RUNNER_TEMP/schema-count.txt"
+      - name: Write synthetic LOCAL ONLY Worker bindings with no Stripe API key
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'STRIPE_WEBHOOK_SECRET=%s\nBETTER_AUTH_SECRET=local-fixture-secret-not-live-20261104\n' \
+            "$STRIPE_TEST_WEBHOOK_SECRET" > .dev.vars
+          chmod 600 .dev.vars
+          # Intentionally omit STRIPE_SECRET_KEY and RESEND_API_KEY.
+          # Neither Stripe outbound calls nor emails can be authenticated.
+      - name: Start local Worker on loopback (never deploy)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/wrangler dev \
+            --local --config wrangler.staging.jsonc \
+            --ip 127.0.0.1 --port 8788 \
+            --persist-to "$RUNNER_TEMP/hegeva-local-d1-test" \
+            > "$RUNNER_TEMP/hegeva-local-worker.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/hegeva-local-worker.pid"
+          ready=false
+          for i in $(seq 1 50); do
+            if curl --silent --fail --max-time 2 'http://127.0.0.1:8788/api/system/email-status' > /dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" != true ]; then
+            echo "Local Worker startup failed; diagnostic excerpt follows"
+            tail -n 55 "$RUNNER_TEMP/hegeva-local-worker.log"
+            exit 1
+          fi
+          echo "Local-only Worker ready."
+      - name: Signed TEST webhook lifecycle against local D1 (no Stripe network)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run stripe:test:lifecycle
+          ./node_modules/.bin/wrangler d1 execute hegeva-ai-staging-db \
+            --local --config wrangler.staging.jsonc \
+            --persist-to "$RUNNER_TEMP/hegeva-local-d1-test" \
+            --file scripts/stripe-test-state.sql > "$RUNNER_TEMP/final-local-state.txt"
+          grep -q '"basic"' "$RUNNER_TEMP/final-local-state.txt" || \
+            grep -Eiq 'basic' "$RUNNER_TEMP/final-local-state.txt"
+          echo "Final entitlement is Basic in local test D1."
+      - name: Stop local fixture and delete ephemeral secrets
+        if: always()
+        shell: bash
+        run: |
+          if [ -f "$RUNNER_TEMP/hegeva-local-worker.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/hegeva-local-worker.pid")" 2>/dev/null || true
+          fi
+          rm -f .dev.vars
+          echo "Local-only fixture cleanup complete. No production or staging writes."
