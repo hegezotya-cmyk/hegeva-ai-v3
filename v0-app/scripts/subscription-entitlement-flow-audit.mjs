@@ -2,7 +2,7 @@
 import assert from "node:assert/strict"
 import fs from "node:fs"
 
-const source = fs.readFileSync(new URL("../app/account/page.tsx", import.meta.url), "utf8")
+const source = fs.readFileSync(new URL("../app/account/page.tsx", import.meta.url), "utf8").replace(/\r\n/g, "\n")
 const match = source.match(/    const loadPlan = async \(\) => \{[\s\S]*?\n    \}\n\n    loadPlan\(\)\.catch/)
 assert.ok(match, "account checkout-return entitlement gate must be present")
 const definition = match[0].replace(/\n\n    loadPlan\(\)\.catch$/, "")
