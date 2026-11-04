@@ -1,0 +1,38 @@
+name: Staging D1 Read-Only Audit Dry Run
+
+on:
+  pull_request:
+    branches:
+      - integration/security-growth-validation-20261104
+    paths:
+      - "scripts/stripe-staging-d1-readonly-audit.mjs"
+      - "scripts/stripe-staging-d1-readonly-audit-mock-test.mjs"
+      - ".github/workflows/staging-d1-readonly-audit-pr.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Syntax check
+        run: node --check scripts/stripe-staging-d1-readonly-audit.mjs
+      - name: Mock staging Wrangler SELECT and redaction
+        run: node scripts/stripe-staging-d1-readonly-audit-mock-test.mjs
+      - name: Verify default dry-run does not query D1
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ""
+          CLOUDFLARE_ACCOUNT_ID: ""
+        run: |
+          output="$(node scripts/stripe-staging-d1-readonly-audit.mjs)"
+          echo "$output"
+          grep -Fq 'DRY RUN.' <<<"$output"
+          grep -Fq 'no customer data queried yet.' <<<"$output"
