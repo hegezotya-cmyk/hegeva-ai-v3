@@ -34,3 +34,14 @@ export async function assessStagingUiVersion(account, token, version, request = 
     readyForReview: Boolean(exists && deployments.status === 200 && !active),
   }
 }
+
+const isCli = process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href
+if (isCli) {
+  const result = await assessStagingUiVersion(
+    process.env.CLOUDFLARE_ACCOUNT_ID || "",
+    process.env.CLOUDFLARE_API_TOKEN || "",
+    process.env.HEGEVA_STAGING_VERSION_ID || "",
+  )
+  console.log(JSON.stringify(result))
+  if (!result.versionVerified || result.deploymentsReadStatus !== 200) process.exitCode = 1
+}
