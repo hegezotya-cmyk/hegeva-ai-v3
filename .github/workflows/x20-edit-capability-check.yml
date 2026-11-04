@@ -60,6 +60,9 @@ jobs:
       - name: Production build
         run: npm run build
 
+      - name: Syntax-check browser registration fixture
+        run: node --check scripts/registration-measurement-browser-test.cjs
+
       - name: Build staging analytics browser fixture
         env:
           NEXT_PUBLIC_APP_ENV: staging
