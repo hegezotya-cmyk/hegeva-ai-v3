@@ -100,7 +100,7 @@ export function AnalyticsConsent() {
   useEffect(() => {
     queueConsentDefault()
     const saved = localStorage.getItem(CONSENT_KEY)
-    if (saved === "granted") { setConsent("granted"); enableAnalytics() }
+    if (saved === "granted") setConsent("granted")
     else if (saved === "denied") setConsent("denied")
     else setOpen(true)
   }, [])
@@ -192,8 +192,7 @@ export function AnalyticsConsent() {
     localStorage.setItem(CONSENT_KEY, next)
     setConsent(next)
     setOpen(false)
-    if (next === "granted") enableAnalytics()
-    else {
+    if (next === "denied") {
       sessionStorage.removeItem("hegeva:campaign:v1")
       sessionStorage.removeItem(PENDING_CTA_KEY)
       clearReferralAttribution()
