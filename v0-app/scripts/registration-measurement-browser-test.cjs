@@ -33,7 +33,7 @@ const { chromium } = require("playwright")
       await context.route("**/*", async (route) => {
         const target = new URL(route.request().url())
         if (target.origin === localOrigin || target.protocol === "data:" || target.protocol === "blob:") return route.fallback()
-        if (/^(?:www\\.)?(?:googletagmanager\\.com|google-analytics\\.com)$/.test(target.hostname)) return route.fallback()
+        if (["googletagmanager.com", "www.googletagmanager.com", "google-analytics.com", "www.google-analytics.com"].includes(target.hostname)) return route.fallback()
         blockedHosts.push(target.hostname)
         return route.abort("blockedbyclient")
       })
@@ -41,7 +41,7 @@ const { chromium } = require("playwright")
       page.on("pageerror", (error) => browserErrorTypes.push(error.name || "Error"))
       page.on("request", (request) => {
         const url = new URL(request.url())
-        if (/\\/api\\/|auth|sign-up/.test(url.pathname) || url.origin !== localOrigin) {
+        if (url.pathname.includes("/api/") || url.pathname.includes("auth") || url.pathname.includes("sign-up") || url.origin !== localOrigin) {
           outgoingPaths.push({ host: url.hostname, method: request.method(), path: url.pathname.slice(0, 120) })
         }
       })
