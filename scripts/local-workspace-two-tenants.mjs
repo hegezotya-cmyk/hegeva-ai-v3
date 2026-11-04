@@ -4,11 +4,33 @@ const baseUrl = String(process.env.HEGEVA_TEST_BASE_URL || "").replace(/[/]$/, "
 assert(/^http:\/\/(127\.0\.0\.1|localhost):[0-9]{2,5}$/.test(baseUrl),
   "This test must be run against a LOCAL loopback Worker only")
 
-const sessions = {
-  alpha: "__Secure-better-auth.session_token=fixture-alpha-session-only",
-  beta: "__Secure-better-auth.session_token=fixture-beta-session-only",
+const sessions = {}
+const accounts = {
+  alpha: { email: "alpha@fixture.invalid", password: "Fixture-Only-Alpha-Password-2026!" },
+  beta: { email: "beta@fixture.invalid", password: "Fixture-Only-Beta-Password-2026!" },
 }
+const firstPartyOrigin = "https://staging.hegevaai.co.uk"
 const types = ["customers", "invoice_documents", "tasks", "messages"]
+
+async function signIn(tenant) {
+  const r = await fetch(baseUrl + "/api/auth/sign-in/email", {
+    method: "POST",
+    redirect: "manual",
+    headers: { Origin: firstPartyOrigin, "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(accounts[tenant]),
+    signal: AbortSignal.timeout(10000),
+  })
+  if (r.status !== 200) {
+    const error = await r.json().catch(() => null)
+    throw new Error("Better Auth local " + tenant + " sign-in rejected with status " + r.status +
+      " and code " + String(error?.code || "unknown"))
+  }
+  const cookies = r.headers.getSetCookie()
+  const tokenCookie = cookies.map(c => c.split(";")[0])
+    .find(c => /^(?:__Secure-|__Host-)?better-auth\\.session_token=/.test(c))
+  assert.ok(tokenCookie, "Better Auth must issue an actual signed session cookie for " + tenant)
+  sessions[tenant] = tokenCookie
+}
 
 async function api(path, { method = "GET", session = null, body = undefined, origin = null } = {}) {
   const headers = { Accept: "application/json" }
@@ -26,6 +48,8 @@ async function api(path, { method = "GET", session = null, body = undefined, ori
   return { status: r.status, data }
 }
 
+await signIn("alpha")
+await signIn("beta")
 const a = await api("/api/auth/get-session", { session: "alpha" })
 const b = await api("/api/auth/get-session", { session: "beta" })
 assert.equal(a.status, 200, "Alpha session endpoint not available")
@@ -87,4 +111,17 @@ assert.equal(forbiddenOrigin.status, 403, "Cross-origin mutation must be blocked
 assert.deepEqual((await api("/api/workspace/customers", { session:"alpha" })).data?.data,
   fixtures.customers, "Cross-origin attempted overwrite unexpectedly changed stored data")
 console.log("PASS cross-origin mutation fails closed and preserves tenant data")
+// Signed-out cookies must not keep access, while subsequent sign-in recovers D1 data.
+const oldAlphaCookie = sessions.alpha
+const signOut = await api("/api/auth/sign-out", {
+  method: "POST", session: "alpha", origin: firstPartyOrigin, body: {},
+})
+assert.equal(signOut.status, 200, "Better Auth local sign-out must succeed")
+const oldSessionAccess = await api("/api/workspace/customers", { session: "alpha" })
+assert.equal(oldSessionAccess.status, 401, "Signed-out token must no longer expose workspace")
+await signIn("alpha")
+assert.notEqual(sessions.alpha, oldAlphaCookie, "New sign-in should issue a new session")
+assert.deepEqual((await api("/api/workspace/customers", { session: "alpha" })).data?.data,
+  fixtures.customers, "Re-login must recover customer data from local D1")
+console.log("PASS sign-out revocation and re-login restore persisted local workspace")
 console.log("PASS complete local session-to-workspace D1 integration; never contacted remote DB, email, or Stripe")
