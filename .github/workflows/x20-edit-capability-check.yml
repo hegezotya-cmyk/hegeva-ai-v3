@@ -43,6 +43,9 @@ jobs:
           npm --prefix .. audit --package-lock-only --omit=dev --audit-level=high
           npm audit --package-lock-only --omit=dev --audit-level=high
 
+      - name: Auth client same-origin regression
+        run: node scripts/staging-auth-origin-test.cjs
+
       - name: Registration and billing regression checks
         run: |
           npm run audit:registration-measurement
