@@ -130,6 +130,14 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Owner-local automatic identity-proof result
+
+- PASS: owner-local run verified the main TEST account identity, TEST mode and complete subscription pagination.
+- BLOCKED: the exact historical reference (`sub_1UDB…21gr`, `cus_VLE3…4xHA`, `2026-09-02T02:50:39.000Z`) produced `candidateCount=0` in that main-account inventory. No approval prompt was shown and no tuple was accepted.
+- Interpretation: this proves only that the reference is absent from the specific read-only inventory returned by the verified account at run time. It does not prove deletion, wrong account or a Stripe/D1 data defect. No data was changed.
+- Fix: the diagnostic now reports only a masked active TEST inventory summary when the reference is absent or ambiguous, so the next owner run can distinguish a stale reference/account-context mismatch without manual ID entry or raw data exposure.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Automatic historical identity proof
 
 - PASS: added `scripts/stripe-staging-historical-auto-proof.mjs`; it requires no manual subscription/customer/user ID entry. It reads the main TEST account and five configured TEST Prices, retrieves the complete paginated TEST subscription inventory, and selects exactly one active record by the owner-supplied masked subscription/customer reference and exact creation timestamp.

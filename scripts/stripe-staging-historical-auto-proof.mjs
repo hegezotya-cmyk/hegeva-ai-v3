@@ -38,7 +38,10 @@ else {
     for(let page=0;page<20;page+=1){const q=new URLSearchParams({status:"all",limit:"100"});if(cursor)q.set("starting_after",cursor);const result=await get(`subscriptions?${q}`);if(!Array.isArray(result?.data)||typeof result.has_more!=="boolean"||result.data.length>100){fail("pagination-incomplete");process.exit(2);}inventory.push(...result.data);if(!result.has_more){paginationComplete=true;break;}const next=result.data.at(-1)?.id;if(!next||next===cursor){fail("pagination-incomplete");process.exit(2);}cursor=next;}
     if(!paginationComplete){fail("pagination-incomplete");process.exit(2);}
     const candidates=inventory.filter(row=>row?.livemode===false&&row?.status&&["active","trialing","past_due"].includes(String(row.status).toLowerCase())&&mask(row.id,"sub_")===REFERENCE.subscriptionMask&&mask(row.customer,"cus_")===REFERENCE.customerMask&&new Date(Number(row.created)*1000).toISOString()===REFERENCE.createdAt);
-    if(candidates.length!==1){console.log(JSON.stringify({verified:true,status:"BLOCKED",reason:candidates.length===0?"historical-reference-not-found":"historical-reference-ambiguous",exactMatch:false,accountVerified,testModeVerified,approvalVerified:false,paginationComplete,candidateCount:candidates.length}));process.exitCode=2;}
+    if(candidates.length!==1){
+      const activeInventory=inventory.filter(row=>row?.livemode===false&&["active","trialing","past_due"].includes(String(row.status||"").toLowerCase())).map(row=>({subscription:mask(row.id,"sub_"),customer:mask(row.customer,"cus_"),createdAt:new Date(Number(row.created)*1000).toISOString(),status:row.status,metadataUserIdPresent:Boolean(row.metadata?.userId)}));
+      console.log(JSON.stringify({verified:true,status:"BLOCKED",reason:candidates.length===0?"historical-reference-not-found":"historical-reference-ambiguous",exactMatch:false,accountVerified,testModeVerified,approvalVerified:false,paginationComplete,candidateCount:candidates.length,activeTestSubscriptionCount:activeInventory.length,activeTestInventory:activeInventory}));process.exitCode=2;
+    }
     else {
       const row=candidates[0];
       const complete=typeof row.metadata?.userId==="string"&&row.metadata.userId.length>0&&row.id.startsWith("sub_")&&row.customer?.startsWith("cus_");
