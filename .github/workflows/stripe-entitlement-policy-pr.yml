@@ -23,6 +23,7 @@ on:
       - "scripts/stripe-terminal-effects-outbox-test.mjs"
       - "scripts/stripe-terminal-outbox-atomic-test.mjs"
       - "scripts/stripe-terminal-effects-processor-test.mjs"
+      - "scripts/stripe-terminal-no-double-effects-test.mjs"
       - ".github/workflows/stripe-entitlement-policy-pr.yml"
   workflow_dispatch:
 
@@ -57,6 +58,7 @@ jobs:
           node --check scripts/stripe-terminal-effects-outbox-test.mjs
           node --check scripts/stripe-terminal-outbox-atomic-test.mjs
           node --check scripts/stripe-terminal-effects-processor-test.mjs
+          node --check scripts/stripe-terminal-no-double-effects-test.mjs
       - name: Multi-subscription cancellation regression
         run: node scripts/stripe-multi-subscription-entitlement-test.mjs
       - name: Cross-customer Stripe inventory regression
@@ -79,3 +81,5 @@ jobs:
         run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-outbox-atomic-test.mjs
       - name: Isolated SQLite outbox processor retries
         run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-processor-test.mjs
+      - name: Terminal webhook has no duplicate inline side effects
+        run: node scripts/stripe-terminal-no-double-effects-test.mjs
