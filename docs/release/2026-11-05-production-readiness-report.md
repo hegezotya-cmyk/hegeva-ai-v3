@@ -20,8 +20,12 @@ This branch is based on PR #94 commit `233e6e2510507be7c2b913859f33257e37cb9476`
 | Worker check | PASS | `npm run worker:check`, exit 0; 17 assistant-response subtests passed |
 | GitHub CI at verified #94 commit | PASS | [workflow run 41954016538](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/41954016538), policy-tests success |
 | GitHub CI at PR #95 head | PASS | [workflow run 41956313645](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/41956313645), policy-tests success |
-| Real staging D1 read-only verification | BLOCKED | Read-only Wrangler command attempted; stored Cloudflare token expired and refresh was blocked by unavailable auth-server connectivity. No D1 write or migration occurred. |
-| Stripe TEST read-only Customer inventory | BLOCKED | No Stripe read-only credential was present in the environment; no API call was attempted and no Stripe write occurred. |
+| Cloudflare DNS/HTTPS diagnosis | PASS | External read-only diagnostics resolved `api.cloudflare.com` and received HTTP 301; the earlier failure was local sandbox DNS/log-write restriction, not endpoint outage |
+| Wrangler identity and account access | PASS | Read-only `wrangler whoami` succeeded; token scopes were displayed without token values |
+| Real staging D1 read-only verification | PASS | Remote migration listing and aggregate/schema queries succeeded; `rows_written=0`, `changes=0` |
+| Staging D1 migration state | BLOCKED | Migration `0032_stripe_terminal_effect_outbox.sql` is still pending; applying it is prohibited without separate approval |
+| Staging D1 billing snapshot | PASS | 4 `stripe_customers` rows, 4 distinct Customer IDs, all `active`; 18 webhook events; no identifiers or PII exported |
+| Stripe TEST read-only Customer inventory | BLOCKED | Staging secret names exist, but secret values cannot be read and no separate Stripe read-only credential is available in this environment; no API call was attempted |
 | Stripe TEST full customer journey | BLOCKED | Requires a separate authorized TEST write/payment/webhook approval; no checkout or remote webhook mutation was performed |
 | Production deploy readiness | FAIL | Real staging evidence and owner approval are still required; outbox remains intentionally not enabled remotely |
 
