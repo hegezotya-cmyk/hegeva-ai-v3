@@ -14,6 +14,7 @@ on:
       - "src/stripe-terminal-effects-state-verifier.js"
       - "src/stripe-terminal-effects-state-checker.js"
       - "src/stripe-terminal-effects-runner.js"
+      - "src/stripe-terminal-referral-reversal.js"
       - "migrations/0032_stripe_terminal_effect_outbox.sql"
       - "scripts/stripe-multi-subscription-entitlement-test.mjs"
       - "scripts/stripe-subscription-inventory-test.mjs"
@@ -32,6 +33,7 @@ on:
       - "scripts/stripe-terminal-effects-runner-test.mjs"
       - "scripts/stripe-terminal-outbox-health-test.mjs"
       - "scripts/stripe-webhook-finalized-ledger-safety-test.mjs"
+      - "scripts/stripe-terminal-referral-reversal-test.mjs"
       - ".github/workflows/stripe-entitlement-policy-pr.yml"
   workflow_dispatch:
 
@@ -58,6 +60,7 @@ jobs:
           node --check src/stripe-terminal-effects-state-verifier.js
           node --check src/stripe-terminal-effects-state-checker.js
           node --check src/stripe-terminal-effects-runner.js
+          node --check src/stripe-terminal-referral-reversal.js
           node --check scripts/stripe-multi-subscription-entitlement-test.mjs
           node --check scripts/stripe-subscription-inventory-test.mjs
           node --check scripts/stripe-terminal-event-review-test.mjs
@@ -75,6 +78,7 @@ jobs:
           node --check scripts/stripe-terminal-effects-runner-test.mjs
           node --check scripts/stripe-terminal-outbox-health-test.mjs
           node --check scripts/stripe-webhook-finalized-ledger-safety-test.mjs
+          node --check scripts/stripe-terminal-referral-reversal-test.mjs
       - name: Multi-subscription cancellation regression
         run: node scripts/stripe-multi-subscription-entitlement-test.mjs
       - name: Cross-customer Stripe inventory regression
@@ -109,3 +113,5 @@ jobs:
         run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-outbox-health-test.mjs
       - name: Completed webhook ledger cannot be deleted on error cleanup
         run: node --disable-warning=ExperimentalWarning scripts/stripe-webhook-finalized-ledger-safety-test.mjs
+      - name: Atomic referral reversal SQLite rollback and idempotency
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-referral-reversal-test.mjs
