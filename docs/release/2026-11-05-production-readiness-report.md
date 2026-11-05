@@ -73,6 +73,12 @@ The checkout guard was ported as a focused diff into `src/index.js`, adding acti
 - PASS: offline private reconciliation and syntax tests.
 - BLOCKED: full private D1-to-Stripe reconciliation was not rerun in this Codex PTY because the hidden Stripe-key prompt cannot receive a secret here. No real Stripe key was used or persisted.
 
+## Latest reconciliation evidence
+
+- PASS: Aggregate read-only staging D1 query returned 1 active `stripe_customers` row, 1 Customer, 1 subscription, 4 users, 4 plans, and 19 webhook-ledger rows; `changes=0` and `rows_written=0`.
+- REVIEW_REQUIRED: owner-local private reconciliation returned 2 active Stripe TEST subscriptions and 2 mapped Stripe users against 1 D1 identity: 1 stored identity matched, 1 active Stripe subscription was unrepresented, and `releaseSafe=false`.
+- BLOCKED: no automatic D1 identity creation, Stripe Customer merge, subscription cancellation, or mapping repair is permitted. The unrepresented record must first be classified as stale/legitimate TEST data, wrong-account data, or an authorized missing identity.
+
 ## Rollback
 
 Do not merge or deploy this branch. Revert the local commit or delete the isolated clone only after preserving the diff for review. If later promoted under separate approval, disable the executor, preserve ledger/outbox rows, revert the application commit, and restore the approved staging backup before any production repair.
