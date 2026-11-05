@@ -130,6 +130,14 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Follow-up diagnostic error isolation
+
+- PASS: direct staging D1 `PRAGMA table_info(stripe_customers)` and `PRAGMA table_info(stripe_webhook_events)` succeeded with the required columns; no D1 schema mismatch was found and no rows were written.
+- PASS: the diagnostic now distinguishes account HTTP 403, Stripe network/invalid-JSON failures, price-read failures, subscription-read failures, incomplete pagination, D1 schema-read failures, D1 schema mismatch and D1 reader failures. It never prints response bodies, secrets or raw identifiers.
+- PASS: after the change, syntax, no-key fail-closed, private-reconciliation and identity-comparison checks passed locally.
+- BLOCKED: the owner run that returned `read-only-diagnostic-failed` was from the pre-follow-up diagnostic behavior; the current process has no key, so no live Stripe request is claimed here. The next owner run must use the corrected commit and will return the concrete category if a read still fails.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Targeted diagnostic fix — restricted-key 403, D1 schema and fail-closed gate
 
 - PASS: `scripts/stripe-staging-subscription-diagnostic.mjs` now treats a restricted-key `GET /v1/account` HTTP 403 as a distinct `account-read-403` condition and continues only through the five configured TEST Price GETs. Account identity is PASS only when the account response matches the expected TEST account or the complete configured TEST price catalogue is verified; otherwise it remains BLOCKED.

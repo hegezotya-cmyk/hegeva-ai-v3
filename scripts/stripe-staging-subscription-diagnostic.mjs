@@ -63,16 +63,22 @@ function readD1() {
 }
 
 async function stripeGet(path, errorCode = "stripe-read-failed") {
-  const response = await fetch(`https://api.stripe.com/v1/${path}`, {
-    method: "GET", headers: { Authorization: `Bearer ${key}`, Accept: "application/json" },
-    cache: "no-store", signal: AbortSignal.timeout(30000),
-  });
+  let response;
+  try {
+    response = await fetch(`https://api.stripe.com/v1/${path}`, {
+      method: "GET", headers: { Authorization: `Bearer ${key}`, Accept: "application/json" },
+      cache: "no-store", signal: AbortSignal.timeout(30000),
+    });
+  } catch {
+    const error = new Error(`${errorCode}-network`);
+    throw error;
+  }
   if (!response.ok) {
     const error = new Error(errorCode);
     error.httpStatus = response.status;
     throw error;
   }
-  return response.json();
+  try { return await response.json(); } catch { throw new Error(`${errorCode}-invalid-json`); }
 }
 
 async function readAccountAndPrices() {
@@ -94,7 +100,7 @@ async function readAccountAndPrices() {
     try {
       const price = await stripeGet(`prices/${encodeURIComponent(id)}`, "stripe-price-read-failed");
       prices.push({ name, prefix: id.slice(0, 8), found: price?.id === id, livemode: price?.livemode ?? null });
-    } catch { throw new Error("stripe-price-read-failed"); }
+    } catch (error) { throw new Error(error?.message || "stripe-price-read-failed"); }
   }
   const pricesPass = prices.length === 5 && prices.every(price => price.found && price.livemode === false);
   const accountMatches = account?.id === EXPECTED_ACCOUNT && account?.livemode === false;
@@ -177,7 +183,7 @@ if (!/"PAYMENT_MODE"\s*:\s*"test"/.test(config)) {
     }, null, 2));
     if (status !== "PASS") process.exitCode = 2;
   } catch (error) {
-    const reason = ["stripe-account-read-failed", "stripe-price-read-failed", "stripe-subscription-read-failed", "pagination-incomplete", "d1-schema-read-failed", "d1-schema-mismatch", "d1-reader-failed"].includes(error?.message) ? error.message : "read-only-diagnostic-failed";
+    const reason = /^(stripe-account-read-failed|stripe-price-read-failed|stripe-subscription-read-failed|pagination-incomplete|d1-schema-read-failed|d1-schema-mismatch|d1-reader-failed)(-network|-invalid-json)?$/.test(error?.message || "") ? error.message : "diagnostic-internal-error";
     console.log(JSON.stringify({ verified: false, status: "BLOCKED", reason }));
     process.exitCode = 2;
   }
