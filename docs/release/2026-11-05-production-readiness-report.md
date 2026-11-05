@@ -130,6 +130,17 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Final recovery/fencing acceptance — scheduled invocation boundary
+
+- PASS: read-only deployment status confirms Worker version `e6da7011-e331-4b4d-8c7a-cae26dac0895` at 100%; the staging D1 binding and required outbox, webhook ledger, and plan tables are present.
+- PASS: the deployed cron configuration remains `*/5 * * * *` from the accepted staging configuration/deployment evidence.
+- PASS: Wrangler supports scheduled invocation for local development (`/cdn-cgi/local/scheduled` / `--test-scheduled` path), but this is not a remote invocation of the deployed Cloudflare Worker.
+- BLOCKED: no supported remote Wrangler command was found to invoke the deployed scheduled handler on demand. The missing recovery observation therefore cannot be replaced by a local scheduled-test result.
+- PASS: prior staging runtime evidence proves retry attempts and backoff; the current exact recovery fixture was not left in D1 while waiting for an unobservable remote cron event.
+- BLOCKED: staging `retry -> completed` after plan/ledger repair and staging fencing/concurrency runtime evidence remain unproven. Local lease/idempotency regressions remain PASS only.
+- PASS: all synthetic staging fixture rows were rolled back; aggregate outbox, ledger, and plan fixture counts are zero.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Targeted retry root-cause diagnosis — 2026-11-05
 
 - PASS: inspected `scheduled()` state verification, `SELECT_DUE`, claim/lease/retry/complete SQL, and `reviewTerminalEffectExecution`; fail-closed policy remains unchanged.
