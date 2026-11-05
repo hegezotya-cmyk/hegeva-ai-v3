@@ -103,6 +103,20 @@ try {
  const malformed=await send(eventFor("customer.subscription.deleted",undefined),[old,active]);
  // The default canceled status above still allows reconciliation.
  assert.equal(malformed.status,200);
+
+// Repeated delivery shares the same D1 state. The first claim is pending;
+// the second must be retryable instead of claiming success before reconciliation.
+{
+ const {DB,operations}=makeDb();
+ globalThis.fetch=async()=>({ok:true,json:async()=>({data:[old,active],has_more:false})});
+ const env={DB,PAYMENT_MODE:"test",STRIPE_SECRET_KEY:"sk_test_fixture",STRIPE_WEBHOOK_SECRET:secret};
+ const evt=eventFor("customer.subscription.deleted","canceled","evt_repeat");
+ // Simulate another Worker having claimed this event but not yet finalized it.
+ await DB.prepare("INSERT INTO stripe_webhook_events").bind("evt_repeat").run();
+ const duplicatePending=await handler.fetch(requestFor(evt),env,{});
+ assert.equal(duplicatePending.status,503);
+ assert.equal(planWrites(operations).length,0);
+}
  console.log("Signed terminal Stripe Worker + mocked D1 integration PASS (updated/deleted; keep, downgrade, retry, bad signature)");
 } finally {
  globalThis.fetch=previousFetch;
