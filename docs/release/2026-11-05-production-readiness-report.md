@@ -79,6 +79,14 @@ The checkout guard was ported as a focused diff into `src/index.js`, adding acti
 - REVIEW_REQUIRED: owner-local private reconciliation returned 2 active Stripe TEST subscriptions and 2 mapped Stripe users against 1 D1 identity: 1 stored identity matched, 1 active Stripe subscription was unrepresented, and `releaseSafe=false`.
 - BLOCKED: no automatic D1 identity creation, Stripe Customer merge, subscription cancellation, or mapping repair is permitted. The unrepresented record must first be classified as stale/legitimate TEST data, wrong-account data, or an authorized missing identity.
 
+## Current masked discrepancy review
+
+- PASS: Read-only D1 identity query returned one active mapping (`user=Cy3n…FTTe`, `customer=cus_VZdV…mCN2`, `subscription=sub_1UYU…VTxi`, no period-end cancellation) with no raw identifiers exported.
+- PASS: The latest `checkout.session.completed` ledger row for the same masked user is `premium`/`applied`, supporting one valid current staging path.
+- REVIEW_REQUIRED: Other recent ledger rows belong to a different masked user and include `invoice.paid`/`customer.subscription.updated`; they are historical context, not proof that the current D1 identity represents both active Stripe subscriptions.
+- UNKNOWN/BLOCKED: The two active Stripe subscription objects, their masked creation dates, and the account ID used by the reconciliation cannot be independently re-read in this process without the separate Stripe TEST read-only key. Therefore the unmatched subscription cannot yet be classified as wrong-account, legitimate test, stale/orphan, or missing identity mapping.
+- Owner action: run the exact paginated Stripe TEST GET inventory with the restricted key and provide only aggregate/masked output including account ID, subscription count, masked subscription/customer/user IDs, creation dates, status, and metadata user mapping. No key or raw identifiers are required in chat.
+
 ## Rollback
 
 Do not merge or deploy this branch. Revert the local commit or delete the isolated clone only after preserving the diff for review. If later promoted under separate approval, disable the executor, preserve ledger/outbox rows, revert the application commit, and restore the approved staging backup before any production repair.
