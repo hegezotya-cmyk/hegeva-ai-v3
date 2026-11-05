@@ -47,9 +47,18 @@ export async function collectStripeUserSubscriptions({
         return { complete: false, reason: "invalid-subscription", subscriptions: [] };
       }
       visited.add(id);
-      // Only exact application metadata mappings participate. Never infer identity
-      // from customer email or a Stripe Customer ID alone.
-      if (row.metadata?.userId !== userId) continue;
+      // Legacy subscriptions may have missing HEGEVA user metadata, even under
+      // a different Stripe Customer ID. We cannot prove they do not belong to
+      // the requested user, so an active unmapped record invalidates a complete
+      // inventory claim. This deliberately favors review over a false downgrade.
+      const mappedUserId = row.metadata?.userId;
+      const status = String(row.status || "").trim().toLowerCase();
+      if (["active", "trialing", "past_due"].includes(status) &&
+          (typeof mappedUserId !== "string" || !mappedUserId.trim())) {
+        return { complete: false, reason: "unmapped-active-subscription", subscriptions: [] };
+      }
+      // Never infer user identity from email or Stripe Customer ID alone.
+      if (mappedUserId !== userId) continue;
       const customerId = parseId(row.customer, "cus_");
       const plan = row.metadata?.hegevaPlan;
       if (!customerId || typeof row.status !== "string") {
