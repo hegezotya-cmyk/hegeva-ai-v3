@@ -553,28 +553,50 @@ async function reconcileTerminalStripeEvent(env, event, claim) {
     return { deferred: true };
   }
 
-  const result = await env.DB.prepare(`
-    INSERT INTO user_plans (userId, plan, createdAt, updatedAt)
-    VALUES (?1, ?2, ?3, ?3)
-    ON CONFLICT(userId) DO UPDATE SET
-      plan = excluded.plan,
-      updatedAt = excluded.updatedAt
-    WHERE user_plans.updatedAt IS NULL
-       OR user_plans.updatedAt <= excluded.updatedAt
-  `).bind(claim.userId, nextPlan, claim.eventCreatedAt).run();
-
-  const changed = Number(result?.meta?.changes || 0) > 0;
-  // Sync terminal billing identity only if no eligible subscription remains;
-  // avoid overwriting an active subscription with the canceled Customer ID.
-  if (decision.decision === "downgrade") {
-    await syncStripeBillingIdentity(env, event, claim);
-    if (changed) {
-      await reverseApprovedReferralRewards(env.DB, claim.userId, "entitlement-invalid");
-    }
+  // D1 batch() executes the entitlement write and event finalization as
+  // one transaction. A crash cannot leave the plan committed while the
+  // webhook event still appears pending.
+  const committedAt = new Date().toISOString();
+  const changes = await env.DB.batch([
+    env.DB.prepare(`
+      INSERT INTO user_plans (userId, plan, createdAt, updatedAt)
+      VALUES (?1, ?2, ?3, ?3)
+      ON CONFLICT(userId) DO UPDATE SET
+        plan = excluded.plan,
+        updatedAt = excluded.updatedAt
+      WHERE user_plans.updatedAt IS NULL
+         OR user_plans.updatedAt <= excluded.updatedAt
+    `).bind(claim.userId, nextPlan, claim.eventCreatedAt),
+    env.DB.prepare(`
+      UPDATE stripe_webhook_events
+      SET outcome = 'reconciled', processedAt = ?1
+      WHERE eventId = ?2 AND outcome = 'ignored'
+    `).bind(committedAt, claim.eventId),
+  ]);
+  if (!Array.isArray(changes) || changes.length !== 2 ||
+      Number(changes[1]?.meta?.changes) !== 1) {
+    // A failed/ambiguous commit must never be acknowledged as reconciled.
+    throw new Error("stripe_atomic_terminal_commit_unconfirmed");
   }
+  const changed = Number(changes[0]?.meta?.changes || 0) > 0;
 
-  if (changed && decision.decision === "retain") {
-    await reconcileReferralRewardForUser(env.DB, claim.userId);
+  // External side effects must NOT cause Stripe to retry the already
+  // committed entitlement. They need separate durable reconciliation work
+  // before this draft can be released.
+  try {
+    if (decision.decision === "downgrade") {
+      await syncStripeBillingIdentity(env, event, claim);
+      if (changed) {
+        await reverseApprovedReferralRewards(env.DB, claim.userId, "entitlement-invalid");
+      }
+    } else if (changed) {
+      await reconcileReferralRewardForUser(env.DB, claim.userId);
+    }
+  } catch (error) {
+    console.error("HEGEVA_REQUEST_FAILURE", {
+      reason: "stripe_post_commit_side_effect_failed",
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
   }
 
   return {
@@ -747,7 +769,7 @@ async function handleStripeWebhook(request, env, ctx) {
           { status: 503, headers: { "Retry-After": "300" } },
         );
       }
-      await finalizeStripeEvent(env, claim.eventId, reviewed);
+      // reconcileTerminalStripeEvent already finalized the event atomically.
       return Response.json(reviewed);
     }
 
