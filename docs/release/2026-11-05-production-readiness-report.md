@@ -67,6 +67,12 @@ This branch is based on PR #94 commit `233e6e2510507be7c2b913859f33257e37cb9476`
 
 The checkout guard was ported as a focused diff into `src/index.js`, adding active-subscription blocking, token/version CAS acquisition, and owner-scoped provider-failure cleanup. The existing PR #94 file contents and prior changes were preserved.
 
+## Latest local verification
+
+- PASS: commit `c588d09` replaces the fragile Windows `execFileSync` D1 reader with `spawnSync`, explicit process-status checks, and JSON-shape validation.
+- PASS: offline private reconciliation and syntax tests.
+- BLOCKED: full private D1-to-Stripe reconciliation was not rerun in this Codex PTY because the hidden Stripe-key prompt cannot receive a secret here. No real Stripe key was used or persisted.
+
 ## Rollback
 
 Do not merge or deploy this branch. Revert the local commit or delete the isolated clone only after preserving the diff for review. If later promoted under separate approval, disable the executor, preserve ledger/outbox rows, revert the application commit, and restore the approved staging backup before any production repair.
