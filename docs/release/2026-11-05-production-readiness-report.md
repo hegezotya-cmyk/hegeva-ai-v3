@@ -130,6 +130,14 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Latest automatic historical proof result
+
+- PASS: main TEST account identity, TEST mode and full subscription pagination were verified read-only.
+- PASS: the current active TEST inventory contains one active record, masked as `sub_1UYU…VTxi` / `cus_VZdV…mCN2`, created `2026-11-05T17:14:16.000Z`; this is the current staging-mapped subscription, not the historical reference.
+- BLOCKED: the owner-confirmed historical reference `sub_1UDB…21gr` / `cus_VLE3…4xHA` with `2026-09-02T02:50:39.000Z` is absent from the main TEST inventory, so no exact tuple can be proven and no approval prompt was accepted.
+- Interpretation: the historical TEST record appears to have been removed from the queried Stripe inventory. This is not treated as a machine-verified exception and does not authorize any D1 repair or release-gate bypass.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Follow-up fix: historical terminal TEST record
 
 - PASS: fixed the automatic historical proof to search the complete TEST inventory, not only active subscriptions. This covers the owner-confirmed record after it became terminal/canceled, while still requiring the exact masked reference, full internal tuple and local owner approval.
