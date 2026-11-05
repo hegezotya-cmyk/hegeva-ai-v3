@@ -32,6 +32,8 @@ This branch is based on PR #94 commit `233e6e2510507be7c2b913859f33257e37cb9476`
 | Private reconciliation dry-run | PASS | `node scripts/stripe-staging-private-reconcile.mjs` completed with the documented no-remote-read dry-run message. |
 | Private reconciliation execute gate | BLOCKED | `node scripts/stripe-staging-private-reconcile.mjs --execute` failed closed before any remote read with `stripe-test-readonly-key-unavailable`; no `STRIPE_TEST_READONLY_KEY` was available locally. |
 | Current exact four-to-five record join | BLOCKED | The newly fetched runner was not allowed to contact Stripe without the restricted key; no exact D1-to-Stripe join is claimed. |
+| Executed private read-only reconciliation | REVIEW_REQUIRED | User-provided local run completed with `verified=true`, but returned 4 D1 identity rows, 1 Stripe subscription/1 active subscription, 1 mapped Stripe user, 0 matched stored identities, 4 unmatched stored identities, 1 unrepresented active subscription, 1 Stripe user without D1 identity, and `releaseSafe=false`. No identifiers or secret values were displayed. |
+| Four-D1 to five-Stripe exact reconciliation | BLOCKED | The executed read-only view returned only one active Stripe subscription, not the expected five; the account/data scope or upstream mapping requires owner review before any readiness decision. |
 | Production deploy readiness | FAIL | Real staging evidence and owner approval are still required; outbox remains intentionally not enabled remotely |
 
 ## Local change
