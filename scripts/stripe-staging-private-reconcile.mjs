@@ -17,7 +17,7 @@ if(!execute){
  process.exit(0);
 }
 const token=process.env.STRIPE_TEST_READONLY_KEY?.trim();
-if(!token || !/^(rk_test_|sk_test_)/.test(token)){
+if(!token || !/^rk_test_/.test(token)){
  console.log(JSON.stringify({verified:false,status:"BLOCKED",reason:"stripe-test-readonly-key-unavailable"}));
  process.exitCode=2;
 } else {
