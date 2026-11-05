@@ -130,6 +130,16 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Cron root-cause investigation
+
+- PASS: local config and dry-run contain `*/5 * * * *`, staging `PAYMENT_MODE=test`, and `OUTBOX_PROCESSOR_ENABLED=true`; the scheduled export is present in `src/index-ledger.js`.
+- PASS: the staging cron trigger was explicitly reapplied read-only-preflighted via Wrangler; no vars or secrets were changed by that trigger operation.
+- PASS: after trigger reapplication, a synthetic fixture reached `attempts=1`, proving that the scheduled handler was invoked. D1 binding and `SELECT_DUE` time comparison were not the root cause.
+- FINDING: the first fixture's ledger insert used `outcome='reconciled'`, but the actual staging ledger CHECK constraint accepts the older `applied/ignored` values. The processor correctly saw missing current-state evidence and scheduled a retry. The fixture was invalid, not an application-data failure.
+- PASS: the corrected synthetic fixture was rolled back/absent afterward; read-only aggregate verification found zero fixture rows in outbox, ledger and plans. No historical or Stripe record was touched.
+- BLOCKED: a clean end-to-end `completed` outbox transition was not captured as a durable read-only result; the scheduled invocation is proven, but runtime completion/retry/fencing acceptance remains unproven. Wrangler also warned about Dashboard-vs-local non-secret staging var drift; no automatic overwrite or secret change was attempted after that warning.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Staging-only processor acceptance attempt
 
 - PASS: CI for the processor wiring fix succeeded: run `42100561622`, job `127501915124`; local worker check, processor retry/fencing tests and signed webhook fixture passed after isolating the new import.
