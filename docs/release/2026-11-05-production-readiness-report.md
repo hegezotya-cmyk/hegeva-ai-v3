@@ -25,8 +25,10 @@ This branch is based on PR #94 commit `233e6e2510507be7c2b913859f33257e37cb9476`
 | Real staging D1 read-only verification | PASS | Remote migration listing and aggregate/schema queries succeeded; `rows_written=0`, `changes=0` |
 | Staging D1 migration state | BLOCKED | Migration `0032_stripe_terminal_effect_outbox.sql` is still pending; applying it is prohibited without separate approval |
 | Staging D1 billing snapshot | PASS | 4 `stripe_customers` rows, 4 distinct Customer IDs, all `active`; 18 webhook events; no identifiers or PII exported |
-| Stripe TEST read-only Customer inventory | BLOCKED | Staging secret names exist, but secret values cannot be read and no separate Stripe read-only credential is available in this environment; no API call was attempted |
+| Stripe TEST subscription inventory (connected sandbox) | PASS | Independently queried the connected Hegevaai TEST sandbox with a read-only Stripe GET: 5 active subscriptions, 5 Customer IDs, 4 mapped HEGEVA user IDs, one user has 2 active Premium subscriptions with distinct Customer IDs, `has_more=false`, all `livemode=false`. No secrets displayed or Stripe writes. |
+| Precise Stripe TEST ↔ staging D1 record matching | BLOCKED | Only aggregate staging D1 data (4 stored Customer IDs) is available here; no privacy-safe cross-source exact-ID join has been performed. This is not a record-level reconciliation. | 
 | Stripe TEST full customer journey | BLOCKED | Requires a separate authorized TEST write/payment/webhook approval; no checkout or remote webhook mutation was performed |
+| Stripe TEST recent Events read | PARTIAL | Read-only GET returned 100 TEST events with `has_more=true`; this is not an exhaustive event audit or a verified comparison to the staging D1 18-event ledger. | 
 | Production deploy readiness | FAIL | Real staging evidence and owner approval are still required; outbox remains intentionally not enabled remotely |
 
 ## Local change
