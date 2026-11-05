@@ -1,13 +1,13 @@
 // Read-only staging Stripe account/config diagnostic.
 // Never reads or exports the Worker STRIPE_SECRET_KEY.
-// Optional separate sandbox key: STRIPE_SANDBOX_READONLY_KEY (rk_test_...).
+// Reuse the process-scoped key already used by private reconciliation, or the older sandbox-specific variable.
 import { readFileSync } from "node:fs";
 
 const config = readFileSync(new URL("../wrangler.staging.jsonc", import.meta.url), "utf8");
 const mode = /"PAYMENT_MODE"\s*:\s*"([^"]+)"/.exec(config)?.[1] || null;
 const priceIds = [...config.matchAll(/"(STRIPE_[A-Z_]+PRICE_ID)"\s*:\s*"(price_[^"]+)"/g)]
   .map(([, name, id]) => ({ name, id }));
-const localKey = process.env.STRIPE_SANDBOX_READONLY_KEY?.trim() || "";
+const localKey = process.env.STRIPE_TEST_READONLY_KEY?.trim() || process.env.STRIPE_SANDBOX_READONLY_KEY?.trim() || "";
 const summary = {
   configMode: mode,
   configuredPriceCount: priceIds.length,
