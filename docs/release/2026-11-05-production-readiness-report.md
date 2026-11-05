@@ -130,6 +130,33 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Owner-provided Cloudflare staging snapshot — configuration comparison
+
+| Check | Result | Evidence |
+|---|---|---|
+| `PAYMENT_MODE=test` | PASS | Snapshot equals `wrangler.staging.jsonc`. |
+| `PAYMENT_PROVIDER=stripe` | PASS | Snapshot equals repository config. |
+| `OUTBOX_PROCESSOR_ENABLED=true` | PASS | Snapshot equals repository config. |
+| `PUBLIC_APP_URL` | PASS | Snapshot equals repository config. |
+| D1 `DB` binding | PASS | Snapshot names `hegeva-ai-staging-db`; repository binding/database name match. |
+| Workers AI `AI` binding | PASS | Snapshot and repository binding name match. |
+| Durable Object `RATE_LIMITER` | PASS | Snapshot class binding corresponds to repository `UserRateLimiter`; deployed name is staging-qualified. |
+| Five TEST price variables | PASS | Owner snapshot confirms exact repository values; full IDs are intentionally omitted here. |
+| Required non-secret delivery/guard vars | PASS | Snapshot matches repository values. |
+| Dashboard-only AI budget/limit vars | DRIFT | Present in Dashboard, absent from repository config. Preserved; not normalized or overwritten. |
+| `ADMIN_EMAIL` | DRIFT | Present in Dashboard, absent from repository config. Value intentionally omitted. Preserved. |
+| Cron expression | UNKNOWN | Snapshot proves a cron exists and gives a next-run time, but not the expression. Repository declares `*/5 * * * *`; no exact Dashboard confirmation was supplied. |
+| Logs/traces state | UNKNOWN | Snapshot does not establish effective enabled state. Repository explicitly disables observability/logs/traces. |
+| `keep_vars` preservation semantics | UNKNOWN | Repository sets `keep_vars=true`, but no deploy-level proof was supplied that Dashboard-only vars and encrypted secrets are preserved by this exact command/version. |
+
+### Deployment decision
+
+- No staging redeploy was performed. The snapshot is not sufficient to prove the exact cron expression, effective observability state, or preservation of Dashboard-only variables/secrets during redeploy.
+- No Dashboard variables, secrets, Stripe records, or D1 records were changed.
+- Required owner evidence before redeploy: exact active cron expression, effective logs/traces state, and a command/version-specific proof or approved preflight showing that `keep_vars=true` preserves Dashboard-only vars and encrypted secrets. Detailed logging must remain disabled unless separately approved.
+- Historical TEST identity proof and duplicate/cancellation/entitlement E2E gates remain separate blockers.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Staging Dashboard configuration drift resolution — 2026-11-05
 
 - PASS: read-only Wrangler deployment metadata identifies staging Worker `hegeva-ai-v3-staging` version `b8b24dd5-18fb-49a4-9fc6-e9d609bf2bfc` at 100% traffic; deployment record was created at `2026-11-05T20:09:23Z`. No secret value was requested or displayed.
