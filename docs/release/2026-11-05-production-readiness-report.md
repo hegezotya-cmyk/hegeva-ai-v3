@@ -39,6 +39,8 @@ This branch is based on PR #94 commit `233e6e2510507be7c2b913859f33257e37cb9476`
 | Local restricted-key environment identity | BLOCKED | `STRIPE_TEST_READONLY_KEY` is not present in this Codex process; no `GET /v1/account` result can be independently verified here. |
 | Main Test mode vs separate sandbox separation | PASS | The report treats them as separate environments unless `GET /v1/account` proves equality; no Customer records are merged and no email-only join is used. |
 | Owner-reported five active TEST subscriptions | REVIEW_REQUIRED | Owner confirms they are self-created test subscriptions; this is context, not an exact API inventory or staging-D1 match. |
+| Staging account/config diagnostic | BLOCKED | New local `scripts/stripe-staging-account-config-diagnostic.mjs` confirmed `PAYMENT_MODE=test`, five configured TEST price IDs, and `workerSecretRead=false`; it stopped before network reads because no separate sandbox read-only key was available. |
+| Single required owner action | BLOCKED | Provide/temporarily inject a separate `rk_test_` read-only key for the intended sandbox in `STRIPE_SANDBOX_READONLY_KEY` in the local test process. Do not provide the Worker secret, persist the key, or change permissions. |
 | Production deploy readiness | FAIL | Real staging evidence and owner approval are still required; outbox remains intentionally not enabled remotely |
 
 ## Local change
