@@ -130,6 +130,15 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Staging Dashboard configuration drift resolution — 2026-11-05
+
+- PASS: read-only Wrangler deployment metadata identifies staging Worker `hegeva-ai-v3-staging` version `b8b24dd5-18fb-49a4-9fc6-e9d609bf2bfc` at 100% traffic; deployment record was created at `2026-11-05T20:09:23Z`. No secret value was requested or displayed.
+- PASS: repository staging configuration records `PAYMENT_MODE=test`, `OUTBOX_PROCESSOR_ENABLED=true`, the staging Worker entrypoint, D1 binding `DB`, and cron `*/5 * * * *`.
+- BLOCKED: `versions view` exposes only the version identifier in the available read-only output; it does not expose the Dashboard's non-secret variable values, cron/binding details, or an authoritative runtime variable snapshot. Therefore the exact Dashboard-vs-repository drift cannot be independently closed from this process.
+- REVIEW_REQUIRED: the earlier Wrangler deployment warning listed Dashboard-only non-secret AI/administrative variables and an observability difference, while the local configuration added the outbox flag and staging D1 metadata. Those values must not be inferred or overwritten automatically.
+- BLOCKED: no redeploy, synthetic runtime completion test, retry/fencing test, or config replacement was performed after this read-only check. The owner must provide an authoritative, secret-free Dashboard configuration export/snapshot (names and non-secret values only), or explicitly approve a reviewed non-secret configuration patch; no secret change is needed or requested.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Post-fix CI and staging redeploy gate
 
 - PASS: GitHub `policy-tests` passed for the ledger compatibility fix: [run 42107435118](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42107435118).
