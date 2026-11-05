@@ -28,7 +28,8 @@ if (mode !== "test" || priceIds.length === 0) {
     signal: AbortSignal.timeout(30000),
   });
   const account = await accountResponse.json().catch(() => ({}));
-  const accountReadable = accountResponse.ok && typeof account.id === "string" && account.livemode === false;
+  // /v1/account describes the merchant account, not a mode-specific object; TEST mode is enforced by the key prefix and each Price.livemode.
+  const accountReadable = accountResponse.ok && typeof account.id === "string";
 
   // Continue with price reads even if a least-privilege key cannot read /v1/account.
   const prices = await Promise.all(priceIds.map(async ({ name, id }) => {
@@ -51,7 +52,7 @@ if (mode !== "test" || priceIds.length === 0) {
   const status = accountMatches && allFound ? "PASS" : "REVIEW_REQUIRED";
   console.log(JSON.stringify({
     status,
-    reason: status === "PASS" ? null : !accountReadable ? "account-identity-unavailable" : !accountMatches ? "unexpected-test-account" : "sandbox-price-mismatch",
+    reason: status === "PASS" ? null : !accountReadable ? "account-identity-unavailable" : !accountMatches ? "unexpected-test-account" : "configured-prices-unavailable-or-mismatched",
     accountId: accountReadable ? account.id : null,
     accountMatchesExpected: accountMatches,
     accountReadStatus: accountReadable ? "PASS" : "BLOCKED",
