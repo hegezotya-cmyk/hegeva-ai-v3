@@ -130,6 +130,15 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Final historical TEST identity-proof tool
+
+- PASS: added `scripts/stripe-staging-historical-identity-proof.mjs`. It performs TEST-only Stripe GETs for `/v1/account`, all five configured Prices, and fully paginated subscriptions; the owner-approved full tuple is supplied only as process-scoped runtime input.
+- PASS: the tool compares exact internal `accountId + subscriptionId + customerId + userId + createdAt`, requires `livemode=false`, active status, explicit `APPROVE-HISTORICAL-TEST` attestation and complete pagination, and emits only `exactMatch`, verification booleans and masked record data.
+- PASS: missing key, missing approval, incomplete tuple, unknown record, wrong account, live mode, incomplete pagination and mismatches fail closed.
+- PASS: static safety/syntax checks completed locally without network or secrets; no tuple was written to a file, GitHub, report or log.
+- BLOCKED: this Codex process cannot provide the owner’s full internal tuple or restricted key, so `historicalExceptionExactMatch=true` has not been claimed. The existing masked owner confirmation remains insufficient for machine approval.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Final historical TEST resolution — cff4302 follow-up
 
 - PASS: owner confirmation is recorded for the exact historical TEST record represented in the masked report (`2026-09-02`, not a real customer and not production data). The record remains unchanged.
