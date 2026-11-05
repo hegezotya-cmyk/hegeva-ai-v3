@@ -130,6 +130,15 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Owner-local corrected diagnostic result
+
+- PASS: the corrected Windows diagnostic completed with a valid main TEST account/price/pagination read and returned masked per-subscription details; no secret, email or full identifier was emitted.
+- PASS: one active subscription has applied/reconciled webhook evidence (`checkout.session.completed` and `invoice.paid`) and is the represented path.
+- REVIEW_REQUIRED: the second active subscription is masked as `sub_1UDB…21gr`, customer `cus_VLE3…4xHA`, user `aAJ0…ub7MI`; created `2026-09-02T02:50:39.000Z`, status `active`, TEST mode, metadata `userId` present, exact D1 match `false`, same-user/different-identity `false`, applied/reconciled ledger count `0`.
+- Classification: **UNKNOWN**. The record is not proven stale/orphan, legitimate historical TEST data, wrong-account, or missing identity mapping. The absence of ledger evidence means no automatic identity repair is justified.
+- Confirmed aggregate: `stripeActiveSubscriptions=2`, `unrepresentedActiveSubscriptions=1`, `stripeUsersWithoutD1Identity=1`, `releaseSafe=false`.
+- Required owner decision: confirm whether the masked subscription is an intentionally retained historical TEST subscription. If yes, document the release policy without deleting or excluding it from the gate; if no, approve a separate idempotent D1 identity-repair plan only after ledger/account provenance is established. No repair was executed.
+
 ## Owner diagnostic follow-up — D1 schema probe
 
 - Evidence: owner-local corrected diagnostic reached `d1-schema-read-failed`; no Stripe/D1 mutation occurred. The same two Wrangler PRAGMA calls were independently reproduced successfully with exit code 0 and valid schema rows, so the failure is not a demonstrated schema mismatch.
