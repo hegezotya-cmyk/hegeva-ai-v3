@@ -17,6 +17,8 @@ const source=original
    'const hegevaWorker={fetch:async()=>Response.json({delegated:true})}; const emitMonitor=()=>{};')
  .replace('import { reconcileReferralRewardForUser, reverseApprovedReferralRewards } from "./referral-reward-review.js";',
    'const reconcileReferralRewardForUser=async()=>{}; const reverseApprovedReferralRewards=async()=>{};')
+ .replace('import { processNextTerminalEffect } from "./stripe-terminal-effects-processor.js";',
+   'const processNextTerminalEffect=async()=>({status:"disabled-in-isolated-webhook-fixture"});')
  .replace('export { UserRateLimiter } from "./user-rate-limiter-do.js";','')
  .replace('from "./stripe-subscription-inventory.js"',`from "${dep("stripe-subscription-inventory.js")}"`)
  .replace('from "./stripe-terminal-event-review.js"',`from "${dep("stripe-terminal-event-review.js")}"`)
