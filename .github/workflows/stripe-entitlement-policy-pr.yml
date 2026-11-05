@@ -10,6 +10,7 @@ on:
       - "src/stripe-terminal-event-review.js"
       - "src/index-ledger.js"
       - "src/stripe-terminal-effects-outbox.js"
+      - "src/stripe-terminal-effects-processor.js"
       - "migrations/0032_stripe_terminal_effect_outbox.sql"
       - "scripts/stripe-multi-subscription-entitlement-test.mjs"
       - "scripts/stripe-subscription-inventory-test.mjs"
@@ -21,6 +22,7 @@ on:
       - "scripts/stripe-sqlite-parallel-workers-test.mjs"
       - "scripts/stripe-terminal-effects-outbox-test.mjs"
       - "scripts/stripe-terminal-outbox-atomic-test.mjs"
+      - "scripts/stripe-terminal-effects-processor-test.mjs"
       - ".github/workflows/stripe-entitlement-policy-pr.yml"
   workflow_dispatch:
 
@@ -43,6 +45,7 @@ jobs:
           node --check src/stripe-terminal-event-review.js
           node --check src/index-ledger.js
           node --check src/stripe-terminal-effects-outbox.js
+          node --check src/stripe-terminal-effects-processor.js
           node --check scripts/stripe-multi-subscription-entitlement-test.mjs
           node --check scripts/stripe-subscription-inventory-test.mjs
           node --check scripts/stripe-terminal-event-review-test.mjs
@@ -53,6 +56,7 @@ jobs:
           node --check scripts/stripe-sqlite-parallel-workers-test.mjs
           node --check scripts/stripe-terminal-effects-outbox-test.mjs
           node --check scripts/stripe-terminal-outbox-atomic-test.mjs
+          node --check scripts/stripe-terminal-effects-processor-test.mjs
       - name: Multi-subscription cancellation regression
         run: node scripts/stripe-multi-subscription-entitlement-test.mjs
       - name: Cross-customer Stripe inventory regression
@@ -73,3 +77,5 @@ jobs:
         run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-outbox-test.mjs
       - name: Three-write atomic Stripe outbox rollback on SQLite
         run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-outbox-atomic-test.mjs
+      - name: Isolated SQLite outbox processor retries
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-processor-test.mjs
