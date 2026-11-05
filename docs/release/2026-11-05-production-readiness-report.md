@@ -102,3 +102,11 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Current available Stripe connector exposes main Hegevaai in live mode and the separately created sandbox in test mode; this review did **not** read the main account's TEST subscription inventory or a live staging D1 SELECT. Consequently subscription/customer/user masked per-record details, creation dates and metadata cannot be independently verified here. **Classification: UNKNOWN** (possible legitimate/stale TEST subscription or missing identity). No source evidence proves a code defect, wrong-account condition, or authorization for repair.
 - To close: perform a fresh local restricted-key TEST account/price check; then a GET-only, fully paginated main-account TEST inventory and fixed staging D1 SELECT join, with a locally generated masked two-record comparison and webhook-ledger provenance. Keep raw IDs, metadata user IDs, personal data and secrets out of logs/PR. Obtain explicit owner classification before proposing an identity repair or a rollback. No D1/Stripe mutations, secret changes, merge or deployment authorized by this addendum.
 - Release decision remains **NOT READY**; reconciliation **REVIEW_REQUIRED**; `releaseSafe=false`. Additional duplicate/cancellation and full customer-journey gates remain as documented above.
+
+## Final focused verification — PR #95 head `04aab62`
+
+- PASS: clean checkout was fast-forwarded to the PR head without local changes or force operations.
+- PASS: offline private reconciliation fixture, offline identity comparison fixture, affected-module syntax checks, and `npm run worker:check` completed successfully; worker check reported 17/17 assistant-response subtests passing.
+- PASS: GitHub `policy-tests` for this exact head completed successfully: run `42084849144`, job `127447070134`.
+- BLOCKED: no new live Stripe TEST inventory or staging D1 join was performed in this process because the restricted key is not available to the process. The owner-local aggregate remains the only evidence for the second active subscription.
+- Final gate remains **NOT READY** / `releaseSafe=false`; no code defect was reproduced and no data repair was executed.
