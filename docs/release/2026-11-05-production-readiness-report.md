@@ -19,8 +19,10 @@ This branch is based on PR #94 commit `233e6e2510507be7c2b913859f33257e37cb9476`
 | Referral safety regressions | PASS | Atomic reversal and integrated mocked outbox referral tests |
 | Worker check | PASS | `npm run worker:check`, exit 0; 17 assistant-response subtests passed |
 | GitHub CI at verified #94 commit | PASS | [workflow run 41954016538](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/41954016538), policy-tests success |
-| Real staging D1 read-only verification | BLOCKED | No authorized live staging read-only session was used |
-| Stripe TEST full customer journey | BLOCKED | No Stripe write or remote test checkout/webhook mutation was performed |
+| GitHub CI at PR #95 head | PASS | [workflow run 41956313645](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/41956313645), policy-tests success |
+| Real staging D1 read-only verification | BLOCKED | Read-only Wrangler command attempted; stored Cloudflare token expired and refresh was blocked by unavailable auth-server connectivity. No D1 write or migration occurred. |
+| Stripe TEST read-only Customer inventory | BLOCKED | No Stripe read-only credential was present in the environment; no API call was attempted and no Stripe write occurred. |
+| Stripe TEST full customer journey | BLOCKED | Requires a separate authorized TEST write/payment/webhook approval; no checkout or remote webhook mutation was performed |
 | Production deploy readiness | FAIL | Real staging evidence and owner approval are still required; outbox remains intentionally not enabled remotely |
 
 ## Local change
