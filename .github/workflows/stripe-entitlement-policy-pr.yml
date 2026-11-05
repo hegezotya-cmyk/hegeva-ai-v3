@@ -19,6 +19,7 @@ on:
       - "src/stripe-terminal-effects-runner.js"
       - "src/stripe-terminal-referral-reversal.js"
       - "src/stripe-terminal-billing-identity.js"
+      - "src/stripe-staging-identity-compare.js"
       - "migrations/0032_stripe_terminal_effect_outbox.sql"
       - "scripts/stripe-multi-subscription-entitlement-test.mjs"
       - "scripts/stripe-subscription-inventory-test.mjs"
@@ -40,6 +41,7 @@ on:
       - "scripts/stripe-terminal-referral-reversal-test.mjs"
       - "scripts/stripe-terminal-referral-outbox-integration-test.mjs"
       - "scripts/stripe-terminal-billing-identity-test.mjs"
+      - "scripts/stripe-staging-identity-compare-test.mjs"
       - ".github/workflows/stripe-entitlement-policy-pr.yml"
   workflow_dispatch:
 
@@ -74,6 +76,7 @@ jobs:
           node --check src/stripe-terminal-effects-runner.js
           node --check src/stripe-terminal-referral-reversal.js
           node --check src/stripe-terminal-billing-identity.js
+          node --check src/stripe-staging-identity-compare.js
           node --check scripts/stripe-multi-subscription-entitlement-test.mjs
           node --check scripts/stripe-subscription-inventory-test.mjs
           node --check scripts/stripe-terminal-event-review-test.mjs
@@ -94,6 +97,7 @@ jobs:
           node --check scripts/stripe-terminal-referral-reversal-test.mjs
           node --check scripts/stripe-terminal-referral-outbox-integration-test.mjs
           node --check scripts/stripe-terminal-billing-identity-test.mjs
+          node --check scripts/stripe-staging-identity-compare-test.mjs
       - name: Multi-subscription cancellation regression
         run: node scripts/stripe-multi-subscription-entitlement-test.mjs
       - name: Cross-customer Stripe inventory regression
@@ -134,3 +138,5 @@ jobs:
         run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-referral-outbox-integration-test.mjs
       - name: Terminal Stripe Customer and subscription CAS protection
         run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-billing-identity-test.mjs
+      - name: Private D1-Stripe identity comparison synthetic regression
+        run: node scripts/stripe-staging-identity-compare-test.mjs
