@@ -130,6 +130,14 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Staging runtime testability plan — 2026-11-05
+
+- PASS: Wrangler 4.157.0 provides local scheduled invocation support, but no supported remote command was found for the deployed Cloudflare Worker. Local results will remain separate from cron-runtime evidence.
+- PASS: added plan-only design at `docs/release/staging-scheduled-runtime-test-mechanism-plan.md`. It is default-deny, staging-only, fixed-scenario, server-generated fixture IDs, single-flight/rate-limited, replay-protected, fail-closed, and performs idempotent cleanup.
+- BLOCKED: no endpoint, binding, authorization, or staging deployment was added. Enabling the mechanism requires one separate owner approval for the dedicated staging-only authorization and deployment.
+- BLOCKED: staging retry recovery and fencing runtime remain unproven; historical identity exact proof and duplicate/cancellation/entitlement E2E remain required release gates.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Final recovery/fencing acceptance — scheduled invocation boundary
 
 - PASS: read-only deployment status confirms Worker version `e6da7011-e331-4b4d-8c7a-cae26dac0895` at 100%; the staging D1 binding and required outbox, webhook ledger, and plan tables are present.
