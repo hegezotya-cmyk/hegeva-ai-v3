@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS stripe_terminal_effect_outbox (
   subscriptionId TEXT NOT NULL,
   customerId TEXT NOT NULL,
   livemode INTEGER NOT NULL CHECK(livemode IN (0,1)),
-  state TEXT NOT NULL DEFAULT 'pending' CHECK(state IN ('pending','processing','completed')),
+  state TEXT NOT NULL DEFAULT 'pending' CHECK(state IN ('pending','processing','completed','blocked')),
   attempts INTEGER NOT NULL DEFAULT 0 CHECK(attempts >= 0),
   nextAttemptAt TEXT NOT NULL,
   leaseUntil TEXT,
@@ -89,4 +89,45 @@ export function reviewTerminalEffectExecution({
       : { decision: "skip", reason: "paid-entitlement-no-longer-active" };
   }
   return { decision: "defer", reason: "unrecognized-effect" };
+}
+
+export const BLOCK_TERMINAL_EFFECT_SQL = `
+UPDATE stripe_terminal_effect_outbox
+SET state='blocked',leaseUntil=NULL,updatedAt=?1,lastError=?2
+WHERE eventId=?3 AND state='processing' AND attempts=?4
+`;
+
+// Read-only operational observability for pending or stuck effects.
+// Do not log raw eventId/customerId/subscriptionId or userId.
+export const TERMINAL_EFFECT_HEALTH_SQL = `
+SELECT
+  SUM(CASE WHEN state='pending' AND nextAttemptAt <= ?1 THEN 1 ELSE 0 END) AS due,
+  SUM(CASE WHEN state='pending' AND nextAttemptAt > ?1 THEN 1 ELSE 0 END) AS scheduled,
+  SUM(CASE WHEN state='processing' AND leaseUntil >= ?1 THEN 1 ELSE 0 END) AS running,
+  SUM(CASE WHEN state='processing' AND leaseUntil < ?1 THEN 1 ELSE 0 END) AS expiredLeases,
+  SUM(CASE WHEN state='blocked' THEN 1 ELSE 0 END) AS blocked,
+  SUM(CASE WHEN state='completed' THEN 1 ELSE 0 END) AS completed
+FROM stripe_terminal_effect_outbox
+`;
+
+export async function readTerminalEffectHealth(db, now = new Date().toISOString()) {
+  if (!db || typeof db.prepare !== "function" ||
+      typeof now !== "string" || !Number.isFinite(Date.parse(now))) {
+    return {verified:false};
+  }
+  try {
+    const row = await db.prepare(TERMINAL_EFFECT_HEALTH_SQL)
+      .bind(new Date(now).toISOString()).first();
+    if (!row) return {verified:false};
+    const result = {verified:true};
+    for (const key of ["due","scheduled","running","expiredLeases","blocked","completed"]) {
+      const n=Number(row[key]??0);
+      if (!Number.isSafeInteger(n) || n<0) return {verified:false};
+      result[key]=n;
+    }
+    result.attentionRequired=result.blocked>0 || result.expiredLeases>0;
+    return result;
+  } catch {
+    return {verified:false};
+  }
 }
