@@ -1,6 +1,7 @@
 import hegevaWorker, { emitMonitor } from "./index.js";
 import { collectStripeUserSubscriptions } from "./stripe-subscription-inventory.js";
 import { reviewTerminalStripeEvent } from "./stripe-terminal-event-review.js";
+import { effectForDecision, prepareTerminalEffect } from "./stripe-terminal-effects-outbox.js";
 import { reconcileReferralRewardForUser, reverseApprovedReferralRewards } from "./referral-reward-review.js";
 export { UserRateLimiter } from "./user-rate-limiter-do.js";
 
@@ -557,6 +558,19 @@ async function reconcileTerminalStripeEvent(env, event, claim) {
   // one transaction. A crash cannot leave the plan committed while the
   // webhook event still appears pending.
   const committedAt = new Date().toISOString();
+  // The outbox is part of the SAME transaction as the plan and event ledger.
+  // Requires unapplied migration 0032 before this draft can be deployed.
+  const effectType = effectForDecision(decision.decision, true);
+  const queuedEffect = prepareTerminalEffect({
+    eventId: claim.eventId,
+    userId: claim.userId,
+    subscriptionId: event?.data?.object?.id,
+    customerId: event?.data?.object?.customer,
+    livemode,
+    effectType,
+    now: committedAt,
+  });
+  if (!queuedEffect) return { deferred: true };
   const changes = await env.DB.batch([
     env.DB.prepare(`
       INSERT INTO user_plans (userId, plan, createdAt, updatedAt)
@@ -572,9 +586,11 @@ async function reconcileTerminalStripeEvent(env, event, claim) {
       SET outcome = 'reconciled', processedAt = ?1
       WHERE eventId = ?2 AND outcome = 'ignored'
     `).bind(committedAt, claim.eventId),
+    env.DB.prepare(queuedEffect.sql).bind(...queuedEffect.values),
   ]);
-  if (!Array.isArray(changes) || changes.length !== 2 ||
-      Number(changes[1]?.meta?.changes) !== 1) {
+  if (!Array.isArray(changes) || changes.length !== 3 ||
+      Number(changes[1]?.meta?.changes) !== 1 ||
+      Number(changes[2]?.meta?.changes) !== 1) {
     // A failed/ambiguous commit must never be acknowledged as reconciled.
     throw new Error("stripe_atomic_terminal_commit_unconfirmed");
   }
