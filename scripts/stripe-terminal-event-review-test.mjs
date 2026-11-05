@@ -9,6 +9,13 @@ const review=(subscriptions,extra={})=>reviewTerminalStripeEvent({
 });
 assert.deepEqual(await review([old,next]),{decision:"retain",plan:"premium"});
 assert.deepEqual(await review([old]),{decision:"downgrade",plan:"basic"});
+assert.deepEqual(await review([next]),{decision:"defer",reason:"terminal-subscription-unconfirmed"});
+assert.deepEqual(await review([{...old,userId:"another-user"},next]),
+  {decision:"defer",reason:"terminal-subscription-unconfirmed"});
+assert.deepEqual(await review([{...old,customerId:"cus_other"},next]),
+  {decision:"defer",reason:"terminal-subscription-unconfirmed"});
+assert.deepEqual(await review([{...old,status:"active"},next]),
+  {decision:"defer",reason:"terminal-subscription-unconfirmed"});
 assert.deepEqual(await review([]),{decision:"defer",reason:"terminal-subscription-unconfirmed"});
 assert.deepEqual(await review([old],{getCompleteInventory:async()=>({complete:false,subscriptions:[old]})}),
   {decision:"defer",reason:"incomplete-inventory"});
