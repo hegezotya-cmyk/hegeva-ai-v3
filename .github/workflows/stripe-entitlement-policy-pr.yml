@@ -9,6 +9,7 @@ on:
       - "src/stripe-subscription-inventory.js"
       - "src/stripe-terminal-event-review.js"
       - "src/index-ledger.js"
+      - "src/stripe-terminal-effects-outbox.js"
       - "scripts/stripe-multi-subscription-entitlement-test.mjs"
       - "scripts/stripe-subscription-inventory-test.mjs"
       - "scripts/stripe-terminal-event-review-test.mjs"
@@ -17,6 +18,7 @@ on:
       - "scripts/stripe-sqlite-webhook-ledger-test.mjs"
       - "scripts/stripe-sqlite-two-connection-order-test.mjs"
       - "scripts/stripe-sqlite-parallel-workers-test.mjs"
+      - "scripts/stripe-terminal-effects-outbox-test.mjs"
       - ".github/workflows/stripe-entitlement-policy-pr.yml"
   workflow_dispatch:
 
@@ -38,6 +40,7 @@ jobs:
           node --check src/stripe-subscription-inventory.js
           node --check src/stripe-terminal-event-review.js
           node --check src/index-ledger.js
+          node --check src/stripe-terminal-effects-outbox.js
           node --check scripts/stripe-multi-subscription-entitlement-test.mjs
           node --check scripts/stripe-subscription-inventory-test.mjs
           node --check scripts/stripe-terminal-event-review-test.mjs
@@ -46,6 +49,7 @@ jobs:
           node --check scripts/stripe-sqlite-webhook-ledger-test.mjs
           node --check scripts/stripe-sqlite-two-connection-order-test.mjs
           node --check scripts/stripe-sqlite-parallel-workers-test.mjs
+          node --check scripts/stripe-terminal-effects-outbox-test.mjs
       - name: Multi-subscription cancellation regression
         run: node scripts/stripe-multi-subscription-entitlement-test.mjs
       - name: Cross-customer Stripe inventory regression
@@ -62,3 +66,5 @@ jobs:
         run: node --disable-warning=ExperimentalWarning scripts/stripe-sqlite-two-connection-order-test.mjs
       - name: Concurrent SQLite worker-thread webhook race regression
         run: node --disable-warning=ExperimentalWarning scripts/stripe-sqlite-parallel-workers-test.mjs
+      - name: Durable terminal side-effects outbox policy SQLite tests
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-outbox-test.mjs
