@@ -1,4 +1,6 @@
 import hegevaWorker, { emitMonitor } from "./index.js";
+import { collectStripeUserSubscriptions } from "./stripe-subscription-inventory.js";
+import { reviewTerminalStripeEvent } from "./stripe-terminal-event-review.js";
 import { reconcileReferralRewardForUser, reverseApprovedReferralRewards } from "./referral-reward-review.js";
 export { UserRateLimiter } from "./user-rate-limiter-do.js";
 
@@ -513,41 +515,62 @@ async function releaseStripeEvent(env, eventId) {
     .run();
 }
 
-async function downgradeTerminalSubscription(env, event, claim) {
-  if (
-    claim?.eventType !== "customer.subscription.updated" ||
-    !claim?.userId
-  ) {
-    return null;
+function isTerminalSubscriptionEvent(event) {
+  const type = event?.type;
+  const status = String(event?.data?.object?.status || "").trim().toLowerCase();
+  return (type === "customer.subscription.updated" ||
+      type === "customer.subscription.deleted") &&
+    ["canceled", "unpaid", "incomplete_expired"].includes(status);
+}
+
+// All terminal events are intercepted before delegate to index.js, which
+// otherwise grants Basic unconditionally on customer.subscription.deleted.
+// This candidate requires authenticated, complete Stripe inventory for its
+// entitlement decision. Never authorize a downgrade from one event alone.
+async function reconcileTerminalStripeEvent(env, event, claim) {
+  const paymentMode = getLedgerPaymentMode(env);
+  const livemode = paymentMode === "live";
+  const inventory = () => collectStripeUserSubscriptions({
+    userId: claim.userId,
+    livemode,
+    secretKey: env.STRIPE_SECRET_KEY
+  });
+  const decision = await reviewTerminalStripeEvent({
+    event,
+    userId: claim.userId,
+    livemode,
+    getCompleteInventory: inventory,
+  });
+  if (decision.decision === "defer") return { deferred: true };
+
+  const nextPlan = decision.plan;
+  if (!["basic", "premium", "pro"].includes(nextPlan)) {
+    return { deferred: true };
   }
 
-  const status = String(event?.data?.object?.status || "").toLowerCase();
-  const terminal = ["canceled", "unpaid", "incomplete_expired"].includes(status);
-
-  // cancel_at_period_end is intentionally not terminal. The subscriber keeps
-  // access until Stripe actually ends the subscription.
-  if (!terminal) return null;
-
-  const result = await env.DB
-    .prepare(`
-      INSERT INTO user_plans (
-        userId,
-        plan,
-        createdAt,
-        updatedAt
-      )
-      VALUES (?1, 'basic', ?2, ?2)
-      ON CONFLICT(userId)
-      DO UPDATE SET
-        plan = 'basic',
-        updatedAt = excluded.updatedAt
-      WHERE user_plans.updatedAt IS NULL
-         OR user_plans.updatedAt <= excluded.updatedAt
-    `)
-    .bind(claim.userId, claim.eventCreatedAt)
-    .run();
+  const result = await env.DB.prepare(`
+    INSERT INTO user_plans (userId, plan, createdAt, updatedAt)
+    VALUES (?1, ?2, ?3, ?3)
+    ON CONFLICT(userId) DO UPDATE SET
+      plan = excluded.plan,
+      updatedAt = excluded.updatedAt
+    WHERE user_plans.updatedAt IS NULL
+       OR user_plans.updatedAt <= excluded.updatedAt
+  `).bind(claim.userId, nextPlan, claim.eventCreatedAt).run();
 
   const changed = Number(result?.meta?.changes || 0) > 0;
+  // Sync terminal billing identity only if no eligible subscription remains;
+  // avoid overwriting an active subscription with the canceled Customer ID.
+  if (decision.decision === "downgrade") {
+    await syncStripeBillingIdentity(env, event, claim);
+    if (changed) {
+      await reverseApprovedReferralRewards(env.DB, claim.userId, "entitlement-invalid");
+    }
+  }
+
+  if (changed && decision.decision === "retain") {
+    await reconcileReferralRewardForUser(env.DB, claim.userId);
+  }
 
   return {
     received: true,
@@ -556,9 +579,10 @@ async function downgradeTerminalSubscription(env, event, claim) {
     eventType: claim.eventType,
     ignored: !changed,
     entitlementChanged: changed,
-    resultingPlan: changed ? "basic" : null,
+    resultingPlan: changed ? nextPlan : null,
     userMapped: true,
-    subscriptionStatus: status,
+    subscriptionStatus: String(event.data.object.status).toLowerCase(),
+    inventoryReconciled: true,
   };
 }
 
@@ -684,16 +708,21 @@ async function handleStripeWebhook(request, env, ctx) {
       return Response.json(responseData);
     }
 
-    await syncStripeBillingIdentity(env, event, claim);
-
-    const terminalSubscriptionResult =
-      await downgradeTerminalSubscription(env, event, claim);
-
-    if (terminalSubscriptionResult) {
-      await finalizeStripeEvent(env, claim.eventId, terminalSubscriptionResult);
-      await reverseApprovedReferralRewards(env.DB, claim.userId, "entitlement-invalid");
-      return Response.json(terminalSubscriptionResult);
+    if (isTerminalSubscriptionEvent(event)) {
+      const reviewed = await reconcileTerminalStripeEvent(env, event, claim);
+      if (reviewed.deferred) {
+        await releaseStripeEvent(env, claim.eventId);
+        emitMonitor("stripe_webhook", "terminal_reconciliation_deferred");
+        return Response.json(
+          { error: "Subscription reconciliation temporarily unavailable." },
+          { status: 503, headers: { "Retry-After": "300" } },
+        );
+      }
+      await finalizeStripeEvent(env, claim.eventId, reviewed);
+      return Response.json(reviewed);
     }
+
+    await syncStripeBillingIdentity(env, event, claim);
   } catch (error) {
     console.error("HEGEVA_REQUEST_FAILURE", {
       reason: "stripe_event_guard_failed",
