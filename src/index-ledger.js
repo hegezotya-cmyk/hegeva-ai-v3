@@ -845,7 +845,14 @@ export default {
           env.DB.prepare("SELECT eventId FROM stripe_webhook_events WHERE userId=?1 AND outcome IN ('applied','reconciled') AND eventCreatedAt > (SELECT eventCreatedAt FROM stripe_webhook_events WHERE eventId=?2 LIMIT 1) LIMIT 1").bind(effect.userId, effect.eventId).first(),
         ]);
         const currentPlan = String(plan?.plan || "").toLowerCase();
-        return { currentPlan, currentPlanVerified: ["basic", "premium", "pro"].includes(currentPlan), newerEventExists: Boolean(newer?.eventId), newerEventsVerified: Boolean(event?.eventCreatedAt) };
+        const currentPlanVerified = ["basic", "premium", "pro"].includes(currentPlan);
+        const newerEventExists = Boolean(newer?.eventId);
+        const newerEventsVerified = Boolean(event?.eventCreatedAt);
+        const stateCheckReason = !currentPlanVerified ? "plan-unverified"
+          : !newerEventsVerified ? "ledger-event-missing"
+          : newerEventExists ? "newer-ledger-event"
+          : "verified";
+        return { currentPlan, currentPlanVerified, newerEventExists, newerEventsVerified, stateCheckReason };
       },
       executeIdempotently: async effect => {
         if (effect.effectType === "billing-and-referral-downgrade") return reverseApprovedReferralRewards(env.DB, effect.userId, "entitlement-invalid", "system", now);

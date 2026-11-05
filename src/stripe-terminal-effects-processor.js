@@ -60,7 +60,12 @@ export async function processNextTerminalEffect({
     return defer("state-check-error");
   }
   const policy=reviewTerminalEffectExecution({effect:claimed,...check});
-  if (policy.decision==="defer") return defer("state-unverified");
+  if (policy.decision==="defer") {
+    const reason = typeof check?.stateCheckReason === "string" && /^[a-z0-9-]+$/.test(check.stateCheckReason)
+      ? `state-unverified:${check.stateCheckReason}`
+      : "state-unverified";
+    return defer(reason);
+  }
   if (policy.decision==="run") {
     try {
       // Executions MUST be idempotent by eventId; the lease cannot guarantee

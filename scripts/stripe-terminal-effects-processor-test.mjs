@@ -55,5 +55,11 @@ try {
    executeIdempotently:execute});
  assert.equal(r.status,"retry-scheduled");
  assert(!executions.includes("evt_f"));
+ insert("evt_g");
+ r=await processNextTerminalEffect({db:adapter,now:t,
+   checkCurrentState:async()=>({currentPlan:"",currentPlanVerified:false,newerEventExists:false,newerEventsVerified:false,stateCheckReason:"plan-unverified"}),
+   executeIdempotently:execute});
+ assert.equal(r.status,"retry-scheduled");
+ assert.equal(db.prepare("SELECT lastError FROM stripe_terminal_effect_outbox WHERE eventId='evt_g'").get().lastError,"state-unverified:plan-unverified");
  console.log("Isolated SQLite outbox processor PASS: lease, idempotent key, stale skip, backoff, retries, fail-closed state");
 } finally {db.close();}
