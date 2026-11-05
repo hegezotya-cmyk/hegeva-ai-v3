@@ -1,0 +1,30 @@
+name: Stripe Multi-Subscription Policy PR Checks
+
+on:
+  pull_request:
+    branches:
+      - integration/security-growth-validation-20261104
+    paths:
+      - "src/stripe-entitlement-reconciliation-policy.js"
+      - "scripts/stripe-multi-subscription-entitlement-test.mjs"
+      - ".github/workflows/stripe-entitlement-policy-pr.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Syntax check
+        run: |
+          node --check src/stripe-entitlement-reconciliation-policy.js
+          node --check scripts/stripe-multi-subscription-entitlement-test.mjs
+      - name: Multi-subscription cancellation regression
+        run: node scripts/stripe-multi-subscription-entitlement-test.mjs
