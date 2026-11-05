@@ -18,17 +18,22 @@ if (!isMainThread) {
   db.exec("PRAGMA busy_timeout=5000");
   parentPort.postMessage({ready:true});
   parentPort.once("message",()=>{
+    let result;
     try {
       db.exec("BEGIN IMMEDIATE");
       const changed=db.prepare(statements[0]).run("u",workerData.plan,workerData.time).changes;
       const closed=db.prepare(statements[1]).run(workerData.time,workerData.eventId).changes;
       assert.equal(closed,1);
       db.exec("COMMIT");
-      parentPort.postMessage({done:true,changed});
+      result={done:true,changed};
     } catch(error) {
       try {db.exec("ROLLBACK");} catch {}
-      parentPort.postMessage({error:String(error)});
-    } finally {db.close();}
+      result={error:String(error)};
+    } finally {
+      try {db.close();} catch(error) { result={error:String(error)}; }
+    }
+    // Report completion only after SQLite releases connection locks.
+    parentPort.postMessage(result);
   });
 } else {
   const dir=mkdtempSync(join(tmpdir(),"hegeva-parallel-"));
@@ -59,6 +64,7 @@ if (!isMainThread) {
         })));
         assert.equal(outcomes.length,2);
         const read=new DatabaseSync(path);
+        read.exec("PRAGMA busy_timeout=5000");
         assert.equal(read.prepare("SELECT plan FROM user_plans WHERE userId='u'").get().plan,"premium");
         assert.equal(read.prepare("SELECT updatedAt FROM user_plans WHERE userId='u'").get().updatedAt,newer);
         assert.equal(read.prepare("SELECT COUNT(*) AS n FROM stripe_webhook_events WHERE outcome='reconciled'").get().n,2);
