@@ -518,8 +518,10 @@ async function releaseStripeEvent(env, eventId) {
 function isTerminalSubscriptionEvent(event) {
   const type = event?.type;
   const status = String(event?.data?.object?.status || "").trim().toLowerCase();
-  return (type === "customer.subscription.updated" ||
-      type === "customer.subscription.deleted") &&
+  // Deleted events must never reach the legacy unconditional downgrade path,
+  // including when Stripe's payload is malformed or missing a status.
+  if (type === "customer.subscription.deleted") return true;
+  return type === "customer.subscription.updated" &&
     ["canceled", "unpaid", "incomplete_expired"].includes(status);
 }
 
