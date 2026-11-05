@@ -18,6 +18,11 @@ assert.deepEqual(accepted, {
   evaluated: [{subscriptionId: "sub_history", status: "approved-historical-test-exception"}],
 });
 
+const terminalHistorical = evaluateHistoricalTestExceptions({accountId: base.accountId, livemode: false, rawUnrepresented: [{...base, status: "canceled"}], approvedExceptions: [approval]});
+assert.equal(terminalHistorical.approvedHistoricalTestExceptionCount, 1);
+assert.equal(terminalHistorical.remainingBlockerCount, 0);
+assert.equal(terminalHistorical.releaseSafeEligible, true);
+
 for (const changed of [
   {...approval, customerId: "cus_other"},
   {...approval, userId: "user_other"},

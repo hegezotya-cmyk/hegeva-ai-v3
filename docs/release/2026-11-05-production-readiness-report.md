@@ -130,6 +130,13 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Follow-up fix: historical terminal TEST record
+
+- PASS: fixed the automatic historical proof to search the complete TEST inventory, not only active subscriptions. This covers the owner-confirmed record after it became terminal/canceled, while still requiring the exact masked reference, full internal tuple and local owner approval.
+- PASS: historical exception policy now permits explicitly approved terminal TEST statuses (`canceled`, `unpaid`, `incomplete_expired`) only; live mode, wrong account, unknown records and active unmatched records remain blockers.
+- PASS: targeted regressions cover active and terminal historical records, exact approval, altered identity, multiple missing records, wrong account and live mode.
+- BLOCKED: no owner-local rerun of the corrected auto-proof has yet supplied `historicalExceptionExactMatch=true`; raw reconciliation remains visible and `releaseSafe=false`.
+
 ## Latest owner-local reconciliation after TEST cleanup
 
 - PASS: the main TEST read-only reconciliation completed with `verified=true`; the single active Stripe TEST subscription has an exact stored D1 identity match.

@@ -1,6 +1,6 @@
 // Narrow, runtime-only exception evaluator.
 // It never removes records from the raw reconciliation and never applies to live data.
-const ACTIVE = new Set(["active", "trialing", "past_due"]);
+const HISTORICAL_TEST_STATUSES = new Set(["active", "trialing", "past_due", "canceled", "unpaid", "incomplete_expired"]);
 
 function exact(value, expected) {
   return typeof value === "string" && value.length > 0 && value === expected;
@@ -29,7 +29,7 @@ export function evaluateHistoricalTestExceptions({
       exact(entry.customerId, item.customerId) &&
       exact(entry.userId, item.userId) &&
       exact(entry.createdAt, item.createdAt) &&
-      ACTIVE.has(String(item.status || "").toLowerCase())
+      HISTORICAL_TEST_STATUSES.has(String(item.status || "").toLowerCase())
     );
     if (candidate && !invalidContext) {
       const index = approved.indexOf(candidate);
