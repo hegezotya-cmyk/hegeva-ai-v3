@@ -14,6 +14,7 @@ on:
       - "scripts/stripe-terminal-event-review-test.mjs"
       - "scripts/stripe-terminal-routes-risk-sentinel.mjs"
       - "scripts/stripe-signed-webhook-integration-test.mjs"
+      - "scripts/stripe-sqlite-webhook-ledger-test.mjs"
       - ".github/workflows/stripe-entitlement-policy-pr.yml"
   workflow_dispatch:
 
@@ -40,6 +41,7 @@ jobs:
           node --check scripts/stripe-terminal-event-review-test.mjs
           node --check scripts/stripe-terminal-routes-risk-sentinel.mjs
           node --check scripts/stripe-signed-webhook-integration-test.mjs
+          node --check scripts/stripe-sqlite-webhook-ledger-test.mjs
       - name: Multi-subscription cancellation regression
         run: node scripts/stripe-multi-subscription-entitlement-test.mjs
       - name: Cross-customer Stripe inventory regression
@@ -50,3 +52,5 @@ jobs:
         run: node scripts/stripe-terminal-routes-risk-sentinel.mjs
       - name: Signed webhook and mocked D1 integration
         run: node scripts/stripe-signed-webhook-integration-test.mjs
+      - name: Real SQLite webhook ledger SQL and crash-window regression
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-sqlite-webhook-ledger-test.mjs
