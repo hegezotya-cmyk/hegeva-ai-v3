@@ -10,6 +10,7 @@ on:
       - "src/stripe-terminal-event-review.js"
       - "src/index-ledger.js"
       - "src/stripe-terminal-effects-outbox.js"
+      - "migrations/0032_stripe_terminal_effect_outbox.sql"
       - "scripts/stripe-multi-subscription-entitlement-test.mjs"
       - "scripts/stripe-subscription-inventory-test.mjs"
       - "scripts/stripe-terminal-event-review-test.mjs"
@@ -19,6 +20,7 @@ on:
       - "scripts/stripe-sqlite-two-connection-order-test.mjs"
       - "scripts/stripe-sqlite-parallel-workers-test.mjs"
       - "scripts/stripe-terminal-effects-outbox-test.mjs"
+      - "scripts/stripe-terminal-outbox-atomic-test.mjs"
       - ".github/workflows/stripe-entitlement-policy-pr.yml"
   workflow_dispatch:
 
@@ -50,6 +52,7 @@ jobs:
           node --check scripts/stripe-sqlite-two-connection-order-test.mjs
           node --check scripts/stripe-sqlite-parallel-workers-test.mjs
           node --check scripts/stripe-terminal-effects-outbox-test.mjs
+          node --check scripts/stripe-terminal-outbox-atomic-test.mjs
       - name: Multi-subscription cancellation regression
         run: node scripts/stripe-multi-subscription-entitlement-test.mjs
       - name: Cross-customer Stripe inventory regression
@@ -68,3 +71,5 @@ jobs:
         run: node --disable-warning=ExperimentalWarning scripts/stripe-sqlite-parallel-workers-test.mjs
       - name: Durable terminal side-effects outbox policy SQLite tests
         run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-outbox-test.mjs
+      - name: Three-write atomic Stripe outbox rollback on SQLite
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-outbox-atomic-test.mjs
