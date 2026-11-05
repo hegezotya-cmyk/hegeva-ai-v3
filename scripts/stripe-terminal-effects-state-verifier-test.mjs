@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { verifyTerminalEffectCurrentState } from "../src/stripe-terminal-effects-state-verifier.js";
 const db=new DatabaseSync(":memory:");
-db.exec("CREATE TABLE stripe_webhook_events (eventId TEXT PRIMARY KEY,userId TEXT,eventCreatedAt TEXT,outcome TEXT)");
+db.exec("CREATE TABLE stripe_webhook_events (eventId TEXT PRIMARY KEY,userId TEXT,eventCreatedAt TEXT,outcome TEXT,eventType TEXT)");
 db.exec("CREATE TABLE user_plans (userId TEXT PRIMARY KEY,plan TEXT)");
 const adapter={prepare(sql){return {bind(...args){return {first:async()=>db.prepare(sql).get(...args)??null};}};}};
 const t="2026-11-05T01:00:00.000Z";
-db.prepare("INSERT INTO stripe_webhook_events VALUES (?1,?2,?3,'reconciled')").run("evt_old","user_a",t);
+db.prepare("INSERT INTO stripe_webhook_events(eventId,userId,eventCreatedAt,outcome,eventType) VALUES (?1,?2,?3,'reconciled','customer.subscription.deleted')").run("evt_old","user_a",t);
 db.prepare("INSERT INTO user_plans VALUES ('user_a','basic')").run();
-const effect={eventId:"evt_old",userId:"user_a",effectType:"billing-and-referral-downgrade",livemode:0};
+const effect={eventId:"evt_old",userId:"user_a",effectType:"billing-and-referral-downgrade",livemode:0,subscriptionId:"sub_old",customerId:"cus_old"};
 const old={id:"sub_old",customerId:"cus_old",userId:"user_a",livemode:false,status:"canceled",plan:"premium"};
 const active={id:"sub_new",customerId:"cus_new",userId:"user_a",livemode:false,status:"active",plan:"premium"};
 const check=async(rows,changes={})=>verifyTerminalEffectCurrentState({
@@ -22,9 +22,15 @@ try {
  assert.equal((await check([old,active])).currentPlanVerified,false,"Stripe active sub disagrees with stale D1 basic");
  assert.equal((await check([old],{userId:"another"})).currentPlanVerified,false);
  assert.equal((await check([old],{livemode:1})).currentPlanVerified,false);
+ assert.equal((await check([old],{subscriptionId:"sub_another"})).currentPlanVerified,false,
+   "a valid plan does not justify another subscription's effect");
+ assert.equal((await check([old],{customerId:"cus_other"})).currentPlanVerified,false);
+ assert.equal((await check([{...old,status:"active"}])).currentPlanVerified,false);
+ assert.equal((await check([{...old,customerId:"cus_other"}])).currentPlanVerified,false);
+
  assert.equal((await verifyTerminalEffectCurrentState({db:adapter,effect,
   getCompleteInventory:async()=>({complete:false,subscriptions:[old]})})).currentPlanVerified,false);
- db.prepare("INSERT INTO stripe_webhook_events VALUES (?1,?2,?3,'ignored')").run("evt_new","user_a","2026-11-05T01:01:00.000Z");
+ db.prepare("INSERT INTO stripe_webhook_events(eventId,userId,eventCreatedAt,outcome,eventType) VALUES (?1,?2,?3,'ignored','customer.subscription.updated')").run("evt_new","user_a","2026-11-05T01:01:00.000Z");
  const newer=await check([old]);
  assert.equal(newer.newerEventExists,true);
  assert.equal(newer.currentPlanVerified,false,"newer even-pending event blocks older effects");
