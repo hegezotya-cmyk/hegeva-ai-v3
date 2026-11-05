@@ -50,6 +50,7 @@ const makeDb=()=> {
   },
   async all(){return {results:[]};},
  };}};}};
+ DB.batch=async statements=>{const results=[];for(const statement of statements)results.push(await statement.run());return results;};
  return {DB,operations,claims,outcomes};
 };
 const secret="whsec_local_fixture";
