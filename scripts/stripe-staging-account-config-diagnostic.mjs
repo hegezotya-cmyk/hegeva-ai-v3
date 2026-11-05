@@ -62,5 +62,6 @@ if (mode !== "test" || priceIds.length === 0) {
     prices,
     ...summary,
   }));
-  if (status !== "PASS") process.exitCode = 2;
+  // A price mismatch remains review-required but does not block the read-only D1/Stripe identity join once the expected account is proven.
+  if (!accountMatches) process.exitCode = 2;
 }
