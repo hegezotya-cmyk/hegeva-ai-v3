@@ -8,6 +8,7 @@ on:
       - "src/stripe-entitlement-reconciliation-policy.js"
       - "src/stripe-subscription-inventory.js"
       - "src/stripe-terminal-event-review.js"
+      - "src/index-ledger.js"
       - "scripts/stripe-multi-subscription-entitlement-test.mjs"
       - "scripts/stripe-subscription-inventory-test.mjs"
       - "scripts/stripe-terminal-event-review-test.mjs"
@@ -32,6 +33,7 @@ jobs:
           node --check src/stripe-entitlement-reconciliation-policy.js
           node --check src/stripe-subscription-inventory.js
           node --check src/stripe-terminal-event-review.js
+          node --check src/index-ledger.js
           node --check scripts/stripe-multi-subscription-entitlement-test.mjs
           node --check scripts/stripe-subscription-inventory-test.mjs
           node --check scripts/stripe-terminal-event-review-test.mjs
