@@ -153,6 +153,7 @@ Review the draft PR and separately authorize any future staging migration, stagi
 
 - No staging redeploy was performed. The snapshot is not sufficient to prove the exact cron expression, effective observability state, or preservation of Dashboard-only variables/secrets during redeploy.
 - No Dashboard variables, secrets, Stripe records, or D1 records were changed.
+- PASS: local Wrangler `4.157.0` dry-run compiled the staging Worker and resolved the expected DB, AI, Durable Object and asset bindings; the dry-run exited before upload/deploy. Price values were not copied into this report.
 - Required owner evidence before redeploy: exact active cron expression, effective logs/traces state, and a command/version-specific proof or approved preflight showing that `keep_vars=true` preserves Dashboard-only vars and encrypted secrets. Detailed logging must remain disabled unless separately approved.
 - Historical TEST identity proof and duplicate/cancellation/entitlement E2E gates remain separate blockers.
 - Final status remains **NOT READY**, `releaseSafe=false`.
