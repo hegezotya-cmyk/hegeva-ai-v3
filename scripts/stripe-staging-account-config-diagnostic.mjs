@@ -1,13 +1,13 @@
 // Read-only staging Stripe account/config diagnostic.
 // Never reads or exports the Worker STRIPE_SECRET_KEY.
-// Reuse the process-scoped key already used by private reconciliation, or the older sandbox-specific variable.
+// Uses one process-scoped TEST key only for read-only GET /v1/account and GET /v1/prices/{id}; never reads the Worker's secret.
 import { readFileSync } from "node:fs";
 
 const config = readFileSync(new URL("../wrangler.staging.jsonc", import.meta.url), "utf8");
 const mode = /"PAYMENT_MODE"\s*:\s*"([^"]+)"/.exec(config)?.[1] || null;
 const priceIds = [...config.matchAll(/"(STRIPE_[A-Z_]+PRICE_ID)"\s*:\s*"(price_[^"]+)"/g)]
   .map(([, name, id]) => ({ name, id }));
-const localKey = process.env.STRIPE_TEST_READONLY_KEY?.trim() || process.env.STRIPE_SANDBOX_READONLY_KEY?.trim() || "";
+const localKey = process.env.STRIPE_TEST_READONLY_KEY?.trim() || process.env.STRIPE_TEST_SECRET_KEY?.trim() || process.env.STRIPE_SANDBOX_READONLY_KEY?.trim() || "";
 const summary = {
   configMode: mode,
   configuredPriceCount: priceIds.length,
@@ -18,7 +18,7 @@ const summary = {
 if (mode !== "test" || priceIds.length === 0) {
   console.log(JSON.stringify({ status: "FAIL", reason: "invalid-staging-test-config", ...summary }));
   process.exitCode = 2;
-} else if (!/^rk_test_/.test(localKey)) {
+} else if (!/^(rk|sk)_test_/.test(localKey)) {
   console.log(JSON.stringify({ status: "BLOCKED", reason: "stripe-test-readonly-key-unavailable", ...summary }));
   process.exitCode = 2;
 } else {
