@@ -15,11 +15,13 @@ assert.match(config, /"PAYMENT_MODE"\s*:\s*"test"/);
 assert.doesNotMatch(config, /"PAYMENT_MODE"\s*:\s*"live"/);
 const execute=process.argv.includes("--execute");
 if(!execute){
- console.log("DRY RUN: no remote reads. --execute requires scoped D1 read access and STRIPE_TEST_READONLY_KEY.");
+ console.log("DRY RUN: no remote reads. --execute requires scoped D1 read access and a TEST-mode Stripe key in STRIPE_TEST_READONLY_KEY or STRIPE_TEST_SECRET_KEY.");
  process.exit(0);
 }
-const token=process.env.STRIPE_TEST_READONLY_KEY?.trim();
-if(!token || !/^rk_test_/.test(token)){
+const restrictedToken=process.env.STRIPE_TEST_READONLY_KEY?.trim() || "";
+const standardToken=process.env.STRIPE_TEST_SECRET_KEY?.trim() || "";
+const token=[restrictedToken,standardToken].find(value=>/^(rk|sk)_test_/.test(value)) || "";
+if(!token){
  console.log(JSON.stringify({verified:false,status:"BLOCKED",reason:"stripe-test-readonly-key-unavailable"}));
  process.exitCode=2;
 } else {
@@ -33,7 +35,11 @@ if(!token || !/^rk_test_/.test(token)){
    const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
    const wrangler=resolve(root,"node_modules","wrangler","bin","wrangler.js");
    if(!existsSync(wrangler))throw Error("wrangler-not-installed-locally");
-   const raw=execFileSync(process.execPath,[wrangler,...args],{cwd:root,
+   const childEnv={...process.env};
+   for(const name of ["STRIPE_SECRET_KEY","STRIPE_TEST_SECRET_KEY",
+     "STRIPE_TEST_READONLY_KEY","STRIPE_SANDBOX_READONLY_KEY"])
+     delete childEnv[name];
+   const raw=execFileSync(process.execPath,[wrangler,...args],{cwd:root,env:childEnv,
       encoding:"utf8",timeout:30000,maxBuffer:8*1024*1024,
       stdio:["ignore","pipe","pipe"]});
    const blocks=JSON.parse(raw);
