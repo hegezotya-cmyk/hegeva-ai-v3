@@ -12,6 +12,7 @@ on:
       - "src/stripe-terminal-effects-outbox.js"
       - "src/stripe-terminal-effects-processor.js"
       - "src/stripe-terminal-effects-state-verifier.js"
+      - "src/stripe-terminal-effects-state-checker.js"
       - "migrations/0032_stripe_terminal_effect_outbox.sql"
       - "scripts/stripe-multi-subscription-entitlement-test.mjs"
       - "scripts/stripe-subscription-inventory-test.mjs"
@@ -26,6 +27,7 @@ on:
       - "scripts/stripe-terminal-effects-processor-test.mjs"
       - "scripts/stripe-terminal-no-double-effects-test.mjs"
       - "scripts/stripe-terminal-effects-state-verifier-test.mjs"
+      - "scripts/stripe-terminal-effects-state-checker-test.mjs"
       - ".github/workflows/stripe-entitlement-policy-pr.yml"
   workflow_dispatch:
 
@@ -50,6 +52,7 @@ jobs:
           node --check src/stripe-terminal-effects-outbox.js
           node --check src/stripe-terminal-effects-processor.js
           node --check src/stripe-terminal-effects-state-verifier.js
+          node --check src/stripe-terminal-effects-state-checker.js
           node --check scripts/stripe-multi-subscription-entitlement-test.mjs
           node --check scripts/stripe-subscription-inventory-test.mjs
           node --check scripts/stripe-terminal-event-review-test.mjs
@@ -63,6 +66,7 @@ jobs:
           node --check scripts/stripe-terminal-effects-processor-test.mjs
           node --check scripts/stripe-terminal-no-double-effects-test.mjs
           node --check scripts/stripe-terminal-effects-state-verifier-test.mjs
+          node --check scripts/stripe-terminal-effects-state-checker-test.mjs
       - name: Multi-subscription cancellation regression
         run: node scripts/stripe-multi-subscription-entitlement-test.mjs
       - name: Cross-customer Stripe inventory regression
@@ -89,3 +93,5 @@ jobs:
         run: node scripts/stripe-terminal-no-double-effects-test.mjs
       - name: Verified Stripe and D1 terminal effects current state
         run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-state-verifier-test.mjs
+      - name: Trusted Stripe TEST outbox read-only state adapter
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-state-checker-test.mjs
