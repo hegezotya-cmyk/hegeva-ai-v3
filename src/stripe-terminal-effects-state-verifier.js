@@ -13,18 +13,22 @@ export async function verifyTerminalEffectCurrentState({
       !effect || typeof effect.userId !== "string" || !effect.userId ||
       typeof effect.eventId !== "string" || !effect.eventId.startsWith("evt_") ||
       !["billing-and-referral-downgrade","referral-retain"].includes(effect.effectType) ||
-      ![0,1].includes(effect.livemode)) return deny;
+      ![0,1].includes(effect.livemode) ||
+      typeof effect.subscriptionId !== "string" || !effect.subscriptionId.startsWith("sub_") ||
+      typeof effect.customerId !== "string" || !effect.customerId.startsWith("cus_")) return deny;
   let ledger, plan, newer, inventory;
   try {
     // The ledger row proves the outbox task belongs to a reconciled event
     // for the same user. Do not trust the queued userId by itself.
     ledger = await db.prepare(`
-      SELECT eventId,eventCreatedAt
+      SELECT eventId,eventType,eventCreatedAt
       FROM stripe_webhook_events
       WHERE eventId=?1 AND userId=?2 AND outcome='reconciled'
       LIMIT 1
     `).bind(effect.eventId,effect.userId).first();
-    if (!ledger?.eventId || typeof ledger.eventCreatedAt !== "string" ||
+    if (!ledger?.eventId ||
+        !["customer.subscription.deleted", "customer.subscription.updated"].includes(ledger.eventType) ||
+        typeof ledger.eventCreatedAt !== "string" ||
         !Number.isFinite(Date.parse(ledger.eventCreatedAt))) return deny;
     plan = await db.prepare(
       "SELECT plan FROM user_plans WHERE userId=?1 LIMIT 1"
@@ -46,6 +50,18 @@ export async function verifyTerminalEffectCurrentState({
     return deny;
   }
   if (inventory?.complete !== true || !Array.isArray(inventory.subscriptions)) return deny;
+  // A valid user-level plan does NOT prove that the queued terminal event
+  // belonged to this subscription. Require exact subscription + Customer ID,
+  // mapped user, mode, and a terminal Stripe status before any side effect.
+  const terminalStatuses = new Set(["canceled", "unpaid", "incomplete_expired"]);
+  const triggeringSubscription = inventory.subscriptions.find(row =>
+    row?.id === effect.subscriptionId &&
+    row?.customerId === effect.customerId &&
+    row?.userId === effect.userId &&
+    row?.livemode === (effect.livemode === 1) &&
+    terminalStatuses.has(String(row?.status || "").toLowerCase())
+  );
+  if (!triggeringSubscription) return deny;
   const decision = decideStripeEntitlement({
     userId:effect.userId,livemode:effect.livemode===1,
     inventoryComplete:true,subscriptions:inventory.subscriptions
