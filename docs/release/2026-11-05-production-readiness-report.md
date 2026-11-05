@@ -130,6 +130,14 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Latest owner-local reconciliation after TEST cleanup
+
+- PASS: the main TEST read-only reconciliation completed with `verified=true`; the single active Stripe TEST subscription has an exact stored D1 identity match.
+- PASS: `stripeActiveSubscriptions=1`, `matchedStoredIdentities=1`, `unrepresentedActiveSubscriptions=0`, `matchingIdentityStatusDisagreements=0`, and `multiCustomerActiveUsers=0`.
+- REVIEW_REQUIRED/BLOCKED: the complete inventory still contains 2 subscription records and 2 mapped Stripe users, while staging D1 contains 1 identity. Therefore `stripeUsersWithoutD1Identity=1` and `releaseSafe=false`. The remaining user is not an active unrepresented entitlement in this run; it is an inactive/historical inventory identity requiring explicit owner-reviewed handling.
+- PASS: no Stripe or D1 write was performed by the reconciliation; no synthetic D1 identity was created.
+- Final status remains **NOT READY**, `releaseSafe=false` until the historical/inactive identity is either independently proven as an approved exact TEST exception or the raw reconciliation policy is explicitly resolved without weakening unknown/unmatched safeguards.
+
 ## Owner-local automatic identity-proof result
 
 - PASS: owner-local run verified the main TEST account identity, TEST mode and complete subscription pagination.
