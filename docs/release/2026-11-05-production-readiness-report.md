@@ -130,6 +130,15 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Staging-only processor acceptance attempt
+
+- PASS: CI for the processor wiring fix succeeded: run `42100561622`, job `127501915124`; local worker check, processor retry/fencing tests and signed webhook fixture passed after isolating the new import.
+- PASS: staging-only Worker deployed as version `b8b24dd5-18fb-49a4-9fc6-e9d609bf2bfc`, 100%, with cron `*/5 * * * *`; public staging endpoint returned HTTP 200.
+- PASS: staging D1 preflight confirmed migration state, required tables and zero initial outbox rows. A synthetic fixture was created only after schema preflight, used unique IDs, did not touch Stripe or historical records, and was fully rolled back; post-rollback fixture counts are all zero.
+- BLOCKED: two cron windows left the synthetic outbox row at `pending`, `attempts=0`, proving that scheduled processor execution was not observed. Therefore retry/fencing/idempotent runtime behavior is not PASS in staging.
+- REVIEW_REQUIRED: Wrangler warned that Dashboard non-secret vars differed from the local staging config and the deploy applied the local configuration. This staging configuration drift must be reviewed before another deploy; production was not touched.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Latest automatic historical proof result
 
 - PASS: main TEST account identity, TEST mode and full subscription pagination were verified read-only.
