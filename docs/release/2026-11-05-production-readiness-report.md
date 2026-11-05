@@ -130,6 +130,17 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Final staging preflight and runtime acceptance — 2026-11-05
+
+- PASS: Wrangler `4.157.0` was used on Node `22.23.2`; the actual path was `wrangler deploy --config wrangler.staging.jsonc`.
+- PASS: the owner snapshot confirms cron `Every 5 minutes`, logs OFF, traces OFF, Issues OFF, compatibility date `2026-09-02`, and `nodejs_compat`; repository values match the supplied evidence.
+- PASS: Wrangler source inspection shows `keep_vars=true` is passed as `keepVars`, while the upload path sets `keepSecrets: true`; no secret value was read, changed, or printed. Dashboard-only vars were not added to the repository or overwritten.
+- PASS: staging-only redeploy completed as Worker version `012cba01-575a-4b57-bbf8-1db457f08114`, 100% active, with cron `*/5 * * * *`; no production, Stripe, or migration operation occurred.
+- PASS: isolated synthetic fixture completed under the deployed cron: `pending -> completed`, `attempts=1`, no error. Fixture used only synthetic D1 rows and did not touch Stripe or existing users.
+- BLOCKED: isolated retry fixture remained `pending`, `attempts=0` during the observed polling windows; retry/fencing runtime behavior is not claimed PASS. Local retry/fencing regressions remain PASS from prior CI, but this does not replace staging runtime evidence.
+- PASS: rollback verification found zero synthetic outbox, ledger, and plan rows. Existing data was not changed.
+- Final status remains **NOT READY**, `releaseSafe=false`; historical identity exact proof and duplicate/cancellation/entitlement E2E gates remain open.
+
 ## Owner-provided Cloudflare staging snapshot — configuration comparison
 
 | Check | Result | Evidence |
