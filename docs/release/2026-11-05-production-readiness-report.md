@@ -34,6 +34,11 @@ This branch is based on PR #94 commit `233e6e2510507be7c2b913859f33257e37cb9476`
 | Current exact four-to-five record join | BLOCKED | The newly fetched runner was not allowed to contact Stripe without the restricted key; no exact D1-to-Stripe join is claimed. |
 | Executed private read-only reconciliation | REVIEW_REQUIRED | User-provided local run completed with `verified=true`, but returned 4 D1 identity rows, 1 Stripe subscription/1 active subscription, 1 mapped Stripe user, 0 matched stored identities, 4 unmatched stored identities, 1 unrepresented active subscription, 1 Stripe user without D1 identity, and `releaseSafe=false`. No identifiers or secret values were displayed. |
 | Four-D1 to five-Stripe exact reconciliation | BLOCKED | The executed read-only view returned only one active Stripe subscription, not the expected five; the account/data scope or upstream mapping requires owner review before any readiness decision. |
+| Staging Worker payment mode/config | PASS | Public staging config is pinned to `PAYMENT_MODE=test`, staging host `staging.hegevaai.co.uk`, and the configured TEST price IDs; the secret value and connected Stripe account are not exposed by config. |
+| Staging Worker Stripe account identity | BLOCKED | The Worker `STRIPE_SECRET_KEY` secret cannot be read, and no authenticated read-only Worker account endpoint proof was available. The known `acct_1U4YkdHH1vUED8ZN` sandbox therefore remains unconfirmed as the Worker account. |
+| Local restricted-key environment identity | BLOCKED | `STRIPE_TEST_READONLY_KEY` is not present in this Codex process; no `GET /v1/account` result can be independently verified here. |
+| Main Test mode vs separate sandbox separation | PASS | The report treats them as separate environments unless `GET /v1/account` proves equality; no Customer records are merged and no email-only join is used. |
+| Owner-reported five active TEST subscriptions | REVIEW_REQUIRED | Owner confirms they are self-created test subscriptions; this is context, not an exact API inventory or staging-D1 match. |
 | Production deploy readiness | FAIL | Real staging evidence and owner approval are still required; outbox remains intentionally not enabled remotely |
 
 ## Local change
