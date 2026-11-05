@@ -71,4 +71,22 @@ const fail=await collectStripeUserSubscriptions({
 });
 assert.equal(fail.complete,false);
 assert.equal(fail.reason,"provider-unavailable");
+const legacyActive=mock([{data:[{...newer,metadata:{}}],has_more:false}]);
+const legacyResult=await collectStripeUserSubscriptions({
+  userId,livemode:false,secretKey:"sk_test_fixture",fetchImpl:legacyActive.fetchImpl
+});
+assert.equal(legacyResult.complete,false);
+assert.equal(legacyResult.reason,"unmapped-active-subscription");
+assert.deepEqual(decideStripeEntitlement({
+  userId,livemode:false,subscriptions:legacyResult.subscriptions,
+  inventoryComplete:legacyResult.complete
+}),{decision:"defer",reason:"unverified-inventory"});
+
+const legacyTerminal=mock([{data:[{...older,metadata:{}}],has_more:false}]);
+const oldTerminalResult=await collectStripeUserSubscriptions({
+  userId,livemode:false,secretKey:"sk_test_fixture",fetchImpl:legacyTerminal.fetchImpl
+});
+assert.equal(oldTerminalResult.complete,true);
+assert.equal(oldTerminalResult.subscriptions.length,0);
+
 console.log("Stripe cross-customer inventory integration test PASS");
