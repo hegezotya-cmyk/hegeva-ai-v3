@@ -162,3 +162,13 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - PASS: targeted syntax, no-key fail-closed, private reconciliation and identity-comparison regression tests completed locally.
 - BLOCKED: the owner-provided aggregate still identifies one unrepresented active subscription, but the detailed diagnostic has not yet run in this process with the restricted key. No owner rerun of the old faulty script is requested; only the corrected command below is relevant.
 - Final status remains **NOT READY**, `releaseSafe=false`.
+
+## Owner confirmation — historical TEST subscription (2026-11-05)
+
+Owner explicitly confirmed that the masked main-account TEST subscription `sub_1UDB…21gr` (customer `cus_VLE3…4xHA`, created 2026-09-02) is an **intentionally created historical TEST subscription**, is **not a real customer**, and is **not production data**. This is an owner-provided classification, not independent proof of Stripe provenance or a D1 match.
+
+**Disposition:** retain the historical TEST subscription unchanged; do not cancel/delete it, invent a D1 identity, or silently exclude it from raw reconciliation. The underlying observed inventory remains 2 active TEST subscriptions and 1 matching D1 identity. The owner's classification resolves the human-origin uncertainty, but does not itself make an all-active-subscriptions exact-identity join PASS.
+
+**Next targeted work:** implement/review a separately reported, explicit historical-TEST exception policy or test-data isolation approach with deterministic regression tests and evidence that production customer entitlements and billing identities cannot be masked by the exception. Preserve both raw mismatch counts and scoped release-policy outcome; default fail-closed for any unknown/unapproved subscription. Recheck other necessary release gates (duplicate/cancellation, end-to-end evidence) before production approval. Any D1/Stripe change or production merge/deploy requires separate owner approval.
+
+**Current decision:** `releaseSafe=false`, **NOT READY** pending validated exception policy and other release gates. No billing/database mutation authorized.
