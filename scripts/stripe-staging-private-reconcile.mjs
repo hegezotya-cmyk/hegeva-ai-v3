@@ -2,7 +2,9 @@
 // Opt-in: node scripts/stripe-staging-private-reconcile.mjs --execute
 // Remote operations are GET/SELECT only. Nothing is sent to GitHub.
 // Local console output contains only aggregate counts or a generic error.
-import {readFileSync} from "node:fs";
+import {readFileSync, existsSync} from "node:fs";
+import {fileURLToPath} from "node:url";
+import {dirname, resolve} from "node:path";
 import {execFileSync} from "node:child_process";
 import assert from "node:assert/strict";
 import {reconcilePrivateStagingIdentity} from "../src/stripe-staging-private-reconciliation.js";
@@ -22,12 +24,16 @@ if(!token || !/^rk_test_/.test(token)){
  process.exitCode=2;
 } else {
  const readD1=async()=>{
-   const args=["wrangler","d1","execute","hegeva-ai-staging-db",
+   const args=["d1","execute","hegeva-ai-staging-db",
      "--remote","--config","wrangler.staging.jsonc","--json",
      "--command","SELECT userId, stripeCustomerId, stripeSubscriptionId, subscriptionStatus FROM stripe_customers"];
    // No shell interpolation and no stdout/stderr forwarding. Staging config pinned.
-   const bin=process.platform==="win32"?"npx.cmd":"npx";
-   const raw=execFileSync(bin,args,{cwd:new URL("../",import.meta.url),
+   // Invoke the pinned local Wrangler JS entrypoint directly using Node.
+   // npx.cmd via execFileSync is unreliable on recent Windows Node versions.
+   const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
+   const wrangler=resolve(root,"node_modules","wrangler","bin","wrangler.js");
+   if(!existsSync(wrangler))throw Error("wrangler-not-installed-locally");
+   const raw=execFileSync(process.execPath,[wrangler,...args],{cwd:root,
       encoding:"utf8",timeout:30000,maxBuffer:8*1024*1024,
       stdio:["ignore","pipe","pipe"]});
    const blocks=JSON.parse(raw);
