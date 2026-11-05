@@ -140,6 +140,25 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - BLOCKED: real staging duplicate delivery, cancellation/entitlement restoration and complete customer-journey E2E are not re-run here because they require staging-side events/data changes. The outbox test explicitly reports no background processor/deployed migration, so that production gate is not PASS.
 - Final status remains **NOT READY**, `releaseSafe=false`; no merge, deployment, D1/Stripe write, or secret change occurred.
 
+## Final staging acceptance evidence — be5fe61
+
+| Gate | Result | Evidence |
+|---|---|---|
+| be5fe61 GitHub CI | PASS | `policy-tests` success, run `42091630073`, job `127470860322`. |
+| Historical TEST exception identity | BLOCKED | Owner classification is recorded, but the full internal account/subscription/customer/user/createdAt tuple is not stored in the report and was not independently re-read here. Masked confirmation alone cannot authorize the machine exception. |
+| Raw reconciliation | REVIEW_REQUIRED | Raw mismatch remains 1 unrepresented active TEST subscription; no record was hidden or deleted. |
+| Exception-evaluated reconciliation | BLOCKED | Exact runtime tuple and owner approval policy are implemented and tested, but no production/staging run supplied the full tuple to the evaluator. |
+| Staging migration 0032 | PASS (read-only) | Wrangler reports `No migrations to apply`; no migration command was executed. |
+| Staging tables | PASS (read-only) | `stripe_customers`, `stripe_webhook_events`, and `stripe_terminal_effect_outbox` exist; outbox count 0, webhook ledger count 19; all queries report `rows_written=0`. |
+| Background outbox processor | BLOCKED | Source/config review shows `stripe-terminal-effects-outbox.js` is explicitly not wired to production/staging and no scheduled processor trigger is present. Local policy tests do not prove deployment. |
+| Duplicate/cancellation/E2E | BLOCKED | Local signed webhook/terminal tests PASS, but real staging duplicate delivery, cancellation and entitlement restoration require a separate approved staging test plan and data-changing actions. |
+
+### Isolated staging test plan (approval required)
+
+Prepare disposable, owner-labelled TEST fixtures only; snapshot the relevant staging rows first; run one duplicate delivery and one terminal cancellation/restore scenario; assert ledger idempotency, entitlement restoration, outbox state and retry/monitoring; then verify aggregate counts read-only. No replay, subscription change, D1 write or deployment is authorized by this report. Rollback is fixture-specific restoration under separate approval, never a production repair.
+
+Final acceptance remains **NOT READY**, `releaseSafe=false`.
+
 ## Historical TEST exception policy — owner-confirmed record
 
 - PASS: owner confirmed the masked `sub_1UDB…21gr` / `cus_VLE3…4xHA` record created on `2026-09-02` is intentional historical TEST data, not a real customer or production data.
