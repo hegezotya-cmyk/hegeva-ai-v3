@@ -46,3 +46,13 @@ Rollback: disable the flag, redeploy the previously approved staging Worker vers
 Removal: delete the route, control binding, tests, and config flag in one reviewed change; redeploy staging-only; verify the route is unavailable and production configuration contains no control flag.
 
 Owner approval required before implementation is enabled: approve one dedicated staging-only authorization mechanism and one staging-only deployment of this control path. No production approval is implied.
+
+## Implementation checkpoint — offline controller contract (2026-11-05)
+
+The owner authorized **code implementation plus local/CI tests only**, explicitly **not** activation, creation of a secret, access changes, staging deployment, or production deployment.
+
+Added isolated `src/staging-scheduled-test-control.js` and `scripts/staging-scheduled-test-control-test.mjs`. The module is **not imported by Worker entrypoints or wired to any HTTP route** and provides no D1 or Stripe read/write operations. An explicit staging-build boolean, enable flag, TEST payment mode, a dedicated authorization token contract, strict two-field scenario schema, generated nonce, bounded deadline, adapter-denied lock/rate-limit, and mandatory cleanup verification are enforced. Seven targeted offline cases were exercised in the drafting environment; the PR's own CI execution remains to be independently confirmed.
+
+**Important remaining implementation (not claimed PASS):** persistent cross-isolate Durable Object single-flight/replay/rate limits, real schema-compatible synthetic fixtures, runtime auth/secret binding, timeout cancellation semantics, idempotent cleanup with aggregate-zero verification, end-to-end retry/recovery and fencing concurrency tests, explicit production bundle exclusion checks and integration test runner wiring. A simple locally injected adapter is **not** proof of any of these. The controller is a safe-to-review scaffold, not a deployable or operationally approved endpoint. Its authorization contract should be strengthened/reviewed before any integration, and raw credentials must never appear in logs or tests.
+
+**Status:** `releaseSafe=false`, NOT READY. No staging endpoint activation, secret/permission change, staging/production deploy, or Stripe/D1 write authorized or performed.
