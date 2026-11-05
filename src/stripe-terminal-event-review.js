@@ -1,9 +1,8 @@
 import { decideStripeEntitlement } from "./stripe-entitlement-reconciliation-policy.js";
 
-// Proposed decision boundary for signed subscription lifecycle webhooks.
-// This is deliberately NOT invoked by index-ledger.js or index.js until
-// verified per-user historical Customer mapping and concurrency are solved.
-// Never trust an arbitrary event's metadata alone for an entitlement downgrade.
+// Signed terminal-event decision boundary used by the draft webhook wrapper.
+// Verify the triggering subscription belongs to this user's complete Stripe
+// inventory even when another subscription would otherwise retain paid access.
 export async function reviewTerminalStripeEvent({
   event, userId, livemode, getCompleteInventory,
 } = {}) {
@@ -33,10 +32,14 @@ export async function reviewTerminalStripeEvent({
     userId,livemode,subscriptions:inventory.subscriptions,
     inventoryComplete:inventory.complete
   });
-  // A stale inventory omitting the triggering subscription must never revoke.
-  if (decision.decision === "downgrade" &&
+  // Both retention AND downgrade require proof that the terminal event
+  // references this exact user's subscription and Customer ID. Otherwise a
+  // signed event containing incorrect metadata could touch another account.
+  if (!Array.isArray(inventory.subscriptions) ||
       !inventory.subscriptions.some(s => s.id === event.data.object.id &&
+        s.userId === userId &&
         s.customerId === event.data.object.customer &&
+        s.livemode === livemode &&
         s.status === event.data.object.status)) {
     return {decision:"defer",reason:"terminal-subscription-unconfirmed"};
   }
