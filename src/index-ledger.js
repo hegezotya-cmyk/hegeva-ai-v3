@@ -659,6 +659,11 @@ async function handleStripeWebhook(request, env, ctx) {
   }
 
   if (claim.invalid) {
+    // Malformed terminal events must never reach the legacy unconditional
+    // customer.subscription.deleted downgrade path.
+    if (isTerminalSubscriptionEvent(event)) {
+      return Response.json({ error: "Invalid terminal subscription event." }, { status: 400 });
+    }
     const delegatedRequest = new Request(request.url, {
       method: request.method,
       headers: request.headers,
