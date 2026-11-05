@@ -66,3 +66,27 @@ UPDATE stripe_terminal_effect_outbox SET state='pending',
   leaseUntil=NULL, nextAttemptAt=?1, updatedAt=?2, lastError=?3
 WHERE eventId=?4 AND state='processing' AND attempts=?5
 `;
+
+// A delayed outbox job may no longer reflect the account's current state.
+// This pure gate is invoked BEFORE a future side-effect executor. Refuse any
+// effect based on an incomplete current entitlement check or newer ledger event.
+export function reviewTerminalEffectExecution({
+  effect, currentPlan, currentPlanVerified, newerEventExists, newerEventsVerified,
+} = {}) {
+  if (!effect || currentPlanVerified !== true || newerEventsVerified !== true ||
+      newerEventExists !== false ||
+      !["basic", "premium", "pro"].includes(currentPlan)) {
+    return { decision: "defer", reason: "current-state-unverified" };
+  }
+  if (effect.effectType === "billing-and-referral-downgrade") {
+    return currentPlan === "basic"
+      ? { decision: "run" }
+      : { decision: "skip", reason: "paid-entitlement-restored" };
+  }
+  if (effect.effectType === "referral-retain") {
+    return ["premium", "pro"].includes(currentPlan)
+      ? { decision: "run" }
+      : { decision: "skip", reason: "paid-entitlement-no-longer-active" };
+  }
+  return { decision: "defer", reason: "unrecognized-effect" };
+}
