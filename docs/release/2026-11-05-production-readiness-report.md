@@ -110,3 +110,11 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - PASS: GitHub `policy-tests` for this exact head completed successfully: run `42084849144`, job `127447070134`.
 - BLOCKED: no new live Stripe TEST inventory or staging D1 join was performed in this process because the restricted key is not available to the process. The owner-local aggregate remains the only evidence for the second active subscription.
 - Final gate remains **NOT READY** / `releaseSafe=false`; no code defect was reproduced and no data repair was executed.
+
+## Owner-confirmed CI and current access gate
+
+- PASS: owner confirmed GitHub `policy-tests` run `42085885192` succeeded for the PR #95 update.
+- BLOCKED: the current local process has no `STRIPE_TEST_READONLY_KEY` or `STRIPE_TEST_SECRET_KEY` in process, user, or machine environment. Presence was checked without reading or printing any value.
+- BLOCKED: consequently, the requested fresh main-Hegevaai TEST `GET /v1/account` and fully paginated `GET /v1/subscriptions?status=all&limit=100` comparison cannot be performed in this process. No sandbox data is used as a substitute.
+- Required owner action: run the existing read-only diagnostic locally with the restricted key available only to that process, then retain only masked subscription/customer/user identifiers, creation dates, statuses, metadata-userId presence, D1 match, webhook-ledger match, account identity and pagination result. No key value is required in chat.
+- The second subscription remains **UNKNOWN** pending that evidence; no Stripe or D1 repair is authorized. Final status remains **NOT READY**, `releaseSafe=false`.
