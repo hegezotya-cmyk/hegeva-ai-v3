@@ -130,6 +130,12 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Post-fix CI and staging redeploy gate
+
+- PASS: GitHub `policy-tests` passed for the ledger compatibility fix: [run 42107435118](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42107435118).
+- BLOCKED: the corrected Worker has not been redeployed to staging because Wrangler previously reported Dashboard-vs-local non-secret variable drift and would overwrite the local configuration on deploy. No automatic vars/secrets overwrite was performed.
+- Owner decision required: either approve the exact staging non-secret vars replacement from `wrangler.staging.jsonc`, or provide an updated repository staging config matching the Dashboard. Until then, runtime `pending -> processing -> completed` evidence for the corrected code cannot be claimed.
+
 ## Ledger schema compatibility fix — applied/ignored staging constraint
 
 - PASS: read-only staging `sqlite_master` confirms `stripe_webhook_events.outcome CHECK (outcome IN ('applied','ignored'))`; migration `0005` has the same contract.
