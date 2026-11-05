@@ -118,3 +118,14 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - BLOCKED: consequently, the requested fresh main-Hegevaai TEST `GET /v1/account` and fully paginated `GET /v1/subscriptions?status=all&limit=100` comparison cannot be performed in this process. No sandbox data is used as a substitute.
 - Required owner action: run the existing read-only diagnostic locally with the restricted key available only to that process, then retain only masked subscription/customer/user identifiers, creation dates, statuses, metadata-userId presence, D1 match, webhook-ledger match, account identity and pagination result. No key value is required in chat.
 - The second subscription remains **UNKNOWN** pending that evidence; no Stripe or D1 repair is authorized. Final status remains **NOT READY**, `releaseSafe=false`.
+
+## Focused masked subscription diagnostic — post `70d6c2d`
+
+- PASS: added `scripts/stripe-staging-subscription-diagnostic.mjs`, a Windows-safe read-only diagnostic. It validates TEST mode, reads `/v1/account`, retrieves `/v1/subscriptions` with `status=all`, `limit=100`, and `starting_after` pagination, and performs only staging D1 SELECTs.
+- PASS: raw Stripe/D1 identifiers remain process-local; output is limited to masked subscription/customer/user values, creation time, status, metadata-userId presence, exact D1 match, and applied/reconciled webhook-ledger evidence. Secrets, email and full identifiers are never printed.
+- PASS: classification is evidence-based: wrong-account requires account mismatch; missing-identity-mapping requires metadata userId plus D1/ledger evidence; otherwise the result remains UNKNOWN. No record is created, deleted, merged, cancelled, or repaired automatically.
+- PASS: syntax and fail-closed no-key checks completed locally; the no-key run returned only `stripe-test-readonly-key-unavailable`.
+- REVIEW_REQUIRED: owner-local aggregate still proves 2 active TEST subscriptions, 1 exact D1 identity match, 1 unrepresented active subscription and 1 Stripe user without D1 identity. Per-subscription masked dates/metadata/ledger evidence have not been captured in this process.
+- Required owner action: run the new diagnostic in the existing PowerShell process where the restricted TEST key is already available, then retain only its masked JSON output. If it proves a missing identity, obtain approval before any idempotent D1 repair; if it proves stale/orphan data, document an exclusion rule without weakening the release gate or deleting data.
+- Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
+- Final status remains **NOT READY**, `releaseSafe=false`.
