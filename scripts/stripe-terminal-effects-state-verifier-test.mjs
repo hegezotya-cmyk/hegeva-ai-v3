@@ -28,6 +28,11 @@ try {
  const newer=await check([old]);
  assert.equal(newer.newerEventExists,true);
  assert.equal(newer.currentPlanVerified,false,"newer even-pending event blocks older effects");
+ db.prepare("UPDATE stripe_webhook_events SET eventCreatedAt=?1 WHERE eventId='evt_new'").run(t);
+ const sameTimestamp=await check([old]);
+ assert.equal(sameTimestamp.newerEventExists,true,
+  "different events at same Stripe second must block stale side effects");
+ assert.equal(sameTimestamp.currentPlanVerified,false);
  db.prepare("DELETE FROM stripe_webhook_events WHERE eventId='evt_new'").run();
  db.prepare("UPDATE user_plans SET plan='premium' WHERE userId='user_a'").run();
  const mismatched=await check([old]);
