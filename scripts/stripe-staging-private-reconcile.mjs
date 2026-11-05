@@ -5,7 +5,7 @@
 import {readFileSync, existsSync} from "node:fs";
 import {fileURLToPath} from "node:url";
 import {dirname, resolve} from "node:path";
-import {execFileSync} from "node:child_process";
+import {spawnSync} from "node:child_process";
 import assert from "node:assert/strict";
 import {reconcilePrivateStagingIdentity} from "../src/stripe-staging-private-reconciliation.js";
 
@@ -39,10 +39,11 @@ if(!token){
    for(const name of ["STRIPE_SECRET_KEY","STRIPE_TEST_SECRET_KEY",
      "STRIPE_TEST_READONLY_KEY","STRIPE_SANDBOX_READONLY_KEY"])
      delete childEnv[name];
-   const raw=execFileSync(process.execPath,[wrangler,...args],{cwd:root,env:childEnv,
+   const child=spawnSync(process.execPath,[wrangler,...args],{cwd:root,env:childEnv,
       encoding:"utf8",timeout:30000,maxBuffer:8*1024*1024,
-      stdio:["ignore","pipe","pipe"]});
-   const blocks=JSON.parse(raw);
+      windowsHide:true,stdio:["ignore","pipe","pipe"]});
+   if(child.error || child.status !== 0 || child.signal) throw Error("d1-reader-process-failed");
+   const blocks=JSON.parse(child.stdout);
    if(!Array.isArray(blocks)||blocks.length===0||
       !blocks.every(b=>b?.success===true&&Array.isArray(b.results)))
      throw Error("untrusted-d1-response");
