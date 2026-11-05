@@ -30,21 +30,27 @@ const old={id:"sub_old",customer:"cus_old",livemode:false,status:"canceled",
 const active={id:"sub_active",customer:"cus_other",livemode:false,status:"active",
  metadata:{userId:"test_user",hegevaPlan:"premium"}};
 const makeDb=()=> {
- const operations=[];let claims=new Set();
+ const operations=[];let claims=new Set();const outcomes=new Map();
  const DB={prepare(sql){return {bind(...args){return {
   async run(){
     operations.push({sql,args});
     if(sql.includes("INSERT INTO stripe_webhook_events")){
       if(claims.has(args[0]))return {meta:{changes:0}};
-      claims.add(args[0]);return {meta:{changes:1}};
+      claims.add(args[0]);outcomes.set(args[0],"ignored");return {meta:{changes:1}};
     }
-    if(sql.includes("DELETE FROM stripe_webhook_events"))claims.delete(args[0]);
+    if(sql.includes("DELETE FROM stripe_webhook_events")){ claims.delete(args[0]);outcomes.delete(args[0]); }
+    if(sql.includes("UPDATE stripe_webhook_events"))outcomes.set(args[2],args[0]);
     return {meta:{changes:1}};
   },
-  async first(){return null;},
+  async first(){
+    if(sql.includes("SELECT outcome FROM stripe_webhook_events")){
+      return outcomes.has(args[0]) ? {outcome:outcomes.get(args[0])} : null;
+    }
+    return null;
+  },
   async all(){return {results:[]};},
  };}};}};
- return {DB,operations,claims};
+ return {DB,operations,claims,outcomes};
 };
 const secret="whsec_local_fixture";
 const previousFetch=globalThis.fetch;
@@ -115,6 +121,13 @@ try {
  await DB.prepare("INSERT INTO stripe_webhook_events").bind("evt_repeat").run();
  const duplicatePending=await handler.fetch(requestFor(evt),env,{});
  assert.equal(duplicatePending.status,503);
+ assert.equal(planWrites(operations).length,0);
+ // Once a previous event is marked as reconciled, it is safe to ack without
+ // repeating any plan write, regardless of whether it changed the plan.
+ await DB.prepare("UPDATE stripe_webhook_events").bind("reconciled",new Date().toISOString(),"evt_repeat").run();
+ const duplicateSettled=await handler.fetch(requestFor(evt),env,{});
+ assert.equal(duplicateSettled.status,200);
+ assert.equal((await duplicateSettled.json()).duplicate,true);
  assert.equal(planWrites(operations).length,0);
 }
  console.log("Signed terminal Stripe Worker + mocked D1 integration PASS (updated/deleted; keep, downgrade, retry, bad signature)");
