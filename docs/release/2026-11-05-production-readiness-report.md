@@ -94,3 +94,11 @@ Do not merge or deploy this branch. Revert the local commit or delete the isolat
 ## Required owner action
 
 Review the draft PR and separately authorize any future staging migration, staging deployment, production deployment, or merge. This report must not be interpreted as deployment approval.
+
+## Independent review addendum — 2026-11-05
+
+- Reviewed PR #95 repository commit `acced270e6585c0e64fe9c4555925e3204c7fca5` and its release report. The supplied owner-local aggregate reconciliation is `verified=true`, `status=REVIEW_REQUIRED`, `releaseSafe=false`: two active TEST subscriptions, two mapped Stripe users, one matching D1 identity, one unrepresented active subscription, and no status disagreement.
+- The intended Stripe target is the **main Hegevaai account in TEST mode**; the separately connected Hegevaai sandbox account must not be joined to staging D1. Repo `scripts/stripe-staging-account-config-diagnostic.mjs` pins the expected main account, and prior report records a successful owner-local account/price diagnostic. No fresh Worker secret or runtime account assertion was obtained in this review.
+- Current available Stripe connector exposes main Hegevaai in live mode and the separately created sandbox in test mode; this review did **not** read the main account's TEST subscription inventory or a live staging D1 SELECT. Consequently subscription/customer/user masked per-record details, creation dates and metadata cannot be independently verified here. **Classification: UNKNOWN** (possible legitimate/stale TEST subscription or missing identity). No source evidence proves a code defect, wrong-account condition, or authorization for repair.
+- To close: perform a fresh local restricted-key TEST account/price check; then a GET-only, fully paginated main-account TEST inventory and fixed staging D1 SELECT join, with a locally generated masked two-record comparison and webhook-ledger provenance. Keep raw IDs, metadata user IDs, personal data and secrets out of logs/PR. Obtain explicit owner classification before proposing an identity repair or a rollback. No D1/Stripe mutations, secret changes, merge or deployment authorized by this addendum.
+- Release decision remains **NOT READY**; reconciliation **REVIEW_REQUIRED**; `releaseSafe=false`. Additional duplicate/cancellation and full customer-journey gates remain as documented above.
