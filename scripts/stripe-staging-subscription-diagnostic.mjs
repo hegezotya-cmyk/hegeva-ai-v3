@@ -46,8 +46,18 @@ function readD1() {
   let customerSchema;
   let ledgerSchema;
   try {
-    customerSchema = runD1Query("PRAGMA table_info(stripe_customers)");
-    ledgerSchema = runD1Query("PRAGMA table_info(stripe_webhook_events)");
+    let lastError;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        customerSchema = runD1Query("PRAGMA table_info(stripe_customers)");
+        ledgerSchema = runD1Query("PRAGMA table_info(stripe_webhook_events)");
+        lastError = null;
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    if (lastError) throw lastError;
   } catch { throw new Error("d1-schema-read-failed"); }
   const customerColumns = new Set(customerSchema.map(row => row.name));
   const ledgerColumns = new Set(ledgerSchema.map(row => row.name));
