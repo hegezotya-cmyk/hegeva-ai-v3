@@ -130,6 +130,13 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Owner diagnostic follow-up — D1 schema probe
+
+- Evidence: owner-local corrected diagnostic reached `d1-schema-read-failed`; no Stripe/D1 mutation occurred. The same two Wrangler PRAGMA calls were independently reproduced successfully with exit code 0 and valid schema rows, so the failure is not a demonstrated schema mismatch.
+- Fix: the diagnostic now retries the two read-only PRAGMA probes once within the same run before returning `d1-schema-read-failed`, while preserving fail-closed behavior.
+- PASS: syntax and the two affected offline reconciliation regressions pass after this fix.
+- BLOCKED: no live Stripe subscription detail is claimed from this process. The owner must run the corrected commit `5741bb6` if detailed masked records are still required; `releaseSafe=false` remains unchanged.
+
 ## Follow-up diagnostic error isolation
 
 - PASS: direct staging D1 `PRAGMA table_info(stripe_customers)` and `PRAGMA table_info(stripe_webhook_events)` succeeded with the required columns; no D1 schema mismatch was found and no rows were written.
