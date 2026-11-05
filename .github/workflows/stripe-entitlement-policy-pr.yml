@@ -34,6 +34,7 @@ on:
       - "scripts/stripe-terminal-outbox-health-test.mjs"
       - "scripts/stripe-webhook-finalized-ledger-safety-test.mjs"
       - "scripts/stripe-terminal-referral-reversal-test.mjs"
+      - "scripts/stripe-terminal-referral-outbox-integration-test.mjs"
       - ".github/workflows/stripe-entitlement-policy-pr.yml"
   workflow_dispatch:
 
@@ -79,6 +80,7 @@ jobs:
           node --check scripts/stripe-terminal-outbox-health-test.mjs
           node --check scripts/stripe-webhook-finalized-ledger-safety-test.mjs
           node --check scripts/stripe-terminal-referral-reversal-test.mjs
+          node --check scripts/stripe-terminal-referral-outbox-integration-test.mjs
       - name: Multi-subscription cancellation regression
         run: node scripts/stripe-multi-subscription-entitlement-test.mjs
       - name: Cross-customer Stripe inventory regression
@@ -115,3 +117,5 @@ jobs:
         run: node --disable-warning=ExperimentalWarning scripts/stripe-webhook-finalized-ledger-safety-test.mjs
       - name: Atomic referral reversal SQLite rollback and idempotency
         run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-referral-reversal-test.mjs
+      - name: Integrated Stripe TEST mocked outbox referral rollback and retry
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-referral-outbox-integration-test.mjs
