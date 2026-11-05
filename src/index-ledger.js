@@ -514,7 +514,7 @@ async function finalizeStripeEvent(env, eventId, responseData) {
 
 async function releaseStripeEvent(env, eventId) {
   await env.DB
-    .prepare(`DELETE FROM stripe_webhook_events WHERE eventId = ?1`)
+    .prepare(`DELETE FROM stripe_webhook_events WHERE eventId = ?1 AND outcome = 'ignored'`)
     .bind(eventId)
     .run();
 }
