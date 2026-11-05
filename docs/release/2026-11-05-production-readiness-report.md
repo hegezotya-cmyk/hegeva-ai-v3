@@ -130,6 +130,27 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Final historical TEST resolution — cff4302 follow-up
+
+- PASS: owner confirmation is recorded for the exact historical TEST record represented in the masked report (`2026-09-02`, not a real customer and not production data). The record remains unchanged.
+- PASS: the raw reconciliation remains `unrepresentedActiveSubscriptions=1`; the historical policy is a separate evaluation layer and does not hide or delete the raw mismatch.
+- PASS: exact-match-only exception policy and tests cover owner approval, account, TEST mode, subscription/customer/user/createdAt equality, customer/user mismatch, unknown subscription, multiple missing records, wrong account, live mode and incomplete/partial inventory. Every non-exact case fails closed.
+- PASS: local signed webhook duplicate/terminal tests, multi-subscription entitlement, terminal review, outbox idempotency/retry/fencing/atomicity, referral reversal/integration and historical exception tests completed successfully.
+- PASS: GitHub `policy-tests` for cff4302 succeeded: run `42091068721`, job `127468915029`.
+- BLOCKED: real staging duplicate delivery, cancellation/entitlement restoration and complete customer-journey E2E are not re-run here because they require staging-side events/data changes. The outbox test explicitly reports no background processor/deployed migration, so that production gate is not PASS.
+- Final status remains **NOT READY**, `releaseSafe=false`; no merge, deployment, D1/Stripe write, or secret change occurred.
+
+## Historical TEST exception policy — owner-confirmed record
+
+- PASS: owner confirmed the masked `sub_1UDB…21gr` / `cus_VLE3…4xHA` record created on `2026-09-02` is intentional historical TEST data, not a real customer or production data.
+- PASS: added `docs/release/staging-historical-test-data-policy.md` and `src/stripe-staging-historical-test-exception.js`. The raw reconciliation remains unchanged and continues to report the one unrepresented active subscription.
+- PASS: an exception is evaluated separately only from exact runtime internal `accountId + subscriptionId + customerId + userId + createdAt`, `livemode=false`, active status, and explicit owner approval. Masked IDs cannot authorize it.
+- PASS: live mode, wrong account, altered customer/user/subscription, missing approval, unknown subscriptions, additional unmatched records and incomplete inventory remain blockers.
+- PASS: the policy reports raw unmatched count, approved historical exception count, and remaining blocker count; it never deletes or hides records.
+- PASS: historical exception policy regression suite covers exact approval, customer/user/subscription mismatch, unknown subscription, multiple missing records, wrong account and live mode; all fail closed except the exact approved TEST fixture.
+- REVIEW_REQUIRED: owner confirmation classifies the record, but duplicate delivery, cancellation/entitlement restoration, full webhook E2E and other staging release gates remain unproven in this turn.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Owner-local corrected diagnostic result
 
 - PASS: the corrected Windows diagnostic completed with a valid main TEST account/price/pagination read and returned masked per-subscription details; no secret, email or full identifier was emitted.
