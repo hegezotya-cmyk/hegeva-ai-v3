@@ -1,0 +1,127 @@
+name: Stripe Multi-Subscription Policy PR Checks
+
+on:
+  pull_request:
+    branches:
+      - integration/security-growth-validation-20261104
+    paths:
+      - "src/stripe-entitlement-reconciliation-policy.js"
+      - "src/stripe-subscription-inventory.js"
+      - "src/stripe-terminal-event-review.js"
+      - "src/index-ledger.js"
+      - "src/stripe-terminal-effects-outbox.js"
+      - "src/stripe-terminal-effects-processor.js"
+      - "src/stripe-terminal-effects-state-verifier.js"
+      - "src/stripe-terminal-effects-state-checker.js"
+      - "src/stripe-terminal-effects-runner.js"
+      - "src/stripe-terminal-referral-reversal.js"
+      - "src/stripe-terminal-billing-identity.js"
+      - "migrations/0032_stripe_terminal_effect_outbox.sql"
+      - "scripts/stripe-multi-subscription-entitlement-test.mjs"
+      - "scripts/stripe-subscription-inventory-test.mjs"
+      - "scripts/stripe-terminal-event-review-test.mjs"
+      - "scripts/stripe-terminal-routes-risk-sentinel.mjs"
+      - "scripts/stripe-signed-webhook-integration-test.mjs"
+      - "scripts/stripe-sqlite-webhook-ledger-test.mjs"
+      - "scripts/stripe-sqlite-two-connection-order-test.mjs"
+      - "scripts/stripe-sqlite-parallel-workers-test.mjs"
+      - "scripts/stripe-terminal-effects-outbox-test.mjs"
+      - "scripts/stripe-terminal-outbox-atomic-test.mjs"
+      - "scripts/stripe-terminal-effects-processor-test.mjs"
+      - "scripts/stripe-terminal-no-double-effects-test.mjs"
+      - "scripts/stripe-terminal-effects-state-verifier-test.mjs"
+      - "scripts/stripe-terminal-effects-state-checker-test.mjs"
+      - "scripts/stripe-terminal-effects-runner-test.mjs"
+      - "scripts/stripe-terminal-outbox-health-test.mjs"
+      - "scripts/stripe-webhook-finalized-ledger-safety-test.mjs"
+      - "scripts/stripe-terminal-referral-reversal-test.mjs"
+      - "scripts/stripe-terminal-referral-outbox-integration-test.mjs"
+      - "scripts/stripe-terminal-billing-identity-test.mjs"
+      - ".github/workflows/stripe-entitlement-policy-pr.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Syntax check
+        run: |
+          node --check src/stripe-entitlement-reconciliation-policy.js
+          node --check src/stripe-subscription-inventory.js
+          node --check src/stripe-terminal-event-review.js
+          node --check src/index-ledger.js
+          node --check src/stripe-terminal-effects-outbox.js
+          node --check src/stripe-terminal-effects-processor.js
+          node --check src/stripe-terminal-effects-state-verifier.js
+          node --check src/stripe-terminal-effects-state-checker.js
+          node --check src/stripe-terminal-effects-runner.js
+          node --check src/stripe-terminal-referral-reversal.js
+          node --check src/stripe-terminal-billing-identity.js
+          node --check scripts/stripe-multi-subscription-entitlement-test.mjs
+          node --check scripts/stripe-subscription-inventory-test.mjs
+          node --check scripts/stripe-terminal-event-review-test.mjs
+          node --check scripts/stripe-terminal-routes-risk-sentinel.mjs
+          node --check scripts/stripe-signed-webhook-integration-test.mjs
+          node --check scripts/stripe-sqlite-webhook-ledger-test.mjs
+          node --check scripts/stripe-sqlite-two-connection-order-test.mjs
+          node --check scripts/stripe-sqlite-parallel-workers-test.mjs
+          node --check scripts/stripe-terminal-effects-outbox-test.mjs
+          node --check scripts/stripe-terminal-outbox-atomic-test.mjs
+          node --check scripts/stripe-terminal-effects-processor-test.mjs
+          node --check scripts/stripe-terminal-no-double-effects-test.mjs
+          node --check scripts/stripe-terminal-effects-state-verifier-test.mjs
+          node --check scripts/stripe-terminal-effects-state-checker-test.mjs
+          node --check scripts/stripe-terminal-effects-runner-test.mjs
+          node --check scripts/stripe-terminal-outbox-health-test.mjs
+          node --check scripts/stripe-webhook-finalized-ledger-safety-test.mjs
+          node --check scripts/stripe-terminal-referral-reversal-test.mjs
+          node --check scripts/stripe-terminal-referral-outbox-integration-test.mjs
+          node --check scripts/stripe-terminal-billing-identity-test.mjs
+      - name: Multi-subscription cancellation regression
+        run: node scripts/stripe-multi-subscription-entitlement-test.mjs
+      - name: Cross-customer Stripe inventory regression
+        run: node scripts/stripe-subscription-inventory-test.mjs
+      - name: Terminal webhook decision regression
+        run: node scripts/stripe-terminal-event-review-test.mjs
+      - name: Existing downgrade path risk sentinel (documents known blockers)
+        run: node scripts/stripe-terminal-routes-risk-sentinel.mjs
+      - name: Signed webhook and mocked D1 integration
+        run: node scripts/stripe-signed-webhook-integration-test.mjs
+      - name: Real SQLite webhook ledger SQL and crash-window regression
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-sqlite-webhook-ledger-test.mjs
+      - name: Two-connection SQLite event ordering regression
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-sqlite-two-connection-order-test.mjs
+      - name: Concurrent SQLite worker-thread webhook race regression
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-sqlite-parallel-workers-test.mjs
+      - name: Durable terminal side-effects outbox policy SQLite tests
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-outbox-test.mjs
+      - name: Three-write atomic Stripe outbox rollback on SQLite
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-outbox-atomic-test.mjs
+      - name: Isolated SQLite outbox processor retries
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-processor-test.mjs
+      - name: Terminal webhook has no duplicate inline side effects
+        run: node scripts/stripe-terminal-no-double-effects-test.mjs
+      - name: Verified Stripe and D1 terminal effects current state
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-state-verifier-test.mjs
+      - name: Trusted Stripe TEST outbox read-only state adapter
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-state-checker-test.mjs
+      - name: Isolated Stripe/D1 outbox verifier-to-processor regression
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-runner-test.mjs
+      - name: Terminal outbox bounded retry and alert regression
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-outbox-health-test.mjs
+      - name: Completed webhook ledger cannot be deleted on error cleanup
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-webhook-finalized-ledger-safety-test.mjs
+      - name: Atomic referral reversal SQLite rollback and idempotency
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-referral-reversal-test.mjs
+      - name: Integrated Stripe TEST mocked outbox referral rollback and retry
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-referral-outbox-integration-test.mjs
+      - name: Terminal Stripe Customer and subscription CAS protection
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-billing-identity-test.mjs
