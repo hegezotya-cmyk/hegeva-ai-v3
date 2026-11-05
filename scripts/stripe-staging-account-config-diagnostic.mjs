@@ -19,7 +19,7 @@ if (mode !== "test" || priceIds.length === 0) {
   console.log(JSON.stringify({ status: "FAIL", reason: "invalid-staging-test-config", ...summary }));
   process.exitCode = 2;
 } else if (!/^rk_test_/.test(localKey)) {
-  console.log(JSON.stringify({ status: "BLOCKED", reason: "separate-sandbox-readonly-key-required", ...summary }));
+  console.log(JSON.stringify({ status: "BLOCKED", reason: "stripe-test-readonly-key-unavailable", ...summary }));
   process.exitCode = 2;
 } else {
   const accountResponse = await fetch("https://api.stripe.com/v1/account", {
