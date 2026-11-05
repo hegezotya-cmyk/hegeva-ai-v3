@@ -20,6 +20,9 @@ on:
       - "src/stripe-terminal-referral-reversal.js"
       - "src/stripe-terminal-billing-identity.js"
       - "src/stripe-staging-identity-compare.js"
+      - "src/stripe-staging-private-reconciliation.js"
+      - "scripts/stripe-staging-private-reconcile.mjs"
+      - "scripts/stripe-staging-private-reconciliation-test.mjs"
       - "migrations/0032_stripe_terminal_effect_outbox.sql"
       - "scripts/stripe-multi-subscription-entitlement-test.mjs"
       - "scripts/stripe-subscription-inventory-test.mjs"
@@ -77,6 +80,9 @@ jobs:
           node --check src/stripe-terminal-referral-reversal.js
           node --check src/stripe-terminal-billing-identity.js
           node --check src/stripe-staging-identity-compare.js
+          node --check src/stripe-staging-private-reconciliation.js
+          node --check scripts/stripe-staging-private-reconcile.mjs
+          node --check scripts/stripe-staging-private-reconciliation-test.mjs
           node --check scripts/stripe-multi-subscription-entitlement-test.mjs
           node --check scripts/stripe-subscription-inventory-test.mjs
           node --check scripts/stripe-terminal-event-review-test.mjs
@@ -140,3 +146,7 @@ jobs:
         run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-billing-identity-test.mjs
       - name: Private D1-Stripe identity comparison synthetic regression
         run: node scripts/stripe-staging-identity-compare-test.mjs
+      - name: Local-only D1 Stripe remote-reader orchestration regression
+        run: node scripts/stripe-staging-private-reconciliation-test.mjs
+      - name: Staging and Stripe private audit defaults to dry run
+        run: node scripts/stripe-staging-private-reconcile.mjs
