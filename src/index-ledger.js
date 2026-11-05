@@ -492,8 +492,11 @@ async function hasNewerAppliedStripeEvent(env, claim) {
 }
 
 async function finalizeStripeEvent(env, eventId, responseData) {
-  const outcome =
-    responseData?.entitlementChanged === true && responseData?.ignored !== true
+  // A successfully reconciled terminal event may retain an existing plan
+  // without changing the D1 row. It still needs a distinct finalized outcome.
+  const outcome = responseData?.inventoryReconciled === true
+    ? "reconciled"
+    : responseData?.entitlementChanged === true && responseData?.ignored !== true
       ? "applied"
       : "ignored";
 
@@ -673,6 +676,25 @@ async function handleStripeWebhook(request, env, ctx) {
   }
 
   if (!claim.claimed) {
+    if (isTerminalSubscriptionEvent(event)) {
+      const existing = await env.DB.prepare(`
+        SELECT outcome FROM stripe_webhook_events WHERE eventId = ?1 LIMIT 1
+      `).bind(claim.eventId).first();
+      if (!existing || !["applied", "reconciled"].includes(existing.outcome)) {
+        // The original delivery may still be processing. Acknowledging an
+        // in-flight duplicate with 200 could permanently lose the event if
+        // the first attempt subsequently fails. Tell Stripe to retry.
+        return Response.json(
+          {error:"Subscription event reconciliation pending."},
+          {status:503,headers:{"Retry-After":"300"}}
+        );
+      }
+      return Response.json({
+        received:true,verified:true,duplicate:true,
+        eventId:claim.eventId,eventType:claim.eventType,
+        ignored:true,entitlementChanged:false
+      });
+    }
     const duplicateCanRefreshBillingIdentity =
       claim.eventType === "checkout.session.completed" ||
       claim.eventType === "invoice.paid";
