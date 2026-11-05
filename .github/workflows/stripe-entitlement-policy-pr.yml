@@ -9,6 +9,9 @@ on:
       - "src/stripe-subscription-inventory.js"
       - "src/stripe-terminal-event-review.js"
       - "src/index-ledger.js"
+      - "src/index.js"
+      - "src/stripe-checkout-guard.js"
+      - "scripts/stripe-checkout-lock-cas-regression-test.mjs"
       - "src/stripe-terminal-effects-outbox.js"
       - "src/stripe-terminal-effects-processor.js"
       - "src/stripe-terminal-effects-state-verifier.js"
@@ -52,6 +55,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Checkout-lock owned-token CAS regression
+        run: node scripts/stripe-checkout-lock-cas-regression-test.mjs
+      - name: Worker checks
+        run: npm run worker:check
       - name: Syntax check
         run: |
           node --check src/stripe-entitlement-reconciliation-policy.js
