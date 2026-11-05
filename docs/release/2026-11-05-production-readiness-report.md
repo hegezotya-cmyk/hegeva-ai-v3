@@ -130,6 +130,17 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Targeted retry root-cause diagnosis — 2026-11-05
+
+- PASS: inspected `scheduled()` state verification, `SELECT_DUE`, claim/lease/retry/complete SQL, and `reviewTerminalEffectExecution`; fail-closed policy remains unchanged.
+- PASS: added structured, identifier-free state reason codes. The processor preserves the generic `state-unverified` prefix and records only safe categories such as `plan-unverified`, `ledger-event-missing`, or `newer-ledger-event`.
+- PASS: local processor regression covers the new reason code, lease/backoff, stale-event skip and idempotency behavior; worker syntax/check passed.
+- PASS: staging diagnosis identified the initial retry fixture's exact cause as `plan-unverified`: the first scheduled attempt occurred before the synthetic plan existed. The later plan/ledger joins were read-only verified as present, applied, and without a newer event.
+- BLOCKED: after the state was aligned, no subsequent scheduled invocation was observed in the controlled window; the fixture did not reach `completed`. This is a staging cron/runtime observation gap, not a policy relaxation or proven application fix.
+- PASS: the reason-code fixture was fully rolled back; aggregate synthetic outbox, ledger, and plan counts are all zero.
+- PASS: staging-only redeploy of the diagnostic fix completed as Worker version `e6da7011-e331-4b4d-8c7a-cae26dac0895`; secrets and production resources were untouched.
+- Final status remains **NOT READY**, `releaseSafe=false`; staging recovery completion, fencing runtime, historical identity exact proof, and duplicate/cancellation/entitlement E2E remain blockers.
+
 ## Staging retry/fencing completion attempt — 2026-11-05
 
 - PASS: read-only preflight confirmed the active Worker version remained `012cba01-575a-4b57-bbf8-1db457f08114` at 100%, the D1 binding was the staging database, and the outbox due predicate uses ISO UTC `nextAttemptAt <= current UTC` with pending/expired-processing eligibility.
