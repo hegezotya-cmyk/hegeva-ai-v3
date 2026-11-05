@@ -29,9 +29,11 @@ export async function verifyTerminalEffectCurrentState({
     plan = await db.prepare(
       "SELECT plan FROM user_plans WHERE userId=?1 LIMIT 1"
     ).bind(effect.userId).first();
+    // Stripe timestamps have second precision; distinct events at the same
+    // timestamp may be concurrent. Defer rather than assume their order.
     newer = await db.prepare(`
       SELECT eventId FROM stripe_webhook_events
-      WHERE userId=?1 AND eventId<>?2 AND eventCreatedAt>?3
+      WHERE userId=?1 AND eventId<>?2 AND eventCreatedAt>=?3
       LIMIT 1
     `).bind(effect.userId,effect.eventId,ledger.eventCreatedAt).first();
     if (newer?.eventId) {
