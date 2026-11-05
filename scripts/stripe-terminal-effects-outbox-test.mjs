@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import {
  TERMINAL_SIDE_EFFECT_OUTBOX_SCHEMA,effectForDecision,prepareTerminalEffect,
- CLAIM_TERMINAL_EFFECT_SQL,COMPLETE_TERMINAL_EFFECT_SQL,RETRY_TERMINAL_EFFECT_SQL
+ CLAIM_TERMINAL_EFFECT_SQL,COMPLETE_TERMINAL_EFFECT_SQL,RETRY_TERMINAL_EFFECT_SQL,reviewTerminalEffectExecution
 } from "../src/stripe-terminal-effects-outbox.js";
 const db=new DatabaseSync(":memory:");
 try {
@@ -36,6 +36,20 @@ try {
  assert.equal(claim.run(secondLease,"2026-11-05T01:07:00.000Z","evt_crash").changes,1,"expired lease reclaimed");
  assert.equal(retry.run(later,later,"late-owner","evt_crash",1).changes,0,"old owner cannot reset newer lease");
  assert.equal(complete.run(later,"evt_crash",2).changes,1);
+ const downgrade={effectType:"billing-and-referral-downgrade"};
+ const retain={effectType:"referral-retain"};
+ const review=(effect,currentPlan,extra={})=>reviewTerminalEffectExecution({
+   effect,currentPlan,currentPlanVerified:true,newerEventsVerified:true,
+   newerEventExists:false,...extra
+ });
+ assert.deepEqual(review(downgrade,"basic"),{decision:"run"});
+ assert.deepEqual(review(downgrade,"premium"),{decision:"skip",reason:"paid-entitlement-restored"});
+ assert.deepEqual(review(downgrade,"pro"),{decision:"skip",reason:"paid-entitlement-restored"});
+ assert.deepEqual(review(retain,"basic"),{decision:"skip",reason:"paid-entitlement-no-longer-active"});
+ assert.deepEqual(review(retain,"premium"),{decision:"run"});
+ assert.deepEqual(review(downgrade,"basic",{newerEventExists:true}),{decision:"defer",reason:"current-state-unverified"});
+ assert.deepEqual(review(downgrade,"basic",{newerEventsVerified:false}),{decision:"defer",reason:"current-state-unverified"});
+ assert.deepEqual(review(downgrade,"basic",{currentPlanVerified:false}),{decision:"defer",reason:"current-state-unverified"});
  console.log("SQLite durable terminal outbox policy PASS: idempotency, leases, retries, fencing, recovery.");
  console.log("NOT YET WIRED: no background processor, Stripe webhook batch integration, or deployed migration.");
 } finally {db.close();}
