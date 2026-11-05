@@ -130,6 +130,16 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Staging retry/fencing completion attempt — 2026-11-05
+
+- PASS: read-only preflight confirmed the active Worker version remained `012cba01-575a-4b57-bbf8-1db457f08114` at 100%, the D1 binding was the staging database, and the outbox due predicate uses ISO UTC `nextAttemptAt <= current UTC` with pending/expired-processing eligibility.
+- PASS: an isolated due retry fixture initially moved from `pending, attempts=0` to `pending, attempts=1`, `lastError=state-unverified`, with a future `nextAttemptAt`; a later cron moved it to `attempts=2` and scheduled another backoff. This proves staging retry scheduling and attempt fencing at the row-claim level.
+- FINDING: the first recovery attempt used a mismatched synthetic ledger eventId, so the processor correctly remained fail-closed. A corrected ledger was then inserted from the outbox's own eventId; read-only joins showed plan match, applied ledger, event time present, and no newer event.
+- BLOCKED: despite the corrected joins, the subsequent observed cron did not transition the retry fixture to `completed`; it remained `pending` with `attempts=2` and `state-unverified`. This is unresolved staging runtime behavior, not evidence of a safe release.
+- BLOCKED: a separate staging fencing/idempotency concurrency runtime proof was not completed. Local retry/fencing regressions and CI remain PASS, but they do not replace the missing staging recovery proof.
+- PASS: rollback removed all synthetic outbox, ledger, and plan rows; final aggregate counts were zero. No existing user, entitlement, referral, subscription, Stripe record, secret, or configuration was modified.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Final staging preflight and runtime acceptance — 2026-11-05
 
 - PASS: Wrangler `4.157.0` was used on Node `22.23.2`; the actual path was `wrangler deploy --config wrangler.staging.jsonc`.
