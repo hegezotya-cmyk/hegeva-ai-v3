@@ -8,7 +8,7 @@ const sub = (id, customerId, status, plan = "premium") => ({
 const older = sub("sub_old", "cus_old", "canceled");
 const newer = sub("sub_new", "cus_new", "active");
 const decide = (subscriptions, inventoryComplete = true) =>
-  decideStripeEntitlement({ userId, subscriptions, inventoryComplete });
+  decideStripeEntitlement({ userId, subscriptions, inventoryComplete, livemode: false });
 
 assert.deepEqual(decide([older, newer]), {decision:"retain", plan:"premium"},
   "canceling one of two subscriptions across different customers cannot revoke entitlement");
@@ -28,5 +28,10 @@ assert.deepEqual(decide([older, {...newer,plan:"undefined-plan"}]),
   {decision:"defer",reason:"unknown-active-plan"});
 assert.deepEqual(decide([older,newer,newer]),
   {decision:"defer",reason:"duplicate-subscription-id"});
+
+assert.deepEqual(decide([{...newer,livemode:true}]),
+  {decision:"defer",reason:"invalid-inventory-entry"}, "mixed TEST/LIVE inventory fails closed");
+assert.deepEqual(decideStripeEntitlement({userId,subscriptions:[newer],inventoryComplete:true}),
+  {decision:"defer",reason:"unverified-inventory"}, "missing explicit Stripe mode fails closed");
 
 console.log("Stripe multi-subscription entitlement policy test PASS");
