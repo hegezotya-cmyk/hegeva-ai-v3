@@ -129,3 +129,12 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Required owner action: run the new diagnostic in the existing PowerShell process where the restricted TEST key is already available, then retain only its masked JSON output. If it proves a missing identity, obtain approval before any idempotent D1 repair; if it proves stale/orphan data, document an exclusion rule without weakening the release gate or deleting data.
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
+
+## Targeted diagnostic fix — restricted-key 403, D1 schema and fail-closed gate
+
+- PASS: `scripts/stripe-staging-subscription-diagnostic.mjs` now treats a restricted-key `GET /v1/account` HTTP 403 as a distinct `account-read-403` condition and continues only through the five configured TEST Price GETs. Account identity is PASS only when the account response matches the expected TEST account or the complete configured TEST price catalogue is verified; otherwise it remains BLOCKED.
+- PASS: staging D1 is inspected first with read-only `PRAGMA table_info(...)`; only verified existing columns are queried. Schema, child-process, subscription, price and pagination failures return structured non-secret categories such as `d1-schema-mismatch`, `d1-reader-failed`, `stripe-subscription-read-failed` and `pagination-incomplete`.
+- PASS: every active Stripe TEST subscription without an exact D1 user/customer/subscription tuple is counted as unrepresented, including `UNKNOWN` classifications. `releaseSafe` cannot become true from a partial two-record assumption.
+- PASS: targeted syntax, no-key fail-closed, private reconciliation and identity-comparison regression tests completed locally.
+- BLOCKED: the owner-provided aggregate still identifies one unrepresented active subscription, but the detailed diagnostic has not yet run in this process with the restricted key. No owner rerun of the old faulty script is requested; only the corrected command below is relevant.
+- Final status remains **NOT READY**, `releaseSafe=false`.

@@ -10,6 +10,7 @@ const EXPECTED_ACCOUNT = "acct_1U4YkEHECF9iDE3l";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const config = readFileSync(resolve(root, "wrangler.staging.jsonc"), "utf8");
 const key = process.env.STRIPE_TEST_READONLY_KEY?.trim() || process.env.STRIPE_TEST_SECRET_KEY?.trim() || "";
+const configuredPrices = [...config.matchAll(/"(STRIPE_[A-Z_]+PRICE_ID)"\s*:\s*"(price_[^"]+)"/g)].map(([, name, id]) => ({ name, id }));
 
 const mask = (value, prefix) => {
   if (typeof value !== "string" || !value.startsWith(prefix)) return null;
@@ -25,34 +26,80 @@ const isoCreated = value => Number.isFinite(Number(value)) && Number(value) > 0
   ? new Date(Number(value) * 1000).toISOString()
   : null;
 
-function readD1() {
+function runD1Query(command) {
   const wrangler = resolve(root, "node_modules", "wrangler", "bin", "wrangler.js");
-  if (!existsSync(wrangler)) throw new Error("wrangler-not-installed-locally");
-  const queries = [
-    "SELECT userId, stripeCustomerId, stripeSubscriptionId, subscriptionStatus, cancelAtPeriodEnd, currentPeriodEnd FROM stripe_customers",
-    "SELECT eventId, eventType, userId, plan, eventCreatedAt, outcome FROM stripe_webhook_events ORDER BY eventCreatedAt DESC LIMIT 200",
-  ];
+  if (!existsSync(wrangler)) throw new Error("d1-reader-failed");
   const childEnv = { ...process.env };
   for (const name of ["STRIPE_SECRET_KEY", "STRIPE_TEST_SECRET_KEY", "STRIPE_TEST_READONLY_KEY", "STRIPE_SANDBOX_READONLY_KEY"]) delete childEnv[name];
-  return queries.flatMap(command => {
-    const child = spawnSync(process.execPath, [wrangler, "d1", "execute", "hegeva-ai-staging-db", "--remote", "--config", "wrangler.staging.jsonc", "--json", "--command", command], {
+  const child = spawnSync(process.execPath, [wrangler, "d1", "execute", "hegeva-ai-staging-db", "--remote", "--config", "wrangler.staging.jsonc", "--json", "--command", command], {
       cwd: root, env: childEnv, encoding: "utf8", timeout: 30000, maxBuffer: 8 * 1024 * 1024,
       windowsHide: true, stdio: ["ignore", "pipe", "pipe"],
-    });
-    if (child.error || child.status !== 0 || child.signal) throw new Error("d1-reader-process-failed");
-    const blocks = JSON.parse(child.stdout);
-    if (!Array.isArray(blocks) || blocks.length === 0 || !blocks.every(b => b?.success === true && Array.isArray(b.results))) throw new Error("untrusted-d1-response");
-    return blocks.flatMap(b => b.results);
   });
+  if (child.error || child.status !== 0 || child.signal) throw new Error("d1-reader-failed");
+  let blocks;
+  try { blocks = JSON.parse(child.stdout); } catch { throw new Error("d1-reader-failed"); }
+  if (!Array.isArray(blocks) || blocks.length === 0 || !blocks.every(b => b?.success === true && Array.isArray(b.results))) throw new Error("d1-reader-failed");
+  return blocks.flatMap(b => b.results);
 }
 
-async function stripeGet(path) {
+function readD1() {
+  let customerSchema;
+  let ledgerSchema;
+  try {
+    customerSchema = runD1Query("PRAGMA table_info(stripe_customers)");
+    ledgerSchema = runD1Query("PRAGMA table_info(stripe_webhook_events)");
+  } catch { throw new Error("d1-schema-read-failed"); }
+  const customerColumns = new Set(customerSchema.map(row => row.name));
+  const ledgerColumns = new Set(ledgerSchema.map(row => row.name));
+  const requiredCustomer = ["userId", "stripeCustomerId", "stripeSubscriptionId", "subscriptionStatus"];
+  const requiredLedger = ["eventId", "eventType", "userId", "plan", "eventCreatedAt", "outcome"];
+  if (!requiredCustomer.every(name => customerColumns.has(name)) || !requiredLedger.every(name => ledgerColumns.has(name))) throw new Error("d1-schema-mismatch");
+  try {
+    return {
+      identities: runD1Query("SELECT userId, stripeCustomerId, stripeSubscriptionId, subscriptionStatus, cancelAtPeriodEnd, currentPeriodEnd FROM stripe_customers"),
+      ledger: runD1Query("SELECT eventId, eventType, userId, plan, eventCreatedAt, outcome FROM stripe_webhook_events ORDER BY eventCreatedAt DESC LIMIT 200"),
+    };
+  } catch { throw new Error("d1-reader-failed"); }
+}
+
+async function stripeGet(path, errorCode = "stripe-read-failed") {
   const response = await fetch(`https://api.stripe.com/v1/${path}`, {
     method: "GET", headers: { Authorization: `Bearer ${key}`, Accept: "application/json" },
     cache: "no-store", signal: AbortSignal.timeout(30000),
   });
-  if (!response.ok) throw new Error(`stripe-get-${response.status}`);
+  if (!response.ok) {
+    const error = new Error(errorCode);
+    error.httpStatus = response.status;
+    throw error;
+  }
   return response.json();
+}
+
+async function readAccountAndPrices() {
+  let account = null;
+  let accountReadStatus = "BLOCKED";
+  let accountHttpStatus = null;
+  let accountError = null;
+  try {
+    account = await stripeGet("account", "stripe-account-read-failed");
+    accountReadStatus = "PASS";
+    accountHttpStatus = 200;
+  } catch (error) {
+    accountHttpStatus = error.httpStatus ?? null;
+    if (accountHttpStatus !== 403) throw new Error("stripe-account-read-failed");
+    accountError = "account-read-403";
+  }
+  const prices = [];
+  for (const { name, id } of configuredPrices) {
+    try {
+      const price = await stripeGet(`prices/${encodeURIComponent(id)}`, "stripe-price-read-failed");
+      prices.push({ name, prefix: id.slice(0, 8), found: price?.id === id, livemode: price?.livemode ?? null });
+    } catch { throw new Error("stripe-price-read-failed"); }
+  }
+  const pricesPass = prices.length === 5 && prices.every(price => price.found && price.livemode === false);
+  const accountMatches = account?.id === EXPECTED_ACCOUNT && account?.livemode === false;
+  const identityPass = accountMatches || (accountHttpStatus === 403 && pricesPass);
+  return { account, accountReadStatus, accountHttpStatus, accountError, prices, pricesPass, identityPass, identityEvidence: accountMatches ? "account" : pricesPass ? "configured-test-price-catalog" : "none" };
 }
 
 async function readAllSubscriptions() {
@@ -61,15 +108,15 @@ async function readAllSubscriptions() {
   for (let page = 0; page < 20; page += 1) {
     const query = new URLSearchParams({ status: "all", limit: "100" });
     if (startingAfter) query.set("starting_after", startingAfter);
-    const result = await stripeGet(`subscriptions?${query}`);
-    if (!Array.isArray(result?.data) || typeof result.has_more !== "boolean" || result.data.length > 100) throw new Error("stripe-pagination-invalid");
+    const result = await stripeGet(`subscriptions?${query}`, "stripe-subscription-read-failed");
+    if (!Array.isArray(result?.data) || typeof result.has_more !== "boolean" || result.data.length > 100) throw new Error("pagination-incomplete");
     records.push(...result.data);
     if (!result.has_more) return records;
     const next = result.data.at(-1)?.id;
-    if (!next || next === startingAfter) throw new Error("stripe-pagination-stalled");
+    if (!next || next === startingAfter) throw new Error("pagination-incomplete");
     startingAfter = next;
   }
-  throw new Error("stripe-pagination-limit");
+  throw new Error("pagination-incomplete");
 }
 
 function classify(subscription, d1Rows, ledgerRows, accountMatches) {
@@ -105,28 +152,33 @@ if (!/"PAYMENT_MODE"\s*:\s*"test"/.test(config)) {
   process.exitCode = 2;
 } else {
   try {
-    const account = await stripeGet("account");
+    const identity = await readAccountAndPrices();
     const d1 = readD1();
     const subscriptions = await readAllSubscriptions();
-    const d1Rows = d1.filter(row => typeof row.userId === "string" && row.userId.length > 0 && idPresence(row.stripeCustomerId, "cus_") && idPresence(row.stripeSubscriptionId, "sub_"));
-    const ledgerRows = d1.filter(row => typeof row.eventType === "string" && typeof row.outcome === "string");
-    const accountMatches = account?.id === EXPECTED_ACCOUNT && account?.livemode === false;
+    const d1Rows = d1.identities.filter(row => typeof row.userId === "string" && row.userId.length > 0 && idPresence(row.stripeCustomerId, "cus_") && idPresence(row.stripeSubscriptionId, "sub_"));
+    const ledgerRows = d1.ledger;
     const testSubscriptions = subscriptions.filter(row => row?.livemode === false);
     const active = testSubscriptions.filter(row => ["active", "trialing", "past_due"].includes(String(row.status || "").toLowerCase()));
-    const details = active.map(row => classify(row, d1Rows, ledgerRows, accountMatches));
-    const missing = details.filter(row => row.classification !== "UNKNOWN" && !row.d1ExactMatch);
-    const status = accountMatches && details.length === 2 && missing.length === 0 ? "PASS" : "REVIEW_REQUIRED";
+    const details = active.map(row => classify(row, d1Rows, ledgerRows, identity.identityPass));
+    const missing = details.filter(row => !row.d1ExactMatch);
+    const completeInventory = subscriptions.every(row => row?.livemode === false);
+    const status = identity.identityPass && identity.pricesPass && completeInventory && missing.length === 0 ? "PASS" : "REVIEW_REQUIRED";
     console.log(JSON.stringify({
-      verified: true, status, releaseSafe: status === "PASS", accountIdentity: accountMatches ? "PASS" : "BLOCKED",
-      accountId: mask(account?.id, "acct_"), accountExpected: true, accountLivemode: account?.livemode === false ? false : account?.livemode === true ? true : null,
-      pagination: "PASS", d1IdentityRows: d1Rows.length, webhookLedgerRows: ledgerRows.length,
+      verified: true, status, releaseSafe: status === "PASS", accountIdentity: identity.identityPass ? "PASS" : "BLOCKED",
+      accountIdentityEvidence: identity.identityEvidence, accountReadStatus: identity.accountReadStatus,
+      accountError: identity.accountError, accountHttpStatus: identity.accountHttpStatus, accountId: mask(identity.account?.id, "acct_"), accountExpected: true,
+      accountLivemode: identity.account?.livemode === false ? false : identity.account?.livemode === true ? true : null,
+      configuredPriceCheck: identity.pricesPass ? "PASS" : "BLOCKED", configuredPrices: identity.prices,
+      pagination: completeInventory ? "PASS" : "BLOCKED", d1IdentityRows: d1Rows.length, webhookLedgerRows: ledgerRows.length,
       stripeSubscriptions: testSubscriptions.length, stripeActiveSubscriptions: active.length,
       subscriptions: details,
+      unrepresentedActiveSubscriptions: missing.length,
       ownerAction: missing.length ? "Classify the unmatched TEST record before any repair; no automatic D1 or Stripe mutation." : null,
     }, null, 2));
     if (status !== "PASS") process.exitCode = 2;
-  } catch {
-    console.log(JSON.stringify({ verified: false, status: "BLOCKED", reason: "read-only-diagnostic-failed" }));
+  } catch (error) {
+    const reason = ["stripe-account-read-failed", "stripe-price-read-failed", "stripe-subscription-read-failed", "pagination-incomplete", "d1-schema-read-failed", "d1-schema-mismatch", "d1-reader-failed"].includes(error?.message) ? error.message : "read-only-diagnostic-failed";
+    console.log(JSON.stringify({ verified: false, status: "BLOCKED", reason }));
     process.exitCode = 2;
   }
 }
