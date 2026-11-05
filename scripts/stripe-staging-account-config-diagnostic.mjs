@@ -3,6 +3,7 @@
 // Uses one process-scoped TEST key only for read-only GET /v1/account and GET /v1/prices/{id}; never reads the Worker's secret.
 import { readFileSync } from "node:fs";
 
+const EXPECTED_TEST_ACCOUNT_ID = "acct_1U4YkEHECF9iDE3l";
 const config = readFileSync(new URL("../wrangler.staging.jsonc", import.meta.url), "utf8");
 const mode = /"PAYMENT_MODE"\s*:\s*"([^"]+)"/.exec(config)?.[1] || null;
 const priceIds = [...config.matchAll(/"(STRIPE_[A-Z_]+PRICE_ID)"\s*:\s*"(price_[^"]+)"/g)]
@@ -45,12 +46,14 @@ if (mode !== "test" || priceIds.length === 0) {
     };
   }));
   const allFound = prices.every((price) => price.found && price.livemode === false);
+  const accountMatches = accountReadable && account.id === EXPECTED_TEST_ACCOUNT_ID;
   const priceCheck = allFound ? "PASS" : "REVIEW_REQUIRED";
-  const status = accountReadable && allFound ? "PASS" : "REVIEW_REQUIRED";
+  const status = accountMatches && allFound ? "PASS" : "REVIEW_REQUIRED";
   console.log(JSON.stringify({
     status,
-    reason: status === "PASS" ? null : !accountReadable ? "account-identity-unavailable-or-prices-mismatch" : "sandbox-price-mismatch",
+    reason: status === "PASS" ? null : !accountReadable ? "account-identity-unavailable" : !accountMatches ? "unexpected-test-account" : "sandbox-price-mismatch",
     accountId: accountReadable ? account.id : null,
+    accountMatchesExpected: accountMatches,
     accountReadStatus: accountReadable ? "PASS" : "BLOCKED",
     accountHttpStatus: accountResponse.status,
     livemode: accountReadable ? account.livemode : null,
