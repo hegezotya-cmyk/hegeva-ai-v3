@@ -19,7 +19,8 @@ const source=original
    'const reconcileReferralRewardForUser=async()=>{}; const reverseApprovedReferralRewards=async()=>{};')
  .replace('export { UserRateLimiter } from "./user-rate-limiter-do.js";','')
  .replace('from "./stripe-subscription-inventory.js"',`from "${dep("stripe-subscription-inventory.js")}"`)
- .replace('from "./stripe-terminal-event-review.js"',`from "${dep("stripe-terminal-event-review.js")}"`);
+ .replace('from "./stripe-terminal-event-review.js"',`from "${dep("stripe-terminal-event-review.js")}"`)
+ .replace('from "./stripe-terminal-effects-outbox.js"',`from "${dep("stripe-terminal-effects-outbox.js")}"`);
 writeFileSync(join(temp,"ledger.mjs"),source);
 let handler;
 try { handler=(await import(pathToFileURL(join(temp,"ledger.mjs")).href)).default; }
