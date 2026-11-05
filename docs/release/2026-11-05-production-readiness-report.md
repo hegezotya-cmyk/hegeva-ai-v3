@@ -130,6 +130,15 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Automatic historical identity proof
+
+- PASS: added `scripts/stripe-staging-historical-auto-proof.mjs`; it requires no manual subscription/customer/user ID entry. It reads the main TEST account and five configured TEST Prices, retrieves the complete paginated TEST subscription inventory, and selects exactly one active record by the owner-supplied masked subscription/customer reference and exact creation timestamp.
+- PASS: the selected record's full account/subscription/customer/user/createdAt tuple remains memory-only. The local owner attestation occurs only after the unique candidate is found; output contains only booleans and masked record fields.
+- PASS: zero candidates, multiple candidates, missing metadata userId, wrong account, live mode, non-TEST mode and incomplete pagination fail closed. The raw reconciliation is not filtered.
+- PASS: static safety, syntax and no-key fail-closed checks completed without network or secrets.
+- BLOCKED: this Codex process cannot run the owner PowerShell restricted-key flow, so `historicalExceptionExactMatch=true` is not claimed here. No staging acceptance deployment or data-changing test was started.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Final historical TEST identity-proof tool
 
 - PASS: added `scripts/stripe-staging-historical-identity-proof.mjs`. It performs TEST-only Stripe GETs for `/v1/account`, all five configured Prices, and fully paginated subscriptions; the owner-approved full tuple is supplied only as process-scoped runtime input.
