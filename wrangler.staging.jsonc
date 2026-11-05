@@ -5,6 +5,7 @@
   "compatibility_date": "2026-09-02",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "triggers": { "crons": ["*/5 * * * *"] },
   "keep_vars": true,
   "observability": {
     "enabled": false,
@@ -14,6 +15,7 @@
   "vars": {
     "PAYMENT_PROVIDER": "stripe",
     "PAYMENT_MODE": "test",
+    "OUTBOX_PROCESSOR_ENABLED": "true",
     "PUBLIC_APP_URL": "https://staging.hegevaai.co.uk",
     "STRIPE_PREMIUM_PRICE_ID": "price_1UDa3fHECF9iDE3lyFzhEB3T",
     "STRIPE_PRO_PRICE_ID": "price_1UDa46HECF9iDE3lrC8m8Xge",

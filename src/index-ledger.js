@@ -3,6 +3,7 @@ import { collectStripeUserSubscriptions } from "./stripe-subscription-inventory.
 import { reviewTerminalStripeEvent } from "./stripe-terminal-event-review.js";
 import { effectForDecision, prepareTerminalEffect } from "./stripe-terminal-effects-outbox.js";
 import { reconcileReferralRewardForUser, reverseApprovedReferralRewards } from "./referral-reward-review.js";
+import { processNextTerminalEffect } from "./stripe-terminal-effects-processor.js";
 export { UserRateLimiter } from "./user-rate-limiter-do.js";
 
 const STRIPE_WEBHOOK_BODY_LIMIT = 512 * 1024;
@@ -828,6 +829,29 @@ async function handleStripeWebhook(request, env, ctx) {
 }
 
 export default {
+  async scheduled(controller, env, ctx) {
+    if (String(env.OUTBOX_PROCESSOR_ENABLED || "").toLowerCase() !== "true" || String(env.PAYMENT_MODE || "").toLowerCase() !== "test") return;
+    const now = new Date().toISOString();
+    const run = processNextTerminalEffect({
+      db: env.DB,
+      now,
+      checkCurrentState: async effect => {
+        const [plan, event, newer] = await Promise.all([
+          env.DB.prepare("SELECT plan FROM user_plans WHERE userId=?1 LIMIT 1").bind(effect.userId).first(),
+          env.DB.prepare("SELECT eventCreatedAt FROM stripe_webhook_events WHERE eventId=?1 AND outcome IN ('applied','reconciled') LIMIT 1").bind(effect.eventId).first(),
+          env.DB.prepare("SELECT eventId FROM stripe_webhook_events WHERE userId=?1 AND outcome IN ('applied','reconciled') AND eventCreatedAt > (SELECT eventCreatedAt FROM stripe_webhook_events WHERE eventId=?2 LIMIT 1) LIMIT 1").bind(effect.userId, effect.eventId).first(),
+        ]);
+        const currentPlan = String(plan?.plan || "").toLowerCase();
+        return { currentPlan, currentPlanVerified: ["basic", "premium", "pro"].includes(currentPlan), newerEventExists: Boolean(newer?.eventId), newerEventsVerified: Boolean(event?.eventCreatedAt) };
+      },
+      executeIdempotently: async effect => {
+        if (effect.effectType === "billing-and-referral-downgrade") return reverseApprovedReferralRewards(env.DB, effect.userId, "entitlement-invalid", "system", now);
+        if (effect.effectType === "referral-retain") return reconcileReferralRewardForUser(env.DB, effect.userId, now);
+        throw new Error("unknown-terminal-effect");
+      },
+    });
+    if (ctx?.waitUntil) ctx.waitUntil(run); else await run;
+  },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
