@@ -5,19 +5,22 @@ export const ACCESS_ELIGIBLE_STATUSES = Object.freeze(["active", "trialing", "pa
 const TERMINAL_STATUSES = new Set(["canceled", "unpaid", "incomplete_expired"]);
 const PLANS = new Set(["premium", "pro"]);
 
-export function decideStripeEntitlement({ userId, subscriptions, inventoryComplete } = {}) {
+export function decideStripeEntitlement({ userId, subscriptions, inventoryComplete, livemode } = {}) {
   if (typeof userId !== "string" || !userId.trim() ||
-      inventoryComplete !== true || !Array.isArray(subscriptions)) {
+      inventoryComplete !== true || !Array.isArray(subscriptions) ||
+      (livemode !== true && livemode !== false)) {
     return { decision: "defer", reason: "unverified-inventory" };
   }
 
+  // A verified empty inventory may mean no active subscriptions, but only when
+  // produced by an authoritative, fully paginated Stripe account scan.
   const seen = new Set();
   let premium = false;
   let pro = false;
   for (const subscription of subscriptions) {
     if (!subscription || typeof subscription !== "object" ||
         subscription.userId !== userId ||
-        subscription.livemode !== false && subscription.livemode !== true ||
+        subscription.livemode !== livemode ||
         typeof subscription.id !== "string" || !subscription.id.startsWith("sub_") ||
         typeof subscription.customerId !== "string" || !subscription.customerId.startsWith("cus_") ||
         !subscription.status || typeof subscription.status !== "string") {
