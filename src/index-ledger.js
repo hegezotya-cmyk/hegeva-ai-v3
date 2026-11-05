@@ -496,8 +496,11 @@ async function hasNewerAppliedStripeEvent(env, claim) {
 async function finalizeStripeEvent(env, eventId, responseData) {
   // A successfully reconciled terminal event may retain an existing plan
   // without changing the D1 row. It still needs a distinct finalized outcome.
+  // The deployed staging schema permits only applied/ignored. A terminal
+  // event that passed complete inventory reconciliation is still an applied
+  // ledger event; the response payload carries inventoryReconciled=true.
   const outcome = responseData?.inventoryReconciled === true
-    ? "reconciled"
+    ? "applied"
     : responseData?.entitlementChanged === true && responseData?.ignored !== true
       ? "applied"
       : "ignored";
@@ -584,7 +587,7 @@ async function reconcileTerminalStripeEvent(env, event, claim) {
     `).bind(claim.userId, nextPlan, claim.eventCreatedAt),
     env.DB.prepare(`
       UPDATE stripe_webhook_events
-      SET outcome = 'reconciled', processedAt = ?1
+      SET outcome = 'applied', processedAt = ?1
       WHERE eventId = ?2 AND outcome = 'ignored'
     `).bind(committedAt, claim.eventId),
     env.DB.prepare(queuedEffect.sql).bind(...queuedEffect.values),

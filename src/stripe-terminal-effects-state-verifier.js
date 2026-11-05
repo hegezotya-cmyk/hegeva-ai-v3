@@ -23,7 +23,7 @@ export async function verifyTerminalEffectCurrentState({
     ledger = await db.prepare(`
       SELECT eventId,eventType,eventCreatedAt
       FROM stripe_webhook_events
-      WHERE eventId=?1 AND userId=?2 AND outcome='reconciled'
+      WHERE eventId=?1 AND userId=?2 AND outcome IN ('applied','reconciled')
       LIMIT 1
     `).bind(effect.eventId,effect.userId).first();
     if (!ledger?.eventId ||

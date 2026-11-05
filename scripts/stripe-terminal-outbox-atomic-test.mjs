@@ -30,7 +30,7 @@ try {
  assert.equal(finish.run(t,"evt_a").changes,1);
  assert.equal(queue.run(...effect.values).changes,1);
  db.exec("COMMIT");
- assert.equal(db.prepare("SELECT outcome FROM stripe_webhook_events WHERE eventId='evt_a'").get().outcome,"reconciled");
+assert.equal(db.prepare("SELECT outcome FROM stripe_webhook_events WHERE eventId='evt_a'").get().outcome,"applied");
  assert.equal(db.prepare("SELECT state FROM stripe_terminal_effect_outbox WHERE eventId='evt_a'").get().state,"pending");
  // Failure at the THIRD statement must roll back the first two.
  db.prepare("INSERT INTO stripe_webhook_events(eventId,userId,outcome) VALUES('evt_b','user_b','ignored')").run();

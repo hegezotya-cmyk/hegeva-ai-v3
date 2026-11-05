@@ -67,10 +67,10 @@ if (!isMainThread) {
         read.exec("PRAGMA busy_timeout=5000");
         assert.equal(read.prepare("SELECT plan FROM user_plans WHERE userId='u'").get().plan,"premium");
         assert.equal(read.prepare("SELECT updatedAt FROM user_plans WHERE userId='u'").get().updatedAt,newer);
-        assert.equal(read.prepare("SELECT COUNT(*) AS n FROM stripe_webhook_events WHERE outcome='reconciled'").get().n,2);
+        assert.equal(read.prepare("SELECT COUNT(*) AS n FROM stripe_webhook_events WHERE outcome='applied'").get().n,2);
         read.close();
       } finally {await Promise.all(workers.map(w=>w.terminate()));}
     }
     console.log("Concurrent SQLite worker-thread regression PASS: 8 races, newest entitlement preserved.");
-  } finally {rmSync(dir,{recursive:true,force:true});}
+  } finally {rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});}
 }

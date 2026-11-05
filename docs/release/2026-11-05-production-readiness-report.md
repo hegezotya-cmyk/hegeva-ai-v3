@@ -130,6 +130,15 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Ledger schema compatibility fix — applied/ignored staging constraint
+
+- PASS: read-only staging `sqlite_master` confirms `stripe_webhook_events.outcome CHECK (outcome IN ('applied','ignored'))`; migration `0005` has the same contract.
+- FINDING: terminal webhook code wrote `reconciled` and several readers expected it, which is incompatible with the deployed staging schema and would fail terminal commits.
+- FIX: terminal successful reconciliation now persists `applied` with `inventoryReconciled=true` in the response; readers accept `applied` and legacy `reconciled` for forward/backward compatibility. No migration was applied.
+- PASS: direct ledger transaction, signed webhook, two-connection ordering, parallel-worker race, state verifier, outbox atomic and processor regressions pass after the fix.
+- BLOCKED: staging cron invocation was proven, but a clean `pending -> processing -> completed` runtime transition was not captured; historical identity exact proof and duplicate/cancellation/E2E gates remain separate blockers.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Cron root-cause investigation
 
 - PASS: local config and dry-run contain `*/5 * * * *`, staging `PAYMENT_MODE=test`, and `OUTBOX_PROCESSOR_ENABLED=true`; the scheduled export is present in `src/index-ledger.js`.

@@ -12,7 +12,7 @@ const sql=[...src.slice(marker).matchAll(pattern)].slice(0,2).map(x=>x[1]);
 assert.equal(sql.length,2);
 assert.match(sql[0],/INSERT INTO user_plans/);
 assert.match(sql[1],/UPDATE stripe_webhook_events/);
-assert.match(sql[1],/outcome = 'reconciled'/);
+assert.match(sql[1],/outcome = 'applied'/);
 const db=new DatabaseSync(":memory:");
 try {
  db.exec("CREATE TABLE stripe_webhook_events (eventId TEXT PRIMARY KEY, eventType TEXT, userId TEXT, plan TEXT, eventCreatedAt TEXT, processedAt TEXT, outcome TEXT)");
@@ -27,7 +27,7 @@ try {
  assert.equal(finalize.run(now,"evt_one").changes,1);
  db.exec("COMMIT");
  assert.equal(db.prepare("SELECT plan FROM user_plans WHERE userId='test_user'").get().plan,"basic");
- assert.equal(db.prepare("SELECT outcome FROM stripe_webhook_events WHERE eventId='evt_one'").get().outcome,"reconciled");
+assert.equal(db.prepare("SELECT outcome FROM stripe_webhook_events WHERE eventId='evt_one'").get().outcome,"applied");
  claim.run("evt_fail","customer.subscription.deleted","other_user","premium",t,t);
  db.exec("CREATE TRIGGER fail_finalize BEFORE UPDATE ON stripe_webhook_events WHEN NEW.eventId='evt_fail' BEGIN SELECT RAISE(ABORT,'simulated finalize crash'); END");
  db.exec("BEGIN");

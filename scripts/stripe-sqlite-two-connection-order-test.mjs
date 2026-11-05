@@ -35,10 +35,10 @@ try {
  assert.equal(transact(second,"evt_new",t2,"premium"),1);
  assert.equal(transact(first,"evt_old",t1,"basic"),0);
  assert.equal(first.prepare("SELECT plan FROM user_plans WHERE userId='u'").get().plan,"premium");
- assert.equal(first.prepare("SELECT outcome FROM stripe_webhook_events WHERE eventId='evt_old'").get().outcome,"reconciled");
- // An event processed after newer state can finalize as reconciled without
+ assert.equal(first.prepare("SELECT outcome FROM stripe_webhook_events WHERE eventId='evt_old'").get().outcome,"applied");
+ // An event processed after newer state can finalize as applied without
  // having applied its plan. This is currently an audit ambiguity.
  assert.equal(first.prepare("SELECT updatedAt FROM user_plans WHERE userId='u'").get().updatedAt,t2);
  console.log("SQLite two-connection stale-order PASS: older event cannot overwrite newer entitlement.");
  console.log("RELEASE GAP: event ledger may say reconciled even when timestamp rejected its plan update.");
-} finally {first.close();second.close();rmSync(dir,{recursive:true,force:true});}
+} finally {first.close();second.close();rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});}
