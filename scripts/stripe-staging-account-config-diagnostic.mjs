@@ -27,20 +27,36 @@ if (mode !== "test" || priceIds.length === 0) {
     signal: AbortSignal.timeout(30000),
   });
   const account = await accountResponse.json().catch(() => ({}));
-  if (!accountResponse.ok || typeof account.id !== "string" || account.livemode !== false) {
-    console.log(JSON.stringify({ status: "BLOCKED", reason: "sandbox-account-read-failed", httpStatus: accountResponse.status, ...summary }));
-    process.exitCode = 2;
-  } else {
-    const prices = await Promise.all(priceIds.map(async ({ name, id }) => {
-      const response = await fetch(`https://api.stripe.com/v1/prices/${encodeURIComponent(id)}`, {
-        headers: { Authorization: `Bearer ${localKey}` },
-        signal: AbortSignal.timeout(30000),
-      });
-      const data = await response.json().catch(() => ({}));
-      return { name, idPrefix: id.slice(0, 8), found: response.ok && data.id === id, livemode: data.livemode ?? null };
-    }));
-    const allFound = prices.every((price) => price.found && price.livemode === false);
-    console.log(JSON.stringify({ status: allFound ? "PASS" : "REVIEW_REQUIRED", accountId: account.id, livemode: account.livemode, prices, ...summary }));
-    if (!allFound) process.exitCode = 2;
-  }
+  const accountReadable = accountResponse.ok && typeof account.id === "string" && account.livemode === false;
+
+  // Continue with price reads even if a least-privilege key cannot read /v1/account.
+  const prices = await Promise.all(priceIds.map(async ({ name, id }) => {
+    const response = await fetch(`https://api.stripe.com/v1/prices/${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${localKey}` },
+      signal: AbortSignal.timeout(30000),
+    });
+    const data = await response.json().catch(() => ({}));
+    return {
+      name,
+      idPrefix: id.slice(0, 8),
+      found: response.ok && data.id === id,
+      livemode: data.livemode ?? null,
+      httpStatus: response.status,
+    };
+  }));
+  const allFound = prices.every((price) => price.found && price.livemode === false);
+  const priceCheck = allFound ? "PASS" : "REVIEW_REQUIRED";
+  const status = accountReadable && allFound ? "PASS" : "REVIEW_REQUIRED";
+  console.log(JSON.stringify({
+    status,
+    reason: status === "PASS" ? null : !accountReadable ? "account-identity-unavailable-or-prices-mismatch" : "sandbox-price-mismatch",
+    accountId: accountReadable ? account.id : null,
+    accountReadStatus: accountReadable ? "PASS" : "BLOCKED",
+    accountHttpStatus: accountResponse.status,
+    livemode: accountReadable ? account.livemode : null,
+    priceCheck,
+    prices,
+    ...summary,
+  }));
+  if (status !== "PASS") process.exitCode = 2;
 }
