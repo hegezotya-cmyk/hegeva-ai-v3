@@ -596,25 +596,10 @@ async function reconcileTerminalStripeEvent(env, event, claim) {
   }
   const changed = Number(changes[0]?.meta?.changes || 0) > 0;
 
-  // External side effects must NOT cause Stripe to retry the already
-  // committed entitlement. They need separate durable reconciliation work
-  // before this draft can be released.
-  try {
-    if (decision.decision === "downgrade") {
-      await syncStripeBillingIdentity(env, event, claim);
-      if (changed) {
-        await reverseApprovedReferralRewards(env.DB, claim.userId, "entitlement-invalid");
-      }
-    } else if (changed) {
-      await reconcileReferralRewardForUser(env.DB, claim.userId);
-    }
-  } catch (error) {
-    console.error("HEGEVA_REQUEST_FAILURE", {
-      reason: "stripe_post_commit_side_effect_failed",
-      errorName: error instanceof Error ? error.name : "UnknownError",
-    });
-  }
-
+  // All terminal side effects are now queued ONLY. Calling billing identity
+  // or referral mutations synchronously here would race the future outbox
+  // worker and allow double execution. No executor is enabled in this draft.
+  // The pending outbox job is persisted in the same atomic D1 batch above.
   return {
     received: true,
     verified: true,
