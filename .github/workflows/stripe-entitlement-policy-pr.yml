@@ -30,6 +30,7 @@ on:
       - "scripts/stripe-terminal-effects-state-verifier-test.mjs"
       - "scripts/stripe-terminal-effects-state-checker-test.mjs"
       - "scripts/stripe-terminal-effects-runner-test.mjs"
+      - "scripts/stripe-terminal-outbox-health-test.mjs"
       - ".github/workflows/stripe-entitlement-policy-pr.yml"
   workflow_dispatch:
 
@@ -71,6 +72,7 @@ jobs:
           node --check scripts/stripe-terminal-effects-state-verifier-test.mjs
           node --check scripts/stripe-terminal-effects-state-checker-test.mjs
           node --check scripts/stripe-terminal-effects-runner-test.mjs
+          node --check scripts/stripe-terminal-outbox-health-test.mjs
       - name: Multi-subscription cancellation regression
         run: node scripts/stripe-multi-subscription-entitlement-test.mjs
       - name: Cross-customer Stripe inventory regression
@@ -101,3 +103,5 @@ jobs:
         run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-state-checker-test.mjs
       - name: Isolated Stripe/D1 outbox verifier-to-processor regression
         run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-runner-test.mjs
+      - name: Terminal outbox bounded retry and alert regression
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-outbox-health-test.mjs
