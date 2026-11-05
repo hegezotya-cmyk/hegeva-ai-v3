@@ -480,7 +480,7 @@ async function hasNewerAppliedStripeEvent(env, claim) {
       SELECT eventId
       FROM stripe_webhook_events
       WHERE userId = ?1
-        AND outcome = 'applied'
+        AND outcome IN ('applied', 'reconciled')
         AND eventCreatedAt > ?2
       ORDER BY eventCreatedAt DESC
       LIMIT 1
