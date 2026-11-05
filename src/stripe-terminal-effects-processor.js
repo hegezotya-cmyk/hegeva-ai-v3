@@ -1,6 +1,6 @@
 import {
   CLAIM_TERMINAL_EFFECT_SQL, COMPLETE_TERMINAL_EFFECT_SQL,
-  RETRY_TERMINAL_EFFECT_SQL, reviewTerminalEffectExecution
+  RETRY_TERMINAL_EFFECT_SQL, BLOCK_TERMINAL_EFFECT_SQL, reviewTerminalEffectExecution
 } from "./stripe-terminal-effects-outbox.js";
 
 // Candidate on-demand processor; deliberately NOT scheduled / registered in Worker.
@@ -19,13 +19,14 @@ FROM stripe_terminal_effect_outbox
 WHERE eventId = ?1 AND state='processing' AND attempts=?2`;
 
 export async function processNextTerminalEffect({
-  db, now, checkCurrentState, executeIdempotently, leaseMs = 60000
+  db, now, checkCurrentState, executeIdempotently, leaseMs = 60000, maxAttempts = 8
 } = {}) {
   if (!db || typeof db.prepare !== "function" ||
       typeof now !== "string" || !Number.isFinite(Date.parse(now)) ||
       typeof checkCurrentState !== "function" ||
       typeof executeIdempotently !== "function" ||
-      !Number.isInteger(leaseMs) || leaseMs < 1000 || leaseMs > 300000) {
+      !Number.isInteger(leaseMs) || leaseMs < 1000 || leaseMs > 300000 ||
+      !Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 50) {
     return {status:"invalid-input"};
   }
   const iso=new Date(now).toISOString();
@@ -39,6 +40,13 @@ export async function processNextTerminalEffect({
   const claimed=await db.prepare(SELECT_CLAIMED).bind(candidate.eventId,attempt).first();
   if (!claimed) return {status:"unconfirmed-claim"};
   const defer=async reason=>{
+    // After repeated unsuccessful attempts, quarantine the job for manual
+    // review instead of retrying indefinitely or hiding provider failures.
+    if (attempt >= maxAttempts) {
+      const blocked=await db.prepare(BLOCK_TERMINAL_EFFECT_SQL)
+        .bind(iso,reason,claimed.eventId,attempt).run();
+      return {status:Number(blocked?.meta?.changes)===1?"blocked":"lease-lost"};
+    }
     const delay=Math.min(3600,30*(2**Math.min(attempt-1,7)));
     const retryAt=new Date(Date.parse(iso)+delay*1000).toISOString();
     const result=await db.prepare(RETRY_TERMINAL_EFFECT_SQL)
