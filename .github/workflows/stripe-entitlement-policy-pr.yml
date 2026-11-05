@@ -6,7 +6,9 @@ on:
       - integration/security-growth-validation-20261104
     paths:
       - "src/stripe-entitlement-reconciliation-policy.js"
+      - "src/stripe-subscription-inventory.js"
       - "scripts/stripe-multi-subscription-entitlement-test.mjs"
+      - "scripts/stripe-subscription-inventory-test.mjs"
       - ".github/workflows/stripe-entitlement-policy-pr.yml"
   workflow_dispatch:
 
@@ -25,6 +27,10 @@ jobs:
       - name: Syntax check
         run: |
           node --check src/stripe-entitlement-reconciliation-policy.js
+          node --check src/stripe-subscription-inventory.js
           node --check scripts/stripe-multi-subscription-entitlement-test.mjs
+          node --check scripts/stripe-subscription-inventory-test.mjs
       - name: Multi-subscription cancellation regression
         run: node scripts/stripe-multi-subscription-entitlement-test.mjs
+      - name: Cross-customer Stripe inventory regression
+        run: node scripts/stripe-subscription-inventory-test.mjs
