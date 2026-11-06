@@ -178,3 +178,8 @@ Cloudflare read-only Dashboard inspection found the staging UI Worker `hegeva-ai
 ### Mobile responsive smoke
 
 Using a temporary 390×844 viewport in the existing staging session, Assistant, Invoices & Quotes, Planner, and Command Center rendered their expected headings and showed no horizontal overflow or sign-in/application-error state. The browser viewport was reset afterwards and the original Assistant route restored. This is a small responsive route smoke, not full mobile acceptance across all routes or devices.
+
+
+### Staging customer record refresh persistence
+
+In the existing authenticated staging session, Customers showed “Cloud synced” and the pre-existing record “STAGING TEST - Reengagement PR78” (explicitly labelled staging-only, not a real customer). After a page reload, “Cloud synced” and that same record were still visible. No record was created, edited, or deleted. This supports persistence across a refresh for that existing staging fixture only; it does not establish persistence across logout/re-login or tenant isolation. The browser was returned to the Assistant route.
