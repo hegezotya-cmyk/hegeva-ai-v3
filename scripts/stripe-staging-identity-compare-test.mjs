@@ -40,6 +40,12 @@ const orphanStatus=compare({d1Identities:[],
 assert.equal(orphanStatus.counts.stripeUsersWithoutD1Identity,1);
 assert.equal(orphanStatus.counts.unrepresentedStripeSubscriptionStatuses.canceled,1);
 assert.equal(orphanStatus.counts.unrepresentedActiveSubscriptions,0);
+const authPresent=compare({d1Identities:[],
+ stripeSubscriptions:[subscription("user_orphan","cus_orphan","sub_orphan","canceled")],
+ d1UserIds:["user_orphan"],stripeComplete:true});
+assert.equal(authPresent.counts.unrepresentedStripeUsersWithD1AuthRecord,1);
+assert.equal(authPresent.counts.unrepresentedStripeUsersWithoutD1AuthRecord,0);
+assert.ok(!JSON.stringify(authPresent).includes("user_orphan"));
 
 const mismatch=compare({d1Identities:[identity("user_1","cus_1","sub_1","canceled")],
  stripeSubscriptions:[subscription("user_1","cus_1","sub_1")],stripeComplete:true});
