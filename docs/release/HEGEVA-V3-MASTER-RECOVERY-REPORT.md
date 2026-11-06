@@ -137,3 +137,24 @@ This section supersedes the earlier “not pushed / not deployed” statements a
 ## Next safe step
 
 Run only the remaining staging acceptance checks using the existing approved staging Worker and the main HEGEVA Stripe TEST configuration. Do not create synthetic Workers, change bindings/secrets, migrate/write remote D1, use the separate sandbox, or make a payment. Until remote cron/outbox behavior and full journey/isolation evidence are available, keep production at **NO-GO**.
+
+
+## Follow-up read-only verification — 2026-11-06T14:02Z
+
+- Cloudflare Worker settings still show Cron **Every 5 minutes**, `PAYMENT_MODE=test`, `OUTBOX_PROCESSOR_ENABLED=true`, and the staging D1 binding `DB → hegeva-ai-staging-db`. After the scheduled 14:00 UTC boundary, Dashboard advanced the next-run display to 14:05 UTC. This confirms the configured schedule advanced, **not** that a Cron invocation or outbox execution succeeded.
+- The settings panel has “Include Invocation logs”, “Persist logs”, and “Persist traces” checkboxes checked. However, the Worker Observability Events page simultaneously displays “Workers Observability is Disabled.” These conflicting UI signals mean invocation/log proof remains **BLOCKED**; no settings were changed.
+- Fresh read-only staging D1 aggregate: auth users 4; Stripe billing mappings 1; referral attributions/rewards/reviews 0; outbox pending/processing/blocked 0; completed 1. The single billing mapping is joined to a Basic plan with subscription status `canceled` and `cancelAtPeriodEnd=0`. No raw identifiers were disclosed and no D1 writes were made.
+- Stripe connector account discovery exposed the main HEGEVA account in **live** mode and a distinct account named “Hegevaai sandbox” in test mode. Per instruction, the separate sandbox was not queried. The connector does not expose the main account in TEST mode, so a fresh main-account Stripe TEST ↔ staging D1 reconciliation could not be run from this session. Earlier owner-approved TEST evidence is historical and does not satisfy this fresh verification gate.
+- No Stripe object was written, no payment/refund was started, and no secret was read.
+
+### Updated gate disposition
+
+| Gate | Current status | Evidence |
+|---|---|---|
+| Staging Cron configuration | PASS | Dashboard shows every 5 minutes and next run advanced to 14:05 UTC |
+| Remote Cron invocation / outbox runtime | BLOCKED | No invocation evidence; dashboard observability signals conflict; no disposable remote D1 fixture authorized |
+| Current main HEGEVA Stripe TEST reconciliation | BLOCKED | Only main live and separate sandbox contexts exposed; separate sandbox excluded |
+| Staging D1 read-only aggregate | PASS | Counts and canceled Basic mapping read back as stated above |
+| Production release | NO-GO | Critical remote acceptance gates remain unproven |
+
+No further action in this verification changed Cloudflare settings, Worker versions, secrets, bindings, Stripe objects, or D1 state.
