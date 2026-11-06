@@ -47,6 +47,41 @@ assert.equal(authPresent.counts.unrepresentedStripeUsersWithD1AuthRecord,1);
 assert.equal(authPresent.counts.unrepresentedStripeUsersWithoutD1AuthRecord,0);
 assert.ok(!JSON.stringify(authPresent).includes("user_orphan"));
 
+const historicalCanceled=compare({
+ d1Identities:[identity("user_current","cus_current","sub_current")],
+ stripeSubscriptions:[
+  subscription("user_current","cus_current","sub_current"),
+  subscription("user_deleted","cus_deleted","sub_deleted","canceled"),
+ ],
+ d1UserIds:["user_current"],stripeComplete:true
+});
+assert.equal(historicalCanceled.status,"PASS");
+assert.equal(historicalCanceled.releaseSafe,true);
+assert.equal(historicalCanceled.counts.nonblockingCanceledOrphanSubscriptions,1);
+assert.equal(historicalCanceled.counts.unrepresentedStripeUsersWithoutD1AuthRecord,1);
+assert.ok(!JSON.stringify(historicalCanceled).includes("user_deleted"));
+
+const nonCanceledOrphan=compare({
+ d1Identities:[identity("user_current","cus_current","sub_current")],
+ stripeSubscriptions:[
+  subscription("user_current","cus_current","sub_current"),
+  subscription("user_deleted","cus_deleted","sub_deleted","past_due"),
+ ],
+ d1UserIds:["user_current"],stripeComplete:true
+});
+assert.equal(nonCanceledOrphan.releaseSafe,false);
+assert.equal(nonCanceledOrphan.counts.nonblockingCanceledOrphanSubscriptions,0);
+const unknownAuthState=compare({
+ d1Identities:[identity("user_current","cus_current","sub_current")],
+ stripeSubscriptions:[
+  subscription("user_current","cus_current","sub_current"),
+  subscription("user_deleted","cus_deleted","sub_deleted","canceled"),
+ ],
+ stripeComplete:true
+});
+assert.equal(unknownAuthState.releaseSafe,false);
+
+
 const mismatch=compare({d1Identities:[identity("user_1","cus_1","sub_1","canceled")],
  stripeSubscriptions:[subscription("user_1","cus_1","sub_1")],stripeComplete:true});
 assert.equal(mismatch.counts.matchingIdentityStatusDisagreements,1);
