@@ -7,7 +7,7 @@ import { join } from "node:path";
 // Two SQLite connections to one temporary DB reproduce ordering and atomicity
 // with distinct terminal events. This is not a Cloudflare D1 concurrency test.
 const source=readFileSync(new URL("../src/index-ledger.js",import.meta.url),"utf8");
-const marker=source.indexOf("const changes = await env.DB.batch([");
+const marker=source.indexOf("const statements = [");
 assert(marker>=0);
 const tick=String.fromCharCode(96);
 const pattern=new RegExp("env\\.DB\\.prepare\\("+tick+"([\\s\\S]*?)"+tick+"\\)\\.bind","g");

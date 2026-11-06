@@ -6,7 +6,8 @@ const start=source.indexOf("async function reconcileTerminalStripeEvent(");
 const end=source.indexOf("async function handleStripeWebhook(",start);
 assert(start>=0&&end>start);
 const section=source.slice(start,end);
-assert.match(section,/env\.DB\.batch\(\[/);
+assert.match(section,/const statements = \[/);
+assert.match(section,/env\.DB\.batch\(statements\)/);
 assert.match(section,/env\.DB\.prepare\(queuedEffect\.sql\)/);
 assert.doesNotMatch(section,/await syncStripeBillingIdentity\(/,
  "terminal path must not sync canceled customer identity directly");

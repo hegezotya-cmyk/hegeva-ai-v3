@@ -8,10 +8,11 @@ import {prepareTerminalEffect} from "../src/stripe-terminal-effects-outbox.js";
 // and event finalization. This does not access remote D1.
 const src=readFileSync(new URL("../src/index-ledger.js",import.meta.url),"utf8");
 const migration=readFileSync(new URL("../migrations/0032_stripe_terminal_effect_outbox.sql",import.meta.url),"utf8");
-assert.match(src,/const changes = await env.DB.batch\(\[/);
+assert.match(src,/const statements = \[/);
+assert.match(src,/env\.DB\.batch\(statements\)/);
 assert.match(src,/env.DB.prepare\(queuedEffect.sql\).bind\(\.\.\.queuedEffect.values\)/);
 const tick=String.fromCharCode(96);
-const sql=[...src.slice(src.indexOf("const changes = await env.DB.batch([" )).matchAll(
+const sql=[...src.slice(src.indexOf("const statements = [" )).matchAll(
  new RegExp("env\\.DB\\.prepare\\("+tick+"([\\s\\S]*?)"+tick+"\\)\\.bind","g")
 )].slice(0,2).map(x=>x[1]);
 assert.equal(sql.length,2);
