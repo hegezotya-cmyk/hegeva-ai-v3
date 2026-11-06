@@ -53,15 +53,22 @@ export async function applyTerminalBillingIdentityStatus({
      !subscriptionId?.startsWith("sub_") ||
      !TERMINAL_STATUSES.has(status) ||
      !Number.isFinite(Date.parse(now))) return {ok:false};
-  const result=await db.prepare(`
+  const result=await prepareTerminalBillingIdentityStatus({db,userId,customerId,subscriptionId,status,now}).run();
+  const changed=Number(result?.meta?.changes);
+  return Number.isSafeInteger(changed)&&changed>=0
+    ? {ok:true,updated:changed===1}
+    : {ok:false};
+}
+
+export function prepareTerminalBillingIdentityStatus({
+  db,userId,customerId,subscriptionId,status,now,
+}={}) {
+  if(!db || typeof db.prepare!=="function") throw Error("billing-identity-db-unavailable");
+  return db.prepare(`
     UPDATE stripe_customers
     SET subscriptionStatus=?1, cancelAtPeriodEnd=0, updatedAt=?2
     WHERE userId=?3 AND stripeCustomerId=?4 AND stripeSubscriptionId=?5
       AND (subscriptionStatus IS NULL OR subscriptionStatus NOT IN
         ('canceled','unpaid','incomplete_expired'))
-  `).bind(status,now,userId,customerId,subscriptionId).run();
-  const changed=Number(result?.meta?.changes);
-  return Number.isSafeInteger(changed)&&changed>=0
-    ? {ok:true,updated:changed===1}
-    : {ok:false};
+  `).bind(status,now,userId,customerId,subscriptionId);
 }

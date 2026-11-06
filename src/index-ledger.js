@@ -4,6 +4,7 @@ import { reviewTerminalStripeEvent } from "./stripe-terminal-event-review.js";
 import { effectForDecision, prepareTerminalEffect } from "./stripe-terminal-effects-outbox.js";
 import { reconcileReferralRewardForUser, reverseApprovedReferralRewards } from "./referral-reward-review.js";
 import { processNextTerminalEffect } from "./stripe-terminal-effects-processor.js";
+import { prepareTerminalBillingIdentityStatus } from "./stripe-terminal-billing-identity.js";
 export { UserRateLimiter } from "./user-rate-limiter-do.js";
 
 const STRIPE_WEBHOOK_BODY_LIMIT = 512 * 1024;
@@ -575,7 +576,7 @@ async function reconcileTerminalStripeEvent(env, event, claim) {
     now: committedAt,
   });
   if (!queuedEffect) return { deferred: true };
-  const changes = await env.DB.batch([
+  const statements = [
     env.DB.prepare(`
       INSERT INTO user_plans (userId, plan, createdAt, updatedAt)
       VALUES (?1, ?2, ?3, ?3)
@@ -591,10 +592,23 @@ async function reconcileTerminalStripeEvent(env, event, claim) {
       WHERE eventId = ?2 AND outcome = 'ignored'
     `).bind(committedAt, claim.eventId),
     env.DB.prepare(queuedEffect.sql).bind(...queuedEffect.values),
-  ]);
-  if (!Array.isArray(changes) || changes.length !== 3 ||
+  ];
+  if (decision.decision === "downgrade") {
+    statements.push(prepareTerminalBillingIdentityStatus({
+      db: env.DB,
+      userId: claim.userId,
+      customerId: event?.data?.object?.customer,
+      subscriptionId: event?.data?.object?.id,
+      status: String(event?.data?.object?.status || "").toLowerCase(),
+      now: committedAt,
+    }));
+  }
+  const changes = await env.DB.batch(statements);
+  const identityChangeIndex = decision.decision === "downgrade" ? 3 : -1;
+  if (!Array.isArray(changes) || changes.length !== (decision.decision === "downgrade" ? 4 : 3) ||
       Number(changes[1]?.meta?.changes) !== 1 ||
-      Number(changes[2]?.meta?.changes) !== 1) {
+      Number(changes[2]?.meta?.changes) !== 1 ||
+      (identityChangeIndex >= 0 && Number(changes[identityChangeIndex]?.meta?.changes) !== 1)) {
     // A failed/ambiguous commit must never be acknowledged as reconciled.
     throw new Error("stripe_atomic_terminal_commit_unconfirmed");
   }
