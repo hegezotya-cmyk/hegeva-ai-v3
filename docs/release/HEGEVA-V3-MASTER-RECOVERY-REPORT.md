@@ -424,3 +424,12 @@ No production deployment/merge, remote D1 write/migration, Stripe write/payment/
 - Only one staging tab is currently visible to the browser connection; the second test account is not simultaneously available. This confirms first-account login visibility, but does not establish cross-user data isolation.
 - The isolation gate remains **BLOCKED** pending two distinct authenticated sessions available at the same time. Production remains **NO-GO** and `releaseSafe=false`.
 
+
+
+## Staging cross-account canary — 2026-11-06
+
+- In the first test workspace, saved the unique synthetic customer `ISOLATION-CANARY-QA1-20261106`; after refresh the first account showed it with Cloud sync.
+- The connected session was switched to the second verified test account. Its Account page showed the second identity; Customers loaded with Cloud sync and the canary was **not visible**.
+- **Result: PARTIAL PASS — authenticated UI list isolation for this canary.** This does not prove direct-ID/API authorization or all workspace resources; those checks remain blocked/unverified.
+- **Cleanup pending:** the connected session is currently the second account. Switch back to the first test account so the canary can be deleted and its absence verified. Do not report the full isolation gate or production readiness as PASS.
+
