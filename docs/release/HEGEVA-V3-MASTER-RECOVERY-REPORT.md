@@ -188,3 +188,10 @@ In the existing authenticated staging session, Customers showed “Cloud synced�
 ## PR #81 answer-grounding code review — 2026-11-06
 
 Read-only review of PR #81 head `ed43fe277250611039906989bf1e7d33dfa9514b` confirms Advanced preserves bounded user-labelled business context and recent user/assistant turns, and sends its behavior guidance as a developer message. Its deterministic regressions verify the request shape and lifecycle, but the provider boundary accepts any completed, non-empty model text; it does not verify factual support for generated claims. The PR's two authorized live acceptance calls already failed answer quality. No further model call was authorized or made in this continuation. **PR #81 remains Draft/BLOCKED; do not merge or enable its Advanced path on the strength of offline prompt-shape tests alone.** A future owner-authorized acceptance must use a fixed, privacy-safe evaluation set and explicit claim-grounding criteria; any output validator must avoid silently changing valid answers or charging for rejected responses.
+
+
+## Cloudflare API Worker error signal — read-only — 2026-11-06 ~14:50Z
+
+Cloudflare Metrics for the staging API Worker, time range **Last 24 hours**, displayed 918 invocations and 1 error; the per-version chart attributed 1 error to active version `0df95909`, and “Errors by invocation status” showed 1 `Uncaught Exception`. This is a real staging error signal; the triggering request and root cause are **unknown**. It must not be attributed to Cron without an invocation trace.
+
+The Worker Issues page shows “Enable issue detection”, and the Worker Observability Events view previously showed “Workers Observability is Disabled”. Although the Settings page shows invocation-log/log/trace persistence checkboxes checked, the dashboards do not expose a usable error record or stack trace. No monitoring setting was changed. Diagnosis is **BLOCKED** pending an authorized, privacy-safe read-only invocation record or owner approval for staging observability configuration. This signal adds a release blocker; staging and production remain NO-GO.
