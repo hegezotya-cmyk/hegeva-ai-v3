@@ -536,3 +536,11 @@ Current decision: `releaseSafe=false`, **NOT READY**. The next owner action is a
 - REVIEW REQUIRED remains: this confirms a deleted/nonexistent D1 user with a canceled historical Stripe TEST subscription. No D1 identity or auth-user row was created, and no Stripe object was changed. The conservative all-user parity gate still returns `releaseSafe=false`; changing that gate would require a separate policy decision.
 - PASS: offline CI covers this auth-user aggregate without exposing IDs (PR check #224). Temporary diagnostic route removed; staging API-only deploy #89 succeeded with no migration, and the staging URL was verified to serve the normal app.
 - No production deploy, D1 migration, D1 write, Stripe write, payment, or separate Stripe sandbox access occurred. Remote synthetic scheduled-worker acceptance remains separate and blocked pending isolated resources.
+
+
+## 2026-11-06 — Historical orphan auth-user result
+
+- PASS: the temporary main-account TEST diagnostic checked the Stripe-only user against staging D1 `user.id` in memory and returned aggregate counts only: one canceled Stripe-only user, zero matching D1 auth users, zero active Stripe subscriptions. The matching D1 billing identity remains exact.
+- Classification: canceled historical Stripe TEST subscription for a deleted/nonexistent D1 account. No data repair is justified because there is no D1 user record to attach it to. No D1 or Stripe mutation was made for this orphan.
+- The privacy-safe auth-user aggregate and synthetic comparison regression passed PR checks #224 and #225. The temporary endpoint was removed and staging API-only deploy #89 succeeded with no migration; endpoint absence was read back.
+- The overall strict identity-parity policy remains `releaseSafe=false` until the owner decides whether a canceled, deleted-user Stripe TEST history entry should remain a release blocker. No policy relaxation, production deploy, migration, payment, or Stripe write occurred.
