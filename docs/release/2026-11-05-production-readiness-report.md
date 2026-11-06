@@ -544,3 +544,14 @@ Current decision: `releaseSafe=false`, **NOT READY**. The next owner action is a
 - Classification: canceled historical Stripe TEST subscription for a deleted/nonexistent D1 account. No data repair is justified because there is no D1 user record to attach it to. No D1 or Stripe mutation was made for this orphan.
 - The privacy-safe auth-user aggregate and synthetic comparison regression passed PR checks #224 and #225. The temporary endpoint was removed and staging API-only deploy #89 succeeded with no migration; endpoint absence was read back.
 - The overall strict identity-parity policy remains `releaseSafe=false` until the owner decides whether a canceled, deleted-user Stripe TEST history entry should remain a release blocker. No policy relaxation, production deploy, migration, payment, or Stripe write occurred.
+
+
+## 2026-11-06 — Owner-approved historical canceled TEST orphan policy
+
+- The owner approved removing the narrow historical orphan as a release blocker.
+- The comparison now treats Stripe-only subscription history as non-blocking only when the D1 auth-user snapshot is present, the Stripe metadata user ID is absent from D1 `user.id`, and every subscription for that Stripe-only user is exactly `canceled`.
+- All other Stripe-only statuses, any corresponding D1 auth user, missing auth-user evidence, unmapped/duplicate records, active unmatched subscriptions, or exact-match status disagreements continue to block.
+- The local read-only reconciliation runner now reads D1 billing identities and D1 auth user IDs with SELECT only; output still contains aggregate counts only and does not expose IDs.
+- Test-first evidence: PR check #227 failed on the new narrow case under the previous rule. The implementation and regression cases were then added; PR check #230 reports the private identity comparison and local reader orchestration jobs successful.
+- Based on the existing main-account TEST evidence (one canceled Stripe-only user, no D1 auth row, zero active subscriptions; mapped D1 identity exact), this historical subscription no longer blocks this specific parity gate. The full reconciliation CLI was not rerun here because the Stripe TEST read-only key is not present in this session.
+- Overall production readiness remains NOT READY: remote synthetic scheduled-worker acceptance and staging duplicate-delivery, cancellation, and referral side-effect acceptance still require their separate evidence. No production deploy, migration, D1/Stripe write, payment, or separate sandbox access occurred.
