@@ -195,3 +195,8 @@ Read-only review of PR #81 head `ed43fe277250611039906989bf1e7d33dfa9514b` confi
 Cloudflare Metrics for the staging API Worker, time range **Last 24 hours**, displayed 918 invocations and 1 error; the per-version chart attributed 1 error to active version `0df95909`, and “Errors by invocation status” showed 1 `Uncaught Exception`. This is a real staging error signal; the triggering request and root cause are **unknown**. It must not be attributed to Cron without an invocation trace.
 
 The Worker Issues page shows “Enable issue detection”, and the Worker Observability Events view previously showed “Workers Observability is Disabled”. Although the Settings page shows invocation-log/log/trace persistence checkboxes checked, the dashboards do not expose a usable error record or stack trace. No monitoring setting was changed. Diagnosis is **BLOCKED** pending an authorized, privacy-safe read-only invocation record or owner approval for staging observability configuration. This signal adds a release blocker; staging and production remain NO-GO.
+
+
+### Related staging Core request evidence
+
+The Cloudflare HTTP-request dataset showed a staging `GET /api/workspace/customers` and `POST /api/core/decide` returning HTTP 200 during the authenticated route smoke. This corroborates that the workspace/Core API endpoints were reached successfully for that session; it does not identify or explain the separate uncaught exception, and it does not prove new-user journey or tenant isolation. The dataset is HTTP request telemetry only; it did not expose Worker exception details.
