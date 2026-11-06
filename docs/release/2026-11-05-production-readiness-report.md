@@ -130,6 +130,16 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Offline Durable Object integration — 2026-11-06
+
+- PASS: the persistent guard now requires one atomic `store.transaction(callback)` contract; separate get/put stores are rejected.
+- PASS: local Wrangler 4.157.0 Durable Object runtime harness exercised the real `ctx.storage.transaction` path. Parallel acquire had exactly one winner and stale release was rejected.
+- PASS: local synthetic SQLite fixture adapter proved `retry-scheduled -> recovery -> completed`, one idempotent execution, and zero fixture residue.
+- PASS: guard tests cover parallel acquire, lease expiry, stale release, replay window, rate limit, malformed scenarios and cleanup contract; controller and processor regressions remain PASS.
+- PASS: the DO harness, guard and fixture adapter are not imported by `src/index.js` or `src/index-ledger.js`; production/staging entrypoint exclusion remains intact.
+- BLOCKED: no staging activation, remote Durable Object proof, staging cron recovery, historical identity exact proof, or duplicate/cancellation/entitlement E2E was performed.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## PR #95 runtime guard implementation — 2026-11-06
 
 - PASS: refreshed checkout to remote HEAD `7fe54cc3…`; no uncommitted work existed before refresh.

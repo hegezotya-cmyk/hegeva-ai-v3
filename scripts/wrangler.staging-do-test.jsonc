@@ -1,0 +1,10 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "hegeva-ai-v3-staging-do-test-local",
+  "main": "staging-do-runtime-test-worker.mjs",
+  "compatibility_date": "2026-09-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "durable_objects": { "bindings": [{ "name": "GUARD", "class_name": "StagingTestGuardDurableObject" }] },
+  "migrations": [{ "tag": "local-guard-v1", "new_sqlite_classes": ["StagingTestGuardDurableObject"] }]
+}

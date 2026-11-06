@@ -51,6 +51,10 @@ Owner approval required before implementation is enabled: approve one dedicated 
 
 Added an unimported persistent guard contract with scenario allowlisting, durable-store single-flight, replay window, rate limit, lease expiry and stale-release fencing. It has no D1, Stripe, HTTP route or secret access. The store must be supplied by an approved Durable Object only if separately enabled; in-memory tests are not deployment proof.
 
+## Durable Object offline integration checkpoint — 2026-11-06
+
+Added an unregistered Durable Object harness whose store adapter calls `ctx.storage.transaction(callback)`. A local Wrangler runtime test verified parallel acquire has one winner and a stale nonce cannot release the lease. The harness is not part of the staging or production Worker configuration.
+
 ## Implementation checkpoint — offline controller contract (2026-11-05)
 
 The owner authorized **code implementation plus local/CI tests only**, explicitly **not** activation, creation of a secret, access changes, staging deployment, or production deployment.
