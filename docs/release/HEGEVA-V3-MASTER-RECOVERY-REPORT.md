@@ -173,3 +173,8 @@ Read-only inspection of the single completed outbox row returned `state=complete
 ### Staging UI/API binding readback
 
 Cloudflare read-only Dashboard inspection found the staging UI Worker `hegeva-ai-v3-v0-staging` at active version `4777d569`, 100% traffic, 0% displayed errors. Its `HEGEVA_API` service binding points to `hegeva-ai-v3-staging`. The UI Worker has no Cron trigger configured, as expected for this separation; the API Worker carries the five-minute trigger. No UI deploy or settings change was made in this follow-up.
+
+
+### Mobile responsive smoke
+
+Using a temporary 390×844 viewport in the existing staging session, Assistant, Invoices & Quotes, Planner, and Command Center rendered their expected headings and showed no horizontal overflow or sign-in/application-error state. The browser viewport was reset afterwards and the original Assistant route restored. This is a small responsive route smoke, not full mobile acceptance across all routes or devices.
