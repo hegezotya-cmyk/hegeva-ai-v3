@@ -500,3 +500,11 @@ Current decision: `releaseSafe=false`, **NOT READY**. The next owner action is a
 - PASS: unauthorized, malformed, oversized and invalid-scenario requests do not invoke dispatch; the regression asserts no fixture/DO dispatch occurred. Stable scenario routing remains fixed and parallel HTTP requests have one winner.
 - PASS: endpoint, controller, guard, DO runtime, fencing, cleanup, production exclusion and staging dry-run checks remain successful.
 - BLOCKED: the remote staging endpoint and binding remain inactive; no remote cron/outbox acceptance is claimed.
+
+## 2026-11-06 — Main TEST cancellation reconciliation
+
+- PASS: an owner-only, temporary staging read path verified the main Hegevaai Stripe account, TEST mode (livemode=false), and one unique subscription whose Stripe metadata matched the staging D1 user. The Stripe customer and subscription IDs already matched the D1 row.
+- FIXED (staging only): the single stripe_customers row was conditionally updated from stale active / period-end values to the exact Stripe state canceled, cancelAtPeriodEnd=0, currentPeriodEnd=NULL. The post-write staging read returned an exact state match.
+- PASS: related staging state is consistent: the customer.subscription.deleted ledger event is applied, the user's plan is basic, and its terminal outbox effect is completed. No referral reward/review rows exist for this user, so this verifies this cancellation without claiming a referral reversal case.
+- PASS: the temporary diagnostic route was removed. Staging API deploys #81 and #82 both completed successfully with deploy-api-no-migrate; the route is absent at the current branch tip. No production deployment, migration, payment or Stripe write occurred.
+- NOT READY remains: this closes the mapped user's cancellation inconsistency only. It does not complete the all-user Stripe TEST ↔ D1 reconciliation, duplicate-delivery acceptance, or referral reversal testing for an account with an actual reward. Global releaseSafe remains false pending those gates.
