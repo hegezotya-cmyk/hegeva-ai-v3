@@ -50,6 +50,16 @@ export function compareStripeTestAndStagingD1({d1Identities,stripeSubscriptions,
   const active=stripeSubscriptions.filter(s=>ACTIVE.has(s.status.toLowerCase()));
   const multiCustomerUsers=[...users.values()].filter(records=>
     new Set(records.filter(s=>ACTIVE.has(s.status.toLowerCase())).map(s=>s.customerId)).size>1).length;
+  const orphanStatusCounts={};
+  const knownStatuses=new Set(["active","trialing","past_due","canceled","incomplete","incomplete_expired","unpaid","paused"]);
+  for(const [user,records] of users){
+    if(storedUsers.has(user)) continue;
+    for(const s of records){
+      const status=String(s.status).toLowerCase();
+      const label=knownStatuses.has(status)?status:"other";
+      orphanStatusCounts[label]=(orphanStatusCounts[label]||0)+1;
+    }
+  }
   const consistent=unmatched===0 && mismatch===0 && extraActive===0 &&
     storedUsers.size===users.size;
   return {
@@ -62,6 +72,7 @@ export function compareStripeTestAndStagingD1({d1Identities,stripeSubscriptions,
       unrepresentedActiveSubscriptions:extraActive,
       multiCustomerActiveUsers:multiCustomerUsers,
       stripeUsersWithoutD1Identity:[...users.keys()].filter(u=>!storedUsers.has(u)).length,
+      unrepresentedStripeSubscriptionStatuses:orphanStatusCounts,
     },
     releaseSafe:consistent && multiCustomerUsers===0,
   };
