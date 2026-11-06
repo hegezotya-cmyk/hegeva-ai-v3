@@ -397,3 +397,14 @@ No production deployment/merge, remote D1 write/migration, Stripe write/payment/
 - The connected browser still showed the pre-existing owner account. The new alias session was not available among the connected tabs, so authenticated new-user UI route, refresh/re-login persistence, onboarding and remote tenant-isolation checks remain **BLOCKED** pending an accessible signed-in test-user browser tab.
 - No customer/workspace test data was created, no email content was read, and no remote D1 write/migration, Stripe mutation/payment, or deployment occurred.
 - Privacy: the exact test alias is intentionally omitted from the report.
+
+
+## New-user staging acceptance addendum — 2026-11-06 23:10 UTC
+
+- **Fresh account:** owner completed the approved staging registration, verification and login. Read-only D1 evidence recorded one new verified user and one session; the authenticated Account page showed the new Basic workspace. The user identifier is omitted.
+- **Onboarding and route loading:** the authenticated session loaded `/get-started`, Command Center/Core, Assistant UI, Business Hub, Customers, Documents, Expenses, Planner, Message Studio, Reports, Money Today, Financial Guard, Business Intelligence, Weekly Review, Account/Billing, Pricing, App Studio, and the invoice/quote maker. Core displayed ready/connected markers; no “Core unavailable” error was observed in these page loads.
+- **Cloud persistence:** a tagged synthetic customer, draft quote, planner task, document record and message draft each saved in staging and reappeared after page refresh with the UI reporting cloud sync. The draft quote’s 2 × £10.00 plus 20% VAT calculated to £24.00. No message was approved or sent; no document was marked sent/paid; no AI request or payment was initiated.
+- **Cleanup:** all five tagged staging-only records were deleted through the application UI; each corresponding list returned to its empty state. No remote D1 SQL write or migration was performed.
+- **Isolation / remaining limits:** re-login persistence was not tested because the password was not handled and the authenticated session was left intact. The two open HEGEVA tabs shared the same new-user identity, so cross-user/workspace isolation is **NOT PROVEN**; an independent second authenticated identity is still required. Route loading does not prove complete feature behavior. Invoice creation, expenses mutation, email delivery, Assistant answer quality/quota/provider fallback, GA4 delivery, and full follow-up-to-payment acceptance were not run.
+- **Current disposition:** new-user UI route and refresh persistence are **PARTIAL PASS** for the exercised records. Remote scheduled Cron/outbox invocation/retry/fencing remains **BLOCKED** on the last available evidence; current browser work did not change that. Full staging acceptance is **NOT READY** and production remains **NO-GO**; `releaseSafe=false`.
+
