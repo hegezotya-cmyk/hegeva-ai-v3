@@ -13,6 +13,12 @@ const temp=mkdtempSync(join(tmpdir(),"hegeva-stripe-webhook-"));
 const original=readFileSync(new URL("../src/index-ledger.js",import.meta.url),"utf8");
 const dep=(name)=>new URL("../src/"+name,import.meta.url).href;
 const source=original
+ .replace('import { getLoggedInUser } from "./auth.js";',
+   'const getLoggedInUser=async()=>null;')
+ .replace('import { readOwnerAccess } from "./admin-registrations.js";',
+   'const readOwnerAccess=async()=>({ok:false});')
+ .replace('import { reconcilePrivateStagingIdentity } from "./stripe-staging-private-reconciliation.js";',
+   'const reconcilePrivateStagingIdentity=async()=>({verified:false,status:"BLOCKED"});')
  .replace('import hegevaWorker, { emitMonitor } from "./index.js";',
    'const hegevaWorker={fetch:async()=>Response.json({delegated:true})}; const emitMonitor=()=>{};')
  .replace('import { reconcileReferralRewardForUser, reverseApprovedReferralRewards } from "./referral-reward-review.js";',
