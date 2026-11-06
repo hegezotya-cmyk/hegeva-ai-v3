@@ -183,3 +183,8 @@ Using a temporary 390×844 viewport in the existing staging session, Assistant, 
 ### Staging customer record refresh persistence
 
 In the existing authenticated staging session, Customers showed “Cloud synced” and the pre-existing record “STAGING TEST - Reengagement PR78” (explicitly labelled staging-only, not a real customer). After a page reload, “Cloud synced” and that same record were still visible. No record was created, edited, or deleted. This supports persistence across a refresh for that existing staging fixture only; it does not establish persistence across logout/re-login or tenant isolation. The browser was returned to the Assistant route.
+
+
+## PR #81 answer-grounding code review — 2026-11-06
+
+Read-only review of PR #81 head `ed43fe277250611039906989bf1e7d33dfa9514b` confirms Advanced preserves bounded user-labelled business context and recent user/assistant turns, and sends its behavior guidance as a developer message. Its deterministic regressions verify the request shape and lifecycle, but the provider boundary accepts any completed, non-empty model text; it does not verify factual support for generated claims. The PR's two authorized live acceptance calls already failed answer quality. No further model call was authorized or made in this continuation. **PR #81 remains Draft/BLOCKED; do not merge or enable its Advanced path on the strength of offline prompt-shape tests alone.** A future owner-authorized acceptance must use a fixed, privacy-safe evaluation set and explicit claim-grounding criteria; any output validator must avoid silently changing valid answers or charging for rejected responses.
