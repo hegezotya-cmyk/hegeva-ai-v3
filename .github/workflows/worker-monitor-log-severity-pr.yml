@@ -1,6 +1,9 @@
 name: Worker Monitor Log Severity PR Check
 
 on:
+  push:
+    branches:
+      - codex/monitor-log-severity-20261106
   pull_request:
     branches:
       - integration/security-growth-validation-20261104
