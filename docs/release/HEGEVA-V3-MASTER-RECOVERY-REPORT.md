@@ -408,3 +408,11 @@ No production deployment/merge, remote D1 write/migration, Stripe write/payment/
 - **Isolation / remaining limits:** re-login persistence was not tested because the password was not handled and the authenticated session was left intact. The two open HEGEVA tabs shared the same new-user identity, so cross-user/workspace isolation is **NOT PROVEN**; an independent second authenticated identity is still required. Route loading does not prove complete feature behavior. Invoice creation, expenses mutation, email delivery, Assistant answer quality/quota/provider fallback, GA4 delivery, and full follow-up-to-payment acceptance were not run.
 - **Current disposition:** new-user UI route and refresh persistence are **PARTIAL PASS** for the exercised records. Remote scheduled Cron/outbox invocation/retry/fencing remains **BLOCKED** on the last available evidence; current browser work did not change that. Full staging acceptance is **NOT READY** and production remains **NO-GO**; `releaseSafe=false`.
 
+
+
+## Second staging test identity — 2026-11-06 23:30 UTC
+
+- The owner completed verification and login for a second disposable staging identity. Its verification landing page showed “Email verified”; the authenticated Account page loaded a separate empty Basic workspace, and `/get-started` and Customers loaded successfully with Cloud sync and no previous QA records.
+- **Cross-user isolation remains BLOCKED.** Both available staging tabs resolve to the same second identity after refresh. No pair of independent authenticated sessions was available to attempt a cross-user read. The first test account’s QA artifacts had already been removed, so an empty workspace alone is not isolation proof.
+- Do not report the two-user staging isolation gate as PASS. Production remains **NO-GO** and `releaseSafe=false` until a separate authenticated session can be tested and the remaining release gates pass.
+
