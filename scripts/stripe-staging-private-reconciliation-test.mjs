@@ -37,6 +37,33 @@ const authCheck=await run({readD1:async()=>[],readD1Users:async()=>[{id:"user_or
 assert.equal(authCheck.counts.unrepresentedStripeUsersWithD1AuthRecord,1);
 assert.equal(authCheck.counts.unrepresentedStripeUsersWithoutD1AuthRecord,0);
 assert.ok(!JSON.stringify(authCheck).includes("user_orphan"));
+
+assert.equal(authCheck.releaseSafe,false);
+const deletedCanceled=await run({
+ readD1:async()=>[{userId:"user_current",stripeCustomerId:"cus_current",
+   stripeSubscriptionId:"sub_current",subscriptionStatus:"active"}],
+ readD1Users:async()=>[{id:"user_current"}],
+ readStripePage:async()=>({data:[
+   {id:"sub_current",customer:"cus_current",status:"active",livemode:false,metadata:{userId:"user_current"}},
+   {id:"sub_deleted",customer:"cus_deleted",status:"canceled",livemode:false,metadata:{userId:"user_deleted"}}
+ ],has_more:false})
+});
+assert.equal(deletedCanceled.status,"PASS");
+assert.equal(deletedCanceled.releaseSafe,true);
+assert.equal(deletedCanceled.counts.nonblockingCanceledOrphanSubscriptions,1);
+assert.ok(!JSON.stringify(deletedCanceled).includes("user_deleted"));
+
+const stillEntitled=await run({
+ readD1:async()=>[{userId:"user_current",stripeCustomerId:"cus_current",
+   stripeSubscriptionId:"sub_current",subscriptionStatus:"active"}],
+ readD1Users:async()=>[{id:"user_current"}],
+ readStripePage:async()=>({data:[
+   {id:"sub_current",customer:"cus_current",status:"active",livemode:false,metadata:{userId:"user_current"}},
+   {id:"sub_deleted",customer:"cus_deleted",status:"past_due",livemode:false,metadata:{userId:"user_deleted"}}
+ ],has_more:false})
+});
+assert.equal(stillEntitled.releaseSafe,false);
+
 assert.ok(!JSON.stringify(paged).includes("cus_"));
 assert.ok(!JSON.stringify(paged).includes("user_"));
 console.log("Private remote-reader orchestration PASS (offline fixtures only; no network or secrets).");
