@@ -1,6 +1,4 @@
 import hegevaWorker, { emitMonitor } from "./index.js";
-import { getLoggedInUser } from "./auth.js";
-import { readOwnerAccess } from "./admin-registrations.js";
 import { collectStripeUserSubscriptions } from "./stripe-subscription-inventory.js";
 import { reviewTerminalStripeEvent } from "./stripe-terminal-event-review.js";
 import { effectForDecision, prepareTerminalEffect } from "./stripe-terminal-effects-outbox.js";
@@ -10,133 +8,6 @@ import { prepareTerminalBillingIdentityStatus } from "./stripe-terminal-billing-
 export { UserRateLimiter } from "./user-rate-limiter-do.js";
 
 const STRIPE_WEBHOOK_BODY_LIMIT = 512 * 1024;
-const TEMP_STRIPE_CHECK_PATH = "/api/admin/staging-stripe-readonly";
-const TEMP_STRIPE_CHECK_USER_ID = "Cy3nk7xUu4lZ2FeTvHoB2XbwJJdXFTTe";
-const TEMP_STRIPE_CHECK_ACCOUNT_ID = "acct_1U4YkEHECF9iDE3l";
-
-async function readStripeJson(path, secretKey) {
-  const response = await fetch(new URL(path, "https://api.stripe.com"), {
-    method: "GET",
-    headers: { Authorization: `Bearer ${secretKey}`, Accept: "application/json" },
-    cache: "no-store",
-  });
-  const payload = await response.json().catch(() => null);
-  if (!response.ok || !payload || typeof payload !== "object") throw new Error("stripe-read-failed");
-  return payload;
-}
-
-async function handleTemporaryStripeReadOnly(request, env, ctx) {
-  const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
-  if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405, headers });
-
-  try {
-    const user = await getLoggedInUser(request, env, ctx);
-    const ownerResponse = await readOwnerAccess(request, env, user);
-    if (!ownerResponse.ok || user?.id !== TEMP_STRIPE_CHECK_USER_ID) {
-      return Response.json({ error: "Owner access required." }, { status: 403, headers });
-    }
-
-    const secretKey = typeof env.STRIPE_SECRET_KEY === "string" ? env.STRIPE_SECRET_KEY.trim() : "";
-    if (String(env.PAYMENT_MODE || "").trim().toLowerCase() !== "test" || !secretKey.startsWith("sk_test_")) {
-      return Response.json({ ok: false, result: "test-mode-guard-failed" }, { status: 409, headers });
-    }
-
-    const account = await readStripeJson("/v1/account", secretKey);
-    if (account.id !== TEMP_STRIPE_CHECK_ACCOUNT_ID) {
-      return Response.json({
-        ok: false, result: "stripe-account-mismatch",
-        accountId: typeof account.id === "string" ? account.id : null,
-      }, { status: 409, headers });
-    }
-
-    const dbRow = await env.DB.prepare(
-      "SELECT userId,stripeCustomerId,stripeSubscriptionId,subscriptionStatus,cancelAtPeriodEnd,currentPeriodEnd FROM stripe_customers WHERE userId=?1 LIMIT 1"
-    ).bind(TEMP_STRIPE_CHECK_USER_ID).first();
-    if (!dbRow) return Response.json({ ok: false, result: "d1-row-not-found", accountId: account.id }, { status: 404, headers });
-
-    const inventory = await collectStripeUserSubscriptions({
-      userId: TEMP_STRIPE_CHECK_USER_ID,
-      livemode: false,
-      secretKey,
-    });
-    if (!inventory.complete) {
-      return Response.json({
-        ok: false, result: "stripe-inventory-incomplete",
-        reason: inventory.reason || "unknown",
-        accountId: account.id,
-      }, { status: 409, headers });
-    }
-    if (inventory.subscriptions.length !== 1) {
-      return Response.json({
-        ok: false, result: "subscription-match-not-unique",
-        matchCount: inventory.subscriptions.length,
-        accountId: account.id,
-      }, { status: 409, headers });
-    }
-
-    const matched = inventory.subscriptions[0];
-    if (matched.livemode !== false || matched.userId !== TEMP_STRIPE_CHECK_USER_ID) {
-      return Response.json({ ok: false, result: "subscription-identity-mismatch", accountId: account.id }, { status: 409, headers });
-    }
-
-    const [customer, subscription] = await Promise.all([
-      readStripeJson(`/v1/customers/${encodeURIComponent(matched.customerId)}`, secretKey),
-      readStripeJson(`/v1/subscriptions/${encodeURIComponent(matched.id)}`, secretKey),
-    ]);
-    if (
-      customer.id !== matched.customerId ||
-      customer.deleted === true ||
-      (typeof customer.metadata?.userId === "string" && customer.metadata.userId !== TEMP_STRIPE_CHECK_USER_ID) ||
-      subscription.id !== matched.id ||
-      subscription.customer !== matched.customerId ||
-      subscription.livemode !== false ||
-      subscription.metadata?.userId !== TEMP_STRIPE_CHECK_USER_ID ||
-      typeof subscription.status !== "string"
-    ) {
-      return Response.json({ ok: false, result: "stripe-object-identity-mismatch", accountId: account.id }, { status: 409, headers });
-    }
-
-    const periodEnd = Number.isFinite(subscription.current_period_end)
-      ? new Date(subscription.current_period_end * 1000).toISOString()
-      : null;
-    const stripeState = {
-      customerId: customer.id,
-      subscriptionId: subscription.id,
-      status: subscription.status,
-      cancelAtPeriodEnd: subscription.cancel_at_period_end === true ? 1 : 0,
-      currentPeriodEnd: periodEnd,
-      livemode: subscription.livemode,
-      metadataUserMatches: true,
-    };
-    const d1State = {
-      customerId: dbRow.stripeCustomerId || null,
-      subscriptionId: dbRow.stripeSubscriptionId || null,
-      status: dbRow.subscriptionStatus || null,
-      cancelAtPeriodEnd: Number(dbRow.cancelAtPeriodEnd || 0),
-      currentPeriodEnd: dbRow.currentPeriodEnd || null,
-    };
-    const exactStateMatch =
-      d1State.customerId === stripeState.customerId &&
-      d1State.subscriptionId === stripeState.subscriptionId &&
-      String(d1State.status || "").toLowerCase() === String(stripeState.status).toLowerCase() &&
-      d1State.cancelAtPeriodEnd === stripeState.cancelAtPeriodEnd &&
-      d1State.currentPeriodEnd === stripeState.currentPeriodEnd;
-
-    return Response.json({
-      ok: true,
-      result: exactStateMatch ? "exact-match" : "single-identity-match-needs-review",
-      accountId: account.id,
-      livemode: stripeState.livemode,
-      d1: d1State,
-      stripe: stripeState,
-      exactStateMatch,
-      safeToCorrectOneD1Row: true,
-    }, { headers });
-  } catch {
-    return Response.json({ ok: false, result: "read-only-reconciliation-unavailable" }, { status: 503, headers });
-  }
-}
-
 
 function requestTooLargeResponse() {
   return Response.json(
@@ -1007,10 +878,6 @@ export default {
   },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-
-    if (url.pathname === TEMP_STRIPE_CHECK_PATH) {
-      return handleTemporaryStripeReadOnly(request, env, ctx);
-    }
 
     if (
       url.pathname === "/api/billing/webhook" &&
