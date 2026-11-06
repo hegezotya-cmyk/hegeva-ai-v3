@@ -518,3 +518,13 @@ Current decision: `releaseSafe=false`, **NOT READY**. The next owner action is a
 - BLOCKED: the remote synthetic scheduled-test Worker has only offline placeholder resource identifiers and no dedicated remote synthetic D1/DO/auth secret. Therefore no remote staging synthetic webhook/referral run is claimed. The CI fixtures are not a substitute for that isolated remote acceptance test.
 
 - ACCESS LIMIT: the connected Stripe account list exposes the main account as live and a different sandbox account as TEST. The separate sandbox was not queried or used. Further classification must continue through the already verified main-account TEST path; the linked Stripe connector cannot safely supply that inventory.
+
+
+## 2026-11-06 — Historical orphan classification and cleanup
+
+- PASS: a second owner-only, temporary main-account TEST reconciliation returned only aggregate values. The single Stripe user without a D1 identity had one canceled subscription; account-wide active subscription count was zero. The previously matched D1 row had no status disagreement. Raw Stripe/D1 identifiers were not returned.
+- REVIEW REQUIRED remains: the historical canceled Stripe identity is absent from D1. No D1 row was inserted or modified for it because the user identity cannot be proven from the available exact mapping. The conservative all-user identity gate remains closed.
+- PASS: the added offline comparison returns allowlisted status counts only for Stripe users missing from D1; a synthetic test verifies that canceled orphan status is counted without exposing identifiers. PR check #217 passed.
+- PASS: the temporary diagnostic was removed from source, staging API-only deploy #87 succeeded without migration, and the staging URL returned the normal signed-in app after cleanup.
+- PASS: an intermediate test-harness failure caused by the temporary admin-only route imports was fixed by stubbing those unrelated imports in the isolated webhook fixture. The final PR check passed.
+- No production deployment, D1 migration, additional D1 write, payment, or Stripe write occurred. Remote synthetic scheduled-worker acceptance remains blocked until an isolated remote D1/DO and dedicated secret are provisioned.
