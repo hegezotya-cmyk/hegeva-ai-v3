@@ -485,3 +485,10 @@ Current decision: `releaseSafe=false`, **NOT READY**. The next owner action is a
 - PASS: added inactive `src/staging-scheduled-test-worker.js` and `scripts/wrangler.staging-scheduled-test-offline.jsonc`. The dry-run shows only `GUARD`, `SYNTHETIC_TEST_DB`, `PAYMENT_MODE=test` and the canonical flag set to false. It is not referenced by production entrypoints.
 - PASS: local HTTP → controller → synthetic SQLite/D1-shaped fixture integration covers completion, stale lease rejection, duplicate operation rejection and cleanup; endpoint auth/default-deny, DO runtime, controller, guard, syntax and production exclusion tests pass.
 - BLOCKED: the isolated build configuration is intentionally not deployed or activated. Remote staging D1 isolation, remote cron acceptance, historical identity exact proof and duplicate/cancellation/entitlement E2E remain unproven.
+
+## Final three security corrections — e5c8c49 follow-up
+
+- PASS: the Worker now routes each allowlisted scenario to a stable DO name (`staging-scheduled-test:<scenario>`); the per-request fixture namespace remains unique. Local parallel HTTP tests produced one winner and five denials, while the local Wrangler DO runtime separately proves atomic single-flight.
+- PASS: request-time schema mutation was removed from the Worker. The synthetic schema is a separate offline-only SQL artifact (`scripts/staging-synthetic-fixture-schema.sql`); unauthorized/default-deny requests do not reach any D1 operation.
+- PASS: stable routing, auth, default-deny, stale fencing, duplicate operation, cleanup, production exclusion and both staging/isolated dry-runs passed locally.
+- BLOCKED: HTTP integration is not cron evidence. The isolated test Worker has no `scheduled()` acceptance claim for `hegeva-ai-v3-staging`; actual remote outbox retry/recovery requires a separately approved staging cron run with independent invocation evidence.

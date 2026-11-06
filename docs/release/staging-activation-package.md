@@ -10,6 +10,7 @@ Implementation status: the controller, persistent DO guard, RPC method, local SQ
 - Fixtures: disposable synthetic identifiers with a dedicated fixture namespace; never an existing customer, entitlement, referral, subscription, webhook, or ledger identity.
 - The raw reconciliation remains visible. Historical TEST exceptions are evaluated separately and only by exact internal tuple plus explicit owner attestation.
 - Production entrypoints must not import the test controller/guard/DO and production configuration must not contain the test binding.
+- The synthetic schema is pre-created by the offline-only `scripts/staging-synthetic-fixture-schema.sql` artifact; request handling never runs `CREATE TABLE`.
 - Any failed cleanup, lease verification, fencing check, or observability check is a failed acceptance, not a warning.
 
 ## Proposed staging-only configuration (not activated)
@@ -18,7 +19,7 @@ Implementation status: the controller, persistent DO guard, RPC method, local SQ
 |---|---|---|
 | Worker | `hegeva-ai-v3-staging` | Dashboard name and deployment target read-only check |
 | D1 binding | existing `hegeva-ai-staging-db` | binding name/account/database read-only check |
-| DO binding | `GUARD` → `StagingTestGuardDurableObject` | explicit staging-only config diff and owner approval |
+| DO binding | stable `GUARD.idFromName("staging-scheduled-test:<scenario>")` → `StagingTestGuardDurableObject` | explicit staging-only config diff and owner approval |
 | Endpoint | one staging-only route, default denied | route is absent from production build; unauthorized request test |
 | Authorization | dedicated staging test secret, supplied by owner at deploy time | presence/rotation metadata only; value never read or logged |
 | Enable flag | `STAGING_SCHEDULED_TEST_CONTROL_ENABLED=false` until activation window | non-secret variable snapshot |
@@ -43,7 +44,7 @@ The endpoint must accept only a fixed scenario (`retry-recovery` or `lease-fenci
 For each run, record only masked fixture nonce, state, counts, and timestamps.
 
 1. Read-only preflight: verify Worker, DO class, D1 binding, TEST mode, cron, Dashboard-only variables, secret presence, and keep-vars/keep-secrets preservation behavior.
-2. Create one disposable synthetic fixture in the dedicated staging-test namespace. Snapshot only aggregate counts; do not use existing rows.
+2. Apply the synthetic schema only as a separately reviewed staging-only migration/preflight step; never from a request. Create one disposable synthetic fixture in the dedicated staging-test namespace. Snapshot only aggregate counts; do not use existing rows.
 3. Retry/recovery: force one controlled synthetic failure; prove `pending → processing → retry-scheduled`, then remove only the synthetic failure and prove `processing → completed`.
 4. Fencing: run competing claims, stale lease release, stale D1 write, and duplicate operation. Require one winner, stale-write count zero, one effect, and no late side effect.
 5. Idempotency: repeat the same scenario and require no additional ledger/outbox/effect rows.
@@ -82,3 +83,7 @@ For each run, record only masked fixture nonce, state, counts, and timestamps.
 5. Approve and execute the remote duplicate/cancellation/entitlement E2E acceptance; no existing subscription may be modified.
 
 Current release decision: `releaseSafe=false`, **NOT READY**.
+
+## Evidence separation
+
+The offline HTTP → controller → DO → synthetic D1 path proves endpoint protocol, authorization, stable scenario routing, fencing and cleanup only. It is not evidence that the production `hegeva-ai-v3-staging` Worker's `scheduled()` handler or real outbox processor ran. Remote cron acceptance requires a separate owner-approved, read-only-observed staging run with an isolated fixture and independent invocation evidence.
