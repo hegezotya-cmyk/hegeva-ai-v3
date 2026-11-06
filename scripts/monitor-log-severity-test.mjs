@@ -34,6 +34,22 @@ try {
   ]);
 
   calls.length = 0;
+  emitMonitor("auth", "rate_limited", { route: "/api/auth/sign-in" });
+  assert.deepEqual(calls, [
+    {
+      level: "warn",
+      args: [
+        "HEGEVA_MONITOR",
+        {
+          scope: "auth",
+          outcome: "rate_limited",
+          route: "/api/auth/sign-in",
+        },
+      ],
+    },
+  ]);
+
+  calls.length = 0;
   emitMonitor("stripe_webhook", "signature_invalid");
   assert.equal(calls.length, 1);
   assert.equal(calls[0].level, "error");
