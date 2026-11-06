@@ -25,6 +25,7 @@ const source=original
    'const reconcileReferralRewardForUser=async()=>{}; const reverseApprovedReferralRewards=async()=>{};')
  .replace('import { processNextTerminalEffect } from "./stripe-terminal-effects-processor.js";',
    'const processNextTerminalEffect=async()=>({status:"disabled-in-isolated-webhook-fixture"});')
+ .replace('from "./stripe-terminal-effects-state-checker.js"',`from "${dep("stripe-terminal-effects-state-checker.js")}"`)
  .replace('export { UserRateLimiter } from "./user-rate-limiter-do.js";','')
  .replace('from "./stripe-subscription-inventory.js"',`from "${dep("stripe-subscription-inventory.js")}"`)
  .replace('from "./stripe-terminal-event-review.js"',`from "${dep("stripe-terminal-event-review.js")}"`)
