@@ -130,6 +130,15 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## PR #95 runtime guard implementation — 2026-11-06
+
+- PASS: refreshed checkout to remote HEAD `7fe54cc3…`; no uncommitted work existed before refresh.
+- PASS: added an unimported persistent guard contract for fixed staging scenarios. It enforces durable-store single-flight, replay window, rate limit, lease expiry and stale-release fencing; it accepts no arbitrary IDs, SQL or Stripe operations.
+- PASS: guard and existing controller tests cover default-deny, staging-only mode, authorization, malformed requests, replay, rate limiting, lease fencing, cleanup failure and deadline failure.
+- PASS: the guard is not imported by `src/index.js` or `src/index-ledger.js`; production build behavior is unchanged and no staging endpoint/config/secret was activated.
+- BLOCKED: a Durable Object-backed integration, synthetic fixture runtime, and remote cron proof require separate staging endpoint/authorization enablement and were not performed.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Staging runtime testability plan — 2026-11-05
 
 - PASS: Wrangler 4.157.0 provides local scheduled invocation support, but no supported remote command was found for the deployed Cloudflare Worker. Local results will remain separate from cron-runtime evidence.

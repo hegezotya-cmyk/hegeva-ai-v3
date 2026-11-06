@@ -47,6 +47,10 @@ Removal: delete the route, control binding, tests, and config flag in one review
 
 Owner approval required before implementation is enabled: approve one dedicated staging-only authorization mechanism and one staging-only deployment of this control path. No production approval is implied.
 
+## Offline guard implementation checkpoint — 2026-11-06
+
+Added an unimported persistent guard contract with scenario allowlisting, durable-store single-flight, replay window, rate limit, lease expiry and stale-release fencing. It has no D1, Stripe, HTTP route or secret access. The store must be supplied by an approved Durable Object only if separately enabled; in-memory tests are not deployment proof.
+
 ## Implementation checkpoint — offline controller contract (2026-11-05)
 
 The owner authorized **code implementation plus local/CI tests only**, explicitly **not** activation, creation of a secret, access changes, staging deployment, or production deployment.
