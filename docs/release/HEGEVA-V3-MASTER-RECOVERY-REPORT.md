@@ -158,3 +158,8 @@ Run only the remaining staging acceptance checks using the existing approved sta
 | Production release | NO-GO | Critical remote acceptance gates remain unproven |
 
 No further action in this verification changed Cloudflare settings, Worker versions, secrets, bindings, Stripe objects, or D1 state.
+
+
+## Existing-session refresh persistence check — 2026-11-06
+
+After a page refresh in the authenticated staging Assistant session, the page returned to the authenticated workspace with the same owner session, Core-ready message, customer count (3), task count (0), document count (0), follow-up count (0), Basic 0/50 usage and Top-Up 200. This verifies a read-only refresh retained the visible session/workspace context for this one existing account. It does **not** verify logout/re-login, a newly registered user, data writes and persistence, or cross-user/workspace isolation.
