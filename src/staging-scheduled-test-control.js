@@ -1,5 +1,5 @@
 // Offline staging test-control contract. NEVER imported by Worker entrypoints.
-// The durable lock/replay/rate-limit adapter and fixtures are NOT implemented.
+// Runtime integration remains disabled; adapters and fixtures are tested separately.
 const scenarios = new Set(["retry-recovery","lease-fencing"]);
 const states = new Set(["completed","retry-scheduled","blocked","lease-lost"]);
 const result=(status,code,cleanupVerified=false)=>({status,code,cleanupVerified});

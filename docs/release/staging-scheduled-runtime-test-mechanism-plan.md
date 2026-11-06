@@ -61,6 +61,30 @@ The owner authorized **code implementation plus local/CI tests only**, explicitl
 
 Added isolated `src/staging-scheduled-test-control.js` and `scripts/staging-scheduled-test-control-test.mjs`. The module is **not imported by Worker entrypoints or wired to any HTTP route** and provides no D1 or Stripe read/write operations. An explicit staging-build boolean, enable flag, TEST payment mode, a dedicated authorization token contract, strict two-field scenario schema, generated nonce, bounded deadline, adapter-denied lock/rate-limit, and mandatory cleanup verification are enforced. Seven targeted offline cases were exercised in the drafting environment; the PR's own CI execution remains to be independently confirmed.
 
-**Important remaining implementation (not claimed PASS):** persistent cross-isolate Durable Object single-flight/replay/rate limits, real schema-compatible synthetic fixtures, runtime auth/secret binding, timeout cancellation semantics, idempotent cleanup with aggregate-zero verification, end-to-end retry/recovery and fencing concurrency tests, explicit production bundle exclusion checks and integration test runner wiring. A simple locally injected adapter is **not** proof of any of these. The controller is a safe-to-review scaffold, not a deployable or operationally approved endpoint. Its authorization contract should be strengthened/reviewed before any integration, and raw credentials must never appear in logs or tests.
+**Important remaining implementation (not claimed PASS):** staging endpoint integration, runtime auth/secret binding, staging synthetic fixtures, timeout cancellation wiring, remote cron acceptance and deployment-specific integration runner. The persistent guard and local Durable Object harness are implemented and tested, but are not imported by any deployed Worker entrypoint. Raw credentials must never appear in logs or tests.
+
+## Staging activation preflight checklist — 2026-11-06
+
+### Required owner actions before activation
+
+1. Approve one dedicated staging-only authorization secret and provision it without sharing its value in chat or repository files.
+2. Approve adding a staging-only `GUARD` Durable Object binding and an explicit `OUTBOX_TEST_CONTROL_ENABLED=false` variable; production configuration must remain unchanged.
+3. Approve one staging-only deploy of the endpoint integration, with `keep_vars=true`, `keepSecrets=true`, Dashboard-only variables preserved, and observability/logs/traces left OFF.
+4. Provide the deployed Worker version, exact cron expression, binding snapshot, and non-secret config snapshot after deployment.
+5. Authorize isolated synthetic D1 fixture writes and rollback only; no existing user, entitlement, referral, Stripe, or historical rows may be used.
+
+### Acceptance sequence
+
+- Preflight: target/name/account, `PAYMENT_MODE=test`, control flag default/enablement, `GUARD` binding, D1 binding, cron, secrets-preservation and observability.
+- Auth: missing/wrong authorization denied; production/live mode denied; malformed scenario/ID/SQL rejected; replay and rate-limit denied.
+- Retry: synthetic `pending -> processing -> retry-scheduled -> processing -> completed`, with reason code and aggregate state only.
+- Fencing: parallel claim one winner, expired lease recovery, stale attempt completion rejected, duplicate executor call count one.
+- Cleanup: success, exception, timeout, lease loss and concurrent-run paths all execute idempotent cleanup and verify synthetic outbox/ledger/plan counts zero.
+- Safety: zero real-user/entitlement/referral/Stripe effects; no raw IDs or secrets in response/logs.
+- Evidence: distinguish manually controlled endpoint result from real `*/5 * * * *` cron invocation; do not substitute local runtime results for staging cron proof.
+
+### Rollback
+
+Disable the control flag, redeploy the previously approved staging Worker version, remove the staging-only binding/route in a reviewed change, and verify the synthetic aggregate counts are zero. No migration rollback or data repair is authorized by this checklist.
 
 **Status:** `releaseSafe=false`, NOT READY. No staging endpoint activation, secret/permission change, staging/production deploy, or Stripe/D1 write authorized or performed.

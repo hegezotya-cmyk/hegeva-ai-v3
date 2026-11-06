@@ -130,6 +130,26 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Staging activation readiness — 2026-11-06
+
+- PASS: staging-only activation plan/checklist now specifies the unregistered `GUARD` Durable Object binding, default-deny control flag, dedicated authorization, fixed scenarios, replay/rate limits, synthetic-only fixtures, cleanup, rollback and evidence separation.
+- PASS: offline guard, controller, fixture adapter and outbox processor regressions completed successfully; production entrypoint exclusion check passed.
+- BLOCKED: no staging endpoint or binding integration exists yet, and no secret or permission has been created. This is intentional.
+- BLOCKED: this run's local DO runtime invocation was not started, so no new runtime PASS is claimed here; prior local DO runtime evidence remains separate.
+- BLOCKED: staging dry-run could not complete in the clean checkout because `better-auth` dependencies were not installed. No deploy occurred.
+- BLOCKED: staging retry/recovery, fencing/concurrency, historical identity exact proof and duplicate/cancellation/entitlement E2E remain open release gates.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
+## Staging activation preflight — 2026-11-06
+
+- PASS: offline guard, Durable Object transaction harness, synthetic retry/recovery fixture, fencing/idempotency, cleanup and production-entrypoint exclusion tests are available and passing.
+- PASS: current staging configuration retains `PAYMENT_MODE=test`, the existing D1 binding, cron and observability-off settings; no activation config was changed.
+- BLOCKED: the `GUARD` Durable Object binding and test endpoint are not integrated into `src/index.js`/`src/index-ledger.js`, and `OUTBOX_TEST_CONTROL_ENABLED` is not enabled. This is intentional until owner approval.
+- BLOCKED: no dedicated staging authorization secret exists and no permissions were changed.
+- BLOCKED: no staging endpoint acceptance, remote cron acceptance, or real staging fixture/rollback evidence was performed.
+- Activation requires the owner actions and checklist in `docs/release/staging-scheduled-runtime-test-mechanism-plan.md`; local tests must not be reported as staging runtime proof.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Offline Durable Object integration — 2026-11-06
 
 - PASS: the persistent guard now requires one atomic `store.transaction(callback)` contract; separate get/put stores are rejected.
