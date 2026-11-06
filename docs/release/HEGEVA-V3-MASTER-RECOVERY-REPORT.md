@@ -334,3 +334,25 @@ This section supersedes earlier statements about pending local isolation tests a
 - releaseSafe=false; production release: **NO-GO**.
 
 No production deployment/merge, remote D1 write/migration, Stripe write/payment/refund, secret/binding/route/permission change, customer communication or external publication occurred. The only staging deployment in this acceptance remains the previously approved API-only no-migration deployment.
+
+
+## Staging acceptance follow-up — 2026-11-06 21:45 UTC
+
+- **Main Stripe account TEST context:** opened Stripe Dashboard on the main **Hegevaai** account in Test mode (acct_1U4YkEHECF9iDE3l); the separate “Hegevaai sandbox” account was not used. Read-only Subscriptions → All shows exactly two TEST subscriptions, both Cancelled; Active shows none.
+- **Exact current D1 match:** the owner mapping hegezotya@gmail.com has customer cus_VZdVptFc1mmCN2, subscription sub_1UYUEwHECF9iDE3lwWiPVTxi, status canceled, cancelAtPeriodEnd=0, and null currentPeriodEnd. Stripe Dashboard shows the same customer/subscription, Cancelled status, customer email, and metadata userId=Cy3nk7xUu4lZ2FeTvHoB2XbwJJdXFTTe; this user ID matches staging D1. **Exact tuple match: PASS** for this mapping.
+- **Historical TEST exception:** sub_1UDbavHECF9iDE3lYLsQ21gr is present in the main account TEST dashboard and is Cancelled; its customer is cus_VE3i3iXKIg4xHA, metadata user ID aAJ0kV0DfgjVd1cDdBar665PjNXqub7M. No matching stripe_customers row exists in the current staging D1 read. Keep it unmatched; do not apply the historical exception or write any row.
+- **Current D1 snapshot:** 4 auth users and 1 Stripe mapping; outbox has 1 completed job and no pending/processing/blocked jobs. Read-only SQL only.
+- **Cron:** after the prior 21:01 API deployment and the Cloudflare 30-minute display-delay window, Cron Events still shows no event in the past week. Settings readback still shows */5 * * * *, with the next run at 21:50 UTC; Logs are ON, invocation logs OFF, persistent Logs ON, Traces OFF, Issues ON, and the staging DB binding is intact. No manual trigger. **Scheduled runtime remains BLOCKED** until a post-deploy event is visible.
+- **Signup/email/isolation:** no remote account or data was created and no email was sent. The browser-auth safety path requires the user to complete new account creation manually; the authenticated session redirects away from registration. Fresh verified signup, login, onboarding and remote tenant-isolation evidence therefore remain **BLOCKED**.
+- **Staging UI deployment:** PR #95’s changed-file list contains no UI application source changes (only a UI log-protection test); the deployed UI was already loaded during route smoke. A staging UI deploy is **not needed** for this candidate, and none was performed.
+- **No production deploy/merge, D1 write/migration, Stripe mutation/payment/refund, secret/binding/permission change, or external publication occurred.** Production remains **NO-GO** and releaseSafe=false.
+
+| Gate | Status | Evidence |
+|---|---|---|
+| Main-account Stripe TEST identity match | PASS, one mapped record | Exact D1 ↔ Stripe TEST customer/subscription/user tuple above |
+| Historical TEST subscription | BLOCKED / UNMATCHED | Stripe TEST row exists but no D1 billing mapping; preserve raw, no exception write |
+| Scheduled Cron/outbox runtime | BLOCKED | No post-deploy event visible despite elapsed display delay |
+| Fresh signup, email delivery and first login | BLOCKED | Account creation must be completed manually; no remote write/email was made |
+| Remote tenant isolation | BLOCKED | Local two-tenant CI passed; live staging two-user journey not completed |
+| Candidate UI deployment | NOT REQUIRED | No UI application source files changed in PR #95 |
+| Production release | NO-GO | Cron, fresh signup/isolation and other release gates remain open |
