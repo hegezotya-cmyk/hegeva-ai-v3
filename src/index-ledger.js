@@ -1,7 +1,4 @@
 import hegevaWorker, { emitMonitor } from "./index.js";
-import { getLoggedInUser } from "./auth.js";
-import { readOwnerAccess } from "./admin-registrations.js";
-import { reconcilePrivateStagingIdentity } from "./stripe-staging-private-reconciliation.js";
 import { collectStripeUserSubscriptions } from "./stripe-subscription-inventory.js";
 import { reviewTerminalStripeEvent } from "./stripe-terminal-event-review.js";
 import { effectForDecision, prepareTerminalEffect } from "./stripe-terminal-effects-outbox.js";
@@ -11,96 +8,6 @@ import { prepareTerminalBillingIdentityStatus } from "./stripe-terminal-billing-
 export { UserRateLimiter } from "./user-rate-limiter-do.js";
 
 const STRIPE_WEBHOOK_BODY_LIMIT = 512 * 1024;
-const TEMP_STRIPE_FULL_RECONCILE_PATH = "/api/admin/staging-stripe-full-reconcile";
-const TEMP_STRIPE_FULL_RECONCILE_ACCOUNT = "acct_1U4YkEHECF9iDE3l";
-
-async function handleTemporaryFullStripeReconcile(request, env, ctx) {
-  const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
-  if (request.method !== "GET") return Response.json({ error: "Method not allowed." }, { status: 405, headers });
-  try {
-    const user = await getLoggedInUser(request, env, ctx);
-    const ownerResponse = await readOwnerAccess(request, env, user);
-    if (!ownerResponse.ok) return Response.json({ error: "Owner access required." }, { status: 403, headers });
-
-    const secretKey = typeof env.STRIPE_SECRET_KEY === "string" ? env.STRIPE_SECRET_KEY.trim() : "";
-    if (String(env.PAYMENT_MODE || "").trim().toLowerCase() !== "test" || !secretKey.startsWith("sk_test_")) {
-      return Response.json({ ok: false, result: "test-mode-guard-failed" }, { status: 409, headers });
-    }
-
-    const accountResponse = await fetch(new URL("/v1/account", "https://api.stripe.com"), {
-      method: "GET",
-      headers: { Authorization: `Bearer ${secretKey}`, Accept: "application/json" },
-      cache: "no-store",
-      signal: AbortSignal.timeout(30000),
-    });
-    const account = accountResponse.ok ? await accountResponse.json().catch(() => null) : null;
-    if (account?.id !== TEMP_STRIPE_FULL_RECONCILE_ACCOUNT) {
-      return Response.json({ ok: false, result: "stripe-account-unverified" }, { status: 409, headers });
-    }
-
-    const expectedPrices = [
-      env.STRIPE_PREMIUM_PRICE_ID,
-      env.STRIPE_PRO_PRICE_ID,
-      env.STRIPE_TOPUP_SMALL_PRICE_ID,
-      env.STRIPE_TOPUP_MEDIUM_PRICE_ID,
-      env.STRIPE_TOPUP_LARGE_PRICE_ID,
-    ];
-    if (expectedPrices.length !== 5 || expectedPrices.some(id => typeof id !== "string" || !id.startsWith("price_"))) {
-      return Response.json({ ok: false, result: "stripe-test-prices-unconfigured" }, { status: 409, headers });
-    }
-    const priceChecks = await Promise.all(expectedPrices.map(async id => {
-      const response = await fetch(new URL(`/v1/prices/${encodeURIComponent(id)}`, "https://api.stripe.com"), {
-        method: "GET",
-        headers: { Authorization: `Bearer ${secretKey}`, Accept: "application/json" },
-        cache: "no-store",
-        signal: AbortSignal.timeout(30000),
-      });
-      const price = response.ok ? await response.json().catch(() => null) : null;
-      return price?.id === id && price?.livemode === false;
-    }));
-    if (priceChecks.length !== 5 || !priceChecks.every(Boolean)) {
-      return Response.json({ ok: false, result: "stripe-test-prices-unverified" }, { status: 409, headers });
-    }
-
-    const reconciliation = await reconcilePrivateStagingIdentity({
-      maxPages: 20,
-      readD1: async () => {
-        const result = await env.DB.prepare(
-          "SELECT userId,stripeCustomerId,stripeSubscriptionId,subscriptionStatus FROM stripe_customers"
-        ).all();
-        if (!Array.isArray(result?.results)) throw new Error("d1-read-failed");
-        return result.results;
-      },
-      readStripePage: async cursor => {
-        const url = new URL("/v1/subscriptions", "https://api.stripe.com");
-        url.searchParams.set("status", "all");
-        url.searchParams.set("limit", "100");
-        if (cursor) url.searchParams.set("starting_after", cursor);
-        const response = await fetch(url, {
-          method: "GET",
-          headers: { Authorization: `Bearer ${secretKey}`, Accept: "application/json" },
-          cache: "no-store",
-          signal: AbortSignal.timeout(30000),
-        });
-        if (!response.ok) throw new Error("stripe-read-failed");
-        return response.json();
-      },
-    });
-
-    return Response.json({
-      ok: reconciliation.verified === true,
-      result: reconciliation.status,
-      reason: reconciliation.reason || null,
-      accountId: account.id,
-      livemode: false,
-      counts: reconciliation.counts || null,
-      releaseSafe: reconciliation.releaseSafe === true,
-    }, { status: reconciliation.status === "PASS" ? 200 : 409, headers });
-  } catch {
-    return Response.json({ ok: false, result: "private-reconciliation-unavailable" }, { status: 503, headers });
-  }
-}
-
 
 function requestTooLargeResponse() {
   return Response.json(
@@ -971,10 +878,6 @@ export default {
   },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-
-    if (url.pathname === TEMP_STRIPE_FULL_RECONCILE_PATH) {
-      return handleTemporaryFullStripeReconcile(request, env, ctx);
-    }
 
     if (
       url.pathname === "/api/billing/webhook" &&
