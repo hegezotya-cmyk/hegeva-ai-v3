@@ -591,5 +591,5 @@ Commit `87314880a2a7f9adc1cb965f14c5654e4799a36b` wires the scheduled handler to
 ## CI follow-up — 2026-11-06
 
 - Workflow #236 failed in the signed-webhook integration harness before running the remaining cases: the temporary test copy did not include the newly imported state-checker module. Syntax and earlier policy checks passed; this was a harness module-resolution failure, not an observed assertion failure.
-- Commit `b4bb39c4d04a949de76812c45e819de6fd8f4096` updates the isolated harness to resolve that checker from the source tree. A fresh workflow result is pending.
-- Status remains **NOT READY** until the new CI run passes and the corrected scheduled Worker is verified in staging.
+- Commit `b4bb39c4d04a949de76812c45e819de6fd8f4096` updates the isolated harness to resolve that checker from the source tree. Workflow #238 passed on this code commit; the current PR head adds documentation only.
+- Status remains **NOT READY** until the corrected scheduled Worker is verified in staging.
