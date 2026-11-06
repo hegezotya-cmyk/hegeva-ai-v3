@@ -130,6 +130,15 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Atomic fencing acceptance fix — 2026-11-06
+
+- PASS: the controller now requires adapter `fencedWrite`; the actual synthetic write is performed inside the persistent guard's atomic transaction after checking the current lease token and expiry.
+- PASS: `assertLease` now awaits the asynchronous lease verifier. The previous Promise-vs-boolean comparison was corrected; this was a real controller contract bug.
+- PASS: lease loss is not an accepted result state. Blocked, retry-scheduled and completed remain distinct; completed acceptance requires post-run lease verification and cleanup verification.
+- PASS: offline tests prove an expired lease cannot execute the fenced write (`writes=0`), stale release is rejected, parallel acquire has one winner, and retry/recovery fixture completes with one idempotent effect and zero residue.
+- BLOCKED: this proves only offline/Durable Object-local behavior. No staging endpoint, binding, secret, remote D1/Stripe write, or staging runtime acceptance was performed.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Final activation security-gate fix — 2026-11-06
 
 - PASS: controller now requires `verifyLease` before synthetic execution, passes an `assertLease` fencing callback into the adapter for each write point, and verifies the lease again after execution before accepting the result.

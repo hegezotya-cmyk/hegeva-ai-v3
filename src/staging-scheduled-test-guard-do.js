@@ -12,4 +12,5 @@ export class StagingTestGuardDurableObject extends DurableObject {
   acquire(input) { return this.guard.acquire(input); }
   release(input) { return this.guard.release(input); }
   clearExpired(input) { return this.guard.clearExpired(input); }
+  fencedWrite(input) { return this.guard.fencedWrite(input); }
 }

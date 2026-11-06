@@ -20,7 +20,7 @@ export function createStagingScheduledTestController({
    if(!tokenEqual(request?.authorization,authorizationSecret))return result("denied","unauthorized");
    const keys=request&&typeof request==="object"&&!Array.isArray(request)?Object.keys(request).sort():[];
    if(keys.join(",")!=="authorization,scenario"||!scenarios.has(request.scenario))return result("denied","invalid-request");
-   if(!adapter||!["acquire","release","verifyLease","runSynthetic","cleanup","verifyCleanup"].every(k=>typeof adapter[k]==="function"))
+   if(!adapter||!["acquire","release","verifyLease","fencedWrite","runSynthetic","cleanup","verifyCleanup"].every(k=>typeof adapter[k]==="function"))
      return result("blocked","adapter-unavailable");
    const nonce=generateNonce();
    if(typeof nonce!=="string"||!/^[0-9a-f-]{32,36}$/i.test(nonce))return result("blocked","nonce-invalid");
@@ -34,9 +34,13 @@ export function createStagingScheduledTestController({
      if(await adapter.verifyLease({scenario,nonce,deadline})!==true){code="lease-invalid-before-effect";return result("blocked",code);}
      const assertLease=async()=>{
        if(now()>deadline)return false;
-       return adapter.verifyLease({scenario,nonce,deadline})===true;
+       return await adapter.verifyLease({scenario,nonce,deadline})===true;
      };
-     const execution=await adapter.runSynthetic({scenario,nonce,deadline,assertLease});
+     const fencedWrite=async operation=>{
+       if(typeof operation!=="function"||await assertLease()!==true)return {ok:false,reason:"lease-invalid-before-write"};
+       return adapter.fencedWrite({scenario,nonce,deadline,operation});
+     };
+     const execution=await adapter.runSynthetic({scenario,nonce,deadline,assertLease,fencedWrite});
      if(now()>deadline)code="deadline-exceeded";
      else if(await adapter.verifyLease({scenario,nonce,deadline})!==true)code="lease-invalid-after-effect";
      else if(execution&&states.has(execution.status)){status=execution.status;code="scenario-executed";}
