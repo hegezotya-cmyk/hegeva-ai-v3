@@ -26,6 +26,7 @@ assert.equal(result.counts.d1IdentityRows,4);
 assert.equal(result.counts.matchedStoredIdentities,4);
 assert.equal(result.counts.unrepresentedActiveSubscriptions,1);
 assert.equal(result.counts.multiCustomerActiveUsers,1);
+assert.deepEqual(result.counts.unrepresentedStripeSubscriptionStatuses,{});
 assert.equal(result.releaseSafe,false);
 const other=compare({d1Identities:d1.map((r,i)=>i===0?identity("user_1","cus_2","sub_2"):r),stripeSubscriptions:stripe,stripeComplete:true});
 assert.equal(other.counts.matchedStoredIdentities,4);
@@ -34,6 +35,12 @@ const complete=compare({d1Identities:[identity("user_1","cus_1","sub_1")],
  stripeSubscriptions:[subscription("user_1","cus_1","sub_1")],stripeComplete:true});
 assert.equal(complete.status,"PASS");
 assert.equal(complete.releaseSafe,true);
+const orphanStatus=compare({d1Identities:[],
+ stripeSubscriptions:[subscription("user_orphan","cus_orphan","sub_orphan","canceled")],stripeComplete:true});
+assert.equal(orphanStatus.counts.stripeUsersWithoutD1Identity,1);
+assert.equal(orphanStatus.counts.unrepresentedStripeSubscriptionStatuses.canceled,1);
+assert.equal(orphanStatus.counts.unrepresentedActiveSubscriptions,0);
+
 const mismatch=compare({d1Identities:[identity("user_1","cus_1","sub_1","canceled")],
  stripeSubscriptions:[subscription("user_1","cus_1","sub_1")],stripeComplete:true});
 assert.equal(mismatch.counts.matchingIdentityStatusDisagreements,1);
