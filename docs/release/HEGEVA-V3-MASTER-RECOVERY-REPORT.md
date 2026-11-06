@@ -259,7 +259,7 @@ The following files were read at the exact deployed source commit `0fc1522f896ae
 - Dashboard Deployments still showed active version `0df95909` at 100%, deployed about 10 hours earlier; no new active version was shown after the settings save. The dashboard also displayed its Wrangler-sync warning.
 - Read-only Cron history, after the dashboard’s displayed next execution at 2026-11-06 20:05 UTC, still said there were no events in the past week. No manual Cron invocation was run.
 - FIXED ON PR BRANCH: `wrangler.staging.jsonc` now declares `observability.enabled=true`, logs enabled at 100%, invocation logs and persistence enabled, while traces remain disabled; the existing Issues=true state is mirrored. Cron remains `*/5 * * * *`; payment mode remains TEST. Local JSON parse and value assertions passed.
-- Current config commit: `8c5280d9ddc272b80fd941770da6c8a03f43d3d2`. GitHub Policy CI run [#42289472340](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42289472340) was in progress at the time of this report update.
+- Current config commit: `8c5280d9ddc272b80fd941770da6c8a03f43d3d2`. GitHub Policy CI [#42289472340](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42289472340) completed **PASS** on the configuration commit, including worker checks, syntax, and the Stripe/outbox policy regression steps.
 - BLOCKED: no code deployment was performed. Therefore the updated Wrangler config has not been applied to the active Worker, no post-config scheduled invocation/log was recorded, and remote Cron/outbox/fencing acceptance remains unproven. This work did not touch production, UI Worker, D1, Stripe, secrets, bindings, routes, or permissions.
 
 | Gate | Status | Evidence |
