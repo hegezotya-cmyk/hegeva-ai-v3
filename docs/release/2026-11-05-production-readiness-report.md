@@ -1,7 +1,7 @@
 # HEGEVA AI V3 — Production Readiness Report
 
 Date: 2026-11-05  
-Decision: **NOT READY — STOP BEFORE MERGE OR DEPLOY**
+Decision: **STAGING ACCEPTANCE PASS — PR ready for review; production merge/deploy still requires review and approval**
 
 ## Safety boundary
 
@@ -565,3 +565,15 @@ Current decision: `releaseSafe=false`, **NOT READY**. The next owner action is a
 - PASS: read-back after delivery still showed one exact billing identity, one applied webhook ledger row, and one completed terminal-effects outbox row. The completed downgrade effect had one attempt.
 - Referral finding: the affected user has zero staging referral attributions, rewards, and reward reviews. Therefore this real-user cancellation did not exercise referral reversal. The isolated CI referral reversal cases pass, but live staging referral reversal remains unverified until an authorized synthetic referred user or eligible test record is available.
 - Remaining release gate: remote synthetic scheduled-worker acceptance and live referral reversal remain unverified. Production remains NOT READY; PR #95 remains draft. No production change, migration, additional D1 write, new payment, or Stripe object mutation occurred. The only remote action was the single approved resend; all D1 operations were SELECT/read-back.
+
+
+## 2026-11-06 09:35 UTC — Final staging acceptance summary
+
+- **D1 ↔ main-account Stripe TEST parity: PASS under the owner-approved historical-orphan rule.** The account's `All` subscriptions view contained exactly two records, both canceled, with zero active. One subscription/customer/user identity matched the staging D1 billing row exactly and its canceled status agreed. The other canceled Stripe TEST identity had no D1 billing row and no D1 auth-user row. No status disagreement or unrepresented active entitlement remains. This was a read-only UI comparison; the local CLI was not rerun because no local main-account TEST API key was available.
+- **Duplicate cancellation delivery: PASS on staging.** The single approved resend returned HTTP 200, `verified=true`, `duplicate=true`, `ignored=true`, and `entitlementChanged=false`. D1 retained one applied event row and the canceled billing record stayed unchanged.
+- **Scheduled cancellation outbox: PASS on staging.** The real event's outbox row moved from created at 02:51:36 UTC to `completed` at 02:55:16 UTC with one attempt and no error. The Worker configuration is `*/5 * * * *`, and the scheduled handler is the only code path invoking this processor.
+- **Referral reversal: PASS on staging with a temporary synthetic fixture.** At 09:25 UTC the scheduled Worker completed the synthetic downgrade effect once; the approved review became `reversed` and the reward became `REJECTED`.
+- **Retry and recovery: PASS on staging.** At 09:30 UTC a deliberately incomplete synthetic state failed closed as `state-unverified:plan-unverified`, remained pending at attempt 1, and scheduled a retry. After the synthetic Basic plan was restored, the 09:35 UTC schedule completed the same job at attempt 2.
+- **Cleanup/read-back: PASS.** All synthetic codes, attributions, rewards, review rows, plans, webhook rows, and outbox jobs were deleted by exact synthetic IDs. Final staging counts: 4 auth users, 1 billing mapping, 0 referral attributions/rewards/reviews, 0 pending/processing/blocked outbox rows, and 1 completed real outbox row.
+- Cloudflare's Cron Events panel showed no history during these checks, although the D1 outbox transitions above prove the scheduled handler ran. The current local concurrency/lease-fencing regression suite remains the evidence for simultaneous claim behavior.
+- Latest policy CI: [run #234](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42194744178) PASS. No merge, production deployment, payment, Stripe-object mutation, or D1 migration occurred. Staging acceptance is complete; the PR is ready for review, and production remains unchanged pending review and explicit release approval.
