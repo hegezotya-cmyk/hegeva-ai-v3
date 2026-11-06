@@ -173,7 +173,7 @@ Review the draft PR and separately authorize any future staging migration, stagi
 
 - PASS: offline guard, Durable Object transaction harness, synthetic retry/recovery fixture, fencing/idempotency, cleanup and production-entrypoint exclusion tests are available and passing.
 - PASS: current staging configuration retains `PAYMENT_MODE=test`, the existing D1 binding, cron and observability-off settings; no activation config was changed.
-- BLOCKED: the `GUARD` Durable Object binding and test endpoint are not integrated into `src/index.js`/`src/index-ledger.js`, and `OUTBOX_TEST_CONTROL_ENABLED` is not enabled. This is intentional until owner approval.
+- BLOCKED: the `GUARD` Durable Object binding and test endpoint are not integrated into `src/index.js`/`src/index-ledger.js`, and the canonical `STAGING_SCHEDULED_TEST_CONTROL_ENABLED` flag is not enabled. This is intentional until owner approval; `OUTBOX_TEST_CONTROL_ENABLED` is not a supported alias.
 - BLOCKED: no dedicated staging authorization secret exists and no permissions were changed.
 - BLOCKED: no staging endpoint acceptance, remote cron acceptance, or real staging fixture/rollback evidence was performed.
 - Activation requires the owner actions and checklist in `docs/release/staging-scheduled-runtime-test-mechanism-plan.md`; local tests must not be reported as staging runtime proof.

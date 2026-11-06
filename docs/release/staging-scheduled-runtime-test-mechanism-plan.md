@@ -15,7 +15,7 @@ Create a staging-only, default-deny control path that calls the same `processNex
 Required guards, all fail-closed:
 
 1. Compile-time staging target and runtime `PAYMENT_MODE=test` check.
-2. Explicit `OUTBOX_TEST_CONTROL_ENABLED=false` default; absent or any value other than an exact approved enablement is disabled.
+2. Explicit `STAGING_SCHEDULED_TEST_CONTROL_ENABLED=false` default; absent or any value other than exact `true` is disabled. `OUTBOX_TEST_CONTROL_ENABLED` is not a supported alias.
 3. A dedicated staging-only secret-based authorization, never reused as a Stripe or webhook secret; secret value is never logged or returned.
 4. Request schema contains only a fixed scenario name (`retry-recovery` or `lease-fencing`) and a server-generated fixture nonce. No caller-supplied IDs or SQL.
 5. Single-flight Durable Object lock per fixed scenario, bounded rate limit, short deadline, and replay nonce storage.
@@ -68,7 +68,7 @@ Added isolated `src/staging-scheduled-test-control.js` and `scripts/staging-sche
 ### Required owner actions before activation
 
 1. Approve one dedicated staging-only authorization secret and provision it without sharing its value in chat or repository files.
-2. Approve adding a staging-only `GUARD` Durable Object binding and an explicit `OUTBOX_TEST_CONTROL_ENABLED=false` variable; production configuration must remain unchanged.
+2. Approve adding a staging-only `GUARD` Durable Object binding and an explicit `STAGING_SCHEDULED_TEST_CONTROL_ENABLED=false` variable; production configuration must remain unchanged.
 3. Approve one staging-only deploy of the endpoint integration, with `keep_vars=true`, `keepSecrets=true`, Dashboard-only variables preserved, and observability/logs/traces left OFF.
 4. Provide the deployed Worker version, exact cron expression, binding snapshot, and non-secret config snapshot after deployment.
 5. Authorize isolated synthetic D1 fixture writes and rollback only; no existing user, entitlement, referral, Stripe, or historical rows may be used.

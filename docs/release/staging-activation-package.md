@@ -2,6 +2,8 @@
 
 Status: preparation only. No endpoint, Durable Object binding, secret, permission, deployment, Stripe write, or remote D1 write is authorized by this document.
 
+Implementation status: the controller, persistent DO guard, RPC method, local SQLite fencing fixture and local Wrangler runtime harness exist. The HTTP endpoint, staging `GUARD` binding and remote fixture adapter are intentionally not wired into `src/index.js` or `src/index-ledger.js`; this package is therefore a GO/NO-GO package, not an activation claim.
+
 ## Scope and invariants
 
 - Target: `hegeva-ai-v3-staging` only, `PAYMENT_MODE=test`, main TEST Stripe account only.

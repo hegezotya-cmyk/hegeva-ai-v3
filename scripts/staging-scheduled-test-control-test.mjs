@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {createStagingScheduledTestController} from "../src/staging-scheduled-test-control.js";
+import {createStagingScheduledTestController,isStagingScheduledTestControlEnabled} from "../src/staging-scheduled-test-control.js";
 const secret="x".repeat(48),nonce="12345678-1234-1234-1234-123456789abc";
 function fixture(guard={},opts={}){
  const calls=[];
@@ -21,6 +21,15 @@ test("default-deny, wrong mode and production excluded",async()=>{
   const {control,calls}=fixture(guard);assert.equal((await control(valid)).status,"denied");assert.equal(calls.length,0);
  }
  assert.equal((await createStagingScheduledTestController()()).status,"denied");
+});
+test("one canonical environment flag is default-deny",async()=>{
+ assert.equal(isStagingScheduledTestControlEnabled({}),false);
+ assert.equal(isStagingScheduledTestControlEnabled({OUTBOX_TEST_CONTROL_ENABLED:"true"}),false);
+ assert.equal(isStagingScheduledTestControlEnabled({STAGING_SCHEDULED_TEST_CONTROL_ENABLED:"false"}),false);
+ assert.equal(isStagingScheduledTestControlEnabled({STAGING_SCHEDULED_TEST_CONTROL_ENABLED:"true"}),true);
+ const {control}=fixture({enabled:true},{});
+ const envControl=createStagingScheduledTestController({adapter:null,isStagingBuild:true,env:{STAGING_SCHEDULED_TEST_CONTROL_ENABLED:"false"},paymentMode:"test",authorizationSecret:secret});
+ assert.equal((await envControl(valid)).code,"disabled");
 });
 test("authorization and payload allowlist rejects arbitrary IDs and SQL",async()=>{
  const {control,calls}=fixture();

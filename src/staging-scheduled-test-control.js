@@ -2,6 +2,10 @@
 // Runtime integration remains disabled; adapters and fixtures are tested separately.
 const scenarios = new Set(["retry-recovery","lease-fencing"]);
 const states = new Set(["completed","retry-scheduled","blocked"]);
+export const STAGING_SCHEDULED_TEST_CONTROL_FLAG = "STAGING_SCHEDULED_TEST_CONTROL_ENABLED";
+export function isStagingScheduledTestControlEnabled(env = {}) {
+ return env?.[STAGING_SCHEDULED_TEST_CONTROL_FLAG] === "true";
+}
 const result=(status,code,cleanupVerified=false)=>({status,code,cleanupVerified});
 function tokenEqual(a,b) {
   if(typeof a!=="string"||typeof b!=="string"||a.length<32||b.length<32)return false;
@@ -11,12 +15,13 @@ function tokenEqual(a,b) {
   return difference===0;
 }
 export function createStagingScheduledTestController({
- adapter,isStagingBuild=false,enabled=false,paymentMode="",authorizationSecret="",
+ adapter,isStagingBuild=false,enabled=false,env=null,paymentMode="",authorizationSecret="",
  now=()=>Date.now(),generateNonce=()=>crypto.randomUUID(),maxDurationMs=15000
 }={}){
  if(!Number.isInteger(maxDurationMs)||maxDurationMs<1000||maxDurationMs>30000)throw Error("invalid-timeout");
+ const controlEnabled=env===null?enabled===true:isStagingScheduledTestControlEnabled(env);
  return async request=>{
-   if(isStagingBuild!==true||enabled!==true||paymentMode!=="test")return result("denied","disabled");
+   if(isStagingBuild!==true||controlEnabled!==true||paymentMode!=="test")return result("denied","disabled");
    if(!tokenEqual(request?.authorization,authorizationSecret))return result("denied","unauthorized");
    const keys=request&&typeof request==="object"&&!Array.isArray(request)?Object.keys(request).sort():[];
    if(keys.join(",")!=="authorization,scenario"||!scenarios.has(request.scenario))return result("denied","invalid-request");
