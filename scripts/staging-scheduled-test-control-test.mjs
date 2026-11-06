@@ -6,7 +6,8 @@ function fixture(guard={},opts={}){
  const calls=[];
  const adapter={
   acquire:async()=>{calls.push("acquire");return opts.acquire??true},
-  runSynthetic:async()=>{calls.push("run");if(opts.throwRun)throw Error("secret must not leak");return opts.output??{status:"completed"}},
+  verifyLease:async()=>{calls.push("verifyLease");return opts.leaseValid??true},
+  runSynthetic:async({assertLease})=>{calls.push("run");if(opts.throwRun)throw Error("secret must not leak");if(opts.lateLease)return {status:await assertLease()?"completed":"lease-lost"};return opts.output??{status:"completed"}},
   cleanup:async()=>{calls.push("cleanup");if(opts.throwCleanup)throw Error("private")},
   verifyCleanup:async()=>{calls.push("verify");return opts.verify??true},
   release:async()=>{calls.push("release")}
@@ -29,7 +30,7 @@ test("authorization and payload allowlist rejects arbitrary IDs and SQL",async()
 });
 test("success requires synthetic scenario and verified cleanup",async()=>{
  const {control,calls}=fixture();assert.deepEqual(await control(valid),{status:"completed",code:"scenario-executed",cleanupVerified:true});
- assert.deepEqual(calls,["acquire","run","cleanup","verify","release"]);
+ assert.deepEqual(calls,["acquire","verifyLease","run","verifyLease","cleanup","verify","release"]);
 });
 test("durable lock/rate-limit denial delegated to adapter",async()=>{
  const {control,calls}=fixture({}, {acquire:false});assert.equal((await control(valid)).code,"single-flight-or-rate-limited");
@@ -40,6 +41,7 @@ test("exception and cleanup failures fail closed without leaking errors",async()
   const {control,calls}=fixture({},opts);const out=await control(valid);
   assert.equal(out.status,"blocked");assert(!JSON.stringify(out).includes("secret"));assert(calls.includes("release"));
  }
+ const late=fixture({}, {lateLease:true});assert.equal((await late.control(valid)).status,"blocked");
 });
 test("untrusted result and invalid nonce cannot complete",async()=>{
  const a=fixture({}, {output:{status:"unsafe-success"}});assert.equal((await a.control(valid)).status,"blocked");

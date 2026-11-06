@@ -130,6 +130,15 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Final activation security-gate fix — 2026-11-06
+
+- PASS: controller now requires `verifyLease` before synthetic execution, passes an `assertLease` fencing callback into the adapter for each write point, and verifies the lease again after execution before accepting the result.
+- PASS: `lease-lost` was removed from the accepted scenario-result allowlist. Lease loss, invalid lease, deadline expiry and late completion now fail closed and cannot produce acceptance success.
+- PASS: controller regressions cover slow/late lease loss, cleanup failure, deadline failure and unauthorized inputs; guard, fixture, processor and syntax regressions remain PASS.
+- PASS: the existing persistent guard contract rejects non-atomic stores and uses one transaction for lock, replay-window and rate-limit state.
+- BLOCKED: no HTTP route, staging binding, secret, permission or deployment was added. Separate staging isolation and remote runtime gates remain unproven.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Final offline build and preflight fix — 2026-11-06
 
 - PASS: clean checkout contained `better-auth` in `package.json` and `package-lock.json`; it was absent only because `node_modules` is not committed. Node `22.23.2`, npm `10.9.8`, registry npmjs, and cache verification were successful.
