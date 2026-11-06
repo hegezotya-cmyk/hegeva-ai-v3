@@ -163,3 +163,8 @@ No further action in this verification changed Cloudflare settings, Worker versi
 ## Existing-session refresh persistence check — 2026-11-06
 
 After a page refresh in the authenticated staging Assistant session, the page returned to the authenticated workspace with the same owner session, Core-ready message, customer count (3), task count (0), document count (0), follow-up count (0), Basic 0/50 usage and Top-Up 200. This verifies a read-only refresh retained the visible session/workspace context for this one existing account. It does **not** verify logout/re-login, a newly registered user, data writes and persistence, or cross-user/workspace isolation.
+
+
+### Outbox row timestamp clarification
+
+Read-only inspection of the single completed outbox row returned `state=completed`, `effectType=billing-and-referral-downgrade`, `attempts=1`, created `2026-11-06T02:51:36.488Z`, updated `2026-11-06T02:55:16.640Z`. This predates the later staging verifier deployment, so it is historical evidence of an earlier completion only and does not prove the new verifier's scheduled runtime.
