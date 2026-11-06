@@ -3,9 +3,9 @@ import {
   RETRY_TERMINAL_EFFECT_SQL, BLOCK_TERMINAL_EFFECT_SQL, reviewTerminalEffectExecution
 } from "./stripe-terminal-effects-outbox.js";
 
-// Candidate on-demand processor; deliberately NOT scheduled / registered in Worker.
-// Caller MUST provide a trusted current-state verifier, an idempotent executor,
-// and an explicitly authorized database. No Stripe writes are performed here.
+// Lease-fenced processor invoked by the Worker's scheduled handler in index-ledger.js.
+// The caller supplies a trusted current-state verifier and idempotent D1 executor.
+// This processor never calls Stripe or performs Stripe writes.
 const SELECT_DUE = `
 SELECT eventId, userId, effectType, subscriptionId, customerId, livemode,
        attempts, nextAttemptAt, leaseUntil
