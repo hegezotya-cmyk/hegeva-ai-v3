@@ -577,3 +577,12 @@ Current decision: `releaseSafe=false`, **NOT READY**. The next owner action is a
 - **Cleanup/read-back: PASS.** All synthetic codes, attributions, rewards, review rows, plans, webhook rows, and outbox jobs were deleted by exact synthetic IDs. Final staging counts: 4 auth users, 1 billing mapping, 0 referral attributions/rewards/reviews, 0 pending/processing/blocked outbox rows, and 1 completed real outbox row.
 - Cloudflare's Cron Events panel showed no history during these checks, although the D1 outbox transitions above prove the scheduled handler ran. The current local concurrency/lease-fencing regression suite remains the evidence for simultaneous claim behavior.
 - Latest policy CI: [run #234](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42194744178) PASS. No merge, production deployment, payment, Stripe-object mutation, or D1 migration occurred. Staging acceptance is complete; the PR is ready for review, and production remains unchanged pending review and explicit release approval.
+
+
+## Post-review correction — 2026-11-06
+
+A read-only review found that the scheduled outbox processor was checking D1 state only, while the complete read-only Stripe current-state verifier existed but was not wired into the Worker scheduled handler. This could allow a deferred referral side effect to run using stale D1 state.
+
+Commit `87314880a2a7f9adc1cb965f14c5654e4799a36b` wires the scheduled handler to `createStripeTerminalStateChecker`, which checks payment mode, the exact webhook ledger identity, newer ledger events, and a complete Stripe subscription inventory before permitting execution. Configuration and inventory failures fail closed.
+
+**Status after correction: NOT READY pending CI and staging-only scheduled-worker verification.** This correction has not been deployed to staging. No production deployment, merge, D1 write, migration, Stripe object change, or payment occurred.
