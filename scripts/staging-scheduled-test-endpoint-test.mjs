@@ -16,6 +16,16 @@ test("endpoint is default-deny, authenticated and allowlisted", async () => {
   assert.equal((await on(new Request("https://staging.invalid", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }))).status, 401);
   assert.equal((await on(new Request("https://staging.invalid", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${secret}` }, body: "{" }))).status, 400);
 });
+test("pre-auth validation prevents dispatch and handles streamed byte limit", async () => {
+  let dispatches = 0;
+  const env = { STAGING_SCHEDULED_TEST_CONTROL_ENABLED: "true", STAGING_SCHEDULED_TEST_AUTH_SECRET: secret };
+  const endpoint = createStagingScheduledTestEndpoint({ env, dispatch: async () => { dispatches++; return { status: "completed", code: "unexpected" }; } });
+  const hostile = new Request("https://staging.invalid", { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer wrong" }, body: new ReadableStream({ start(controller) { controller.error(new Error("body must not be read")); } }), duplex: "half" });
+  assert.equal((await endpoint(hostile)).status, 401);
+  const streamed = new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode("x".repeat(513))); controller.close(); } });
+  assert.equal((await endpoint(new Request("https://staging.invalid", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${secret}` }, body: streamed, duplex: "half" }))).status, 413);
+  assert.equal(dispatches, 0);
+});
 
 test("fixture adapter requires synthetic namespace and rejects arbitrary effects", async () => {
   assert.throws(() => createStagingSyntheticFixtureAdapter({ namespace: "real-db", adapter: { isSyntheticFixture: true } }), /fixture-namespace-invalid/);

@@ -492,3 +492,11 @@ Current decision: `releaseSafe=false`, **NOT READY**. The next owner action is a
 - PASS: request-time schema mutation was removed from the Worker. The synthetic schema is a separate offline-only SQL artifact (`scripts/staging-synthetic-fixture-schema.sql`); unauthorized/default-deny requests do not reach any D1 operation.
 - PASS: stable routing, auth, default-deny, stale fencing, duplicate operation, cleanup, production exclusion and both staging/isolated dry-runs passed locally.
 - BLOCKED: HTTP integration is not cron evidence. The isolated test Worker has no `scheduled()` acceptance claim for `hegeva-ai-v3-staging`; actual remote outbox retry/recovery requires a separately approved staging cron run with independent invocation evidence.
+
+## Pre-auth request validation closure — e613b40 follow-up
+
+- PASS: `staging-scheduled-test-worker.js` no longer parses `request.clone().json()` or initializes the DO/fixture adapter. It delegates to the endpoint validator first.
+- PASS: method, feature flag, TEST mode, content type, authorization and byte limits are checked before JSON parsing or dispatch. The body is read at most once and the streamed no-`Content-Length` path is bounded by byte count.
+- PASS: unauthorized, malformed, oversized and invalid-scenario requests do not invoke dispatch; the regression asserts no fixture/DO dispatch occurred. Stable scenario routing remains fixed and parallel HTTP requests have one winner.
+- PASS: endpoint, controller, guard, DO runtime, fencing, cleanup, production exclusion and staging dry-run checks remain successful.
+- BLOCKED: the remote staging endpoint and binding remain inactive; no remote cron/outbox acceptance is claimed.
