@@ -390,7 +390,7 @@ No production deployment/merge, remote D1 write/migration, Stripe write/payment/
 - No deployment/merge, D1 write/migration, Stripe mutation/payment, secret/binding/permission change, or external email was performed.
 
 
-## New staging user read-only verification — 2026-11-06 22:5x UTC
+## New staging user read-only verification — 2026-11-06
 
 - The owner reports completing the manual registration/verification step. A read-only staging D1 query found exactly one matching owner-controlled test alias; the overall auth-user count increased from the previously observed 4 to 5.
 - Read-only user/session query returned `emailVerified=1`, one session, and a creation timestamp of `2026-11-06T22:49:36Z`. Only SELECT queries were run.
