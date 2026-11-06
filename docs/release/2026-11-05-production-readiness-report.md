@@ -555,3 +555,13 @@ Current decision: `releaseSafe=false`, **NOT READY**. The next owner action is a
 - Test-first evidence: PR check #227 failed on the new narrow case under the previous rule. The implementation and regression cases were then added; PR check #230 reports the private identity comparison and local reader orchestration jobs successful.
 - Based on the existing main-account TEST evidence (one canceled Stripe-only user, no D1 auth row, zero active subscriptions; mapped D1 identity exact), this historical subscription no longer blocks this specific parity gate. The full reconciliation CLI was not rerun here because the Stripe TEST read-only key is not present in this session.
 - Overall production readiness remains NOT READY: remote synthetic scheduled-worker acceptance and staging duplicate-delivery, cancellation, and referral side-effect acceptance still require their separate evidence. No production deploy, migration, D1/Stripe write, payment, or separate sandbox access occurred.
+
+
+## 2026-11-06 — Staging duplicate cancellation delivery verified
+
+- PASS: on the already selected main Hegevaai TEST account (not the separate Stripe sandbox), the exact existing `customer.subscription.deleted` event was resent once to `https://staging.hegevaai.co.uk/api/billing/webhook`. No new payment or Stripe object was created.
+- PASS: Stripe recorded delivery at 09:02:12 UTC with HTTP 200. The staging response reported `received=true`, `verified=true`, `duplicate=true`, `ignored=true`, and `entitlementChanged=false`; the event payload was `livemode=false`.
+- PASS: before replay, the event's user, Customer, and Subscription exactly matched one staging D1 billing row and the D1 auth user. The row was already `canceled`, `cancelAtPeriodEnd=0`, and `currentPeriodEnd=NULL`.
+- PASS: read-back after delivery still showed one exact billing identity, one applied webhook ledger row, and one completed terminal-effects outbox row. The completed downgrade effect had one attempt.
+- Referral finding: the affected user has zero staging referral attributions, rewards, and reward reviews. Therefore this real-user cancellation did not exercise referral reversal. The isolated CI referral reversal cases pass, but live staging referral reversal remains unverified until an authorized synthetic referred user or eligible test record is available.
+- Remaining release gate: remote synthetic scheduled-worker acceptance and live referral reversal remain unverified. Production remains NOT READY; PR #95 remains draft. No production change, migration, additional D1 write, new payment, or Stripe object mutation occurred. The only remote action was the single approved resend; all D1 operations were SELECT/read-back.
