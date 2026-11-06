@@ -210,10 +210,10 @@ The visible Cloudflare HTTP-request dataset for the last hour showed 50 rows: 24
 ## Staging API issue-detection follow-up — 2026-11-06
 
 - Enabled Cloudflare **Issues** detection on the staging API Worker `hegeva-ai-v3-staging` only. The subsequent Issues readback showed **0 active issues, 0 active occurrences, 0 resolved issues**, and no matching issue records. This is a verified setting change; it did not identify the earlier exception.
-- The Worker Settings > Observability readback showed the **Issues** switch checked. **Logs** and **Traces** switches remained off; their persist checkboxes were checked and sampling values displayed 100%. No log/trace switch or sampling setting was changed.
+- The Worker Settings > Observability readback showed the **Issues** switch checked. **Logs** and **Traces** switches remained off; their persist checkboxes were checked and sampling values displayed 100%. A temporary unsaved Logs enable was discarded when Cloudflare required a Deploy action to save it; no deployment was performed and the final readback confirmed Logs/Traces off. No sampling setting was changed.
 - The Worker Observability Events page continued to state **“Workers Observability is Disabled”** and offered “Enable Observability”; the follow-up ended at the Worker Settings page, without enabling Logs or Traces. There is still no invocation record or stack trace to identify the source of the prior `Uncaught Exception`.
 - The earlier metric remains **918 invocations / 1 uncaught exception** on active API version `0df95909` over the last 24 hours. It cannot be attributed to Cron or a particular HTTP route from available evidence. The 499 request remains a client-closed request and is separate evidence.
-- Scope: only the staging API Worker Issues detector was enabled. No code deploy, Worker version change, D1 read/write/migration, Stripe access/write/payment, secret/binding/route change, production change, or UI Worker setting change occurred. The browser connection stopped before a final screenshot could be captured; the status above is based on the dashboard DOM readback.
+- Scope: only the staging API Worker Issues detector was enabled. No code deploy, Worker version change, D1 read/write/migration, Stripe access/write/payment, secret/binding/route change, production change, or UI Worker setting change occurred. After reconnecting, the final dashboard readback confirmed Issues on, Logs/Traces off, and no pending changes.
 
 ### Updated disposition
 
