@@ -3,7 +3,7 @@
 import { compareStripeTestAndStagingD1 } from "./stripe-staging-identity-compare.js";
 
 export async function reconcilePrivateStagingIdentity({
-  readD1, readStripePage, maxPages=20,
+  readD1, readD1Users, readStripePage, maxPages=20,
 }={}) {
   const blocked=reason=>({verified:false,status:"BLOCKED",reason});
   if(typeof readD1!=="function" || typeof readStripePage!=="function" ||
@@ -13,6 +13,15 @@ export async function reconcilePrivateStagingIdentity({
   try {identities=await readD1();}
   catch{return blocked("staging-read-unavailable");}
   if(!Array.isArray(identities)) return blocked("staging-response-incomplete");
+  let d1UserIds;
+  if(readD1Users!==undefined){
+    if(typeof readD1Users!=="function") return blocked("invalid-d1-user-reader");
+    try{d1UserIds=await readD1Users();}
+    catch{return blocked("staging-user-read-unavailable");}
+    if(!Array.isArray(d1UserIds) || d1UserIds.some(row=>typeof row?.id!=="string" || !row.id))
+      return blocked("staging-user-response-incomplete");
+    d1UserIds=d1UserIds.map(row=>row.id);
+  }
   let cursor=null;
   const seen=new Set(),all=[];
   for(let i=0;i<maxPages;i++){
@@ -35,7 +44,7 @@ export async function reconcilePrivateStagingIdentity({
     }
     if(!page.has_more) {
       return compareStripeTestAndStagingD1({
-        d1Identities:identities,stripeSubscriptions:all,stripeComplete:true,
+        d1Identities:identities,d1UserIds,stripeSubscriptions:all,stripeComplete:true,
       });
     }
     const last=page.data.at(-1)?.id;
