@@ -232,6 +232,17 @@ The visible Cloudflare HTTP-request dataset for the last hour showed 50 rows: 24
 - The page describes a historical log for the **past week** and displays **“There have been no events in the past week.”** It notes that new or recently renamed Workers may take up to 30 minutes before events appear. The UI therefore records no Cron event for the expected schedule; this is strong negative runtime evidence, but not a stack trace and not proof of the cause of the separate uncaught exception.
 - No manual Cron invocation was triggered. No deployment, D1 access/write/migration, Stripe access/write/payment, secret/binding change, or production Worker change occurred.
 
+
+
+### Static review of the deployed Cron path — 2026-11-06
+
+The following files were read at the exact deployed source commit `0fc1522f896ae7363fb76bf43777c23111ab4f55`; their Git blob SHAs match the branch versions inspected during this follow-up.
+
+- `wrangler.staging.jsonc` declares `*/5 * * * *`, `PAYMENT_MODE=test`, and `OUTBOX_PROCESSOR_ENABLED=true`, but explicitly declares `observability.enabled=false`, `logs.enabled=false`, `invocation_logs=false`, and `traces.enabled=false`. This explains why a code-driven staging deploy would not produce the desired diagnostic logs unless the config were changed first. The currently deployed Dashboard Issues setting is separate from those code defaults.
+- `src/index-ledger.js` contains the scheduled handler and its TEST/outbox guard; the deployed config values satisfy that guard. It passes the processor promise to `ctx.waitUntil` without an outer rejection handler.
+- `src/stripe-terminal-effects-processor.js` catches state-check and idempotent-effect errors and schedules/quarantines retries, but D1 `prepare/first/run` failures outside those catches can reject through the scheduled handler. This is a **possible** uncaught-exception path only if a Cron invocation ran. The Cloudflare Cron history currently lists no events for the week, so there is no evidence tying that code path to the one exception metric.
+- No code/config change or deployment was made during this static review. The main `wrangler.jsonc` is the production config and was not used to infer staging behavior.
+
 ### Updated Cron disposition
 
 | Gate | Status | Evidence |
