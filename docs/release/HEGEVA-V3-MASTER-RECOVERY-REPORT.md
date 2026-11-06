@@ -4,17 +4,17 @@ Date: 2026-11-06
 Repository: `hegezotya-cmyk/hegeva-ai-v3`  
 PR: [#95](https://github.com/hegezotya-cmyk/hegeva-ai-v3/pull/95)  
 Branch: `codex/production-readiness-20261105`  
-Current local/PR HEAD before unpushed fix: `7d8018e9abab9e9cb089a125cfe954c3e014bc03`
+Verified PR HEAD used for staging deployment: `0fc1522f896ae7363fb76bf43777c23111ab4f55`
 
 ## Executive decision
 
 **NO-GO — `releaseSafe=false`, NOT READY.**
 
-No merge, deploy, rollback, remote D1 migration/write, Stripe write, secret rotation, permission change, or external publication was performed in this review.
+Staging API deployment was performed via approved workflow #90. No production deployment, merge, D1 migration/write, Stripe write/payment, secret rotation, permission change, or external publication occurred.
 
 ## Current repository and CI evidence
 
-- PASS: PR #95 is OPEN and Draft; current HEAD matches `7d8018e9abab9e9cb089a125cfe954c3e014bc03`.
+- PASS: PR #95 is OPEN and Ready for Review (not Draft); the deployed staging code is at `0fc1522f896ae7363fb76bf43777c23111ab4f55`.
 - PASS: [GitHub CI 42144186327](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42144186327), `policy-tests`.
 - PASS: root `npm audit --omit=dev --json`: 0 vulnerabilities across production dependencies.
 - BLOCKED: UI `npm audit --omit=dev --json` reports 6 advisories: 2 low and 4 moderate, involving `deepmerge`, `minimatch`, `@shadcn/registry`, `ts-morph` and `shadcn`. No automatic `audit fix` was run.
@@ -108,3 +108,31 @@ No rollback was executed. For a future owner-approved staging-only change: recor
 - OWNER APPROVAL REQUIRED: all remote activation and unresolved release gates listed above.
 
 Next permitted step: owner approval to push the reviewed local cancellation fix, followed by CI and a fresh read-only staging reconciliation.
+
+
+## Current staging acceptance — 2026-11-06
+
+This section supersedes the earlier “not pushed / not deployed” statements above for the staging scheduled outbox verifier fix.
+
+- **Code correction:** commit `87314880a2a7f9adc1cb965f14c5654e4799a36b` wires the scheduled outbox handler to `createStripeTerminalStateChecker`, using the staging D1 binding, configured Stripe TEST key, and `PAYMENT_MODE`. It fails closed on Stripe/D1 state mismatch. The isolated webhook test harness mapping fix is `b4bb39c4d04a949de76812c45e819de6fd8f4096`.
+- **Exact deployed source:** PR head `0fc1522f896ae7363fb76bf43777c23111ab4f55`.
+- **Staging workflow:** [run #42198995283](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42198995283) — verify, staging preflight, API deployment, and staging-only smoke all **PASS**. D1 migration and UI deployment were **SKIPPED**.
+- **Cloudflare deployment readback:** staging Worker `hegeva-ai-v3-staging`, active version `0df95909`, 100% traffic. This identifies the dedicated staging Worker; its Dashboard environment label “Production” is the Worker's default environment name and does not mean the live production Worker was deployed.
+- **Post-deploy D1 read-only aggregate:** 4 auth users, 1 billing mapping, no referral attribution/reward/review rows, 0 pending/processing/blocked outbox jobs, 1 completed outbox job. No remote D1 writes or migrations were made during this acceptance.
+- **Authenticated route smoke:** the existing owner staging session loaded Get Started, Customers, Invoices & Quotes (quotes are a view within the invoices route; standalone `/business/quotes` returns 404), Documents, Expenses, Planner, Messages, Customer Follow-up, Reports, Business Hub, Account, Command Center, and Assistant. Assistant UI reported “HEGEVA Core ready” and an authenticated workspace. The Advanced Assistant was unavailable on Basic; no paid/model request was made. No customer record was changed.
+- **Limits:** these results do not prove fresh registration/email verification, a new login session, full create/edit persistence, cross-user/workspace isolation, remote scheduled cron invocation/retry/fencing, live GA4 delivery, or end-to-end Stripe subscription changes. No simulated or single-account result is represented as proof of those gates.
+
+### Current disposition
+
+- Staging API scheduled-verifier fix: **DEPLOYED AND SMOKE-VERIFIED**.
+- Staging application route loading: **PARTIAL PASS** (existing authenticated session only).
+- Full staging acceptance: **BLOCKED** by the remaining evidence in the gates table, especially remote cron/outbox runtime and full journey/workspace-isolation proof.
+- Production release: **NO-GO**; no production release was performed. `releaseSafe` remains false.
+- PR #81 Advanced Assistant: **BLOCKED** by previously recorded live response-quality failures; do not merge absent successful authorized regression and answer-quality evidence.
+- PR #86 dependency/security: **BLOCKED** pending resolution or documented acceptance of the UI advisories.
+- PR #88 GA4/conversion: local code/test evidence is not real GA4 delivery evidence.
+- Marketing: social/video/directory publishing is **VERIFY REQUIRED** where no current platform proof exists; no external account was modified.
+
+## Next safe step
+
+Run only the remaining staging acceptance checks using the existing approved staging Worker and the main HEGEVA Stripe TEST configuration. Do not create synthetic Workers, change bindings/secrets, migrate/write remote D1, use the separate sandbox, or make a payment. Until remote cron/outbox behavior and full journey/isolation evidence are available, keep production at **NO-GO**.
