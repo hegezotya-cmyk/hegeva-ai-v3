@@ -15,6 +15,7 @@ Staging API deployment was performed via approved workflow #90. No production de
 ## Current repository and CI evidence
 
 - PASS: PR #95 is OPEN and Ready for Review (not Draft); the deployed staging code is at `0fc1522f896ae7363fb76bf43777c23111ab4f55`.
+- PASS: [PR policy CI #241](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42200196811) on report HEAD `867225d646eb1aa391450bdc54a2e7cb65c58dd7`.
 - PASS: [GitHub CI 42144186327](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42144186327), `policy-tests`.
 - PASS: root `npm audit --omit=dev --json`: 0 vulnerabilities across production dependencies.
 - BLOCKED: UI `npm audit --omit=dev --json` reports 6 advisories: 2 low and 4 moderate, involving `deepmerge`, `minimatch`, `@shadcn/registry`, `ts-morph` and `shadcn`. No automatic `audit fix` was run.
