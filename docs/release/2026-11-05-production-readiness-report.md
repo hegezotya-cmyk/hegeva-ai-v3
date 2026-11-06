@@ -528,3 +528,11 @@ Current decision: `releaseSafe=false`, **NOT READY**. The next owner action is a
 - PASS: the temporary diagnostic was removed from source, staging API-only deploy #87 succeeded without migration, and the staging URL returned the normal signed-in app after cleanup.
 - PASS: an intermediate test-harness failure caused by the temporary admin-only route imports was fixed by stubbing those unrelated imports in the isolated webhook fixture. The final PR check passed.
 - No production deployment, D1 migration, additional D1 write, payment, or Stripe write occurred. Remote synthetic scheduled-worker acceptance remains blocked until an isolated remote D1/DO and dedicated secret are provisioned.
+
+
+## 2026-11-06 — D1 auth-user classification of historical Stripe orphan
+
+- PASS: the temporary owner-only main-account TEST reader compared Stripe subscription metadata user IDs to `user.id` from staging D1 internally and returned aggregate counts only. The one Stripe-only user has no corresponding D1 auth-user record; its only subscription is canceled. Account-wide active subscription count remains zero.
+- REVIEW REQUIRED remains: this confirms a deleted/nonexistent D1 user with a canceled historical Stripe TEST subscription. No D1 identity or auth-user row was created, and no Stripe object was changed. The conservative all-user parity gate still returns `releaseSafe=false`; changing that gate would require a separate policy decision.
+- PASS: offline CI covers this auth-user aggregate without exposing IDs (PR check #224). Temporary diagnostic route removed; staging API-only deploy #89 succeeded with no migration, and the staging URL was verified to serve the normal app.
+- No production deploy, D1 migration, D1 write, Stripe write, payment, or separate Stripe sandbox access occurred. Remote synthetic scheduled-worker acceptance remains separate and blocked pending isolated resources.
