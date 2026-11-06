@@ -363,3 +363,18 @@ No production deployment/merge, remote D1 write/migration, Stripe write/payment/
 - Reloaded the staging API Worker Cron Events page after the scheduled 21:50 UTC boundary. It still displayed “There have been no events in the past week,” despite the 30-minute UI-display caveat having elapsed from the 21:01 evidence point.
 - The Worker Settings page still showed the five-minute Cron and next scheduled time 21:55 UTC. No manual invocation was run.
 - Disposition: configured schedule **PASS**; actual post-deploy scheduled invocation **FAIL / BLOCKED** because the Cloudflare event history has no event. Runtime execution, outbox retry/recovery and fencing remain unproven. The source of the separate uncaught-exception metric remains unknown.
+
+
+## Targeted staging routing and observability follow-up — 2026-11-06
+
+- **Production-domain request clarified:** the deployed API event showed a request URL on `hegevaai.co.uk`, while the executing script was `hegeva-ai-v3-staging`. At source commit `743cb238d91f382edf0828d58fa006cd55a69446`, the API proxy deliberately constructs the public URL on `https://hegevaai.co.uk` so Better Auth uses the public origin for secure cookie handling. The staging UI config `v0-app/wrangler.staging.jsonc` binds `HEGEVA_API` to `hegeva-ai-v3-staging`; the read-only Cloudflare binding inspection recorded earlier in this report agrees. Thus the production-looking host in the event is not evidence that the request reached the production API Worker.
+- **Observability severity issue found:** the staging API Events view showed 0 Success and 3 Errors in the last-hour window. One inspected `HEGEVA_MONITOR` entry was `scope=core_v1`, `outcome=decision_completed`, for `POST /api/core/decide` on the staging API script. At the deployed source commit, `src/index-ledger.js` imports `emitMonitor` from `src/index.js`, and `emitMonitor` records every outcome with `console.error`. Therefore at least this completed Core decision is classified at error severity; the dashboard error count cannot be used alone as proof of three failed invocations. This is a real monitoring-severity defect to fix with a regression test in a future code change. No code/config change or deploy was made here.
+- The observed event was a Fetch request, not a Cron event. No Cron runtime or outbox retry/fencing success is inferred from it. The last recorded Cron Events readback remains negative (no event visible after the scheduled boundary); scheduled runtime and full acceptance stay **BLOCKED**.
+- No production route, Worker, D1, Stripe, secret, binding, setting, permission, or external account was changed. No payment or email was initiated.
+
+| Gate | Status | Evidence |
+|---|---|---|
+| Staging UI → API target | PASS, source + prior binding readback | Staging service binding points to staging API; public URL normalization is for auth-origin consistency |
+| Core monitor severity | FAIL / READY FOR CODE FIX | Completed decision emitted through `console.error`, inflating Error severity |
+| Scheduled Cron/outbox runtime | BLOCKED | The inspected event was Fetch; no successful scheduled invocation is evidenced |
+| Production release | NO-GO | Cron/outbox, fresh signup and remote isolation remain unproven |
