@@ -34,8 +34,32 @@ async function handleTemporaryFullStripeReconcile(request, env, ctx) {
       signal: AbortSignal.timeout(30000),
     });
     const account = accountResponse.ok ? await accountResponse.json().catch(() => null) : null;
-    if (account?.id !== TEMP_STRIPE_FULL_RECONCILE_ACCOUNT || account?.livemode !== false) {
-      return Response.json({ ok: false, result: "stripe-account-or-mode-unverified" }, { status: 409, headers });
+    if (account?.id !== TEMP_STRIPE_FULL_RECONCILE_ACCOUNT) {
+      return Response.json({ ok: false, result: "stripe-account-unverified" }, { status: 409, headers });
+    }
+
+    const expectedPrices = [
+      env.STRIPE_PREMIUM_PRICE_ID,
+      env.STRIPE_PRO_PRICE_ID,
+      env.STRIPE_TOPUP_SMALL_PRICE_ID,
+      env.STRIPE_TOPUP_MEDIUM_PRICE_ID,
+      env.STRIPE_TOPUP_LARGE_PRICE_ID,
+    ];
+    if (expectedPrices.length !== 5 || expectedPrices.some(id => typeof id !== "string" || !id.startsWith("price_"))) {
+      return Response.json({ ok: false, result: "stripe-test-prices-unconfigured" }, { status: 409, headers });
+    }
+    const priceChecks = await Promise.all(expectedPrices.map(async id => {
+      const response = await fetch(new URL(`/v1/prices/${encodeURIComponent(id)}`, "https://api.stripe.com"), {
+        method: "GET",
+        headers: { Authorization: `Bearer ${secretKey}`, Accept: "application/json" },
+        cache: "no-store",
+        signal: AbortSignal.timeout(30000),
+      });
+      const price = response.ok ? await response.json().catch(() => null) : null;
+      return price?.id === id && price?.livemode === false;
+    }));
+    if (priceChecks.length !== 5 || !priceChecks.every(Boolean)) {
+      return Response.json({ ok: false, result: "stripe-test-prices-unverified" }, { status: 409, headers });
     }
 
     const reconciliation = await reconcilePrivateStagingIdentity({
