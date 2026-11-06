@@ -1,6 +1,6 @@
-// Draft durable side-effect outbox. Not wired to production or staging.
-// Each terminal event needs a durable job, committed in the same transaction
-// as the user plan and Stripe event ledger. No emails/customer metadata stored.
+// Durable D1 outbox state and policy used by the scheduled handler in index-ledger.js.
+// Terminal jobs are committed with the plan and webhook ledger; no Stripe writes
+// or customer email data are stored in this outbox.
 export const TERMINAL_SIDE_EFFECT_OUTBOX_SCHEMA = `
 CREATE TABLE IF NOT EXISTS stripe_terminal_effect_outbox (
   eventId TEXT PRIMARY KEY NOT NULL,
