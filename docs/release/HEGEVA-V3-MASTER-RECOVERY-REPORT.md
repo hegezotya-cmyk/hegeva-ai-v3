@@ -205,3 +205,22 @@ The Cloudflare HTTP-request dataset showed a staging `GET /api/workspace/custome
 ### Cloudflare HTTP request log cross-check
 
 The visible Cloudflare HTTP-request dataset for the last hour showed 50 rows: 24 HTTP 200, 25 HTTP 304, 1 HTTP 499, and no HTTP 5xx responses in that displayed page. The 499 is a client-closed request. This is limited HTTP access-log evidence only; it neither explains nor clears the separate 24-hour uncaught-exception metric, and cannot identify scheduled invocations.
+
+
+## Staging API issue-detection follow-up — 2026-11-06
+
+- Enabled Cloudflare **Issues** detection on the staging API Worker `hegeva-ai-v3-staging` only. The subsequent Issues readback showed **0 active issues, 0 active occurrences, 0 resolved issues**, and no matching issue records. This is a verified setting change; it did not identify the earlier exception.
+- The Worker Settings > Observability readback showed the **Issues** switch checked. **Logs** and **Traces** switches remained off; their persist checkboxes were checked and sampling values displayed 100%. No log/trace switch or sampling setting was changed.
+- The Worker Observability Events page continued to state **“Workers Observability is Disabled”** and offered “Enable Observability”; the follow-up ended at the Worker Settings page, without enabling Logs or Traces. There is still no invocation record or stack trace to identify the source of the prior `Uncaught Exception`.
+- The earlier metric remains **918 invocations / 1 uncaught exception** on active API version `0df95909` over the last 24 hours. It cannot be attributed to Cron or a particular HTTP route from available evidence. The 499 request remains a client-closed request and is separate evidence.
+- Scope: only the staging API Worker Issues detector was enabled. No code deploy, Worker version change, D1 read/write/migration, Stripe access/write/payment, secret/binding/route change, production change, or UI Worker setting change occurred. The browser connection stopped before a final screenshot could be captured; the status above is based on the dashboard DOM readback.
+
+### Updated disposition
+
+| Gate | Status | Current evidence |
+|---|---|---|
+| Staging API Issues detection | PASS | Enabled; Issues page readback displayed zero active/resolved records |
+| Exception diagnosis / invocation stack trace | BLOCKED | Logs/Traces remain off; no usable invocation record was exposed |
+| Remote Cron/outbox runtime | BLOCKED | No scheduled invocation trace or runtime acceptance proof |
+| Production release | NO-GO | Critical staging, reconciliation, journey, and security gates remain unproven |
+
