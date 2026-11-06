@@ -356,3 +356,10 @@ No production deployment/merge, remote D1 write/migration, Stripe write/payment/
 | Remote tenant isolation | BLOCKED | Local two-tenant CI passed; live staging two-user journey not completed |
 | Candidate UI deployment | NOT REQUIRED | No UI application source files changed in PR #95 |
 | Production release | NO-GO | Cron, fresh signup/isolation and other release gates remain open |
+
+
+### Cloudflare scheduled-window readback — 2026-11-06 21:52 UTC
+
+- Reloaded the staging API Worker Cron Events page after the scheduled 21:50 UTC boundary. It still displayed “There have been no events in the past week,” despite the 30-minute UI-display caveat having elapsed from the 21:01 evidence point.
+- The Worker Settings page still showed the five-minute Cron and next scheduled time 21:55 UTC. No manual invocation was run.
+- Disposition: configured schedule **PASS**; actual post-deploy scheduled invocation **FAIL / BLOCKED** because the Cloudflare event history has no event. Runtime execution, outbox retry/recovery and fencing remain unproven. The source of the separate uncaught-exception metric remains unknown.
