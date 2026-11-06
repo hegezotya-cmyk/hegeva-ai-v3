@@ -385,6 +385,15 @@ No production deployment/merge, remote D1 write/migration, Stripe write/payment/
 - **Monitor severity fix drafted:** PR #96, `codex/monitor-log-severity-20261106`, adds explicit severity for known monitor outcomes: successful/prepared outcomes use info, rate-limited/deferred outcomes use warning, and unrecognized or failure outcomes remain error. It does not change request behavior or data.
 - **Regression evidence:** the new test first failed for the intended reason: `decision_completed` was logged at `error` instead of `info`. After the fix, [PR CI #42306813310](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42306813310) passed the monitor severity regression and existing Worker checks. PR #96 remains Draft and unmerged; the fix is **not deployed** to staging.
 - **Fresh registration attempt:** the already-authenticated browser session redirected `/login?mode=register` to the owner Command Center. A separate clean Chromium session could not connect to `staging.hegevaai.co.uk` (`ERR_CONNECTION_REFUSED`); the staging Worker's guessed `workers.dev` origin returned `ERR_QUIC_PROTOCOL_ERROR`. No registration form was submitted, no test account or remote D1 row was created, and no verification email was sent.
-- Proposed test inbox alias for the owner's existing Gmail: `hegevaai85+staging-20261106-qa1@gmail.com`. This is a delivery alias to the existing inbox, not a separate mailbox; it has not been used or verified. The user must complete registration's final Terms acceptance in a browser.
+- Proposed test inbox alias: owner-controlled Gmail plus-address (redacted in this report). This is a delivery alias to the existing inbox, not a separate mailbox. The user must complete registration's final Terms acceptance in a browser.
 - **Disposition:** monitor severity is READY FOR REVIEW in Draft PR #96. Fresh verified signup, login, onboarding and remote tenant-isolation acceptance remain BLOCKED until staging registration is reachable and the owner completes the final account-creation/Terms step. Full staging acceptance remains NOT READY; production remains NO-GO and `releaseSafe=false`.
 - No deployment/merge, D1 write/migration, Stripe mutation/payment, secret/binding/permission change, or external email was performed.
+
+
+## New staging user read-only verification — 2026-11-06 22:5x UTC
+
+- The owner reports completing the manual registration/verification step. A read-only staging D1 query found exactly one matching owner-controlled test alias; the overall auth-user count increased from the previously observed 4 to 5.
+- Read-only user/session query returned `emailVerified=1`, one session, and a creation timestamp of `2026-11-06T22:49:36Z`. Only SELECT queries were run.
+- The connected browser still showed the pre-existing owner account. The new alias session was not available among the connected tabs, so authenticated new-user UI route, refresh/re-login persistence, onboarding and remote tenant-isolation checks remain **BLOCKED** pending an accessible signed-in test-user browser tab.
+- No customer/workspace test data was created, no email content was read, and no remote D1 write/migration, Stripe mutation/payment, or deployment occurred.
+- Privacy: the exact test alias is intentionally omitted from the report.
