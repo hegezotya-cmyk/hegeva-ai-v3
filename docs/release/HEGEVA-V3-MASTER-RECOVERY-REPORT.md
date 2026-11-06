@@ -254,18 +254,19 @@ The following files were read at the exact deployed source commit `0fc1522f896ae
 
 ## Staging Cron/logging follow-up — 2026-11-06
 
-- Dashboard save: on staging API Worker `hegeva-ai-v3-staging`, Logs is on; invocation logs and persistent logs are checked; Traces remains off; Issues remains on. No other Cloudflare setting was changed.
-- Dashboard Observability showed 0 Success and 0 Errors / “No events found” after waiting and refreshing. This does not prove that log ingestion works.
-- Dashboard Deployments still showed active version `0df95909` at 100%, deployed about 10 hours earlier; no new active version was shown after the settings save. The dashboard also displayed its Wrangler-sync warning.
-- Read-only Cron history, after the dashboard’s displayed next execution at 2026-11-06 20:05 UTC, still said there were no events in the past week. No manual Cron invocation was run.
-- FIXED ON PR BRANCH: `wrangler.staging.jsonc` now declares `observability.enabled=true`, logs enabled at 100%, invocation logs and persistence enabled, while traces remain disabled; the existing Issues=true state is mirrored. Cron remains `*/5 * * * *`; payment mode remains TEST. Local JSON parse and value assertions passed.
-- Current config commit: `8c5280d9ddc272b80fd941770da6c8a03f43d3d2`. GitHub Policy CI [#42289472340](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42289472340) completed **PASS** on the configuration commit, including worker checks, syntax, and the Stripe/outbox policy regression steps.
-- BLOCKED: no code deployment was performed. Therefore the updated Wrangler config has not been applied to the active Worker, no post-config scheduled invocation/log was recorded, and remote Cron/outbox/fencing acceptance remains unproven. This work did not touch production, UI Worker, D1, Stripe, secrets, bindings, routes, or permissions.
+- Dashboard settings on staging API Worker `hegeva-ai-v3-staging`: Logs ON, invocation logs OFF, persist logs ON, Traces OFF, Issues ON. The save completed and the settings readback confirmed no pending change.
+- Privacy root cause: the client-portal API token is sent in the request path `/api/client-portal/public/{token}`. Cloudflare invocation logs record Fetch method and request URL. The existing `client-portal-log-protection-test.mjs` intentionally forbids API invocation logs. This test correctly stopped the first staging workflow attempt before preflight or deployment.
+- Failed guarded workflow: [#91 / run #42290462913](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42290462913) failed at `client-portal-log-protection-test.mjs:11`; preflight and deploy were skipped. No Worker deploy, D1 migration/write, UI deploy, or production action occurred in that run.
+- FIXED ON PR BRANCH: staging API Logs remain enabled for errors/custom logs, but `invocation_logs=false` to prevent request-path token capture. The UI staging Worker logging remains disabled. Regression test now asserts this privacy boundary. TEST mode and the five-minute Cron are unchanged; Traces remain disabled.
+- PASS: local JSON parse and config assertions; [Policy CI #42291300648](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42291300648) passed on head `b106cb9ceedb11d2f208570bef8c3b5c043d5a1a`, including the revised portal logging protection test and related Worker checks.
+- BLOCKED: the updated code config has not yet been deployed. Remote Cron/outbox/fencing runtime and exception diagnosis remain unproven; no manual Cron run was triggered.
+- Production remains **NO-GO**. No production Worker, UI Worker, D1, Stripe, secret, binding, route, permission, or external account was modified.
 
 | Gate | Status | Evidence |
 |---|---|---|
-| Staging Wrangler logging config | FIXED ON PR BRANCH | JSON parses; TEST/outbox/Cron settings preserved; Logs/invocation/persist true; Traces false |
-| Dashboard logging setting | SET, EFFECTIVE INGESTION UNPROVEN | Settings readback is on, but events query returned zero rows |
-| Staging Cron runtime | BLOCKED | Cron history still empty after expected 20:05 UTC slot |
-| Production release | NO-GO | Remote staging runtime and independent Stripe/D1 acceptance gates remain incomplete |
+| API logging configuration | FIXED ON PR BRANCH | Logs/persist true; invocation logs false; Traces false |
+| Portal token logging protection | TESTED | Token is in request path; invocation logs are explicitly disabled; portal route has no direct console diagnostics |
+| Staging workflow #91 | FAIL-CLOSED | Privacy regression blocked workflow before preflight/deploy; no runtime mutation occurred |
+| Staging Cron runtime | BLOCKED | Requires successful API-only no-migration deploy and a recorded scheduled event |
+| Production release | NO-GO | Remote staging runtime and independent acceptance gates remain incomplete |
 
