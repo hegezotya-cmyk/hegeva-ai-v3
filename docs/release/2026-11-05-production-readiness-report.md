@@ -470,3 +470,10 @@ Current decision: `releaseSafe=false`, **NOT READY**. The next owner action is a
 - PASS: the package preserves default-deny, fixed scenarios/operations, dedicated authorization, rate limiting, replay protection, synthetic-only namespace and production exclusion requirements.
 - PASS: local proof remains separate from remote evidence: Wrangler DO RPC, SQLite fencing, retry/recovery, idempotency and cleanup are local PASS; staging endpoint activation, remote fencing/recovery, historical exact identity and duplicate/cancellation/entitlement E2E remain BLOCKED.
 - BLOCKED: no staging endpoint, GUARD binding or secret was activated; no deploy or remote D1/Stripe write occurred. The package therefore cannot change `releaseSafe=false`.
+
+## Staging integration preparation — 648185f follow-up
+
+- PASS: added `src/staging-scheduled-test-endpoint.js` as an offline-only HTTP adapter. It is POST-only, default-deny, requires the canonical `STAGING_SCHEDULED_TEST_CONTROL_ENABLED=true` plus a dedicated runtime authorization secret, limits the body, accepts only `scenario`, and returns sanitized status fields.
+- PASS: added `src/staging-synthetic-fixture-adapter.js`, which requires a `staging-fixture:<namespace>` and an adapter explicitly marked synthetic. It injects the namespace into every operation and rejects non-allowlisted scenarios/operations; no SQL, Stripe IDs, customer IDs or arbitrary database identifiers are accepted.
+- PASS: endpoint, fixture namespace, auth, malformed payload, arbitrary-field rejection, controller, DO guard, D1 fencing, syntax, production exclusion and staging dry-run tests completed locally.
+- BLOCKED: the HTTP adapter and fixture boundary are intentionally not imported by the active Worker entrypoints; no `GUARD` binding, secret, endpoint or remote D1 fixture is active. Remote runtime acceptance remains owner-gated.
