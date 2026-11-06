@@ -32,6 +32,11 @@ assert.equal((await run({readD1:async()=>d1,
 const good=await run({readD1:async()=>d1,readStripePage:async()=>({data:stripe.slice(0,4),has_more:false})});
 assert.equal(good.status,"PASS");
 assert.equal(good.releaseSafe,true);
+const authCheck=await run({readD1:async()=>[],readD1Users:async()=>[{id:"user_orphan"}],
+ readStripePage:async()=>({data:[{id:"sub_orphan",customer:"cus_orphan",status:"canceled",livemode:false,metadata:{userId:"user_orphan"}}],has_more:false})});
+assert.equal(authCheck.counts.unrepresentedStripeUsersWithD1AuthRecord,1);
+assert.equal(authCheck.counts.unrepresentedStripeUsersWithoutD1AuthRecord,0);
+assert.ok(!JSON.stringify(authCheck).includes("user_orphan"));
 assert.ok(!JSON.stringify(paged).includes("cus_"));
 assert.ok(!JSON.stringify(paged).includes("user_"));
 console.log("Private remote-reader orchestration PASS (offline fixtures only; no network or secrets).");
