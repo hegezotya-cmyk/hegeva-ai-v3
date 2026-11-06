@@ -25,10 +25,9 @@ if(!token){
  console.log(JSON.stringify({verified:false,status:"BLOCKED",reason:"stripe-test-readonly-key-unavailable"}));
  process.exitCode=2;
 } else {
- const readD1=async()=>{
+ const readD1Query=async sql=>{
    const args=["d1","execute","hegeva-ai-staging-db",
-     "--remote","--config","wrangler.staging.jsonc","--json",
-     "--command","SELECT userId, stripeCustomerId, stripeSubscriptionId, subscriptionStatus FROM stripe_customers"];
+     "--remote","--config","wrangler.staging.jsonc","--json","--command",sql];
    // No shell interpolation and no stdout/stderr forwarding. Staging config pinned.
    // Invoke the pinned local Wrangler JS entrypoint directly using Node.
    // npx.cmd via execFileSync is unreliable on recent Windows Node versions.
@@ -49,6 +48,8 @@ if(!token){
      throw Error("untrusted-d1-response");
    return blocks.flatMap(b=>b.results);
  };
+ const readD1=()=>readD1Query("SELECT userId, stripeCustomerId, stripeSubscriptionId, subscriptionStatus FROM stripe_customers");
+ const readD1Users=()=>readD1Query("SELECT id FROM user");
  const readStripePage=async cursor=>{
    const url=new URL("https://api.stripe.com/v1/subscriptions");
    url.searchParams.set("status","all");
@@ -60,7 +61,7 @@ if(!token){
    if(!res.ok)throw Error("stripe-read-failed");
    return res.json();
  };
- const result=await reconcilePrivateStagingIdentity({readD1,readStripePage});
+ const result=await reconcilePrivateStagingIdentity({readD1,readD1Users,readStripePage});
  console.log(JSON.stringify(result,null,2));
  if(result.status!=="PASS")process.exitCode=2;
 }
