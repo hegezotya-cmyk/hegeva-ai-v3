@@ -4,10 +4,13 @@
 const ACTIVE = new Set(["active","trialing","past_due"]);
 const clean = (v,p) => typeof v==="string" && v.startsWith(p) && v.length>p.length ? v : null;
 
-export function compareStripeTestAndStagingD1({d1Identities,stripeSubscriptions,stripeComplete}={}) {
+export function compareStripeTestAndStagingD1({d1Identities,stripeSubscriptions,stripeComplete,d1UserIds}={}) {
   const blocked = reason=>({verified:false,status:"BLOCKED",reason});
   if (stripeComplete!==true || !Array.isArray(d1Identities) ||
       !Array.isArray(stripeSubscriptions)) return blocked("incomplete-snapshot");
+  if (d1UserIds!==undefined && (!Array.isArray(d1UserIds) ||
+      d1UserIds.some(id=>typeof id!=="string" || id.length===0)))
+    return blocked("invalid-d1-user-record");
   const users=new Map(), subs=new Set(), customerOwners=new Map();
   for(const row of stripeSubscriptions){
     const user=clean(row?.userId,"") || null;
@@ -73,6 +76,12 @@ export function compareStripeTestAndStagingD1({d1Identities,stripeSubscriptions,
       multiCustomerActiveUsers:multiCustomerUsers,
       stripeUsersWithoutD1Identity:[...users.keys()].filter(u=>!storedUsers.has(u)).length,
       unrepresentedStripeSubscriptionStatuses:orphanStatusCounts,
+      unrepresentedStripeUsersWithD1AuthRecord:Array.isArray(d1UserIds)
+        ? [...users.keys()].filter(user=>!storedUsers.has(user) && d1UserIds.includes(user)).length
+        : null,
+      unrepresentedStripeUsersWithoutD1AuthRecord:Array.isArray(d1UserIds)
+        ? [...users.keys()].filter(user=>!storedUsers.has(user) && !d1UserIds.includes(user)).length
+        : null,
     },
     releaseSafe:consistent && multiCustomerUsers===0,
   };
