@@ -462,3 +462,11 @@ Owner explicitly confirmed that the masked main-account TEST subscription `sub_1
 - BLOCKED: this proves the RPC and cross-storage fencing contract locally only. The real staging Worker/D1 runtime, remote cron acceptance, historical identity exact proof, and duplicate/cancellation/entitlement E2E remain separate release gates and were not run in this turn.
 
 Current decision: `releaseSafe=false`, **NOT READY**. The next owner action is a separately approved staging-only activation/acceptance window; it must preserve secrets and Dashboard-only variables, use isolated fixtures, and verify remote runtime evidence before any release decision.
+
+## Final staging activation package — 30eda64
+
+- PASS: added `docs/release/staging-activation-package.md` with the exact staging-only configuration contract, cross-storage fencing protocol, remote acceptance sequence, cleanup/rollback procedure, and owner action list.
+- PASS: the package explicitly separates the Durable Object transaction from D1 conditional writes. A prior grant is invalidated by nonce/lease predicates; stale D1 writes must affect zero rows, and duplicate operation keys must be no-ops.
+- PASS: the package preserves default-deny, fixed scenarios/operations, dedicated authorization, rate limiting, replay protection, synthetic-only namespace and production exclusion requirements.
+- PASS: local proof remains separate from remote evidence: Wrangler DO RPC, SQLite fencing, retry/recovery, idempotency and cleanup are local PASS; staging endpoint activation, remote fencing/recovery, historical exact identity and duplicate/cancellation/entitlement E2E remain BLOCKED.
+- BLOCKED: no staging endpoint, GUARD binding or secret was activated; no deploy or remote D1/Stripe write occurred. The package therefore cannot change `releaseSafe=false`.
