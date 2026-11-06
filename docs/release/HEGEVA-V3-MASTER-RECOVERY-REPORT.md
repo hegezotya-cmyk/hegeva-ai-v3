@@ -290,3 +290,47 @@ This section supersedes earlier statements that the privacy-safe logging configu
 | Scheduled run after deploy | BLOCKED | No Cron event visible at 21:01 UTC; Cloudflare warns of up to 30-minute display delay |
 | Outbox recovery/fencing runtime | BLOCKED | No post-deploy Cron invocation evidence |
 | Production release | NO-GO | Independent Stripe/D1, full journey, isolation, assistant, analytics, and dependency gates remain open |
+
+
+## Full staging acceptance follow-up — 2026-11-06 21:34 UTC
+
+This section supersedes earlier statements about pending local isolation tests and the public registration audit. It does **not** clear the live Cron, main-account Stripe TEST, fresh registration/email delivery, or remote workspace-isolation gates.
+
+### Verified on current staging
+
+- **Read-only public staging browser audit:** [workflow run #41915813249](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/41915813249), attempt 2, **PASS** at 21:31 UTC. Its script blob is unchanged between the run's source commit and this PR branch. Mobile and desktop registration UI, email-verification error routes, and reset-password route returned successfully; no uncaught browser errors, production requests, or writes were observed.
+- The same audit read-only GETs confirmed:
+  - email provider readiness is configured (**presence only; delivery not tested**);
+  - staging billing public status reports TEST mode, Stripe selected/connected, checkout enabled and webhook configured;
+  - unauthenticated plan, billing, workspace and customer endpoints each return 401.
+- **Authenticated route smoke:** existing staging owner session loaded /get-started, Customers, Invoices/Quotes, Documents, Expenses, Planner, Messages, Customer Follow-up/Business Intelligence, Reports, Business Hub, Account, Command Center, Assistant and Demo Workspace. Customers and invoice drafts remained visible after browser refresh with “Cloud synced.” Account showed Basic plan and current usage. Demo Workspace displayed explicitly fictional sample data. HEGEVA Core displayed ready. No records were created/edited/deleted, no AI request was sent, and no checkout was started. This is route and refresh evidence for the existing staging owner session only.
+- **Full local build:** [HEGEVA V0 Build Check #244](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42295355420), **PASS** on application source commit  c126a66315966c4f2cfa4867d026581a76c3ec4f. Local migrations, Wrangler deploy dry-run, Assistant/credit regressions, product regressions, TypeScript, Next.js build and OpenNext build passed. No remote D1 operation or deployment was part of this run.
+- **Current PR CI and tenant regression:** [Stripe Policy CI #265](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42297560439), **PASS** on head 40cb317b5f37746b180812117ccbe59ee0f415ea. Added and ran scripts/local-workspace-two-tenants.mjs against disposable Wrangler **local** D1 on 127.0.0.1:8788. It proved two distinct Better Auth sessions; anonymous read/write denial; persistent Customers, invoices, tasks and messages; cross-tenant non-visibility; no cross-user overwrite; cross-origin write rejection; session revocation; and persistence after re-login. The test log confirms it did not contact remote DB, email or Stripe. This is local integration evidence, not a live staging tenant-isolation proof.
+- Commit 40cb317b changes only CI workflow wiring after deployed application source 743cb238; staging API remains version 8ad5ab93. No UI Worker deploy occurred.
+
+### Still BLOCKED / OWNER ACTION REQUIRED
+
+| Gate | Status | Reason / next evidence |
+|---|---|---|
+| Fresh staging signup → verification email → first verified login → onboarding | BLOCKED | The live audit intentionally does not create accounts or send email. The task's remote D1 write/email-send restrictions remain in force. Requires explicit approval for a disposable staging user and verification email to the owner-controlled test inbox. |
+| Cross-user/workspace isolation on remote staging | BLOCKED | Local two-tenant integration passed, but remote isolation requires synthetic remote records and writes, which are not authorized. |
+| Main HEGEVA Stripe account TEST ↔ staging D1 exact reconciliation | BLOCKED | Stripe connector exposes the main account as live and a separate sandbox as test. The separate sandbox was not used. The requested main-account TEST context was unavailable; no Stripe records were read. Do not pass this gate until that exact context is available and a read-only D1 join is run. |
+| Post-deploy Cron event and outbox runtime | BLOCKED | Cloudflare Cron Events last read at 21:07 UTC showed no event and warned of up to a 30-minute display delay. The existing Chrome browser connection subsequently disconnected, so a post-delay readback could not be completed. No manual trigger was issued. Reconnect the same signed-in Cloudflare browser tab and re-read Cron Events/logs; no new login is needed. |
+| Remote staging D1 current-state readback | BLOCKED | No fresh D1 console read was possible after the browser connection dropped. Previous aggregate read remains historical; no remote write/migration was made. |
+| Email delivery | BLOCKED | Only provider configuration presence is proven; no message was sent and no delivery receipt was observed. |
+| Full candidate UI acceptance | BLOCKED | The staging UI was not deployed under the API-only approval. Route audits cover the currently deployed staging UI, not an undeployed UI candidate. |
+| GA4 live event delivery / real purchase conversion | BLOCKED | No real registration/subscription was completed; local and read-only checks are not GA4 delivery proof. No fake purchase event was emitted. |
+| Advanced Assistant answer quality | BLOCKED | Existing live quality failures for PR #81 remain; the new workflow validates offline response/credit contracts, not live answer grounding. No model request was made here. |
+
+### Current release disposition
+
+- Staging API-only deploy and smoke: **PASS**.
+- Read-only staging public browser audit: **PASS**.
+- Local workspace persistence/isolation integration: **PASS**.
+- Authenticated existing-session route and refresh smoke: **PASS, limited scope**.
+- Complete real customer journey and remote isolation: **BLOCKED**.
+- Remote Cron/outbox runtime: **BLOCKED** pending same-session Cloudflare readback.
+- Main-account Stripe TEST reconciliation: **BLOCKED** pending the exact authorized context.
+- releaseSafe=false; production release: **NO-GO**.
+
+No production deployment/merge, remote D1 write/migration, Stripe write/payment/refund, secret/binding/route/permission change, customer communication or external publication occurred. The only staging deployment in this acceptance remains the previously approved API-only no-migration deployment.
