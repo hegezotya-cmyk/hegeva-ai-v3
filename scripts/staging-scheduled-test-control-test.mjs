@@ -7,8 +7,8 @@ function fixture(guard={},opts={}){
  const adapter={
   acquire:async()=>{calls.push("acquire");return opts.acquire??true},
   verifyLease:async()=>{calls.push("verifyLease");return opts.leaseValid??true},
-  fencedWrite:async({operation})=>{calls.push("fencedWrite");return {ok:true,result:await operation()}},
-  runSynthetic:async({assertLease,fencedWrite})=>{calls.push("run");if(opts.throwRun)throw Error("secret must not leak");await fencedWrite(async()=>({ok:true}));if(opts.lateLease)return {status:await assertLease()?"completed":"lease-lost"};return opts.output??{status:"completed"}},
+  fencedWrite:async({operationCode})=>{calls.push("fencedWrite");return opts.fenced?{ok:false,reason:"lease-invalid"}:{ok:true,operationCode,fencingToken:nonce}},
+  runSynthetic:async({assertLease,fencedWrite})=>{calls.push("run");if(opts.throwRun)throw Error("secret must not leak");const grant=await fencedWrite("retry-recovery-apply");if(!grant.ok)return {status:"lease-lost"};if(opts.lateLease)return {status:await assertLease()?"completed":"lease-lost"};return opts.output??{status:"completed"}},
   cleanup:async()=>{calls.push("cleanup");if(opts.throwCleanup)throw Error("private")},
   verifyCleanup:async()=>{calls.push("verify");return opts.verify??true},
   release:async()=>{calls.push("release")}

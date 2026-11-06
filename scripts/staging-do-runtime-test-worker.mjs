@@ -13,6 +13,7 @@ export default {
     if (action === "acquire") return Response.json({result:await stub.acquire(input)});
     if (action === "release") return Response.json({result:await stub.release(input)});
     if (action === "expire") return Response.json({result:await stub.clearExpired({scenario:"retry-recovery"})});
+    if (action === "fenced") return Response.json({result:await stub.fencedWrite({scenario:"retry-recovery",nonce,operationCode:"retry-recovery-apply"})});
     return Response.json({error:"invalid-action"},{status:400});
   },
 };

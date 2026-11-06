@@ -36,9 +36,9 @@ export function createStagingScheduledTestController({
        if(now()>deadline)return false;
        return await adapter.verifyLease({scenario,nonce,deadline})===true;
      };
-     const fencedWrite=async operation=>{
-       if(typeof operation!=="function"||await assertLease()!==true)return {ok:false,reason:"lease-invalid-before-write"};
-       return adapter.fencedWrite({scenario,nonce,deadline,operation});
+     const fencedWrite=async operationCode=>{
+       if(typeof operationCode!=="string"||await assertLease()!==true)return {ok:false,reason:"lease-invalid-before-write"};
+       return adapter.fencedWrite({scenario,nonce,deadline,operationCode});
      };
      const execution=await adapter.runSynthetic({scenario,nonce,deadline,assertLease,fencedWrite});
      if(now()>deadline)code="deadline-exceeded";

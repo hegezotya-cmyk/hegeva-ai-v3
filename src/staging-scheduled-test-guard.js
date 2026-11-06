@@ -2,6 +2,7 @@
 // The store MUST expose one atomic transaction(callback) operation backed by a
 // Durable Object or equivalent CAS store. Separate get()/put() is rejected.
 const SCENARIOS = new Set(["retry-recovery", "lease-fencing"]);
+const OPERATIONS = new Set(["retry-recovery-apply", "lease-fencing-apply"]);
 const keyFor = scenario => `staging-test-control:${scenario}`;
 export function createPersistentStagingTestGuard({ store, now = () => Date.now(), leaseMs = 30_000, replayWindowMs = 60_000, maxRunsPerWindow = 1, windowMs = 60_000 } = {}) {
   if (!store || typeof store.transaction !== "function") throw Error("guard-atomic-store-unavailable");
@@ -40,14 +41,13 @@ export function createPersistentStagingTestGuard({ store, now = () => Date.now()
         return true;
       });
     },
-    async fencedWrite({ scenario, nonce, write } = {}) {
-      if (!SCENARIOS.has(scenario) || typeof write !== "function") return {ok:false, reason:"invalid-fenced-write"};
+    async fencedWrite({ scenario, nonce, operationCode } = {}) {
+      if (!SCENARIOS.has(scenario) || !OPERATIONS.has(operationCode)) return {ok:false, reason:"invalid-fenced-operation"};
       const key = keyFor(scenario);
       return store.transaction(async tx => {
         const record = await tx.get(key), current = Number(now());
         if (!record || record.nonce !== nonce || record.active !== true || Number(record.leaseUntil) <= current) return {ok:false, reason:"lease-invalid"};
-        const result = await write(tx);
-        return {ok:true, result};
+        return {ok:true, operationCode, fencingToken:nonce};
       });
     },
   };

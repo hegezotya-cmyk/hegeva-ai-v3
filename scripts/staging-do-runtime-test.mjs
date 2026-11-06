@@ -10,4 +10,5 @@ const winner = results[0].result === true ? nonce : other;
 const loser = winner === nonce ? other : nonce;
 assert.equal((await call("release", loser)).result, false, "stale nonce cannot release active lease");
 assert.equal((await call("release", winner)).result, true, "current lease owner can release");
+assert.equal((await call("fenced", winner)).result.ok, false, "released lease cannot receive a fenced grant");
 console.log("Cloudflare local Durable Object runtime PASS: atomic transaction single-flight and stale-release fencing");
