@@ -19,11 +19,12 @@ test("endpoint is default-deny, authenticated and allowlisted", async () => {
 
 test("fixture adapter requires synthetic namespace and rejects arbitrary effects", async () => {
   assert.throws(() => createStagingSyntheticFixtureAdapter({ namespace: "real-db", adapter: { isSyntheticFixture: true } }), /fixture-namespace-invalid/);
-  assert.throws(() => createStagingSyntheticFixtureAdapter({ namespace: "staging-fixture:test-run-01", adapter: {} }), /fixture-adapter-not-isolated/);
+  assert.throws(() => createStagingSyntheticFixtureAdapter({ namespace: "staging-fixture:test-run-01", db: {}, adapter: {} }), /synthetic-db-binding-required/);
   const calls = [];
-  const base = { isSyntheticFixture: true, fencedWrite: input => { calls.push(input); return { ok: true }; } };
-  const adapter = createStagingSyntheticFixtureAdapter({ namespace: "staging-fixture:test-run-01", adapter: base });
+  const db = { prepare: () => ({ bind: () => ({ first: async () => ({ n: 0, ok: 1 }), run: async () => ({ meta: { changes: 1 } }) }) }) };
+  const guard = { acquire() {}, release() {}, verifyLease() {}, fencedWrite(input) { calls.push(input); return { ok: true }; } };
+  const adapter = createStagingSyntheticFixtureAdapter({ namespace: "staging-fixture:test-run-01", db, guard });
   assert.equal((await adapter.fencedWrite({ scenario: "unknown", operationCode: "sql" })).ok, false);
   await adapter.fencedWrite({ scenario: "retry-recovery", operationCode: "retry-recovery-apply" });
-  assert.equal(calls[0].namespace, "staging-fixture:test-run-01");
+  assert.equal(calls[0].operationCode, "retry-recovery-apply");
 });

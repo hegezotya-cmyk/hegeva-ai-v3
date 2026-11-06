@@ -477,3 +477,11 @@ Current decision: `releaseSafe=false`, **NOT READY**. The next owner action is a
 - PASS: added `src/staging-synthetic-fixture-adapter.js`, which requires a `staging-fixture:<namespace>` and an adapter explicitly marked synthetic. It injects the namespace into every operation and rejects non-allowlisted scenarios/operations; no SQL, Stripe IDs, customer IDs or arbitrary database identifiers are accepted.
 - PASS: endpoint, fixture namespace, auth, malformed payload, arbitrary-field rejection, controller, DO guard, D1 fencing, syntax, production exclusion and staging dry-run tests completed locally.
 - BLOCKED: the HTTP adapter and fixture boundary are intentionally not imported by the active Worker entrypoints; no `GUARD` binding, secret, endpoint or remote D1 fixture is active. Remote runtime acceptance remains owner-gated.
+
+## Final pre-activation security closure — be2c7aa follow-up
+
+- PASS: the synthetic adapter now requires a separate `SYNTHETIC_TEST_DB` binding, fixed `staging_synthetic_fixture_lease`/`staging_synthetic_fixture_effect` tables, a constrained fixture namespace, and a DO RPC guard. It has no fallback to the production `DB` binding and accepts no arbitrary SQL or real-user identifiers.
+- PASS: the D1-shaped write is conditional on namespace, nonce/fencing token, active lease and unexpired lease time; the operation key is unique. Stale leases affect zero rows, duplicate operations are no-ops, and cleanup removes only the fixture namespace.
+- PASS: added inactive `src/staging-scheduled-test-worker.js` and `scripts/wrangler.staging-scheduled-test-offline.jsonc`. The dry-run shows only `GUARD`, `SYNTHETIC_TEST_DB`, `PAYMENT_MODE=test` and the canonical flag set to false. It is not referenced by production entrypoints.
+- PASS: local HTTP → controller → synthetic SQLite/D1-shaped fixture integration covers completion, stale lease rejection, duplicate operation rejection and cleanup; endpoint auth/default-deny, DO runtime, controller, guard, syntax and production exclusion tests pass.
+- BLOCKED: the isolated build configuration is intentionally not deployed or activated. Remote staging D1 isolation, remote cron acceptance, historical identity exact proof and duplicate/cancellation/entitlement E2E remain unproven.

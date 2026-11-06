@@ -41,6 +41,13 @@ export function createPersistentStagingTestGuard({ store, now = () => Date.now()
         return true;
       });
     },
+    async verifyLease({ scenario, nonce } = {}) {
+      if (!SCENARIOS.has(scenario) || typeof nonce !== "string") return false;
+      return store.transaction(async tx => {
+        const record = await tx.get(keyFor(scenario));
+        return record?.active === true && record.nonce === nonce && Number(record.leaseUntil) > Number(now());
+      });
+    },
     async fencedWrite({ scenario, nonce, operationCode } = {}) {
       if (!SCENARIOS.has(scenario) || !OPERATIONS.has(operationCode)) return {ok:false, reason:"invalid-fenced-operation"};
       const key = keyFor(scenario);

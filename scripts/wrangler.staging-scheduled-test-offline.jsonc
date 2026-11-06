@@ -1,0 +1,10 @@
+{
+  "name": "hegeva-ai-v3-staging-scheduled-test-offline",
+  "main": "../src/staging-scheduled-test-worker.js",
+  "compatibility_date": "2026-09-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": { "bindings": [{ "name": "GUARD", "class_name": "StagingTestGuardDurableObject" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["StagingTestGuardDurableObject"] }],
+  "d1_databases": [{ "binding": "SYNTHETIC_TEST_DB", "database_name": "hegeva-staging-synthetic-test-db", "database_id": "local-only-not-for-deploy" }],
+  "vars": { "STAGING_SCHEDULED_TEST_CONTROL_ENABLED": "false", "PAYMENT_MODE": "test" }
+}

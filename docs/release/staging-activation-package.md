@@ -2,7 +2,7 @@
 
 Status: preparation only. No endpoint, Durable Object binding, secret, permission, deployment, Stripe write, or remote D1 write is authorized by this document.
 
-Implementation status: the controller, persistent DO guard, RPC method, local SQLite fencing fixture and local Wrangler runtime harness exist. The offline HTTP adapter is in `src/staging-scheduled-test-endpoint.js` and the namespace-enforcing adapter boundary is in `src/staging-synthetic-fixture-adapter.js`. Neither is wired into `src/index.js` or `src/index-ledger.js`; the staging `GUARD` binding and remote fixture adapter remain inactive. This package is therefore a GO/NO-GO package, not an activation claim.
+Implementation status: the controller, persistent DO guard, RPC method, local SQLite fencing fixture and local Wrangler runtime harness exist. The offline HTTP adapter is in `src/staging-scheduled-test-endpoint.js`, the namespace-enforcing D1-shaped adapter is in `src/staging-synthetic-fixture-adapter.js`, and the inactive staging-only build entrypoint is `src/staging-scheduled-test-worker.js`. None is wired into `src/index.js` or `src/index-ledger.js`; the staging `GUARD` binding and remote fixture adapter remain inactive. This package is therefore a GO/NO-GO package, not an activation claim.
 
 ## Scope and invariants
 
