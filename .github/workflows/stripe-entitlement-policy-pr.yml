@@ -62,6 +62,41 @@ jobs:
           node-version: "22"
       - name: Install locked dependencies
         run: npm ci
+      - name: Local two-tenant auth and workspace isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HEGEVA_TEST_BASE_URL="http://127.0.0.1:8788"
+          export HEGEVA_LOCAL_ACCOUNT_SEED_SQL="$RUNNER_TEMP/hegeva-local-account-seed-$GITHUB_RUN_ID.sql"
+          worker_log="$RUNNER_TEMP/hegeva-local-worker-$GITHUB_RUN_ID.log"
+          worker_pid=""
+          cleanup() {
+            if [[ -n "$worker_pid" ]]; then
+              kill "$worker_pid" 2>/dev/null || true
+              wait "$worker_pid" 2>/dev/null || true
+            fi
+            rm -f "$HEGEVA_LOCAL_ACCOUNT_SEED_SQL" "$worker_log"
+          }
+          trap cleanup EXIT
+          node scripts/local-auth-credential-seed.mjs
+          npx wrangler d1 migrations apply hegeva-ai-staging-db --local --config wrangler.staging.jsonc
+          npx wrangler d1 execute hegeva-ai-staging-db --local --config wrangler.staging.jsonc --file scripts/local-workspace-two-tenants.sql
+          npx wrangler d1 execute hegeva-ai-staging-db --local --config wrangler.staging.jsonc --file "$HEGEVA_LOCAL_ACCOUNT_SEED_SQL"
+          ./node_modules/.bin/wrangler dev --local --config wrangler.staging.jsonc --port 8788 >"$worker_log" 2>&1 &
+          worker_pid=$!
+          ready=0
+          for _ in {1..30}; do
+            if curl -fsS "$HEGEVA_TEST_BASE_URL/api/system/email-status" >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$ready" != "1" ]]; then
+            tail -n 50 "$worker_log"
+            exit 1
+          fi
+          node scripts/local-workspace-two-tenants.mjs
       - name: Checkout-lock owned-token CAS regression
         run: node scripts/stripe-checkout-lock-cas-regression-test.mjs
       - name: Worker checks
