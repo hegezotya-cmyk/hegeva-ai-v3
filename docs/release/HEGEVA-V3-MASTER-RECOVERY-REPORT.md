@@ -224,3 +224,20 @@ The visible Cloudflare HTTP-request dataset for the last hour showed 50 rows: 24
 | Remote Cron/outbox runtime | BLOCKED | No scheduled invocation trace or runtime acceptance proof |
 | Production release | NO-GO | Critical staging, reconciliation, journey, and security gates remain unproven |
 
+
+
+## Staging API Cron history — read-only — 2026-11-06
+
+- Opened the Cron Events page from the staging API Worker Settings trigger link: Worker `hegeva-ai-v3-staging` (Cloudflare's default environment label shown as “Production”), configured schedule **Every 5 minutes**.
+- The page describes a historical log for the **past week** and displays **“There have been no events in the past week.”** It notes that new or recently renamed Workers may take up to 30 minutes before events appear. The UI therefore records no Cron event for the expected schedule; this is strong negative runtime evidence, but not a stack trace and not proof of the cause of the separate uncaught exception.
+- No manual Cron invocation was triggered. No deployment, D1 access/write/migration, Stripe access/write/payment, secret/binding change, or production Worker change occurred.
+
+### Updated Cron disposition
+
+| Gate | Status | Evidence |
+|---|---|---|
+| Staging Cron schedule configuration | PASS | Settings shows every 5 minutes |
+| Staging Cron event history | BLOCKED / NEGATIVE EVIDENCE | Cloudflare history lists no events during the past week; no invocation details available |
+| Outbox scheduled runtime / recovery | BLOCKED | No recorded Cron run or runtime evidence |
+| Cause of 24-hour uncaught exception | BLOCKED | No log/trace/issue record ties it to Cron or an HTTP request |
+
