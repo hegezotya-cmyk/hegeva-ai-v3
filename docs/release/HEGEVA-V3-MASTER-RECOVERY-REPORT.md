@@ -200,3 +200,8 @@ The Worker Issues page shows “Enable issue detection”, and the Worker Observ
 ### Related staging Core request evidence
 
 The Cloudflare HTTP-request dataset showed a staging `GET /api/workspace/customers` and `POST /api/core/decide` returning HTTP 200 during the authenticated route smoke. This corroborates that the workspace/Core API endpoints were reached successfully for that session; it does not identify or explain the separate uncaught exception, and it does not prove new-user journey or tenant isolation. The dataset is HTTP request telemetry only; it did not expose Worker exception details.
+
+
+### Cloudflare HTTP request log cross-check
+
+The visible Cloudflare HTTP-request dataset for the last hour showed 50 rows: 24 HTTP 200, 25 HTTP 304, 1 HTTP 499, and no HTTP 5xx responses in that displayed page. The 499 is a client-closed request. This is limited HTTP access-log evidence only; it neither explains nor clears the separate 24-hour uncaught-exception metric, and cannot identify scheduled invocations.
