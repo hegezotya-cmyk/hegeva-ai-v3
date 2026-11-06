@@ -378,3 +378,13 @@ No production deployment/merge, remote D1 write/migration, Stripe write/payment/
 | Core monitor severity | FAIL / READY FOR CODE FIX | Completed decision emitted through `console.error`, inflating Error severity |
 | Scheduled Cron/outbox runtime | BLOCKED | The inspected event was Fetch; no successful scheduled invocation is evidenced |
 | Production release | NO-GO | Cron/outbox, fresh signup and remote isolation remain unproven |
+
+
+## Follow-up: monitor severity fix and fresh signup access — 2026-11-06 22:45 UTC
+
+- **Monitor severity fix drafted:** PR #96, `codex/monitor-log-severity-20261106`, adds explicit severity for known monitor outcomes: successful/prepared outcomes use info, rate-limited/deferred outcomes use warning, and unrecognized or failure outcomes remain error. It does not change request behavior or data.
+- **Regression evidence:** the new test first failed for the intended reason: `decision_completed` was logged at `error` instead of `info`. After the fix, [PR CI #42306813310](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42306813310) passed the monitor severity regression and existing Worker checks. PR #96 remains Draft and unmerged; the fix is **not deployed** to staging.
+- **Fresh registration attempt:** the already-authenticated browser session redirected `/login?mode=register` to the owner Command Center. A separate clean Chromium session could not connect to `staging.hegevaai.co.uk` (`ERR_CONNECTION_REFUSED`); the staging Worker's guessed `workers.dev` origin returned `ERR_QUIC_PROTOCOL_ERROR`. No registration form was submitted, no test account or remote D1 row was created, and no verification email was sent.
+- Proposed test inbox alias for the owner's existing Gmail: `hegevaai85+staging-20261106-qa1@gmail.com`. This is a delivery alias to the existing inbox, not a separate mailbox; it has not been used or verified. The user must complete registration's final Terms acceptance in a browser.
+- **Disposition:** monitor severity is READY FOR REVIEW in Draft PR #96. Fresh verified signup, login, onboarding and remote tenant-isolation acceptance remain BLOCKED until staging registration is reachable and the owner completes the final account-creation/Terms step. Full staging acceptance remains NOT READY; production remains NO-GO and `releaseSafe=false`.
+- No deployment/merge, D1 write/migration, Stripe mutation/payment, secret/binding/permission change, or external email was performed.
