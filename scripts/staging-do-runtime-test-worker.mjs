@@ -4,7 +4,8 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname !== "/local-test") return new Response("not-found", {status:404});
-    const id = env.GUARD.idFromName("local-single-flight");
+    const name = url.searchParams.get("name") || "local-single-flight";
+    const id = env.GUARD.idFromName(name);
     const stub = env.GUARD.get(id);
     const action = url.searchParams.get("action");
     const nonce = url.searchParams.get("nonce");

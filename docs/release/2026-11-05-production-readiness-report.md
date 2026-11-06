@@ -130,6 +130,17 @@ Review the draft PR and separately authorize any future staging migration, stagi
 - Proposed repair/rollback only (not executed): insert/update the exact identity under a uniqueness guard and pre-change snapshot; rollback by restoring the prior row from that snapshot, with no Stripe mutation. Owner approval is required before either action.
 - Final status remains **NOT READY**, `releaseSafe=false`.
 
+## Final offline build and preflight fix — 2026-11-06
+
+- PASS: clean checkout contained `better-auth` in `package.json` and `package-lock.json`; it was absent only because `node_modules` is not committed. Node `22.23.2`, npm `10.9.8`, registry npmjs, and cache verification were successful.
+- PASS: reproducible `npm ci --ignore-scripts` installed 58 packages with no lockfile change and no reported vulnerabilities.
+- PASS: `npm run staging:api:dry-run` completed with Wrangler `4.157.0`; it resolved only the existing staging bindings and did not include the test `GUARD` binding or endpoint.
+- PASS: controller, atomic guard, synthetic fixture, processor, syntax and production-exclusion regressions passed.
+- PASS: local Wrangler Durable Object runtime harness passed after isolating the DO namespace per run: parallel acquire had one winner, stale release was rejected, and current-owner release succeeded. This remains local evidence, not staging runtime evidence.
+- FINDING/FIXED: the runtime test initially reused a persisted local DO namespace and falsely produced zero winners; the test now uses a unique namespace per run and verifies the actual winner/loser nonce pair.
+- BLOCKED: staging activation, remote cron/runtime acceptance, historical identity exact proof and duplicate/cancellation/entitlement E2E remain unperformed by policy.
+- Final status remains **NOT READY**, `releaseSafe=false`.
+
 ## Staging activation readiness — 2026-11-06
 
 - PASS: staging-only activation plan/checklist now specifies the unregistered `GUARD` Durable Object binding, default-deny control flag, dedicated authorization, fixed scenarios, replay/rate limits, synthetic-only fixtures, cleanup, rollback and evidence separation.
