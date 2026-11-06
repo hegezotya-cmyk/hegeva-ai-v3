@@ -63,8 +63,15 @@ export function compareStripeTestAndStagingD1({d1Identities,stripeSubscriptions,
       orphanStatusCounts[label]=(orphanStatusCounts[label]||0)+1;
     }
   }
+  const orphanUsers=[...users].filter(([user])=>!storedUsers.has(user));
+  const historicalCanceledUsers=orphanUsers.filter(([user,records])=>
+    Array.isArray(d1UserIds) && !d1UserIds.includes(user) &&
+    records.length>0 && records.every(s=>String(s.status).toLowerCase()==="canceled"));
+  const nonblockingCanceledOrphanSubscriptions=historicalCanceledUsers
+    .reduce((count,[,records])=>count+records.length,0);
+  const orphanPolicyPassed=orphanUsers.length===historicalCanceledUsers.length;
   const consistent=unmatched===0 && mismatch===0 && extraActive===0 &&
-    storedUsers.size===users.size;
+    orphanPolicyPassed;
   return {
     verified:true,status:consistent?"PASS":"REVIEW_REQUIRED",
     counts:{
@@ -82,6 +89,7 @@ export function compareStripeTestAndStagingD1({d1Identities,stripeSubscriptions,
       unrepresentedStripeUsersWithoutD1AuthRecord:Array.isArray(d1UserIds)
         ? [...users.keys()].filter(user=>!storedUsers.has(user) && !d1UserIds.includes(user)).length
         : null,
+      nonblockingCanceledOrphanSubscriptions,
     },
     releaseSafe:consistent && multiCustomerUsers===0,
   };
