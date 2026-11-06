@@ -4,6 +4,7 @@ import { reviewTerminalStripeEvent } from "./stripe-terminal-event-review.js";
 import { effectForDecision, prepareTerminalEffect } from "./stripe-terminal-effects-outbox.js";
 import { reconcileReferralRewardForUser, reverseApprovedReferralRewards } from "./referral-reward-review.js";
 import { processNextTerminalEffect } from "./stripe-terminal-effects-processor.js";
+import { createStripeTerminalStateChecker } from "./stripe-terminal-effects-state-checker.js";
 import { prepareTerminalBillingIdentityStatus } from "./stripe-terminal-billing-identity.js";
 export { UserRateLimiter } from "./user-rate-limiter-do.js";
 
@@ -852,22 +853,12 @@ export default {
     const run = processNextTerminalEffect({
       db: env.DB,
       now,
-      checkCurrentState: async effect => {
-        const [plan, event, newer] = await Promise.all([
-          env.DB.prepare("SELECT plan FROM user_plans WHERE userId=?1 LIMIT 1").bind(effect.userId).first(),
-          env.DB.prepare("SELECT eventCreatedAt FROM stripe_webhook_events WHERE eventId=?1 AND outcome IN ('applied','reconciled') LIMIT 1").bind(effect.eventId).first(),
-          env.DB.prepare("SELECT eventId FROM stripe_webhook_events WHERE userId=?1 AND outcome IN ('applied','reconciled') AND eventCreatedAt > (SELECT eventCreatedAt FROM stripe_webhook_events WHERE eventId=?2 LIMIT 1) LIMIT 1").bind(effect.userId, effect.eventId).first(),
-        ]);
-        const currentPlan = String(plan?.plan || "").toLowerCase();
-        const currentPlanVerified = ["basic", "premium", "pro"].includes(currentPlan);
-        const newerEventExists = Boolean(newer?.eventId);
-        const newerEventsVerified = Boolean(event?.eventCreatedAt);
-        const stateCheckReason = !currentPlanVerified ? "plan-unverified"
-          : !newerEventsVerified ? "ledger-event-missing"
-          : newerEventExists ? "newer-ledger-event"
-          : "verified";
-        return { currentPlan, currentPlanVerified, newerEventExists, newerEventsVerified, stateCheckReason };
-      },
+      checkCurrentState: createStripeTerminalStateChecker({
+        db: env.DB,
+        secretKey: env.STRIPE_SECRET_KEY,
+        paymentMode: env.PAYMENT_MODE,
+        fetchImpl: fetch,
+      }),
       executeIdempotently: async effect => {
         if (effect.effectType === "billing-and-referral-downgrade") return reverseApprovedReferralRewards(env.DB, effect.userId, "entitlement-invalid", "system", now);
         if (effect.effectType === "referral-retain") return reconcileReferralRewardForUser(env.DB, effect.userId, now);
