@@ -168,3 +168,8 @@ After a page refresh in the authenticated staging Assistant session, the page re
 ### Outbox row timestamp clarification
 
 Read-only inspection of the single completed outbox row returned `state=completed`, `effectType=billing-and-referral-downgrade`, `attempts=1`, created `2026-11-06T02:51:36.488Z`, updated `2026-11-06T02:55:16.640Z`. This predates the later staging verifier deployment, so it is historical evidence of an earlier completion only and does not prove the new verifier's scheduled runtime.
+
+
+### Staging UI/API binding readback
+
+Cloudflare read-only Dashboard inspection found the staging UI Worker `hegeva-ai-v3-v0-staging` at active version `4777d569`, 100% traffic, 0% displayed errors. Its `HEGEVA_API` service binding points to `hegeva-ai-v3-staging`. The UI Worker has no Cron trigger configured, as expected for this separation; the API Worker carries the five-minute trigger. No UI deploy or settings change was made in this follow-up.
