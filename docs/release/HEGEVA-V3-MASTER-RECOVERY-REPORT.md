@@ -270,3 +270,23 @@ The following files were read at the exact deployed source commit `0fc1522f896ae
 | Staging Cron runtime | BLOCKED | Requires successful API-only no-migration deploy and a recorded scheduled event |
 | Production release | NO-GO | Remote staging runtime and independent acceptance gates remain incomplete |
 
+
+
+## Staging API Cron/log verification — 2026-11-06 21:01 UTC
+
+This section supersedes earlier statements that the privacy-safe logging configuration was not deployed. It does not clear the separate remote Cron acceptance gate.
+
+- **Workflow #92:** [run 42291687737](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42291687737), dispatched for PR #95 head `743cb238d91f382edf0828d58fa006cd55a69446`, stage `deploy-api-no-migrate`. Verify, staging read-only preflight, API deploy, and staging smoke all **PASS**. D1 migration and UI deployment were **SKIPPED**.
+- **Cloudflare readback:** staging API Worker `hegeva-ai-v3-staging`, active version `8ad5ab93`, 100% traffic. Cron trigger remains `*/5 * * * *`. Logs ON; invocation logs OFF; persistent log storage ON; Traces OFF; Issues ON. Invocation logs stay off because the client-portal token is carried in a request URL path.
+- **Cron runtime remains BLOCKED:** after the expected 21:00 UTC run, the Cron Events page still displayed “There have been no events in the past week” and warned that new or recently renamed Workers can take up to 30 minutes for events to appear. The nine observed 20:05–20:45 UTC Cron entries were all before the 20:52 UTC deployment and do not prove the new version ran. No manual trigger was issued.
+- **Error diagnosis remains BLOCKED:** no post-deploy Cron event or usable invocation/stack record was visible in this readback. Do not attribute the earlier uncaught exception metric to Cron without evidence.
+- No production deploy, merge, D1 migration/write, UI deploy, Stripe access/write/payment, secret/binding/route/permission change, or external publication occurred.
+
+| Gate | Status | Evidence |
+|---|---|---|
+| Staging API-only deploy | PASS | Workflow #92; D1 migration and UI deployment skipped |
+| Staging API version | PASS | Cloudflare active version `8ad5ab93`, 100% |
+| Privacy-safe logging | PASS | Logs/persist ON; invocation logs OFF; Traces OFF; Issues ON |
+| Scheduled run after deploy | BLOCKED | No Cron event visible at 21:01 UTC; Cloudflare warns of up to 30-minute display delay |
+| Outbox recovery/fencing runtime | BLOCKED | No post-deploy Cron invocation evidence |
+| Production release | NO-GO | Independent Stripe/D1, full journey, isolation, assistant, analytics, and dependency gates remain open |
