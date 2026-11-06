@@ -416,3 +416,11 @@ No production deployment/merge, remote D1 write/migration, Stripe write/payment/
 - **Cross-user isolation remains BLOCKED.** Both available staging tabs resolve to the same second identity after refresh. No pair of independent authenticated sessions was available to attempt a cross-user read. The first test account’s QA artifacts had already been removed, so an empty workspace alone is not isolation proof.
 - Do not report the two-user staging isolation gate as PASS. Production remains **NO-GO** and `releaseSafe=false` until a separate authenticated session can be tested and the remaining release gates pass.
 
+
+
+## First test account visible in connected browser — 2026-11-06
+
+- The connected browser now exposes the first staging test account on its authenticated Account page.
+- Only one staging tab is currently visible to the browser connection; the second test account is not simultaneously available. This confirms first-account login visibility, but does not establish cross-user data isolation.
+- The isolation gate remains **BLOCKED** pending two distinct authenticated sessions available at the same time. Production remains **NO-GO** and `releaseSafe=false`.
+
