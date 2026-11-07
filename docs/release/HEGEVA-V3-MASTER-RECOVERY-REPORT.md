@@ -460,3 +460,9 @@ No production deployment/merge, remote D1 write/migration, Stripe write/payment/
 - Regression: the policy CI now starts a local Worker with Cloudflare's `--test-scheduled` flag, invokes `/cdn-cgi/local/scheduled` against 127.0.0.1, and requires `HEGEVA_CRON empty` in the Worker log after the local migrations and two-tenant fixture. This exercises the real scheduled entry point locally.
 - [CI #280](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42322904600) completed successfully at code commit `4029051e1d50c31d337abf20f1ef5033874073b2`; its local two-tenant step exercised the scheduled endpoint and required `HEGEVA_CRON empty`. Local scheduled entry and empty-outbox log: **PASS**. This local trigger cannot prove a deployed Cloudflare scheduler invocation. After reviewed deployment, observe the real staging Cron event and read the outbox D1 state before and after a scheduled window.
 - Production release remains **NO-GO** and `releaseSafe=false`. No remote Cron trigger, staging/production deploy, merge, D1 write, Stripe write or payment occurred in this repair.
+
+## Monitor severity consolidation — 2026-11-07
+
+- The tested source fix from Draft PR #96 was copied into PR #95 at `src/index.js`, together with `scripts/monitor-log-severity-test.mjs`; the PR #95 policy workflow now runs that regression. This corrects successful Core monitor outcomes being counted at error severity while unknown/failure outcomes remain errors.
+- The original PR #96 remains Draft and unmerged as an audit trail. Its code now overlaps PR #95; review #95 as the release candidate and close #96 only after the consolidated change is accepted.
+- CI for the consolidated commit is pending readback. Neither fix has been deployed to staging. Scheduled runtime, remote outbox and other acceptance gates remain **BLOCKED**. Production **NO-GO**, `releaseSafe=false`.
