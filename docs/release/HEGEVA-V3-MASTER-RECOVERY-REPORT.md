@@ -703,3 +703,17 @@ This recheck used the existing authenticated second QA account and the Cloudflar
 - Broad tenant isolation: **BLOCKED / NOT PROVEN** beyond the previously scoped customer canary.
 - Remote outbox retry/recovery/fencing: **BLOCKED**; no pending fixture exists and remote D1 writes remain unauthorized.
 - Full staging acceptance: **NOT READY**; production remains **NO-GO** and `releaseSafe=false`.
+
+
+## Cloudflare scheduled runtime and outbox recheck — 2026-11-07 21:20 UTC
+
+- Cloudflare Workers Observability Events for `hegeva-ai-v3-staging`, timeframe “Last 1 hour,” displayed **80 Success, 0 Errors** at readback.
+- Scheduled `HEGEVA_CRON empty` events appeared at 20:55, 21:00, 21:05, 21:10, 21:15, and 21:20 UTC. The latest visible invocation was `2026-11-07 21:20:16.889 GMT`; this proves recurring scheduled empty-queue execution, not retry/recovery/fencing behavior.
+- Cloudflare D1 Studio read-only aggregate on `stripe_terminal_effect_outbox` returned one row: `completed=1`, max attempts 1, updated `2026-11-06T02:55:16.640Z`; no pending, processing, or blocked state was present.
+- **PASS (scoped):** scheduled idle path and current one-row outbox state were directly re-read.
+- **BLOCKED:** no eligible pending fixture exists. Creating or mutating remote D1 test data remains outside the current authorization, so retry/recovery/fencing cannot be accepted from this evidence.
+- No D1 row, Worker setting, secret, binding, Stripe object, or production resource was modified.
+
+### Disposition
+
+Staging Cron idle execution: **PASS**. Remote outbox retry/fencing: **BLOCKED / NOT PROVEN**. Full staging acceptance remains **NOT READY**; production **NO-GO**; `releaseSafe=false`.
