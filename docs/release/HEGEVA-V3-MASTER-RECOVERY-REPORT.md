@@ -597,3 +597,12 @@ This section supersedes earlier statements above that the Cron invocation and th
 - Read-only GET requests against the deployed staging Worker for `billing_webhook_status`, `prepared_work`, and `stripe_checkout_lock` each returned `{"error":"Invalid workspace type."}`.
 - **PASS:** the reserved internal workspace types are rejected by the deployed API path instead of being exposed as generic workspace records. No request body, D1 mutation, Stripe request or customer action was issued.
 - This confirms the specific PR #95 regression fix on the live staging API; it is not a substitute for a two-identity authorization/isolation test.
+
+
+## Authenticated second-user staging API isolation canary — 2026-11-07 16:59 BST
+
+- A separately verified staging QA identity was authenticated in the connected browser. Its read-only `GET /api/workspace/customers` response was `{"found":false,"dataType":"customers","data":null}`.
+- A read-only exact-key D1 check confirmed the previously observed first-account staging customer canary still exists under a different `userId` from the authenticated second QA identity (`canary_owned_by_other_user`). The canary was absent from that second identity's API response.
+- **PASS (scoped):** direct staging API cross-user isolation is demonstrated for this existing synthetic customer canary. This is evidence for this endpoint/record pair; it is not a full proof covering every resource type or every API route.
+- No staging customer row, D1 data, Stripe object, secret, binding, or permission was changed. The outbox was re-read with the original read-only aggregate query after the check.
+- Remote outbox retry/fencing remains **BLOCKED**: the queue is empty and the dedicated synthetic test Worker/D1/GUARD runtime is not deployed.
