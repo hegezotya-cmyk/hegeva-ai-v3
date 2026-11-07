@@ -489,3 +489,12 @@ This section supersedes earlier statements above that the Cron invocation and th
 - Stripe account context is still distinct: the three PaymentIntents exist in the separate Stripe sandbox and not in the main HEGEVA TEST account's Payments list. This is consistent with the owner's test activity. It does not alone prove which account the currently deployed staging Worker is configured to use.
 - **Disposition:** top-up payment ownership is **OWNER-CONFIRMED**; D1 user attribution is **READ-ONLY VERIFIED**; staging Worker Stripe-account configuration is **NOT VERIFIED**. No remediation to historical credits is warranted from current evidence. Keep account configuration verification and remote retry/fencing as open release gates; full staging acceptance remains **NOT READY**, production **NO-GO**, and `releaseSafe=false`.
 - Verification used read-only SQL only. No Stripe or D1 mutations were made.
+
+
+## Historical sandbox-key explanation — owner clarification — 2026-11-07
+
+- The owner reports that the separate Stripe sandbox key was used earlier during top-up testing. This is consistent with the three historical D1 PaymentIntents resolving in the separate sandbox, and with the three D1 purchase rows spanning two owner-controlled test users.
+- Treat the three payments and 300 credits as intentional historical owner test activity. They are not foreign customer purchases and are not a reason to revoke credits or alter D1. The previous account-boundary concern is narrowed to verifying the **current** staging key/account configuration; it does not invalidate those historical tests.
+- Current staging config declares `PAYMENT_MODE=test` and test price IDs. This does not by itself identify which Stripe account the deployed secret belongs to. No secret was read, replaced, or changed.
+- **Updated disposition:** historical top-up reconciliation **EXPLAINED / OWNER-CONFIRMED**; current staging account identity **UNVERIFIED**; scheduled idle Cron **PASS**; remote retry/fencing and remaining customer journey gates remain open. Full staging acceptance **NOT READY**; production **NO-GO**; `releaseSafe=false`.
+- No Stripe write, payment/refund, D1 mutation, deploy, merge, binding/permission change or secret action occurred.
