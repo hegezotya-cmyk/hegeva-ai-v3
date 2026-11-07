@@ -553,3 +553,12 @@ This section supersedes earlier statements above that the Cron invocation and th
 - [Exact-head policy CI #305](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42335607474) passed after the fix, including the expanded local two-tenant route regression and the Stripe/outbox suite.
 - **Deployment status:** this code fix is on the unmerged PR branch and has not been deployed to staging. Do not count the deployed Worker as fixed until a separately authorized staging deployment and post-deploy smoke check.
 - No staging or production deployment, remote D1 write/migration, Stripe write/payment, or merge occurred. **Full staging acceptance remains NOT READY; production NO-GO; `releaseSafe=false`.**
+
+
+## Scheduled runtime recheck — 2026-11-07 03:50 UTC
+
+- Cloudflare Workers Observability recorded `HEGEVA_CRON empty` at `2026-11-07 03:50:16.270 UTC` on active staging version `7ccfbef2-d77b-4434-94a5-d6ee7ec494d2`, event type/origin `scheduled`, trigger `*/5 * * * *`.
+- At inspection, the last-hour dashboard totals were 19 successes and 0 errors. Multiple scheduled events from 03:25 through 03:50 showed the same empty-queue result on this version.
+- **PASS:** recurring Cloudflare scheduled entry and empty-queue processing on the current active version.
+- **BLOCKED:** pending-job retry, lease fencing and terminal side-effect completion remain unproven because the remote queue has no pending job. Creating one remotely is outside current authorization.
+- No staging/production deploy, D1 write/migration, Stripe write/payment, secret or binding change occurred.
