@@ -670,3 +670,18 @@ This recheck used the existing authenticated second QA account and the Cloudflar
 - Webhook runtime delivery: **NOT PROVEN**; the prior authenticated status read reported webhookVerified=false and no last event.
 - Full authenticated registration-to-subscription journey, write persistence after logout/re-login, and exhaustive tenant isolation remain **NOT PROVEN**.
 - Full staging acceptance remains **NOT READY**; production remains **NO-GO**; `releaseSafe=false`.
+
+
+## Final post-deploy runtime recheck — 2026-11-07
+
+- **Cloudflare Observability:** last-hour Events view showed 43 successes and 0 errors. The latest scheduled invocation was 20:55:16 UTC and emitted HEGEVA_CRON empty. This proves the live scheduled idle path on the current staging API; it does not exercise pending-job retry/fencing.
+- **Staging D1 webhook ledger (read-only aggregate):** 20 historical records grouped as 12 applied and 8 ignored. Applied event families included checkout.session.completed (6), invoice.paid (5), and customer.subscription.deleted (1); the most recent applied event was the subscription deletion processed at 2026-11-06T02:51:36.488Z. This proves prior staging webhook ingestion/processing. The second QA account's billing-status response still reports webhookVerified=false and no account-associated last event; no new subscription event was generated for that account in this acceptance.
+- **Outbox:** a fresh read-only aggregate remains one completed record (attempt 1), with no pending/processing/blocked records. Remote retry/recovery/fencing remains BLOCKED.
+- **Change scope:** these checks were read-only. No D1 row was changed, no Stripe object/payment was created, and no API or production deployment occurred.
+
+### Final disposition correction
+
+- Historical staging Stripe TEST webhook processing: **PASS** (ledger evidence above).
+- Current QA2 billing-event evidence: **NOT PRESENT**; no payment or test checkout was initiated.
+- Staging UI build/deploy/pricing guard and post-deploy smoke: **PASS**.
+- Full staging acceptance: **NOT READY** because remote retry/fencing has no eligible job and the full authenticated journey/write-persistence/tenant-isolation acceptance remains incomplete.
