@@ -441,3 +441,14 @@ No production deployment/merge, remote D1 write/migration, Stripe write/payment/
 - The Customers list returned to its empty state and reported Cloud sync. No direct D1 write or migration was used.
 - Cross-account result remains **PARTIAL PASS** for UI list visibility only. Direct-ID/API authorization and the other release gates remain unproven; production stays **NO-GO** and `releaseSafe=false`.
 
+
+
+## Release-gate continuation — 2026-11-07
+
+- **CI #277:** PASS at report commit `4d27a9e3dd69f89aef0ae9eeee5bdd181b0f3a8f`. Its `policy-tests` job passed the local two-tenant auth/workspace isolation regression and the Stripe/outbox policy suite. This is local fixture evidence, not live staging Cron or direct cross-user API evidence.
+- **Workspace API source review:** the typed GET route requires an authenticated user and queries `workspace_data` with both `user.id` and `dataType`. The UI-level live canary check also showed the first account's record absent from the second account's refreshed Customers list. Direct authenticated API response under the second session was not captured.
+- **Live Cron:** the connected Cloudflare Worker Observability/Settings views rendered only the dashboard navigation with no worker detail or Cron events. No scheduled invocation/retry/fencing evidence was obtained; no manual trigger was run.
+- **Stripe connector boundary:** read-only account listing exposed the main HEGEVA account in live mode and a separate sandbox in test mode. Because the owner required main-account TEST data and prohibited the separate sandbox, no Stripe API request was made through this connector. The previously recorded exact-match evidence for the mapped main TEST tuple remains the latest available; a fresh restricted-key reconciliation is still blocked.
+- **Current browser/API acceptance:** the connected staging tab is now signed out, so a fresh direct workspace API request could not be performed. The QA canary was deleted and its first-account empty state/cloud sync were verified on 2026-11-07.
+- **Decision:** local isolation regression **PASS**; live canary list visibility **PARTIAL PASS**; direct API isolation, remote Cron/outbox runtime and the other release gates remain **BLOCKED/UNPROVEN**. No staging or production deploy, merge, migration, Stripe write/payment, secret or binding change occurred. Full staging acceptance remains **NOT READY**, production **NO-GO**, and `releaseSafe=false`.
+
