@@ -2035,6 +2035,28 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
       return listOwnerRegistrations(request, env, user);
     }
 
+    if (url.pathname === "/api/admin/stripe-account-identity") {
+      if (request.method !== "GET") {
+        return Response.json({ error: "Method not allowed." }, { status: 405, headers: { "Cache-Control": "no-store" } });
+      }
+      const user = await getLoggedInUserFn(request, env, ctx);
+      const adminEmail = typeof env.ADMIN_EMAIL === "string" ? env.ADMIN_EMAIL.trim().toLowerCase() : "";
+      if (!user?.email) return Response.json({ error: "Authentication required." }, { status: 401, headers: { "Cache-Control": "no-store" } });
+      if (!adminEmail || user.email.trim().toLowerCase() !== adminEmail) return Response.json({ error: "Owner access required." }, { status: 403, headers: { "Cache-Control": "no-store" } });
+      const mode = String(env.PAYMENT_MODE || "").trim().toLowerCase();
+      const key = typeof env.STRIPE_SECRET_KEY === "string" ? env.STRIPE_SECRET_KEY.trim() : "";
+      if (mode !== "test" || !key.startsWith("sk_test_")) return Response.json({ error: "Stripe TEST configuration unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+      try {
+        const response = await fetch("https://api.stripe.com/v1/account", { method: "GET", headers: { Authorization: `Bearer ${key}`, Accept: "application/json" }, cache: "no-store" });
+        if (!response.ok) return Response.json({ error: "Stripe account lookup unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+        const account = await response.json();
+        if (account?.livemode !== false || typeof account?.id !== "string" || !/^acct_[A-Za-z0-9]+$/.test(account.id)) return Response.json({ error: "Stripe account lookup unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+        return Response.json({ ok: true, accountId: account.id }, { headers: { "Cache-Control": "no-store" } });
+      } catch {
+        return Response.json({ error: "Stripe account lookup unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+      }
+    }
+
     if (url.pathname === "/api/admin/access") {
       const user = await getLoggedInUserFn(request, env, ctx);
       return readOwnerAccess(request, env, user);
