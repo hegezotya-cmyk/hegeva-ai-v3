@@ -570,3 +570,15 @@ This section supersedes earlier statements above that the Cron invocation and th
 - This matches the observed active staging Cron schedule and the verified main Stripe TEST account identity. Secret values were not opened, copied, or logged; no variable or secret was changed.
 - **PASS:** staging payment mode and outbox processor flag readback.
 - This does not create a pending outbox event or prove retry/fencing. Those runtime gates remain **BLOCKED** without an authorized isolated remote fixture.
+
+
+## Staging API deployment and remaining remote acceptance — 2026-11-07 04:14 UTC
+
+- **PASS:** GitHub Actions [staging deploy run #99](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42337053245) ran on PR #95 code SHA `7affc58f54f2c0d72503cfa3646d9fa3be399053`. Verify, TypeScript, UI build, Cloudflare build and staging preflight succeeded.
+- **PASS:** workflow stage was `deploy-api-no-migrate`; API deploy and staging smoke succeeded. The workflow skipped `staging:db:migrate` and `staging:ui:deploy`. No production target was used.
+- Cloudflare read-only deployment history now shows active staging version `039e5678` at 100% traffic (new deployment); previous active version `7ccfbef2` is retained in the history for rollback.
+- Cloudflare read-only bindings inspection shows only Workers AI `AI`, staging D1 `DB`, and Durable Object `RATE_LIMITER`. No `SYNTHETIC_TEST_DB` or `GUARD` binding is configured. The offline scheduled-test harness is not imported by the live Worker entrypoint and requires both bindings, an enable flag and an auth secret.
+- **BLOCKED:** remote retry/recovery/fencing was not exercised. We did not write a synthetic or business outbox row, enable a test endpoint, activate a Worker/binding, or change a secret. The scheduled idle-Cron evidence remains only proof of empty-queue execution.
+- **PARTIAL / BLOCKED:** two-tenant local/API policy regressions and the previous staging UI canary remain useful evidence; however, a fresh direct staging API isolation test across two separate authenticated identities is still unavailable in this browser session. Do not describe end-to-end cross-user isolation as fully accepted until that direct check is recorded.
+- **STAGING OVERALL: NOT READY. PRODUCTION: NO-GO.** The newly deployed API change is staging-verified, but the two remote acceptance gates above remain open. `releaseSafe` must remain false.
+- No D1 migration/write, Stripe write/payment, merge, production deploy, secret/binding/permission change, customer action or external publication occurred.
