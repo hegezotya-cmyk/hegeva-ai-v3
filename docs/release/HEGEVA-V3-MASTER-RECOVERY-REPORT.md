@@ -543,3 +543,13 @@ This section supersedes earlier statements above that the Cron invocation and th
 - **PASS:** scheduled entry on the current deployed version and empty-queue handler path.
 - **Still BLOCKED:** no pending row exists to test remote retry, lease expiry/fencing, or terminal completion. The D1 queue contains only the previously documented completed row. Do not create a remote job without explicit authorization for an isolated staging D1 write.
 - No deployment, D1 write/migration, Stripe write/payment, secret or binding change occurred during this read-only check. Full staging remains **NOT READY**; production **NO-GO**; `releaseSafe=false`.
+
+
+## Generic workspace reserved-type integrity fix — 2026-11-07
+
+- **Root cause reproduced:** `validWorkspaceType()` only checked the type string's character pattern. The authenticated generic `/api/workspace/:type` API therefore accepted internal `billing_webhook_status`, `prepared_work`, and `stripe_checkout_lock` namespaces in addition to customer workspace records.
+- The new local two-tenant API regression first failed on old code: [CI #303](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42335514834) received HTTP 200 for generic GET of `billing_webhook_status`, where the expected response was HTTP 400. The test runs only against a disposable local Worker/D1 fixture; no remote records were touched.
+- **Fix on PR #95:** `validWorkspaceType()` now rejects those three reserved system types case-insensitively. The dedicated internal routes remain the access path for prepared work and Stripe state. Normal workspace record types and the existing two-user persistence/isolation flow remain covered by the same integration test.
+- [Exact-head policy CI #305](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42335607474) passed after the fix, including the expanded local two-tenant route regression and the Stripe/outbox suite.
+- **Deployment status:** this code fix is on the unmerged PR branch and has not been deployed to staging. Do not count the deployed Worker as fixed until a separately authorized staging deployment and post-deploy smoke check.
+- No staging or production deployment, remote D1 write/migration, Stripe write/payment, or merge occurred. **Full staging acceptance remains NOT READY; production NO-GO; `releaseSafe=false`.**
