@@ -606,3 +606,12 @@ This section supersedes earlier statements above that the Cron invocation and th
 - **PASS (scoped):** direct staging API cross-user isolation is demonstrated for this existing synthetic customer canary. This is evidence for this endpoint/record pair; it is not a full proof covering every resource type or every API route.
 - No staging customer row, D1 data, Stripe object, secret, binding, or permission was changed. The outbox was re-read with the original read-only aggregate query after the check.
 - Remote outbox retry/fencing remains **BLOCKED**: the queue is empty and the dedicated synthetic test Worker/D1/GUARD runtime is not deployed.
+
+
+## Scheduled-test harness CI verification — 2026-11-07
+
+- [PR policy CI run #42409765747](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42409765747) passed on code/workflow commit `c9b5900e7ef43a1cd951e7ccc8ae5301b2070282`.
+- The new CI step executed the synthetic retry/recovery fixture, D1 stale-token fencing race, scheduled-test controller and endpoint authorization tests, persistent guard tests, and worker-routing exclusion test.
+- **PASS (offline CI):** retry recovery completes once and cleans up; stale fencing tokens cannot write; valid/current fencing and idempotency controls pass; endpoint/default-deny and routing boundary regressions pass.
+- **Still BLOCKED (remote runtime):** staging has no separately bound `SYNTHETIC_TEST_DB` or `GUARD` and no dedicated scheduled-test Worker deployment. No live outbox record was created and no test control was enabled. This CI result does not prove remote Cron retry/fencing.
+- Staging acceptance remains **NOT READY** and production remains **NO-GO** until the remote retry/fencing runtime gate is proven in an isolated test environment.
