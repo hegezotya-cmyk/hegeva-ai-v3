@@ -48,6 +48,10 @@ on:
       - "scripts/stripe-terminal-referral-outbox-integration-test.mjs"
       - "scripts/stripe-terminal-billing-identity-test.mjs"
       - "scripts/stripe-staging-identity-compare-test.mjs"
+      - "v0-app/app/pricing/page.tsx"
+      - "v0-app/lib/billing-mode-disclosure.ts"
+      - "v0-app/lib/i18n/pricing-copy.ts"
+      - "scripts/pricing-billing-disclosure-test.mjs"
       - ".github/workflows/stripe-entitlement-policy-pr.yml"
   workflow_dispatch:
 
@@ -65,6 +69,8 @@ jobs:
           node-version: "22"
       - name: Install locked dependencies
         run: npm ci
+      - name: Pricing billing disclosure regression
+        run: node --experimental-strip-types scripts/pricing-billing-disclosure-test.mjs
       - name: Local two-tenant auth and workspace isolation
         shell: bash
         run: |
