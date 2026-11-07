@@ -12,6 +12,7 @@ import { AICore, IntelligenceCard, SignalIcon } from "@/components/visual-engine
 import { trackActivationEvent } from "@/lib/conversion-tracking"
 import { activationIdentity } from "@/lib/activation-measurement"
 import { AssistantTopUpPurchase } from "@/components/assistant/assistant-topup-purchase"
+import { resolveBillingDisclosure, resolveBillingMode } from "@/lib/billing-mode-disclosure"
 
 type PaidPlan = "premium" | "pro"
 type BillingStatus = { checkoutEnabled?: boolean; webhookConfigured?: boolean; mode?: string }
@@ -83,8 +84,9 @@ export default function PricingPage() {
   const [billingStatus, setBillingStatus] = useState<BillingStatus | null>(null)
   const [billingStatusLoading, setBillingStatusLoading] = useState(false)
   const [publicBillingStatus, setPublicBillingStatus] = useState<BillingStatus | null>(null)
+  const [publicBillingStatusLoading, setPublicBillingStatusLoading] = useState(true)
 
-  const effectiveMode = billingStatus?.mode ?? publicBillingStatus?.mode ?? "live"
+  const effectiveMode = resolveBillingMode(billingStatus, publicBillingStatus)
 
   useEffect(() => {
     setAuthHydrated(true)
@@ -103,6 +105,9 @@ export default function PricingPage() {
       })
       .catch(() => {
         if (active) setPublicBillingStatus(null)
+      })
+      .finally(() => {
+        if (active) setPublicBillingStatusLoading(false)
       })
     return () => {
       active = false
@@ -219,6 +224,16 @@ export default function PricingPage() {
 
   const hasPaidPlan = currentPlan === "premium" || currentPlan === "pro"
   const liveBilling = effectiveMode === "live"
+  const billingDisclosure = resolveBillingDisclosure(
+    publicBillingStatusLoading || billingStatusLoading,
+    effectiveMode,
+    {
+      checking: c.checkingBilling,
+      live: LIVE_BILLING_COPY[locale].notice,
+      test: c.sandbox,
+      unavailable: c.billingIncomplete,
+    },
+  )
   const billingReady = (billingStatus?.mode === "test" || billingStatus?.mode === "live") && billingStatus.checkoutEnabled === true && billingStatus.webhookConfigured === true
 
   return <AppShell><main className="pricing-wow relative isolate mx-auto max-w-7xl overflow-hidden px-4 py-12 sm:px-6 lg:px-8">
@@ -228,7 +243,7 @@ export default function PricingPage() {
       <p className="text-sm font-semibold tracking-[0.18em] text-primary">{c.eyebrow}</p>
       <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">{c.title}</h1>
       <p className="mt-4 text-base leading-7 text-muted-foreground">{value.subtitle}</p>
-      <p className="mt-5 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-gold">{billingStatusLoading || liveBilling ? LIVE_BILLING_COPY[locale].notice : c.sandbox}</p>
+      <p className="mt-5 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-gold">{billingDisclosure}</p>
       {session?.user && <p role="status" className={`mt-4 rounded-xl border px-4 py-3 text-sm ${billingReady ? "border-primary/30 bg-primary/10 text-primary" : "border-gold/30 bg-gold/10 text-gold"}`}>{billingStatusLoading ? LIVE_BILLING_COPY[locale].checking : billingReady ? (liveBilling ? LIVE_BILLING_COPY[locale].ready : c.billingReady) : (liveBilling ? LIVE_BILLING_COPY[locale].incomplete : c.billingIncomplete)}</p>}
       {billingCancelled && <p role="status" className="mt-4 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">{BILLING_CANCELLED_COPY[locale]}</p>}
     </div>

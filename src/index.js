@@ -32,6 +32,7 @@ import { BUSINESS_SCORE_METHODOLOGY, deriveBusinessScoreShare, hashBusinessScore
 import { createReferralCode, revokeReferralCode, recordReferralTouch, attributeReferral, listReferralAttributions } from "./referral-attribution.js";
 import { reconcileReferralRewardForUser, listReferralRewardReviews, listReferralRewardSummary, reviewReferralReward } from "./referral-reward-review.js";
 import { PLAN_LIMITS, resolveAssistantPlan } from "./assistant-plan.js";
+import { checkoutLockIsFresh, hasActiveStripeSubscription } from "./stripe-checkout-guard.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -104,8 +105,29 @@ function safeErrorName(error) {
     : "UnknownError";
 }
 
+const MONITOR_INFO_OUTCOMES = new Set([
+  "decision_completed",
+  "prepared",
+  "upgraded",
+  "reused",
+  "approved",
+  "ready",
+]);
+
+const MONITOR_WARNING_OUTCOMES = new Set([
+  "rate_limited",
+  "terminal_reconciliation_deferred",
+]);
+
 export function emitMonitor(scope, outcome, metadata = {}) {
-  console.error("HEGEVA_MONITOR", {
+  // Unknown outcomes remain errors so new failure states cannot silently lose severity.
+  const level = MONITOR_INFO_OUTCOMES.has(outcome)
+    ? "info"
+    : MONITOR_WARNING_OUTCOMES.has(outcome)
+      ? "warn"
+      : "error";
+
+  console[level]("HEGEVA_MONITOR", {
     scope,
     outcome,
     ...metadata,
@@ -184,8 +206,16 @@ async function enforceRequestBodyLimit(request, pathname) {
   });
 }
 
+const RESERVED_WORKSPACE_TYPES = new Set([
+  "billing_webhook_status",
+  "prepared_work",
+  "stripe_checkout_lock",
+]);
+
 function validWorkspaceType(type) {
-  return /^[a-z0-9_-]{1,40}$/i.test(type);
+  return typeof type === "string" &&
+    /^[a-z0-9_-]{1,40}$/i.test(type) &&
+    !RESERVED_WORKSPACE_TYPES.has(type.toLowerCase());
 }
 
 function getCurrentPeriod() {
@@ -1233,13 +1263,30 @@ async function createStripeCheckoutSession(
   const existingCustomer =
     await env.DB
       .prepare(`
-        SELECT stripeCustomerId
+        SELECT stripeCustomerId, subscriptionStatus
         FROM stripe_customers
         WHERE userId = ?1
         LIMIT 1
       `)
       .bind(String(user.id))
       .first();
+
+  if (hasActiveStripeSubscription(existingCustomer)) {
+    return { ok: false, status: 409, error: "An active Stripe subscription already exists for this account." };
+  }
+  const checkoutLockNow = new Date().toISOString();
+  const lockData = JSON.stringify({ plan, createdAt: checkoutLockNow, lockId: crypto.randomUUID() });
+  const existingLock = await env.DB.prepare(`SELECT data, updatedAt FROM workspace_data WHERE userId=?1 AND dataType='stripe_checkout_lock' LIMIT 1`).bind(String(user.id)).first();
+  if (existingLock && checkoutLockIsFresh(existingLock)) {
+    return { ok: false, status: 409, error: "A Stripe checkout is already in progress for this account." };
+  }
+  const lockResult = existingLock
+    ? await env.DB.prepare(`UPDATE workspace_data SET data=?1, updatedAt=?2 WHERE userId=?3 AND dataType='stripe_checkout_lock' AND updatedAt=?4 AND data=?5`).bind(lockData, checkoutLockNow, String(user.id), existingLock.updatedAt, existingLock.data).run()
+    : await env.DB.prepare(`INSERT INTO workspace_data (id,userId,dataType,data,createdAt,updatedAt) VALUES (?1,?2,'stripe_checkout_lock',?3,?4,?4) ON CONFLICT(userId,dataType) DO NOTHING`).bind(crypto.randomUUID(), String(user.id), lockData, checkoutLockNow).run();
+  if (!lockResult?.meta?.changes) {
+    return { ok: false, status: 409, error: "A Stripe checkout is already in progress for this account." };
+  }
+  const releaseOwnedCheckoutLock = async () => env.DB.prepare("DELETE FROM workspace_data WHERE userId=?1 AND dataType='stripe_checkout_lock' AND data=?2").bind(String(user.id), lockData).run();
 
   if (existingCustomer?.stripeCustomerId) {
     form.set(
@@ -1287,8 +1334,9 @@ async function createStripeCheckoutSession(
     plan
   );
 
-  const response =
-    await fetch(
+  let response;
+  try {
+    response = await fetch(
       "https://api.stripe.com/v1/checkout/sessions",
       {
         method:
@@ -1306,6 +1354,10 @@ async function createStripeCheckoutSession(
           form.toString()
       }
     );
+  } catch {
+    await releaseOwnedCheckoutLock();
+    return { ok: false, status: 502, error: "Stripe test checkout could not be created." };
+  }
 
   let data = null;
 
@@ -1315,6 +1367,7 @@ async function createStripeCheckoutSession(
   } catch {}
 
   if (!response.ok) {
+    await releaseOwnedCheckoutLock();
     console.error("HEGEVA_PROVIDER_FAILURE", {
       provider: "stripe",
       operation: "checkout",
@@ -1338,6 +1391,7 @@ async function createStripeCheckoutSession(
     !data?.id ||
     !data?.url
   ) {
+    await releaseOwnedCheckoutLock();
     return {
       ok: false,
 
@@ -1987,6 +2041,28 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
     if (url.pathname === "/api/admin/registrations") {
       const user = await getLoggedInUserFn(request, env, ctx);
       return listOwnerRegistrations(request, env, user);
+    }
+
+    if (url.pathname === "/api/admin/stripe-account-identity") {
+      if (request.method !== "GET") {
+        return Response.json({ error: "Method not allowed." }, { status: 405, headers: { "Cache-Control": "no-store" } });
+      }
+      const user = await getLoggedInUserFn(request, env, ctx);
+      const adminEmail = typeof env.ADMIN_EMAIL === "string" ? env.ADMIN_EMAIL.trim().toLowerCase() : "";
+      if (!user?.email) return Response.json({ error: "Authentication required." }, { status: 401, headers: { "Cache-Control": "no-store" } });
+      if (!adminEmail || user.email.trim().toLowerCase() !== adminEmail) return Response.json({ error: "Owner access required." }, { status: 403, headers: { "Cache-Control": "no-store" } });
+      const mode = String(env.PAYMENT_MODE || "").trim().toLowerCase();
+      const key = typeof env.STRIPE_SECRET_KEY === "string" ? env.STRIPE_SECRET_KEY.trim() : "";
+      if (mode !== "test" || !key.startsWith("sk_test_")) return Response.json({ error: "Stripe TEST configuration unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+      try {
+        const response = await fetch("https://api.stripe.com/v1/account", { method: "GET", headers: { Authorization: `Bearer ${key}`, Accept: "application/json" }, cache: "no-store" });
+        if (!response.ok) return Response.json({ error: "Stripe account lookup unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+        const account = await response.json();
+        if (typeof account?.id !== "string" || !/^acct_[A-Za-z0-9]+$/.test(account.id)) return Response.json({ error: "Stripe account lookup unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+        return Response.json({ ok: true, accountId: account.id }, { headers: { "Cache-Control": "no-store" } });
+      } catch {
+        return Response.json({ error: "Stripe account lookup unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+      }
     }
 
     if (url.pathname === "/api/admin/access") {

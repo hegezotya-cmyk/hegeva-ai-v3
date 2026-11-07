@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "hegeva-ai-v3-staging-scheduled-test",
+  "main": "src/staging-scheduled-test-worker.js",
+  "compatibility_date": "2026-09-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "keep_vars": true,
+  "triggers": { "crons": ["*/1 * * * *"] },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": { "enabled": true, "invocation_logs": true, "head_sampling_rate": 1, "persist": true },
+    "traces": { "enabled": false },
+    "issues": { "enabled": false }
+  },
+  "vars": {
+    "PAYMENT_MODE": "test",
+    "STAGING_SCHEDULED_TEST_ENABLED": "false"
+  },
+  "d1_databases": [{
+    "binding": "SYNTHETIC_TEST_DB",
+    "database_name": "hegeva-ai-v3-staging-scheduled-test-db",
+    "database_id": "423b4b29-e71b-4f8f-9da8-884538129743",
+    "migrations_dir": "./migrations/staging-scheduled-test"
+  }],
+  "durable_objects": {
+    "bindings": [{ "name": "GUARD", "class_name": "StagingTestGuardDurableObject" }]
+  },
+  "migrations": [{ "tag": "staging-scheduled-test-v1", "new_sqlite_classes": ["StagingTestGuardDurableObject"] }]
+}

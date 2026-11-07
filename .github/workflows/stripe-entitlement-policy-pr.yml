@@ -1,0 +1,243 @@
+name: Stripe Multi-Subscription Policy PR Checks
+
+on:
+  pull_request:
+    branches:
+      - integration/security-growth-validation-20261104
+    paths:
+      - "src/stripe-entitlement-reconciliation-policy.js"
+      - "src/stripe-subscription-inventory.js"
+      - "src/stripe-terminal-event-review.js"
+      - "src/index-ledger.js"
+      - "src/index.js"
+      - "scripts/monitor-log-severity-test.mjs"
+      - "scripts/local-workspace-two-tenants.mjs"
+      - "scripts/stripe-account-identity-regression-test.mjs"
+      - "src/stripe-checkout-guard.js"
+      - "scripts/stripe-checkout-lock-cas-regression-test.mjs"
+      - "src/stripe-terminal-effects-outbox.js"
+      - "src/stripe-terminal-effects-processor.js"
+      - "src/stripe-terminal-effects-state-verifier.js"
+      - "src/stripe-terminal-effects-state-checker.js"
+      - "src/stripe-terminal-effects-runner.js"
+      - "src/stripe-terminal-referral-reversal.js"
+      - "src/stripe-terminal-billing-identity.js"
+      - "src/stripe-staging-identity-compare.js"
+      - "src/stripe-staging-private-reconciliation.js"
+      - "scripts/stripe-staging-private-reconcile.mjs"
+      - "scripts/stripe-staging-private-reconciliation-test.mjs"
+      - "migrations/0032_stripe_terminal_effect_outbox.sql"
+      - "scripts/stripe-multi-subscription-entitlement-test.mjs"
+      - "scripts/stripe-subscription-inventory-test.mjs"
+      - "scripts/stripe-terminal-event-review-test.mjs"
+      - "scripts/stripe-terminal-routes-risk-sentinel.mjs"
+      - "scripts/stripe-signed-webhook-integration-test.mjs"
+      - "scripts/stripe-sqlite-webhook-ledger-test.mjs"
+      - "scripts/stripe-sqlite-two-connection-order-test.mjs"
+      - "scripts/stripe-sqlite-parallel-workers-test.mjs"
+      - "scripts/stripe-terminal-effects-outbox-test.mjs"
+      - "scripts/stripe-terminal-outbox-atomic-test.mjs"
+      - "scripts/stripe-terminal-effects-processor-test.mjs"
+      - "scripts/stripe-terminal-no-double-effects-test.mjs"
+      - "scripts/stripe-terminal-effects-state-verifier-test.mjs"
+      - "scripts/stripe-terminal-effects-state-checker-test.mjs"
+      - "scripts/stripe-terminal-effects-runner-test.mjs"
+      - "scripts/stripe-terminal-outbox-health-test.mjs"
+      - "scripts/stripe-webhook-finalized-ledger-safety-test.mjs"
+      - "scripts/stripe-terminal-referral-reversal-test.mjs"
+      - "scripts/stripe-terminal-referral-outbox-integration-test.mjs"
+      - "scripts/stripe-terminal-billing-identity-test.mjs"
+      - "scripts/stripe-staging-identity-compare-test.mjs"
+      - "v0-app/app/pricing/page.tsx"
+      - "v0-app/lib/billing-mode-disclosure.ts"
+      - "v0-app/lib/i18n/pricing-copy.ts"
+      - "scripts/pricing-billing-disclosure-test.mjs"
+      - "scripts/staging-scheduled-fixture-adapter-test.mjs"
+      - "scripts/staging-d1-fencing-race-test.mjs"
+      - "scripts/staging-scheduled-test-control-test.mjs"
+      - "scripts/staging-scheduled-test-endpoint-test.mjs"
+      - "scripts/staging-scheduled-test-guard-test.mjs"
+      - "scripts/staging-scheduled-test-worker-routing-test.mjs"
+      - "scripts/staging-scheduled-runtime-runner-test.mjs"
+      - "scripts/staging-scheduled-test-cron-handler-test.mjs"
+      - "src/staging-scheduled-runtime-runner.js"
+      - "src/staging-scheduled-test-cron-handler.js"
+      - "src/staging-scheduled-test-worker.js"
+      - "src/staging-synthetic-fixture-adapter.js"
+      - "wrangler.staging-scheduled-test.jsonc"
+      - "migrations/staging-scheduled-test/**"
+      - "scripts/staging-scheduled-test-cleanup.sql"
+      - "scripts/staging-scheduled-worker-isolation-test.mjs"
+      - "scripts/staging-scheduled-test-cleanup-test.mjs"
+      - ".github/workflows/staging-deploy.yml"
+      - ".github/workflows/stripe-entitlement-policy-pr.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Pricing billing disclosure regression
+        run: node --experimental-strip-types scripts/pricing-billing-disclosure-test.mjs
+      - name: UI TypeScript check
+        run: |
+          npm ci --prefix v0-app
+          cd v0-app
+          npx tsc --noEmit
+      - name: Local two-tenant auth and workspace isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HEGEVA_TEST_BASE_URL="http://127.0.0.1:8788"
+          export HEGEVA_LOCAL_ACCOUNT_SEED_SQL="$RUNNER_TEMP/hegeva-local-account-seed-$GITHUB_RUN_ID.sql"
+          worker_log="$RUNNER_TEMP/hegeva-local-worker-$GITHUB_RUN_ID.log"
+          worker_pid=""
+          cleanup() {
+            if [[ -n "$worker_pid" ]]; then
+              kill "$worker_pid" 2>/dev/null || true
+              wait "$worker_pid" 2>/dev/null || true
+            fi
+            rm -f "$HEGEVA_LOCAL_ACCOUNT_SEED_SQL" "$worker_log"
+          }
+          trap cleanup EXIT
+          node scripts/local-auth-credential-seed.mjs
+          npx wrangler d1 migrations apply hegeva-ai-staging-db --local --config wrangler.staging.jsonc
+          npx wrangler d1 execute hegeva-ai-staging-db --local --config wrangler.staging.jsonc --file scripts/local-workspace-two-tenants.sql
+          npx wrangler d1 execute hegeva-ai-staging-db --local --config wrangler.staging.jsonc --file "$HEGEVA_LOCAL_ACCOUNT_SEED_SQL"
+          ./node_modules/.bin/wrangler dev --local --test-scheduled --config wrangler.staging.jsonc --port 8788 >"$worker_log" 2>&1 &
+          worker_pid=$!
+          ready=0
+          for _ in {1..30}; do
+            if curl -fsS "$HEGEVA_TEST_BASE_URL/api/system/email-status" >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$ready" != "1" ]]; then
+            tail -n 50 "$worker_log"
+            exit 1
+          fi
+          node scripts/local-workspace-two-tenants.mjs
+          curl -fsS "http://127.0.0.1:8788/cdn-cgi/local/scheduled?cron=*/5+*+*+*+*" >/dev/null
+          cron_observed=0
+          for _ in {1..20}; do
+            if grep -q "HEGEVA_CRON empty" "$worker_log"; then
+              cron_observed=1
+              break
+            fi
+            sleep 0.2
+          done
+          if [[ "$cron_observed" != "1" ]]; then
+            tail -n 50 "$worker_log"
+            exit 1
+          fi
+      - name: Checkout-lock owned-token CAS regression
+        run: node scripts/stripe-checkout-lock-cas-regression-test.mjs
+      - name: Monitor severity regression
+        run: node scripts/monitor-log-severity-test.mjs
+      - name: Worker checks
+        run: npm run worker:check
+      - name: Syntax check
+        run: |
+          node --check src/stripe-entitlement-reconciliation-policy.js
+          node --check src/stripe-subscription-inventory.js
+          node --check src/stripe-terminal-event-review.js
+          node --check src/index-ledger.js
+          node --check src/stripe-terminal-effects-outbox.js
+          node --check src/stripe-terminal-effects-processor.js
+          node --check src/stripe-terminal-effects-state-verifier.js
+          node --check src/stripe-terminal-effects-state-checker.js
+          node --check src/stripe-terminal-effects-runner.js
+          node --check src/stripe-terminal-referral-reversal.js
+          node --check src/stripe-terminal-billing-identity.js
+          node --check src/stripe-staging-identity-compare.js
+          node --check src/stripe-staging-private-reconciliation.js
+          node --check scripts/stripe-staging-private-reconcile.mjs
+          node --check scripts/stripe-staging-private-reconciliation-test.mjs
+          node --check scripts/stripe-multi-subscription-entitlement-test.mjs
+          node --check scripts/stripe-subscription-inventory-test.mjs
+          node --check scripts/stripe-terminal-event-review-test.mjs
+          node --check scripts/stripe-terminal-routes-risk-sentinel.mjs
+          node --check scripts/stripe-signed-webhook-integration-test.mjs
+          node --check scripts/stripe-sqlite-webhook-ledger-test.mjs
+          node --check scripts/stripe-sqlite-two-connection-order-test.mjs
+          node --check scripts/stripe-sqlite-parallel-workers-test.mjs
+          node --check scripts/stripe-terminal-effects-outbox-test.mjs
+          node --check scripts/stripe-terminal-outbox-atomic-test.mjs
+          node --check scripts/stripe-terminal-effects-processor-test.mjs
+          node --check scripts/stripe-terminal-no-double-effects-test.mjs
+          node --check scripts/stripe-terminal-effects-state-verifier-test.mjs
+          node --check scripts/stripe-terminal-effects-state-checker-test.mjs
+          node --check scripts/stripe-terminal-effects-runner-test.mjs
+          node --check scripts/stripe-terminal-outbox-health-test.mjs
+          node --check scripts/stripe-webhook-finalized-ledger-safety-test.mjs
+          node --check scripts/stripe-terminal-referral-reversal-test.mjs
+          node --check scripts/stripe-terminal-referral-outbox-integration-test.mjs
+          node --check scripts/stripe-terminal-billing-identity-test.mjs
+          node --check scripts/stripe-staging-identity-compare-test.mjs
+      - name: Multi-subscription cancellation regression
+        run: node scripts/stripe-multi-subscription-entitlement-test.mjs
+      - name: Cross-customer Stripe inventory regression
+        run: node scripts/stripe-subscription-inventory-test.mjs
+      - name: Terminal webhook decision regression
+        run: node scripts/stripe-terminal-event-review-test.mjs
+      - name: Existing downgrade path risk sentinel (documents known blockers)
+        run: node scripts/stripe-terminal-routes-risk-sentinel.mjs
+      - name: Signed webhook and mocked D1 integration
+        run: node scripts/stripe-signed-webhook-integration-test.mjs
+      - name: Real SQLite webhook ledger SQL and crash-window regression
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-sqlite-webhook-ledger-test.mjs
+      - name: Two-connection SQLite event ordering regression
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-sqlite-two-connection-order-test.mjs
+      - name: Concurrent SQLite worker-thread webhook race regression
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-sqlite-parallel-workers-test.mjs
+      - name: Durable terminal side-effects outbox policy SQLite tests
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-outbox-test.mjs
+      - name: Three-write atomic Stripe outbox rollback on SQLite
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-outbox-atomic-test.mjs
+      - name: Isolated SQLite outbox processor retries
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-processor-test.mjs
+      - name: Terminal webhook has no duplicate inline side effects
+        run: node scripts/stripe-terminal-no-double-effects-test.mjs
+      - name: Verified Stripe and D1 terminal effects current state
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-state-verifier-test.mjs
+      - name: Trusted Stripe TEST outbox read-only state adapter
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-state-checker-test.mjs
+      - name: Isolated Stripe/D1 outbox verifier-to-processor regression
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-effects-runner-test.mjs
+      - name: Terminal outbox bounded retry and alert regression
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-outbox-health-test.mjs
+      - name: Completed webhook ledger cannot be deleted on error cleanup
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-webhook-finalized-ledger-safety-test.mjs
+      - name: Atomic referral reversal SQLite rollback and idempotency
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-referral-reversal-test.mjs
+      - name: Integrated Stripe TEST mocked outbox referral rollback and retry
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-referral-outbox-integration-test.mjs
+      - name: Terminal Stripe Customer and subscription CAS protection
+        run: node --disable-warning=ExperimentalWarning scripts/stripe-terminal-billing-identity-test.mjs
+      - name: Private D1-Stripe identity comparison synthetic regression
+        run: node scripts/stripe-staging-identity-compare-test.mjs
+      - name: Local-only D1 Stripe remote-reader orchestration regression
+        run: node scripts/stripe-staging-private-reconciliation-test.mjs
+      - name: Staging and Stripe private audit defaults to dry run
+        run: node scripts/stripe-staging-private-reconcile.mjs
+
+      - name: Staging scheduled test-control and synthetic fencing regressions
+        run: |
+          node --disable-warning=ExperimentalWarning scripts/staging-scheduled-fixture-adapter-test.mjs
+          node --disable-warning=ExperimentalWarning scripts/staging-d1-fencing-race-test.mjs
+          node --disable-warning=ExperimentalWarning --test scripts/staging-scheduled-runtime-runner-test.mjs scripts/staging-scheduled-test-cron-handler-test.mjs
+          node --test scripts/staging-scheduled-test-cleanup-test.mjs
+          node --test scripts/staging-scheduled-test-control-test.mjs scripts/staging-scheduled-test-endpoint-test.mjs scripts/staging-scheduled-test-guard-test.mjs scripts/staging-scheduled-test-worker-routing-test.mjs
+          node scripts/staging-scheduled-worker-isolation-test.mjs

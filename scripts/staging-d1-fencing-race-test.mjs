@@ -1,0 +1,15 @@
+import assert from "node:assert/strict";
+import {DatabaseSync} from "node:sqlite";
+const db=new DatabaseSync(":memory:");
+db.exec("CREATE TABLE fixture_guard(id INTEGER PRIMARY KEY CHECK(id=1), token TEXT NOT NULL, expiresAt INTEGER NOT NULL); CREATE TABLE fixture_effect(opId TEXT PRIMARY KEY, applied INTEGER NOT NULL)");
+db.prepare("INSERT INTO fixture_guard VALUES(1,?,?)").run("lease-a",1000);
+const stale=db.prepare("UPDATE fixture_guard SET token=? WHERE id=1 AND token=? AND expiresAt>? ").run("lease-b","lease-a",2000).changes;
+assert.equal(stale,0,"expired/stale fencing token must not mutate D1 state");
+db.prepare("UPDATE fixture_guard SET token=?,expiresAt=? WHERE id=1").run("lease-b",3000);
+const current=db.prepare("INSERT INTO fixture_effect(opId,applied) SELECT ?,1 WHERE EXISTS(SELECT 1 FROM fixture_guard WHERE id=1 AND token=? AND expiresAt>?) ON CONFLICT(opId) DO NOTHING").run("op-a","lease-b",2000).changes;
+const duplicate=db.prepare("INSERT INTO fixture_effect(opId,applied) SELECT ?,1 WHERE EXISTS(SELECT 1 FROM fixture_guard WHERE id=1 AND token=? AND expiresAt>?) ON CONFLICT(opId) DO NOTHING").run("op-a","lease-b",2000).changes;
+assert.equal(current,1);assert.equal(duplicate,0,"idempotency key must suppress duplicate effect");
+assert.equal(db.prepare("SELECT COUNT(*) AS n FROM fixture_effect").get().n,1);
+db.exec("DELETE FROM fixture_effect; DELETE FROM fixture_guard;");
+assert.equal(db.prepare("SELECT COUNT(*) AS n FROM fixture_effect").get().n,0);assert.equal(db.prepare("SELECT COUNT(*) AS n FROM fixture_guard").get().n,0);db.close();
+console.log("Synthetic D1 fencing race PASS: stale-write rejection, current-token conditional write, idempotency and zero cleanup residue");
