@@ -590,3 +590,10 @@ This section supersedes earlier statements above that the Cron invocation and th
 - **PASS:** cron entry and empty-queue path remain live on the newly deployed API version; dashboard showed 12 successful events and 0 errors at readback.
 - **Still BLOCKED:** no pending row existed, so remote retry/recovery/fencing and terminal side-effect completion are not demonstrated by these idle invocations.
 - Read-only observation only; no D1 or Stripe writes.
+
+
+## Direct staging API verification of reserved workspace-type rejection — 2026-11-07
+
+- Read-only GET requests against the deployed staging Worker for `billing_webhook_status`, `prepared_work`, and `stripe_checkout_lock` each returned `{"error":"Invalid workspace type."}`.
+- **PASS:** the reserved internal workspace types are rejected by the deployed API path instead of being exposed as generic workspace records. No request body, D1 mutation, Stripe request or customer action was issued.
+- This confirms the specific PR #95 regression fix on the live staging API; it is not a substitute for a two-identity authorization/isolation test.
