@@ -67,7 +67,7 @@ const unauthenticatedWrite = await api("/api/workspace/customers", {
 assert.equal(unauthenticatedWrite.status, 401, "Anonymous workspace writes must be blocked")
 console.log("PASS anonymous workspace read/write protection")
 
-for (const type of ["billing_webhook_status", "stripe_checkout_lock"]) {
+for (const type of ["billing_webhook_status", "prepared_work", "stripe_checkout_lock"]) {
   const path = "/api/workspace/" + type
   const protectedRead = await api(path, { session: "alpha" })
   assert.equal(protectedRead.status, 400, "Generic workspace GET must reject protected internal type " + type)
