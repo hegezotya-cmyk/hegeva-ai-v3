@@ -203,3 +203,9 @@ jobs:
         run: node scripts/stripe-staging-private-reconciliation-test.mjs
       - name: Staging and Stripe private audit defaults to dry run
         run: node scripts/stripe-staging-private-reconcile.mjs
+
+      - name: Staging scheduled test-control and synthetic fencing regressions
+        run: |
+          node --disable-warning=ExperimentalWarning scripts/staging-scheduled-fixture-adapter-test.mjs
+          node --disable-warning=ExperimentalWarning scripts/staging-d1-fencing-race-test.mjs
+          node --test scripts/staging-scheduled-test-control-test.mjs scripts/staging-scheduled-test-endpoint-test.mjs scripts/staging-scheduled-test-guard-test.mjs scripts/staging-scheduled-test-worker-routing-test.mjs
