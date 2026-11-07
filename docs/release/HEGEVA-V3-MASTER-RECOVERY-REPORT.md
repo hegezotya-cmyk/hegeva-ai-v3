@@ -615,3 +615,24 @@ This section supersedes earlier statements above that the Cron invocation and th
 - **PASS (offline CI):** retry recovery completes once and cleans up; stale fencing tokens cannot write; valid/current fencing and idempotency controls pass; endpoint/default-deny and routing boundary regressions pass.
 - **Still BLOCKED (remote runtime):** staging has no separately bound `SYNTHETIC_TEST_DB` or `GUARD` and no dedicated scheduled-test Worker deployment. No live outbox record was created and no test control was enabled. This CI result does not prove remote Cron retry/fencing.
 - Staging acceptance remains **NOT READY** and production remains **NO-GO** until the remote retry/fencing runtime gate is proven in an isolated test environment.
+
+
+## Read-only staging acceptance recheck — 2026-11-07
+
+This recheck used the existing authenticated second QA account and the Cloudflare Dashboard. No staging data was written and no payment or checkout session was initiated.
+
+- **Stripe TEST configuration — PASS (configuration only):** authenticated GET /api/billing/public-status returned provider stripe, mode=test, connected=true, checkoutEnabled=true, webhookConfigured=true, and managedPaymentsEnabled=false. Authenticated GET /api/billing/status also returned mode=test, secretReady=true, Premium/Pro price readiness, and paymentSecretsExposedToBrowser=false. It returned webhookVerified=false and no last webhook event, so webhook runtime delivery/verification is NOT PROVEN by this check.
+- **Pricing guard — PARTIAL PASS:** after the billing status loaded, the page displayed “Sandbox testing is active for this account. No real charge will be made.” and enabled the paid-plan controls for the Basic QA account. No control was clicked. During the initial unresolved status state, the page briefly displayed the live-payment disclosure while saying that secure billing was still being checked. Source review at the tested PR head shows effectiveMode defaults to live when both status requests are unresolved. This is a staging UI disclosure defect; checkout guards still require a recognized billing mode and configured checkout/webhook.
+- **Authenticated workspace read — PASS (scope-limited):** the second QA identity remained signed in after a read-only reload of /account. The QA workspace reported Basic plan, 0/50 AI usage, and an empty customer/document/task workspace. This proves session continuity after refresh for this identity; it does not prove logout/re-login or cross-workspace access control generally.
+- **Cross-account canary — PASS (scope-limited):** the previously recorded second-account customer-list check did not return the first account's synthetic customer canary. This is limited to the tested identities, customer-list route, and record.
+- **Read-only route smoke:** Command Center, Assistant, App Studio, Business Hub, Money Today, Customers, Documents, Expenses, Planner, Reports, Messages, Financial Guard, Account, Pricing, Get Started, Business Intelligence, and the 90-second Launch flow rendered. /business/invoices?prepare=quote selects Quote in the supported document maker. A standalone /business/quotes URL returns 404; the Command Center links quote creation to the supported document maker. This smoke did not create or save any records. Assistant showed the authenticated workspace and “HEGEVA Core ready”; no AI generation request was sent. Empty states on this QA workspace are not evidence of create/edit persistence.
+- **Cron/D1 — PASS for scheduled idle path only:** Cloudflare Observability displayed 12 successes and 0 errors in the last hour, each shown as HEGEVA_CRON empty. A read-only D1 aggregate showed one historical completed outbox row (attempt 1) and no pending/processing/blocked rows. Remote retry, recovery, and fencing remain BLOCKED because there was no eligible job and remote D1 fixture writes are not authorized.
+- **Deployment / environment scope:** current staging endpoint remained staging.hegevaai.co.uk; this was a read-only UI/API inspection. No production Worker, Stripe object, Cloudflare setting, secret, binding, permission, or D1 row was changed.
+
+### Recheck disposition
+
+- Authenticated route rendering and one-account refresh continuity: PARTIAL PASS.
+- Stripe TEST configuration and paid-plan readiness flags: PASS (configuration only); no payment or webhook runtime acceptance.
+- Cross-account isolation: PARTIAL PASS, one canary/endpoint only.
+- Remote retry/fencing and full journey acceptance: BLOCKED.
+- Full staging acceptance: NOT READY; production: NO-GO; releaseSafe=false.
