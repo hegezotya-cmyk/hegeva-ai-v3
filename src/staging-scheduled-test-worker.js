@@ -1,0 +1,7 @@
+// Offline/staging-only build entrypoint. Never imported by production Worker entrypoints.
+import { createStagingScheduledTestController } from "./staging-scheduled-test-control.js";
+import { createStagingScheduledTestEndpoint } from "./staging-scheduled-test-endpoint.js";
+import { createStagingSyntheticFixtureAdapter } from "./staging-synthetic-fixture-adapter.js";
+import { guardNameForScenario } from "./staging-test-routing.js";
+export { StagingTestGuardDurableObject } from "./staging-scheduled-test-guard-do.js";
+export default { async fetch(request, env) { if (env.STAGING_SCHEDULED_TEST_CONTROL_ENABLED !== "true" || env.PAYMENT_MODE !== "test" || !env.SYNTHETIC_TEST_DB || !env.GUARD) return new Response(JSON.stringify({ status: "denied", code: "disabled" }), { status: 404 }); return createStagingScheduledTestEndpoint({ env, dispatch: async scenario => { const guardName = guardNameForScenario(scenario); if (!guardName) return { status: "denied", code: "invalid-request" }; const namespace = `staging-fixture:${crypto.randomUUID().replaceAll("-", "").slice(0, 24)}`; const guard = env.GUARD.get(env.GUARD.idFromName(guardName)); const adapter = createStagingSyntheticFixtureAdapter({ namespace, db: env.SYNTHETIC_TEST_DB, guard }); const controller = createStagingScheduledTestController({ adapter, isStagingBuild: true, env, paymentMode: env.PAYMENT_MODE, authorizationSecret: env.STAGING_SCHEDULED_TEST_AUTH_SECRET }); return controller({ authorization: env.STAGING_SCHEDULED_TEST_AUTH_SECRET, scenario }); } })(request); } };

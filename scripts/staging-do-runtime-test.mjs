@@ -1,0 +1,14 @@
+import assert from "node:assert/strict";
+const base = process.env.STAGING_DO_TEST_URL || "http://127.0.0.1:8799";
+const nonce = "12345678-1234-1234-1234-123456789abc";
+const other = "87654321-4321-4321-4321-cba987654321";
+const name = `local-single-flight-${Date.now()}`;
+const call = async (action, value) => (await fetch(`${base}/local-test?action=${action}&nonce=${value}&name=${name}`)).json();
+const results = await Promise.all([call("acquire", nonce), call("acquire", other)]);
+assert.equal(results.filter(x => x.result === true).length, 1, "DO transaction must have one acquire winner");
+const winner = results[0].result === true ? nonce : other;
+const loser = winner === nonce ? other : nonce;
+assert.equal((await call("release", loser)).result, false, "stale nonce cannot release active lease");
+assert.equal((await call("release", winner)).result, true, "current lease owner can release");
+assert.equal((await call("fenced", winner)).result.ok, false, "released lease cannot receive a fenced grant");
+console.log("Cloudflare local Durable Object runtime PASS: atomic transaction single-flight and stale-release fencing");

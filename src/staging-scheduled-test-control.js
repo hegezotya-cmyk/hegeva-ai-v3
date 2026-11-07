@@ -1,0 +1,63 @@
+// Offline staging test-control contract. NEVER imported by Worker entrypoints.
+// Runtime integration remains disabled; adapters and fixtures are tested separately.
+const scenarios = new Set(["retry-recovery","lease-fencing"]);
+const states = new Set(["completed","retry-scheduled","blocked"]);
+export const STAGING_SCHEDULED_TEST_CONTROL_FLAG = "STAGING_SCHEDULED_TEST_CONTROL_ENABLED";
+export function isStagingScheduledTestControlEnabled(env = {}) {
+ return env?.[STAGING_SCHEDULED_TEST_CONTROL_FLAG] === "true";
+}
+const result=(status,code,cleanupVerified=false)=>({status,code,cleanupVerified});
+function tokenEqual(a,b) {
+  if(typeof a!=="string"||typeof b!=="string"||a.length<32||b.length<32)return false;
+  const x=new TextEncoder().encode(a),y=new TextEncoder().encode(b);
+  let difference=x.length^y.length;
+  for(let i=0;i<Math.max(x.length,y.length);i++)difference|=(x[i]??0)^(y[i]??0);
+  return difference===0;
+}
+export function createStagingScheduledTestController({
+ adapter,isStagingBuild=false,enabled=false,env=null,paymentMode="",authorizationSecret="",
+ now=()=>Date.now(),generateNonce=()=>crypto.randomUUID(),maxDurationMs=15000
+}={}){
+ if(!Number.isInteger(maxDurationMs)||maxDurationMs<1000||maxDurationMs>30000)throw Error("invalid-timeout");
+ const controlEnabled=env===null?enabled===true:isStagingScheduledTestControlEnabled(env);
+ return async request=>{
+   if(isStagingBuild!==true||controlEnabled!==true||paymentMode!=="test")return result("denied","disabled");
+   if(!tokenEqual(request?.authorization,authorizationSecret))return result("denied","unauthorized");
+   const keys=request&&typeof request==="object"&&!Array.isArray(request)?Object.keys(request).sort():[];
+   if(keys.join(",")!=="authorization,scenario"||!scenarios.has(request.scenario))return result("denied","invalid-request");
+   if(!adapter||!["acquire","release","verifyLease","fencedWrite","runSynthetic","cleanup","verifyCleanup"].every(k=>typeof adapter[k]==="function"))
+     return result("blocked","adapter-unavailable");
+   const nonce=generateNonce();
+   if(typeof nonce!=="string"||!/^[0-9a-f-]{32,36}$/i.test(nonce))return result("blocked","nonce-invalid");
+   const scenario=request.scenario,started=now();
+   let acquired=false,verified=false,status="blocked",code="test-not-run";
+   try{
+     // Adapter contract: atomic durable single-flight, rate-limit and replay rejection.
+     acquired=await adapter.acquire({scenario,nonce,deadline:started+maxDurationMs})===true;
+     if(!acquired)return result("blocked","single-flight-or-rate-limited");
+     const deadline=started+maxDurationMs;
+     if(await adapter.verifyLease({scenario,nonce,deadline})!==true){code="lease-invalid-before-effect";return result("blocked",code);}
+     const assertLease=async()=>{
+       if(now()>deadline)return false;
+       return await adapter.verifyLease({scenario,nonce,deadline})===true;
+     };
+     const fencedWrite=async operationCode=>{
+       if(typeof operationCode!=="string"||await assertLease()!==true)return {ok:false,reason:"lease-invalid-before-write"};
+       return adapter.fencedWrite({scenario,nonce,deadline,operationCode});
+     };
+     const execution=await adapter.runSynthetic({scenario,nonce,deadline,assertLease,fencedWrite});
+     if(now()>deadline)code="deadline-exceeded";
+     else if(await adapter.verifyLease({scenario,nonce,deadline})!==true)code="lease-invalid-after-effect";
+     else if(execution&&states.has(execution.status)){status=execution.status;code="scenario-executed";}
+     else code="scenario-invalid-result";
+   }catch{code="scenario-exception";}
+   finally{
+     if(acquired){
+       try{await adapter.cleanup({scenario,nonce});verified=await adapter.verifyCleanup({scenario,nonce})===true;}
+       catch{verified=false;}
+       try{await adapter.release({scenario,nonce});}catch{verified=false;}
+     }
+   }
+   return verified?result(status,code,true):result("blocked","cleanup-unverified");
+ };
+}

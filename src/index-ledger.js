@@ -1,5 +1,11 @@
 import hegevaWorker, { emitMonitor } from "./index.js";
+import { collectStripeUserSubscriptions } from "./stripe-subscription-inventory.js";
+import { reviewTerminalStripeEvent } from "./stripe-terminal-event-review.js";
+import { effectForDecision, prepareTerminalEffect } from "./stripe-terminal-effects-outbox.js";
 import { reconcileReferralRewardForUser, reverseApprovedReferralRewards } from "./referral-reward-review.js";
+import { processNextTerminalEffect } from "./stripe-terminal-effects-processor.js";
+import { createStripeTerminalStateChecker } from "./stripe-terminal-effects-state-checker.js";
+import { prepareTerminalBillingIdentityStatus } from "./stripe-terminal-billing-identity.js";
 export { UserRateLimiter } from "./user-rate-limiter-do.js";
 
 const STRIPE_WEBHOOK_BODY_LIMIT = 512 * 1024;
@@ -478,7 +484,7 @@ async function hasNewerAppliedStripeEvent(env, claim) {
       SELECT eventId
       FROM stripe_webhook_events
       WHERE userId = ?1
-        AND outcome = 'applied'
+        AND outcome IN ('applied', 'reconciled')
         AND eventCreatedAt > ?2
       ORDER BY eventCreatedAt DESC
       LIMIT 1
@@ -490,8 +496,14 @@ async function hasNewerAppliedStripeEvent(env, claim) {
 }
 
 async function finalizeStripeEvent(env, eventId, responseData) {
-  const outcome =
-    responseData?.entitlementChanged === true && responseData?.ignored !== true
+  // A successfully reconciled terminal event may retain an existing plan
+  // without changing the D1 row. It still needs a distinct finalized outcome.
+  // The deployed staging schema permits only applied/ignored. A terminal
+  // event that passed complete inventory reconciliation is still an applied
+  // ledger event; the response payload carries inventoryReconciled=true.
+  const outcome = responseData?.inventoryReconciled === true
+    ? "applied"
+    : responseData?.entitlementChanged === true && responseData?.ignored !== true
       ? "applied"
       : "ignored";
 
@@ -508,47 +520,105 @@ async function finalizeStripeEvent(env, eventId, responseData) {
 
 async function releaseStripeEvent(env, eventId) {
   await env.DB
-    .prepare(`DELETE FROM stripe_webhook_events WHERE eventId = ?1`)
+    .prepare(`DELETE FROM stripe_webhook_events WHERE eventId = ?1 AND outcome = 'ignored'`)
     .bind(eventId)
     .run();
 }
 
-async function downgradeTerminalSubscription(env, event, claim) {
-  if (
-    claim?.eventType !== "customer.subscription.updated" ||
-    !claim?.userId
-  ) {
-    return null;
+function isTerminalSubscriptionEvent(event) {
+  const type = event?.type;
+  const status = String(event?.data?.object?.status || "").trim().toLowerCase();
+  // Deleted events must never reach the legacy unconditional downgrade path,
+  // including when Stripe's payload is malformed or missing a status.
+  if (type === "customer.subscription.deleted") return true;
+  return type === "customer.subscription.updated" &&
+    ["canceled", "unpaid", "incomplete_expired"].includes(status);
+}
+
+// All terminal events are intercepted before delegate to index.js, which
+// otherwise grants Basic unconditionally on customer.subscription.deleted.
+// This candidate requires authenticated, complete Stripe inventory for its
+// entitlement decision. Never authorize a downgrade from one event alone.
+async function reconcileTerminalStripeEvent(env, event, claim) {
+  const paymentMode = getLedgerPaymentMode(env);
+  const livemode = paymentMode === "live";
+  const inventory = () => collectStripeUserSubscriptions({
+    userId: claim.userId,
+    livemode,
+    secretKey: env.STRIPE_SECRET_KEY
+  });
+  const decision = await reviewTerminalStripeEvent({
+    event,
+    userId: claim.userId,
+    livemode,
+    getCompleteInventory: inventory,
+  });
+  if (decision.decision === "defer") return { deferred: true };
+
+  const nextPlan = decision.plan;
+  if (!["basic", "premium", "pro"].includes(nextPlan)) {
+    return { deferred: true };
   }
 
-  const status = String(event?.data?.object?.status || "").toLowerCase();
-  const terminal = ["canceled", "unpaid", "incomplete_expired"].includes(status);
-
-  // cancel_at_period_end is intentionally not terminal. The subscriber keeps
-  // access until Stripe actually ends the subscription.
-  if (!terminal) return null;
-
-  const result = await env.DB
-    .prepare(`
-      INSERT INTO user_plans (
-        userId,
-        plan,
-        createdAt,
-        updatedAt
-      )
-      VALUES (?1, 'basic', ?2, ?2)
-      ON CONFLICT(userId)
-      DO UPDATE SET
-        plan = 'basic',
+  // D1 batch() executes the entitlement write and event finalization as
+  // one transaction. A crash cannot leave the plan committed while the
+  // webhook event still appears pending.
+  const committedAt = new Date().toISOString();
+  // The outbox is part of the SAME transaction as the plan and event ledger.
+  // Requires unapplied migration 0032 before this draft can be deployed.
+  const effectType = effectForDecision(decision.decision, true);
+  const queuedEffect = prepareTerminalEffect({
+    eventId: claim.eventId,
+    userId: claim.userId,
+    subscriptionId: event?.data?.object?.id,
+    customerId: event?.data?.object?.customer,
+    livemode,
+    effectType,
+    now: committedAt,
+  });
+  if (!queuedEffect) return { deferred: true };
+  const statements = [
+    env.DB.prepare(`
+      INSERT INTO user_plans (userId, plan, createdAt, updatedAt)
+      VALUES (?1, ?2, ?3, ?3)
+      ON CONFLICT(userId) DO UPDATE SET
+        plan = excluded.plan,
         updatedAt = excluded.updatedAt
       WHERE user_plans.updatedAt IS NULL
          OR user_plans.updatedAt <= excluded.updatedAt
-    `)
-    .bind(claim.userId, claim.eventCreatedAt)
-    .run();
+    `).bind(claim.userId, nextPlan, claim.eventCreatedAt),
+    env.DB.prepare(`
+      UPDATE stripe_webhook_events
+      SET outcome = 'applied', processedAt = ?1
+      WHERE eventId = ?2 AND outcome = 'ignored'
+    `).bind(committedAt, claim.eventId),
+    env.DB.prepare(queuedEffect.sql).bind(...queuedEffect.values),
+  ];
+  if (decision.decision === "downgrade") {
+    statements.push(prepareTerminalBillingIdentityStatus({
+      db: env.DB,
+      userId: claim.userId,
+      customerId: event?.data?.object?.customer,
+      subscriptionId: event?.data?.object?.id,
+      status: String(event?.data?.object?.status || "").toLowerCase(),
+      now: committedAt,
+    }));
+  }
+  const changes = await env.DB.batch(statements);
+  const identityChangeIndex = decision.decision === "downgrade" ? 3 : -1;
+  if (!Array.isArray(changes) || changes.length !== (decision.decision === "downgrade" ? 4 : 3) ||
+      Number(changes[1]?.meta?.changes) !== 1 ||
+      Number(changes[2]?.meta?.changes) !== 1 ||
+      (identityChangeIndex >= 0 && Number(changes[identityChangeIndex]?.meta?.changes) !== 1)) {
+    // A failed/ambiguous commit must never be acknowledged as reconciled.
+    throw new Error("stripe_atomic_terminal_commit_unconfirmed");
+  }
+  const changed = Number(changes[0]?.meta?.changes || 0) > 0;
 
-  const changed = Number(result?.meta?.changes || 0) > 0;
-
+  // All terminal side effects are now queued ONLY. Calling billing identity
+  // or referral mutations synchronously here would race the future outbox
+  // worker and allow double execution. No executor is enabled in this draft.
+  // The pending outbox job is persisted in the same atomic D1 batch above.
   return {
     received: true,
     verified: true,
@@ -556,9 +626,10 @@ async function downgradeTerminalSubscription(env, event, claim) {
     eventType: claim.eventType,
     ignored: !changed,
     entitlementChanged: changed,
-    resultingPlan: changed ? "basic" : null,
+    resultingPlan: changed ? nextPlan : null,
     userMapped: true,
-    subscriptionStatus: status,
+    subscriptionStatus: String(event.data.object.status).toLowerCase(),
+    inventoryReconciled: true,
   };
 }
 
@@ -633,6 +704,11 @@ async function handleStripeWebhook(request, env, ctx) {
   }
 
   if (claim.invalid) {
+    // Malformed terminal events must never reach the legacy unconditional
+    // customer.subscription.deleted downgrade path.
+    if (isTerminalSubscriptionEvent(event)) {
+      return Response.json({ error: "Invalid terminal subscription event." }, { status: 400 });
+    }
     const delegatedRequest = new Request(request.url, {
       method: request.method,
       headers: request.headers,
@@ -642,6 +718,25 @@ async function handleStripeWebhook(request, env, ctx) {
   }
 
   if (!claim.claimed) {
+    if (isTerminalSubscriptionEvent(event)) {
+      const existing = await env.DB.prepare(`
+        SELECT outcome FROM stripe_webhook_events WHERE eventId = ?1 LIMIT 1
+      `).bind(claim.eventId).first();
+      if (!existing || !["applied", "reconciled"].includes(existing.outcome)) {
+        // The original delivery may still be processing. Acknowledging an
+        // in-flight duplicate with 200 could permanently lose the event if
+        // the first attempt subsequently fails. Tell Stripe to retry.
+        return Response.json(
+          {error:"Subscription event reconciliation pending."},
+          {status:503,headers:{"Retry-After":"300"}}
+        );
+      }
+      return Response.json({
+        received:true,verified:true,duplicate:true,
+        eventId:claim.eventId,eventType:claim.eventType,
+        ignored:true,entitlementChanged:false
+      });
+    }
     const duplicateCanRefreshBillingIdentity =
       claim.eventType === "checkout.session.completed" ||
       claim.eventType === "invoice.paid";
@@ -684,16 +779,21 @@ async function handleStripeWebhook(request, env, ctx) {
       return Response.json(responseData);
     }
 
-    await syncStripeBillingIdentity(env, event, claim);
-
-    const terminalSubscriptionResult =
-      await downgradeTerminalSubscription(env, event, claim);
-
-    if (terminalSubscriptionResult) {
-      await finalizeStripeEvent(env, claim.eventId, terminalSubscriptionResult);
-      await reverseApprovedReferralRewards(env.DB, claim.userId, "entitlement-invalid");
-      return Response.json(terminalSubscriptionResult);
+    if (isTerminalSubscriptionEvent(event)) {
+      const reviewed = await reconcileTerminalStripeEvent(env, event, claim);
+      if (reviewed.deferred) {
+        await releaseStripeEvent(env, claim.eventId);
+        emitMonitor("stripe_webhook", "terminal_reconciliation_deferred");
+        return Response.json(
+          { error: "Subscription reconciliation temporarily unavailable." },
+          { status: 503, headers: { "Retry-After": "300" } },
+        );
+      }
+      // reconcileTerminalStripeEvent already finalized the event atomically.
+      return Response.json(reviewed);
     }
+
+    await syncStripeBillingIdentity(env, event, claim);
   } catch (error) {
     console.error("HEGEVA_REQUEST_FAILURE", {
       reason: "stripe_event_guard_failed",
@@ -747,6 +847,38 @@ async function handleStripeWebhook(request, env, ctx) {
 }
 
 export default {
+  async scheduled(controller, env, ctx) {
+    if (String(env.OUTBOX_PROCESSOR_ENABLED || "").toLowerCase() !== "true" || String(env.PAYMENT_MODE || "").toLowerCase() !== "test") return;
+    const now = new Date().toISOString();
+    const run = processNextTerminalEffect({
+      db: env.DB,
+      now,
+      checkCurrentState: createStripeTerminalStateChecker({
+        db: env.DB,
+        secretKey: env.STRIPE_SECRET_KEY,
+        paymentMode: env.PAYMENT_MODE,
+        fetchImpl: fetch,
+      }),
+      executeIdempotently: async effect => {
+        if (effect.effectType === "billing-and-referral-downgrade") return reverseApprovedReferralRewards(env.DB, effect.userId, "entitlement-invalid", "system", now);
+        if (effect.effectType === "referral-retain") return reconcileReferralRewardForUser(env.DB, effect.userId, now);
+        throw new Error("unknown-terminal-effect");
+      },
+    });
+    const observedRun = run.then(
+      result => {
+        const status = typeof result?.status === "string" ? result.status : "unknown";
+        const log = ["blocked", "retry-scheduled", "lease-lost"].includes(status)
+          ? console.warn : console.info;
+        log("HEGEVA_CRON", status);
+      },
+      error => {
+        console.error("HEGEVA_CRON", "failed", error instanceof Error ? error.name : "UnknownError");
+        throw error;
+      },
+    );
+    if (ctx?.waitUntil) ctx.waitUntil(observedRun); else await observedRun;
+  },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
