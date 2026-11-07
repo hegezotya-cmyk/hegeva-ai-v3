@@ -452,3 +452,11 @@ No production deployment/merge, remote D1 write/migration, Stripe write/payment/
 - **Current browser/API acceptance:** the connected staging tab is now signed out, so a fresh direct workspace API request could not be performed. The QA canary was deleted and its first-account empty state/cloud sync were verified on 2026-11-07.
 - **Decision:** local isolation regression **PASS**; live canary list visibility **PARTIAL PASS**; direct API isolation, remote Cron/outbox runtime and the other release gates remain **BLOCKED/UNPROVEN**. No staging or production deploy, merge, migration, Stripe write/payment, secret or binding change occurred. Full staging acceptance remains **NOT READY**, production **NO-GO**, and `releaseSafe=false`.
 
+
+## Cron observability repair — 2026-11-07
+
+- Source: `src/index-ledger.js` already registers a `scheduled()` handler and `wrangler.staging.jsonc` declares `*/5 * * * *`. With invocation logs disabled, the handler emitted no application-level outcome when the queue was empty or a job finished, preventing reliable scheduled-runtime attribution in persistent logs.
+- Draft fix on PR #95: the handler now writes `HEGEVA_CRON` plus a bounded processor status, with warning for blocked/retry/lease loss and error name for a rejected run. It logs no customer ID, event ID, secret or payment payload. Failure remains a rejected `waitUntil` promise.
+- Regression: the policy CI now starts a local Worker with Cloudflare's `--test-scheduled` flag, invokes `/cdn-cgi/local/scheduled` against 127.0.0.1, and requires `HEGEVA_CRON empty` in the Worker log after the local migrations and two-tenant fixture. This exercises the real scheduled entry point locally.
+- At this report edit, CI on the changed commit has not yet been read back; do not claim this new regression PASS until its workflow completes. This local trigger cannot prove a deployed Cloudflare scheduler invocation. After reviewed deployment, observe the real staging Cron event and read the outbox D1 state before and after a scheduled window.
+- Production release remains **NO-GO** and `releaseSafe=false`. No remote Cron trigger, staging/production deploy, merge, D1 write, Stripe write or payment occurred in this repair.
