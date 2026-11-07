@@ -82,7 +82,7 @@ jobs:
           npx wrangler d1 migrations apply hegeva-ai-staging-db --local --config wrangler.staging.jsonc
           npx wrangler d1 execute hegeva-ai-staging-db --local --config wrangler.staging.jsonc --file scripts/local-workspace-two-tenants.sql
           npx wrangler d1 execute hegeva-ai-staging-db --local --config wrangler.staging.jsonc --file "$HEGEVA_LOCAL_ACCOUNT_SEED_SQL"
-          ./node_modules/.bin/wrangler dev --local --config wrangler.staging.jsonc --port 8788 >"$worker_log" 2>&1 &
+          ./node_modules/.bin/wrangler dev --local --test-scheduled --config wrangler.staging.jsonc --port 8788 >"$worker_log" 2>&1 &
           worker_pid=$!
           ready=0
           for _ in {1..30}; do
@@ -97,6 +97,19 @@ jobs:
             exit 1
           fi
           node scripts/local-workspace-two-tenants.mjs
+          curl -fsS "http://127.0.0.1:8788/cdn-cgi/local/scheduled?cron=*/5+*+*+*+*" >/dev/null
+          cron_observed=0
+          for _ in {1..20}; do
+            if grep -q "HEGEVA_CRON empty" "$worker_log"; then
+              cron_observed=1
+              break
+            fi
+            sleep 0.2
+          done
+          if [[ "$cron_observed" != "1" ]]; then
+            tail -n 50 "$worker_log"
+            exit 1
+          fi
       - name: Checkout-lock owned-token CAS regression
         run: node scripts/stripe-checkout-lock-cas-regression-test.mjs
       - name: Worker checks
