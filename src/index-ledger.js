@@ -865,7 +865,19 @@ export default {
         throw new Error("unknown-terminal-effect");
       },
     });
-    if (ctx?.waitUntil) ctx.waitUntil(run); else await run;
+    const observedRun = run.then(
+      result => {
+        const status = typeof result?.status === "string" ? result.status : "unknown";
+        const log = ["blocked", "retry-scheduled", "lease-lost"].includes(status)
+          ? console.warn : console.info;
+        log("HEGEVA_CRON", status);
+      },
+      error => {
+        console.error("HEGEVA_CRON", "failed", error instanceof Error ? error.name : "UnknownError");
+        throw error;
+      },
+    );
+    if (ctx?.waitUntil) ctx.waitUntil(observedRun); else await observedRun;
   },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
