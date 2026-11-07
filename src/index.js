@@ -105,8 +105,29 @@ function safeErrorName(error) {
     : "UnknownError";
 }
 
+const MONITOR_INFO_OUTCOMES = new Set([
+  "decision_completed",
+  "prepared",
+  "upgraded",
+  "reused",
+  "approved",
+  "ready",
+]);
+
+const MONITOR_WARNING_OUTCOMES = new Set([
+  "rate_limited",
+  "terminal_reconciliation_deferred",
+]);
+
 export function emitMonitor(scope, outcome, metadata = {}) {
-  console.error("HEGEVA_MONITOR", {
+  // Unknown outcomes remain errors so new failure states cannot silently lose severity.
+  const level = MONITOR_INFO_OUTCOMES.has(outcome)
+    ? "info"
+    : MONITOR_WARNING_OUTCOMES.has(outcome)
+      ? "warn"
+      : "error";
+
+  console[level]("HEGEVA_MONITOR", {
     scope,
     outcome,
     ...metadata,
