@@ -729,3 +729,12 @@ Cloudflare Dashboard read-only inspection of `hegeva-ai-v3-staging` Production s
 - No synthetic D1 or synthetic guard binding was visible. Secret values were not opened or copied.
 - This corroborates staging environment separation/configuration only. It does not prove retry/fencing or customer journey acceptance; those remain blocked as stated above.
 - No settings, bindings, secret values, deployments, D1 rows, Stripe objects, or production resources were changed.
+
+
+## Owner clarification on removed staging test users — 2026-11-07
+
+- The owner reports that two staging test users were deleted before the current outbox readback. Treat the one-row current outbox snapshot as post-cleanup state; it does not establish that no test activity or pending rows existed before those account deletions.
+- Read-only schema inspection found that `stripe_terminal_effect_outbox.userId` is `NOT NULL` but has no declared foreign-key constraint to the `user` table. Therefore SQLite foreign-key cascade is not the mechanism; application-level or test cleanup could still have removed rows.
+- No deletion audit/history was available in the inspected schema to independently attribute an outbox row deletion to those two accounts. The cause is **UNVERIFIED**, and prior retry/fencing execution cannot be reconstructed from the current snapshot alone.
+- Current outbox state remains one completed row (attempt 1) and no eligible row. **PASS:** recurring scheduled idle path. **BLOCKED:** retry/recovery/fencing acceptance unless historical test-run evidence is supplied or an authorized isolated fixture is created and observed.
+- No data or configuration was changed during this check.
