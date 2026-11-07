@@ -653,3 +653,20 @@ This recheck used the existing authenticated second QA account and the Cloudflar
 - The full authenticated registration/email verification/login/onboarding → customer → quote → invoice → planner/follow-up → subscription journey is not proven end to end. The current route smoke was read-only; no records or checkout were created.
 - Tenant isolation remains scope-limited to the two QA identities and the one tested customer-list canary. Logout/re-login and other workspace/API resource boundaries are still unverified.
 - Therefore staging remains **NOT READY**, `releaseSafe=false`, and production **NO-GO**. The pricing fix must be reviewed and deployed through the approved staging process, then the remote acceptance gates must be completed without production access.
+
+
+## Staging UI deploy and live pricing verification — 2026-11-07
+
+- **Rollback/config precheck — PASS:** staging metadata workflow [#42412915710](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42412915710) returned STAGING_READINESS_VERIFIED. Before deployment, API version `039e5678-a48a-46fc-a0c4-9e344915a9af` and UI version `4777d569-bc6e-4f55-80de-befc56c1a1d4` were each at 100%; rollback versions were available for both. Bindings, routes, domains, subdomain, environment, and schedules all returned HTTP 200.
+- **Staging UI-only deploy — PASS:** workflow [#42413022217](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42413022217) succeeded on PR #95 HEAD `47f211dec9e5499aa79c78d991146e01c8f4e30e`. Verification, V0 TypeScript, Next build, Cloudflare build, preflight, UI deploy, and staging smoke all passed. New staging UI version: `b617b47b-06f3-4699-aa74-441aec42e930`. API version remained unchanged. No D1 migration ran.
+- **Post-deploy smoke — PASS (route/guard scope):** homepage, Get Started, Command Center, Assistant, App Studio, Business Hub, Customers, Documents, Expenses, Planner, Reports, Messages, Invoices, Vault, Tools, Pricing, Contact, Login, Reset Password, and Account returned HTTP 200. Email status returned 200 JSON; unauthenticated plan/billing/workspace endpoints returned expected 401; wrong-method chat/contact returned 405; retired billing confirm returned 410.
+- **Post-deploy QA2 pricing check — PASS:** immediately after navigation, pricing showed “Checking secure billing…” and did not claim live mode. After billing status resolved, the page showed “Sandbox testing is active for this account. No real charge will be made.” It described checkout/webhook configuration without claiming runtime webhook verification. TEST mode remained configured. No button was clicked and no checkout/payment was initiated.
+- **Scope:** staging UI only. No API deployment, remote D1 write/migration, Stripe write/payment, secret/binding/permission change, production change, or merge.
+
+### Updated staging disposition
+
+- Staging UI build, deploy, route smoke, and pricing TEST-mode disclosure: **PASS**.
+- Staging Cron idle schedule: **PASS**; remote retry/recovery/fencing remains **BLOCKED** because the queue has no pending row and remote fixture writes are not authorized.
+- Webhook runtime delivery: **NOT PROVEN**; the prior authenticated status read reported webhookVerified=false and no last event.
+- Full authenticated registration-to-subscription journey, write persistence after logout/re-login, and exhaustive tenant isolation remain **NOT PROVEN**.
+- Full staging acceptance remains **NOT READY**; production remains **NO-GO**; `releaseSafe=false`.
