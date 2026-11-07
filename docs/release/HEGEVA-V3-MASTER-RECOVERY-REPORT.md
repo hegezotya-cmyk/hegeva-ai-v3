@@ -562,3 +562,11 @@ This section supersedes earlier statements above that the Cron invocation and th
 - **PASS:** recurring Cloudflare scheduled entry and empty-queue processing on the current active version.
 - **BLOCKED:** pending-job retry, lease fencing and terminal side-effect completion remain unproven because the remote queue has no pending job. Creating one remotely is outside current authorization.
 - No staging/production deploy, D1 write/migration, Stripe write/payment, secret or binding change occurred.
+
+
+## Staging runtime variable readback — 2026-11-07
+
+- In the Cloudflare settings for the staging service `hegeva-ai-v3-staging`, read-only UI inspection showed `PAYMENT_MODE=test` and `OUTBOX_PROCESSOR_ENABLED=true`.
+- This matches the observed active staging Cron schedule and the verified main Stripe TEST account identity. Secret values were not opened, copied, or logged; no variable or secret was changed.
+- **PASS:** staging payment mode and outbox processor flag readback.
+- This does not create a pending outbox event or prove retry/fencing. Those runtime gates remain **BLOCKED** without an authorized isolated remote fixture.
