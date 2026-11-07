@@ -498,3 +498,11 @@ This section supersedes earlier statements above that the Cron invocation and th
 - Current staging config declares `PAYMENT_MODE=test` and test price IDs. This does not by itself identify which Stripe account the deployed secret belongs to. No secret was read, replaced, or changed.
 - **Updated disposition:** historical top-up reconciliation **EXPLAINED / OWNER-CONFIRMED**; current staging account identity **UNVERIFIED**; scheduled idle Cron **PASS**; remote retry/fencing and remaining customer journey gates remain open. Full staging acceptance **NOT READY**; production **NO-GO**; `releaseSafe=false`.
 - No Stripe write, payment/refund, D1 mutation, deploy, merge, binding/permission change or secret action occurred.
+
+
+## Current Stripe TEST account owner confirmation — 2026-11-07
+
+- The owner confirms the **currently configured staging Stripe key belongs to the main HEGEVA TEST account**. The separate sandbox key was used only for earlier top-up tests.
+- This owner confirmation resolves the configuration ambiguity for this acceptance. The earlier sandbox PaymentIntents and their 300 test credits are historical data from the prior sandbox-key period; the main TEST account's three subscription payments are a separate set. No credit revocation or D1 cleanup is warranted.
+- Independent proof by calling Stripe `/v1/account` with the deployed secret remains unavailable without a safe in-Worker diagnostic. Therefore current account identity is **OWNER-CONFIRMED**, not independently API-verified. Current Worker `PAYMENT_MODE=test` is read-back/config verified.
+- **Updated disposition:** top-up history explained; current staging account **OWNER-CONFIRMED MAIN TEST**; Cron scheduled idle execution **PASS**. Remote pending-job retry/fencing and remaining release acceptance gates remain outstanding. Full staging acceptance **NOT READY**; production **NO-GO**; `releaseSafe=false`.
