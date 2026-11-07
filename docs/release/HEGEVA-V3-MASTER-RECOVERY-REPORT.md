@@ -516,3 +516,13 @@ This section supersedes earlier statements above that the Cron invocation and th
 - Direct request to the owner-only endpoint on `https://staging.hegevaai.co.uk/api/admin/stripe-account-identity` returned `{"ok":true,"accountId":"acct_1U4YkEHECF9iDE3l"}`. This exactly matches the main HEGEVA Stripe TEST account ID already read from the Dashboard. **Result: staging Worker's current Stripe TEST account identity confirmed.** No secret was revealed.
 - No D1 mutation/migration, Stripe write/payment/refund, production deployment or merge occurred.
 - **Updated gate:** current staging Stripe TEST account identity **PASS**. Account-identity proof is complete. Staging release acceptance remains **NOT READY** because deploy workflow smoke failed on the routes above and other prior acceptance gates remain open; production remains **NO-GO**, `releaseSafe=false`.
+
+
+## Staging smoke retest — 2026-11-07 03:12 UTC
+
+- [Workflow #42332651967](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42332651967) ran against the existing staging deployment from commit `9388a2d57ab5a06db23e5ff92dbb93ef1d7cee64`.
+- **PASS:** verify checks, staging preflight, and the workflow's complete staging-only smoke suite.
+- **SKIPPED:** D1 migration, API deployment, and UI deployment. This was a smoke-only run; no environment was changed by this workflow.
+- This retest passed after [deployment workflow #42332256898](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42332256898) had reported transient route/auth-guard smoke failures. It establishes that the configured smoke suite passed at retest time; it does not erase the earlier failure or prove every product feature.
+- The owner-only Stripe identity endpoint had separately returned the main TEST account ID `acct_1U4YkEHECF9iDE3l`, matching the Dashboard account.
+- **Decision:** configured staging route smoke **PASS on retest**; initial deploy smoke failure is retained as historical evidence. Full staging acceptance remains **NOT READY** because remote pending-job retry/fencing, direct authenticated API isolation, complete end-to-end customer/billing acceptance, and other listed release gates are not all proven. Production remains **NO-GO**; `releaseSafe=false`. No production deploy, merge, D1 migration/write, or Stripe write/payment occurred.
