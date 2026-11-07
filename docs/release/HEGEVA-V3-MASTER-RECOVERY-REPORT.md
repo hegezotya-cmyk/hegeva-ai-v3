@@ -582,3 +582,11 @@ This section supersedes earlier statements above that the Cron invocation and th
 - **PARTIAL / BLOCKED:** two-tenant local/API policy regressions and the previous staging UI canary remain useful evidence; however, a fresh direct staging API isolation test across two separate authenticated identities is still unavailable in this browser session. Do not describe end-to-end cross-user isolation as fully accepted until that direct check is recorded.
 - **STAGING OVERALL: NOT READY. PRODUCTION: NO-GO.** The newly deployed API change is staging-verified, but the two remote acceptance gates above remain open. `releaseSafe` must remain false.
 - No D1 migration/write, Stripe write/payment, merge, production deploy, secret/binding/permission change, customer action or external publication occurred.
+
+
+## Post-deployment scheduled invocation readback — 2026-11-07 04:15 UTC
+
+- Cloudflare Observability shows successful scheduled `HEGEVA_CRON empty` invocations at `04:10:16.709 UTC` and `04:15:16.784 UTC` after staging deployment, both on version `039e5678-a48a-46fc-a0c4-9e344915a9af`, cron `*/5 * * * *`.
+- **PASS:** cron entry and empty-queue path remain live on the newly deployed API version; dashboard showed 12 successful events and 0 errors at readback.
+- **Still BLOCKED:** no pending row existed, so remote retry/recovery/fencing and terminal side-effect completion are not demonstrated by these idle invocations.
+- Read-only observation only; no D1 or Stripe writes.
