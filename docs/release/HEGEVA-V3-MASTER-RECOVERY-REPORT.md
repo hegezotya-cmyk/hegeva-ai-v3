@@ -738,3 +738,16 @@ Cloudflare Dashboard read-only inspection of `hegeva-ai-v3-staging` Production s
 - No deletion audit/history was available in the inspected schema to independently attribute an outbox row deletion to those two accounts. The cause is **UNVERIFIED**, and prior retry/fencing execution cannot be reconstructed from the current snapshot alone.
 - Current outbox state remains one completed row (attempt 1) and no eligible row. **PASS:** recurring scheduled idle path. **BLOCKED:** retry/recovery/fencing acceptance unless historical test-run evidence is supplied or an authorized isolated fixture is created and observed.
 - No data or configuration was changed during this check.
+
+
+## Isolated synthetic Cron acceptance preparation — 2026-11-07
+
+- Following owner approval for an isolated synthetic staging test, created the dedicated D1 database `hegeva-ai-v3-staging-scheduled-test-db` (UUID `423b4b29-e71b-4f8f-9da8-884538129743`). The existing application staging database was not modified.
+- Installed only the synthetic runtime schema in that dedicated database: a test outbox table, synthetic lease/effect tables, and a two-scenario run ledger. No users, Stripe objects, payment data, or application customer rows were inserted.
+- Implemented a separate Cron-only Worker configuration with `workers_dev=false`, one-minute schedule, TEST mode, exact enable flag defaulting to false, the synthetic D1 binding, and a dedicated guard Durable Object. Its fetch handler is 404-only. Production and application staging entrypoints do not import or bind it.
+- Runtime scenarios use fixed synthetic namespaces. Retry/recovery invokes the actual terminal outbox processor with a synthetic-only, idempotent executor; the first state check is intentionally unverified to force retry. Lease/fencing checks one winner, duplicate rejection, expiry rejection, and cleanup. No Stripe API call or payment is made.
+- **Offline verification PASS:** 23/23 focused Node regressions; fixture-adapter retry and fencing checks; Worker syntax/`npm run worker:check`; and Wrangler `--dry-run` showing only `GUARD`, `SYNTHETIC_TEST_DB`, `PAYMENT_MODE=test`, and the default-off flag.
+- **Remote schema preparation PASS:** the isolated D1 Studio shows the four expected synthetic tables. The workflow migration is idempotent (`IF NOT EXISTS`) and will record its migration state on first run.
+- **Remote scheduled execution NOT YET PROVEN:** no synthetic Worker has been deployed or enabled, and no Cron invocation has been observed. The local Wrangler session is unauthenticated; creating or broadening a token is not authorized. The existing GitHub staging token's ability to deploy a new Worker and update this new D1 has not yet been verified.
+- **Current acceptance:** isolated runtime implementation is READY FOR REVIEW; actual remote retry/fencing is **BLOCKED / NOT PROVEN** pending a successful run of the staging-only `synthetic-cron-enable` workflow, followed by its `synthetic-cron-disable` and `synthetic-cron-cleanup` stages. Do not infer Cron PASS from local tests or schema presence.
+- No application staging Worker, main staging D1, Stripe resource, production resource, secret, permission, or payment path was changed.

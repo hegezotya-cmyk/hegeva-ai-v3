@@ -52,6 +52,24 @@ on:
       - "v0-app/lib/billing-mode-disclosure.ts"
       - "v0-app/lib/i18n/pricing-copy.ts"
       - "scripts/pricing-billing-disclosure-test.mjs"
+      - "scripts/staging-scheduled-fixture-adapter-test.mjs"
+      - "scripts/staging-d1-fencing-race-test.mjs"
+      - "scripts/staging-scheduled-test-control-test.mjs"
+      - "scripts/staging-scheduled-test-endpoint-test.mjs"
+      - "scripts/staging-scheduled-test-guard-test.mjs"
+      - "scripts/staging-scheduled-test-worker-routing-test.mjs"
+      - "scripts/staging-scheduled-runtime-runner-test.mjs"
+      - "scripts/staging-scheduled-test-cron-handler-test.mjs"
+      - "src/staging-scheduled-runtime-runner.js"
+      - "src/staging-scheduled-test-cron-handler.js"
+      - "src/staging-scheduled-test-worker.js"
+      - "src/staging-synthetic-fixture-adapter.js"
+      - "wrangler.staging-scheduled-test.jsonc"
+      - "migrations/staging-scheduled-test/**"
+      - "scripts/staging-scheduled-test-cleanup.sql"
+      - "scripts/staging-scheduled-worker-isolation-test.mjs"
+      - "scripts/staging-scheduled-test-cleanup-test.mjs"
+      - ".github/workflows/staging-deploy.yml"
       - ".github/workflows/stripe-entitlement-policy-pr.yml"
   workflow_dispatch:
 
@@ -219,4 +237,7 @@ jobs:
         run: |
           node --disable-warning=ExperimentalWarning scripts/staging-scheduled-fixture-adapter-test.mjs
           node --disable-warning=ExperimentalWarning scripts/staging-d1-fencing-race-test.mjs
+          node --disable-warning=ExperimentalWarning --test scripts/staging-scheduled-runtime-runner-test.mjs scripts/staging-scheduled-test-cron-handler-test.mjs
+          node --test scripts/staging-scheduled-test-cleanup-test.mjs
           node --test scripts/staging-scheduled-test-control-test.mjs scripts/staging-scheduled-test-endpoint-test.mjs scripts/staging-scheduled-test-guard-test.mjs scripts/staging-scheduled-test-worker-routing-test.mjs
+          node scripts/staging-scheduled-worker-isolation-test.mjs
