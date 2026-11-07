@@ -534,3 +534,12 @@ This section supersedes earlier statements above that the Cron invocation and th
 - Read-only aggregation of `stripe_terminal_effect_outbox` returned exactly one row: state `completed`, attempts `1`; no rows were present in `pending`, `processing`, or `blocked`. The row's last update remains `2026-11-06T02:55:16.640Z`, before the observed scheduled event.
 - This confirms staging schema and current queue state only. Because no pending job exists, the scheduler cannot exercise or prove remote retry, lease fencing, or terminal completion. No row was inserted, updated, or deleted; no migration was run.
 - **Disposition:** outbox schema **PASS**; current queue readback **PASS**; remote retry/fencing runtime **BLOCKED** pending an explicitly authorized isolated staging fixture/job. Full staging acceptance remains **NOT READY**; production **NO-GO**; `releaseSafe=false`.
+
+
+## Post-deployment scheduled event — 2026-11-07 03:20 UTC
+
+- Cloudflare Workers Observability recorded a real scheduled invocation at `2026-11-07 03:20:16.402 UTC` for staging Worker `hegeva-ai-v3-staging`, script version `7ccfbef2-d77b-4434-94a5-d6ee7ec494d2`, trigger `*/5 * * * *`, event type/origin `scheduled`, result `HEGEVA_CRON empty`.
+- Cloudflare showed the same version at 100% traffic and Workers Logs enabled. The last-hour event summary at inspection was 22 successes and 0 errors. Traces were disabled in the Worker overview; no trace-based claim is made.
+- **PASS:** scheduled entry on the current deployed version and empty-queue handler path.
+- **Still BLOCKED:** no pending row exists to test remote retry, lease expiry/fencing, or terminal completion. The D1 queue contains only the previously documented completed row. Do not create a remote job without explicit authorization for an isolated staging D1 write.
+- No deployment, D1 write/migration, Stripe write/payment, secret or binding change occurred during this read-only check. Full staging remains **NOT READY**; production **NO-GO**; `releaseSafe=false`.
