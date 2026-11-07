@@ -2050,7 +2050,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         const response = await fetch("https://api.stripe.com/v1/account", { method: "GET", headers: { Authorization: `Bearer ${key}`, Accept: "application/json" }, cache: "no-store" });
         if (!response.ok) return Response.json({ error: "Stripe account lookup unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
         const account = await response.json();
-        if (account?.livemode !== false || typeof account?.id !== "string" || !/^acct_[A-Za-z0-9]+$/.test(account.id)) return Response.json({ error: "Stripe account lookup unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+        if (typeof account?.id !== "string" || !/^acct_[A-Za-z0-9]+$/.test(account.id)) return Response.json({ error: "Stripe account lookup unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
         return Response.json({ ok: true, accountId: account.id }, { headers: { "Cache-Control": "no-store" } });
       } catch {
         return Response.json({ error: "Stripe account lookup unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
