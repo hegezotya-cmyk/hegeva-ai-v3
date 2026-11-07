@@ -636,3 +636,20 @@ This recheck used the existing authenticated second QA account and the Cloudflar
 - Cross-account isolation: PARTIAL PASS, one canary/endpoint only.
 - Remote retry/fencing and full journey acceptance: BLOCKED.
 - Full staging acceptance: NOT READY; production: NO-GO; releaseSafe=false.
+
+
+## Pricing TEST-mode disclosure correction — 2026-11-07
+
+- **Root cause reproduced:** on the staging pricing page, before billing status arrived, `effectiveMode` defaulted to `live`; the first read showed the live-charge warning alongside a “checking” status, even though `/api/billing/public-status` subsequently returned `mode=test`.
+- **Fixed on PR #95 branch only:** `v0-app/lib/billing-mode-disclosure.ts` now resolves only explicit `live` or `test` modes and renders a checking/unavailable disclosure for unresolved status. `v0-app/app/pricing/page.tsx` now tracks public billing status loading and uses the fail-closed helper. Localized ready copy in `v0-app/lib/i18n/pricing-copy.ts` no longer claims webhook verification; it states that configuration is ready and paid access waits for a confirmed Stripe webhook.
+- **Regression coverage:** `scripts/pricing-billing-disclosure-test.mjs` checks unresolved, TEST, LIVE, unknown mode, UI wiring, and non-verified webhook language. `.github/workflows/stripe-entitlement-policy-pr.yml` runs the test and V0 app TypeScript check.
+- **Verification:** CI run [#42412483201](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42412483201) on source head `c9012506010911004be2e42708efb0f5b800bce0` completed **success**. The focused disclosure regression, V0 TypeScript check, two-tenant auth/workspace isolation test, and full configured Stripe/outbox policy suite passed.
+- **Deployment status:** this correction remains on PR #95 and is not deployed to staging. The read-only staging test-mode configuration remains `mode=test`; no checkout/payment, Stripe write, remote D1 write, deployment, merge, or production action occurred.
+
+### Remaining acceptance blockers after pricing correction
+
+- Remote outbox retry/recovery/fencing is still BLOCKED: staging D1 has no pending job, and remote fixture writes are not authorized.
+- Webhook runtime delivery is NOT PROVEN: the authenticated billing status read reported `webhookVerified=false` and no last event. Configuration readiness is not equivalent to observed webhook acceptance.
+- The full authenticated registration/email verification/login/onboarding → customer → quote → invoice → planner/follow-up → subscription journey is not proven end to end. The current route smoke was read-only; no records or checkout were created.
+- Tenant isolation remains scope-limited to the two QA identities and the one tested customer-list canary. Logout/re-login and other workspace/API resource boundaries are still unverified.
+- Therefore staging remains **NOT READY**, `releaseSafe=false`, and production **NO-GO**. The pricing fix must be reviewed and deployed through the approved staging process, then the remote acceptance gates must be completed without production access.
