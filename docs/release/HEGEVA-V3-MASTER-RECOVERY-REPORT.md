@@ -526,3 +526,11 @@ This section supersedes earlier statements above that the Cron invocation and th
 - This retest passed after [deployment workflow #42332256898](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42332256898) had reported transient route/auth-guard smoke failures. It establishes that the configured smoke suite passed at retest time; it does not erase the earlier failure or prove every product feature.
 - The owner-only Stripe identity endpoint had separately returned the main TEST account ID `acct_1U4YkEHECF9iDE3l`, matching the Dashboard account.
 - **Decision:** configured staging route smoke **PASS on retest**; initial deploy smoke failure is retained as historical evidence. Full staging acceptance remains **NOT READY** because remote pending-job retry/fencing, direct authenticated API isolation, complete end-to-end customer/billing acceptance, and other listed release gates are not all proven. Production remains **NO-GO**; `releaseSafe=false`. No production deploy, merge, D1 migration/write, or Stripe write/payment occurred.
+
+
+## Staging D1 outbox read-only recheck — 2026-11-07
+
+- Cloudflare Dashboard D1 Studio read-only query of `d1_migrations` showed migration 32, `0032_stripe_terminal_effect_outbox.sql`, applied at `2026-11-05 16:43:13`. The staging outbox table exists; a missing migration is not the current retry/fencing blocker.
+- Read-only aggregation of `stripe_terminal_effect_outbox` returned exactly one row: state `completed`, attempts `1`; no rows were present in `pending`, `processing`, or `blocked`. The row's last update remains `2026-11-06T02:55:16.640Z`, before the observed scheduled event.
+- This confirms staging schema and current queue state only. Because no pending job exists, the scheduler cannot exercise or prove remote retry, lease fencing, or terminal completion. No row was inserted, updated, or deleted; no migration was run.
+- **Disposition:** outbox schema **PASS**; current queue readback **PASS**; remote retry/fencing runtime **BLOCKED** pending an explicitly authorized isolated staging fixture/job. Full staging acceptance remains **NOT READY**; production **NO-GO**; `releaseSafe=false`.
