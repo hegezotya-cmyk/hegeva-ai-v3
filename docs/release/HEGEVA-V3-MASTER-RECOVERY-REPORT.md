@@ -433,3 +433,11 @@ No production deployment/merge, remote D1 write/migration, Stripe write/payment/
 - **Result: PARTIAL PASS — authenticated UI list isolation for this canary.** This does not prove direct-ID/API authorization or all workspace resources; those checks remain blocked/unverified.
 - **Cleanup pending:** the connected session is currently the second account. Switch back to the first test account so the canary can be deleted and its absence verified. Do not report the full isolation gate or production readiness as PASS.
 
+
+
+## Canary cleanup confirmation — 2026-11-07
+
+- After switching back to the first test account, the synthetic isolation canary was present and was deleted through the application UI.
+- The Customers list returned to its empty state and reported Cloud sync. No direct D1 write or migration was used.
+- Cross-account result remains **PARTIAL PASS** for UI list visibility only. Direct-ID/API authorization and the other release gates remain unproven; production stays **NO-GO** and `releaseSafe=false`.
+
