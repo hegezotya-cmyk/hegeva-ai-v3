@@ -206,8 +206,16 @@ async function enforceRequestBodyLimit(request, pathname) {
   });
 }
 
+const RESERVED_WORKSPACE_TYPES = new Set([
+  "billing_webhook_status",
+  "prepared_work",
+  "stripe_checkout_lock",
+]);
+
 function validWorkspaceType(type) {
-  return /^[a-z0-9_-]{1,40}$/i.test(type);
+  return typeof type === "string" &&
+    /^[a-z0-9_-]{1,40}$/i.test(type) &&
+    !RESERVED_WORKSPACE_TYPES.has(type.toLowerCase());
 }
 
 function getCurrentPeriod() {
