@@ -717,3 +717,15 @@ This recheck used the existing authenticated second QA account and the Cloudflar
 ### Disposition
 
 Staging Cron idle execution: **PASS**. Remote outbox retry/fencing: **BLOCKED / NOT PROVEN**. Full staging acceptance remains **NOT READY**; production **NO-GO**; `releaseSafe=false`.
+
+
+## Current staging Worker configuration readback — 2026-11-07
+
+Cloudflare Dashboard read-only inspection of `hegeva-ai-v3-staging` Production service showed:
+
+- Cron trigger: every 5 minutes; dashboard next-run display advanced to `2026-11-07 21:30 UTC`.
+- Non-secret variables: `PAYMENT_MODE=test`, `OUTBOX_PROCESSOR_ENABLED=true`, `PAYMENT_PROVIDER=stripe`, `PUBLIC_APP_URL=https://staging.hegevaai.co.uk`.
+- Bindings: Workers AI `AI`; D1 `DB → hegeva-ai-staging-db`; Durable Object `RATE_LIMITER → hegeva-ai-v3-staging_UserRateLimiter`.
+- No synthetic D1 or synthetic guard binding was visible. Secret values were not opened or copied.
+- This corroborates staging environment separation/configuration only. It does not prove retry/fencing or customer journey acceptance; those remain blocked as stated above.
+- No settings, bindings, secret values, deployments, D1 rows, Stripe objects, or production resources were changed.
