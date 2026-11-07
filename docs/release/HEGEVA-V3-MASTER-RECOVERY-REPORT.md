@@ -685,3 +685,21 @@ This recheck used the existing authenticated second QA account and the Cloudflar
 - Current QA2 billing-event evidence: **NOT PRESENT**; no payment or test checkout was initiated.
 - Staging UI build/deploy/pricing guard and post-deploy smoke: **PASS**.
 - Full staging acceptance: **NOT READY** because remote retry/fencing has no eligible job and the full authenticated journey/write-persistence/tenant-isolation acceptance remains incomplete.
+
+
+## Post-deploy authenticated route and refresh recheck — 2026-11-07
+
+- Reused the already signed-in staging QA2 session at `staging.hegevaai.co.uk`; no new login or credentials were requested.
+- Read-only navigation smoke passed for 17 routes: Command Center, Assistant, App Studio, Business Hub, Money Today, Customers, Documents, Expenses, Planner, Reports, Messages, Financial Guard, invoice/quote maker, Business Intelligence, Launch, Get Started, and Pricing. Each remained on the staging origin, retained the authenticated Logout control, rendered page content, and showed no application-error marker.
+- The pricing route showed the secure-billing checking or TEST sandbox disclosure; no checkout control was clicked and no payment was initiated.
+- Reloading Account preserved the signed-in QA2 identity, account heading, and Basic 0/50 view. Browser console error log was empty at readback.
+- This is a route-render and same-session refresh check only. It does not prove logout/re-login, newly registered-user verification, write persistence, workspace-wide isolation, or remote outbox retry/fencing.
+- No record, D1 row, Stripe object, secret, binding, permission, or deployment was changed.
+
+### Updated scope assessment
+
+- Post-deploy authenticated UI route rendering and same-session refresh: **PASS (scoped)**.
+- Full staging customer journey and persistence after logout/re-login: **BLOCKED / NOT PROVEN**.
+- Broad tenant isolation: **BLOCKED / NOT PROVEN** beyond the previously scoped customer canary.
+- Remote outbox retry/recovery/fencing: **BLOCKED**; no pending fixture exists and remote D1 writes remain unauthorized.
+- Full staging acceptance: **NOT READY**; production remains **NO-GO** and `releaseSafe=false`.
