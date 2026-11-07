@@ -5,7 +5,7 @@ const originalFetch = globalThis.fetch;
 let calls = [];
 globalThis.fetch = async (url, options) => {
   calls.push({ url: String(url), options });
-  return Response.json({ id: "acct_test123", livemode: false });
+  return Response.json({ id: "acct_test123", livemode: true });
 };
 const request = (method = "GET") => new Request("https://staging.hegevaai.co.uk/api/admin/stripe-account-identity", { method });
 const owner = { id: "owner-1", email: "owner@example.test" };
