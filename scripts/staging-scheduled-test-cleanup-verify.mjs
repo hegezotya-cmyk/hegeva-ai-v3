@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 
-const configPath = "wrangler.staging-scheduled-test.jsonc";
+const configPath = process.env.SYNTHETIC_TEST_WRANGLER_CONFIG || "wrangler.staging-scheduled-test.jsonc";
 const expectedDb = "hegeva-ai-v3-staging-scheduled-test-db";
 const sql = `SELECT
   (SELECT COUNT(*) FROM staging_synthetic_fixture_effect WHERE substr(namespace,1,16) = 'staging-fixture:') AS effects,
