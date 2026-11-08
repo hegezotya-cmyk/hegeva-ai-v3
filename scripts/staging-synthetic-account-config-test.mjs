@@ -17,6 +17,7 @@ const templateConfig = () => ({
   name: "hegeva-ai-v3-staging-scheduled-test",
   workers_dev: false,
   vars: { PAYMENT_MODE: "test", STAGING_SCHEDULED_TEST_ENABLED: "false" },
+  triggers: { crons: ["*/1 * * * *"] },
   d1_databases: [{
     binding: "SYNTHETIC_TEST_DB",
     database_name: "hegeva-ai-v3-staging-scheduled-test-db",
@@ -63,4 +64,16 @@ test("rejects a synthetic D1 ID matching production, staging, or the old shared-
 test("rejects malformed account and database identifiers", () => {
   assert.throws(() => materializeIsolatedSyntheticConfig({ ...validArgs(), syntheticAccountId: "not-an-account" }), /valid 32-character account ID/);
   assert.throws(() => materializeIsolatedSyntheticConfig({ ...validArgs(), syntheticD1Id: "not-a-database-id" }), /valid D1 database UUID/);
+});
+
+test("removes the scheduled trigger when generating a disabled cleanup config", () => {
+  const result = materializeIsolatedSyntheticConfig({ ...validArgs(), cronEnabled: false });
+  assert.equal(result.vars.STAGING_SCHEDULED_TEST_ENABLED, "false");
+  assert.deepEqual(result.triggers, {});
+});
+
+test("requires and preserves the isolated Cron trigger only when explicitly enabled", () => {
+  const result = materializeIsolatedSyntheticConfig({ ...validArgs(), cronEnabled: true });
+  assert.equal(result.vars.STAGING_SCHEDULED_TEST_ENABLED, "true");
+  assert.deepEqual(result.triggers.crons, ["*/1 * * * *"]);
 });
