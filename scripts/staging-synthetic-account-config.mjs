@@ -90,8 +90,12 @@ async function main() {
     stagingAccountId: process.env.CLOUDFLARE_STAGING_ACCOUNT_ID,
     syntheticAccountId: process.env.CLOUDFLARE_ACCOUNT_ID,
     syntheticD1Id: process.env.STAGING_SCHEDULED_TEST_D1_ID,
+    cronEnabled: process.env.ENABLE_TEST_CRON === "true" && !process.argv.includes("--disable-cron"),
   });
-  await writeFile("wrangler.staging-scheduled-test.generated.jsonc", `${JSON.stringify(config, null, 2)}\n`);
+  const outputPath = process.argv.includes("--disable-cron")
+    ? "wrangler.staging-scheduled-test.disabled.generated.jsonc"
+    : (process.env.SYNTHETIC_TEST_WRANGLER_CONFIG || "wrangler.staging-scheduled-test.generated.jsonc");
+  await writeFile(outputPath, `${JSON.stringify(config, null, 2)}\n`);
   console.log("PASS: generated synthetic Worker config targets a separate account and a new D1 database; PAYMENT_MODE=test and controls default off.");
 }
 
