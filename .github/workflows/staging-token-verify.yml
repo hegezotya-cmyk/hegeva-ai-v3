@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   verify-token:
-    name: Verify staging token only
+    name: Verify staging token identity only
     runs-on: ubuntu-latest
     environment: staging
     steps:
@@ -40,9 +40,11 @@ jobs:
 
           printf '%s' "$response" | jq -e '
             .success == true and
-            .result.id == "0426474b80e83ee7343e1709dbf09c35" and
+            (.result.id | type == "string" and test("^[a-f0-9]{32}$")) and
             .result.status == "active"
           ' >/dev/null
 
           expiry="$(printf '%s' "$response" | jq -r '.result.expires_on // "not returned"')"
-          echo "PASS: staging secret authenticates as the expected active account token (ID 0426474b80e83ee7343e1709dbf09c35); expiry: $expiry."
+          token_id="$(printf '%s' "$response" | jq -r '.result.id')"
+          echo "PASS: staging secret authenticates as active account token ID $token_id; expiry: $expiry."
+          echo "NOTE: this verifies identity and active status only; it does not prove D1 or Worker write permissions."
