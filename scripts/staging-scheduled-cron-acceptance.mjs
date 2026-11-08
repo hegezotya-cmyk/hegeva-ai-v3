@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const EXPECTED_DATABASE = "hegeva-ai-v3-staging-scheduled-test-db";
 const CONFIG_PATH = process.env.SYNTHETIC_TEST_WRANGLER_CONFIG || "wrangler.staging-scheduled-test.jsonc";
@@ -81,7 +83,7 @@ export async function waitForRemoteCronAcceptance({
   }
 }
 
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const acceptance = await waitForRemoteCronAcceptance();
   console.log(`PASS: remote scheduled Cron retry recovery and fencing verified; attempts=${acceptance.retryAttempts}, completed synthetic effects=${acceptance.processorEffects}, active fixture leases=${acceptance.activeLeases}.`);
 }
