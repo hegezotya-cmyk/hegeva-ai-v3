@@ -145,17 +145,23 @@ jobs:
           node --test scripts/staging-scheduled-test-control-test.mjs scripts/staging-scheduled-test-endpoint-test.mjs scripts/staging-scheduled-test-guard-test.mjs scripts/staging-scheduled-test-worker-routing-test.mjs
           node scripts/staging-scheduled-worker-isolation-test.mjs
       - name: Validate isolated account and D1 target; materialize config
+        id: materialize
         shell: bash
         run: |
           set -euo pipefail
           test -n "$CLOUDFLARE_API_TOKEN"
           node scripts/staging-synthetic-account-config.mjs
       - name: Apply isolated synthetic schema
+        id: apply-schema
         if: ${{ inputs.stage == 'synthetic-cron-enable' }}
         run: npx wrangler d1 migrations apply hegeva-ai-v3-staging-scheduled-test-db --remote --config wrangler.staging-scheduled-test.generated.jsonc
       - name: Deploy only isolated Worker with selected flag
+        id: deploy-synthetic
         if: ${{ inputs.stage == 'synthetic-cron-enable' || inputs.stage == 'synthetic-cron-disable' }}
         run: npx wrangler deploy --config wrangler.staging-scheduled-test.generated.jsonc --var PAYMENT_MODE:test --var STAGING_SCHEDULED_TEST_ENABLED:${ENABLE_TEST_CRON} --keep-vars
+      - name: Verify actual remote Cron retry and fencing results
+        if: ${{ inputs.stage == 'synthetic-cron-enable' }}
+        run: node scripts/staging-scheduled-cron-acceptance.mjs
       - name: Disable isolated Cron before fixture cleanup
         if: ${{ inputs.stage == 'synthetic-cron-cleanup' }}
         run: npx wrangler deploy --config wrangler.staging-scheduled-test.generated.jsonc --var PAYMENT_MODE:test --var STAGING_SCHEDULED_TEST_ENABLED:false --keep-vars
@@ -165,6 +171,14 @@ jobs:
       - name: Verify synthetic cleanup
         if: ${{ inputs.stage == 'synthetic-cron-cleanup' }}
         run: node scripts/staging-scheduled-test-cleanup-verify.mjs
+      - name: Disable Cron and remove synthetic fixtures after acceptance
+        if: ${{ always() && inputs.stage == 'synthetic-cron-enable' && steps.materialize.outcome == 'success' && steps.apply-schema.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler deploy --config wrangler.staging-scheduled-test.generated.jsonc --var PAYMENT_MODE:test --var STAGING_SCHEDULED_TEST_ENABLED:false --keep-vars
+          npx wrangler d1 execute hegeva-ai-v3-staging-scheduled-test-db --remote --config wrangler.staging-scheduled-test.generated.jsonc --file scripts/staging-scheduled-test-cleanup.sql
+          node scripts/staging-scheduled-test-cleanup-verify.mjs
 
   asset-probe:
     if: ${{ inputs.stage == 'asset-probe' }}
