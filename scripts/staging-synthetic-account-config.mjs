@@ -1,4 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/i;
 const D1_ID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
@@ -89,6 +91,6 @@ async function main() {
   console.log("PASS: generated synthetic Worker config targets a separate account and a new D1 database; PAYMENT_MODE=test and controls default off.");
 }
 
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   await main();
 }
