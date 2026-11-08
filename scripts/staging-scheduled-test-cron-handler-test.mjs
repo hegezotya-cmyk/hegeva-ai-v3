@@ -27,6 +27,25 @@ test("cron handler runs only fixed synthetic scenarios on the isolated TEST bind
   assert.ok(calls.every(call => call.now === new Date(scheduledTime).toISOString()));
 });
 
+test("cron handler resolves the isolated Durable Object namespace to a stub", async () => {
+  const names = [];
+  const stub = { tag: "guard-stub" };
+  const calls = [];
+  const result = await runStagingScheduledTestCron({}, {
+    PAYMENT_MODE: "test", STAGING_SCHEDULED_TEST_ENABLED: "true",
+    SYNTHETIC_TEST_DB: { tag: "synthetic-db" },
+    GUARD: {
+      idFromName(name) { names.push(name); return { id: name }; },
+      get(id) { assert.equal(id.id, "staging-synthetic-cron-guard"); return stub; },
+    },
+  }, {
+    runScenario: async input => { calls.push(input); return { status: "completed" }; },
+  });
+  assert.equal(result.status, "completed");
+  assert.deepEqual(names, ["staging-synthetic-cron-guard"]);
+  assert.ok(calls.every(call => call.guard === stub));
+});
+
 test("wrong mode, missing D1, missing guard and non-exact enable values fail closed", async () => {
   const runScenario = async () => { throw Error("must not run"); };
   for (const env of [
