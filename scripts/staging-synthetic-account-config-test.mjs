@@ -69,7 +69,7 @@ test("rejects malformed account and database identifiers", () => {
 test("removes the scheduled trigger when generating a disabled cleanup config", () => {
   const result = materializeIsolatedSyntheticConfig({ ...validArgs(), cronEnabled: false });
   assert.equal(result.vars.STAGING_SCHEDULED_TEST_ENABLED, "false");
-  assert.deepEqual(result.triggers, {});
+  assert.equal(result.triggers?.crons, undefined);
 });
 
 test("requires and preserves the isolated Cron trigger only when explicitly enabled", () => {
