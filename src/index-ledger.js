@@ -890,6 +890,41 @@ export default {
     }
 
     if (
+      url.pathname === "/api/billing/sandbox-webhook" &&
+      request.method === "POST"
+    ) {
+      const sandboxApiKey =
+        typeof env.STRIPE_SANDBOX_SECRET_KEY === "string"
+          ? env.STRIPE_SANDBOX_SECRET_KEY.trim()
+          : "";
+      const sandboxWebhookSecret =
+        typeof env.STRIPE_SANDBOX_WEBHOOK_SECRET === "string"
+          ? env.STRIPE_SANDBOX_WEBHOOK_SECRET.trim()
+          : "";
+
+      if (
+        String(env.PAYMENT_MODE || "").trim().toLowerCase() !== "test" ||
+        !sandboxApiKey.startsWith("sk_test_") ||
+        !isStripeWebhookSecret(sandboxWebhookSecret)
+      ) {
+        return Response.json(
+          { error: "Stripe Sandbox webhook is unavailable." },
+          { status: 503 },
+        );
+      }
+
+      return handleStripeWebhook(
+        request,
+        {
+          ...env,
+          STRIPE_SECRET_KEY: sandboxApiKey,
+          STRIPE_WEBHOOK_SECRET: sandboxWebhookSecret,
+        },
+        ctx,
+      );
+    }
+
+    if (
       url.pathname === "/api/billing/confirm" &&
       request.method === "POST"
     ) {
