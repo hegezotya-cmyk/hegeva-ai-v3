@@ -762,9 +762,9 @@ This section supersedes the 2026-11-07 statements above that the isolated D1 aut
 - **Fixture cleanup PASS:** the workflow confirmed zero rows across four isolated fixture scopes. The Worker flag is `STAGING_SCHEDULED_TEST_ENABLED=false`; the Cloudflare dashboard shows no Cron triggers configured after cleanup.
 - Cloudflare Cron configuration changes can take up to 15 minutes to propagate. The Worker remains disabled during propagation.
 - The run exposed and the Draft PR #98 fixes two harness issues: the acceptance wait was shorter than Cloudflare's propagation window, and the Cron handler treated the Durable Object namespace binding as a stub instead of resolving a deterministic stub.
-- The owner-only staging Stripe-account identity endpoint returned `Owner access required` in the available non-owner QA session. No Stripe secret was read; independent Stripe account identity verification remains **BLOCKED**.
+- **Staging Stripe TEST account identity PASS (owner-authenticated read-only):** `GET /api/admin/stripe-account-identity` returned `ok=true` and account ID `acct_1U4YkEHECF9iDE3l`, matching the main HEGEVA TEST account recorded above. The endpoint returns success only when `PAYMENT_MODE=test` and the configured secret begins `sk_test_`; it calls Stripe `GET /v1/account` and returns only the account ID. No secret was read or logged, and no Stripe/D1 writes occurred.
 - The full registration-to-subscription journey, logout/re-login persistence, and broad two-user/API tenant-isolation acceptance remain **NOT PROVEN**.
 
-**Updated disposition:** isolated remote Cron retry/fencing **PASS**; isolated fixture cleanup **PASS**; staging Stripe-account identity **BLOCKED**; full staging acceptance **NOT READY**; production **NO-GO**; `releaseSafe=false`.
+**Updated disposition:** isolated remote Cron retry/fencing **PASS**; isolated fixture cleanup **PASS**; staging Stripe TEST account identity **PASS**; full staging acceptance **NOT READY** because the complete customer journey, logout/re-login persistence, and broad tenant isolation remain unproven; production **NO-GO**; `releaseSafe=false`.
 
 No production Worker or D1, application staging Worker or D1, Stripe resource, payment path, or customer data was modified.
