@@ -98,6 +98,15 @@ const planWrites=(ops)=>ops.filter(o=>o.sql.includes("INSERT INTO user_plans"));
 const sandboxSecret="whsec_sandbox_fixture";
 const sandboxApiKey="sk_test_sandbox_fixture";
 try {
+ // Missing sandbox credentials must fail closed instead of delegating to the
+ // primary webhook or invoking Stripe.
+ {
+  const {DB}=makeDb();
+  const response=await handler.fetch(requestFor(eventFor("customer.subscription.deleted","canceled","evt_sandbox_missing"),{path:"/api/billing/sandbox-webhook",signingSecret:sandboxSecret}),{
+   DB,PAYMENT_MODE:"test",STRIPE_SECRET_KEY:"sk_test_primary_fixture",STRIPE_WEBHOOK_SECRET:secret
+  },{});
+  assert.equal(response.status,503);
+ }
  // The dedicated sandbox endpoint must use its own signature and API secrets,
  // while the established billing endpoint continues to use the primary pair. Test first.
  {
