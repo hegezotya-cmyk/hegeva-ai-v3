@@ -4,7 +4,8 @@ import { pathToFileURL } from "node:url";
 
 const EXPECTED_DATABASE = "hegeva-ai-v3-staging-scheduled-test-db";
 const CONFIG_PATH = process.env.SYNTHETIC_TEST_WRANGLER_CONFIG || "wrangler.staging-scheduled-test.jsonc";
-const ACCEPTANCE_TIMEOUT_MS = 240_000;
+// Cron trigger changes can take up to 15 minutes to propagate; allow two more minute-level invocations for retry recovery.
+const ACCEPTANCE_TIMEOUT_MS = 1_080_000;
 const POLL_INTERVAL_MS = 15_000;
 
 const SQL = `SELECT
