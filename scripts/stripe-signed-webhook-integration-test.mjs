@@ -99,7 +99,7 @@ const sandboxSecret="whsec_sandbox_fixture";
 const sandboxApiKey="sk_test_sandbox_fixture";
 try {
  // The dedicated sandbox endpoint must use its own signature and API secrets,
- // while the established billing endpoint continues to use the primary pair.
+ // while the established billing endpoint continues to use the primary pair. Test first.
  {
   const {DB,operations}=makeDb();
   let authorization;
