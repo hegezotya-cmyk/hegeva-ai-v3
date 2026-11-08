@@ -33,6 +33,7 @@ export function materializeIsolatedSyntheticConfig({
   stagingAccountId,
   syntheticAccountId,
   syntheticD1Id,
+  cronEnabled = false,
 }) {
   requireAccountId(productionAccountId, "production account ID");
   requireAccountId(stagingAccountId, "staging account ID");
@@ -53,6 +54,7 @@ export function materializeIsolatedSyntheticConfig({
       templateConfig.d1_databases[0]?.binding !== "SYNTHETIC_TEST_DB" ||
       templateConfig.d1_databases[0]?.database_name !== EXPECTED_DATABASE ||
       templateConfig?.durable_objects?.bindings?.length !== 1 ||
+      !Array.isArray(templateConfig?.triggers?.crons) || templateConfig.triggers.crons.length === 0 ||
       templateConfig.durable_objects.bindings[0]?.name !== "GUARD" ||
       templateConfig?.services?.length) {
     throw new Error("synthetic Worker template is not the expected isolated TEST-only configuration");
@@ -69,6 +71,8 @@ export function materializeIsolatedSyntheticConfig({
 
   const output = JSON.parse(JSON.stringify(templateConfig));
   output.d1_databases[0].database_id = syntheticD1Id;
+  output.vars.STAGING_SCHEDULED_TEST_ENABLED = cronEnabled ? "true" : "false";
+  if (!cronEnabled) delete output.triggers;
   return output;
 }
 
