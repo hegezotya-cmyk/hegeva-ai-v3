@@ -50,7 +50,7 @@ const nextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'${localTestEval} https://www.googletagmanager.com https://www.clarity.ms https://scripts.clarity.ms; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://www.google-analytics.com https://www.clarity.ms; font-src 'self' data:; connect-src 'self' https://hegevaai.co.uk https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://www.clarity.ms https://c.clarity.ms; frame-src 'self' https://checkout.stripe.com https://billing.stripe.com; upgrade-insecure-requests`,
+            value: `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'${localTestEval} https://www.googletagmanager.com https://www.clarity.ms https://scripts.clarity.ms https://eu-assets.i.posthog.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://www.google-analytics.com https://www.clarity.ms https://eu.posthog.com; font-src 'self' data:; connect-src 'self' https://hegevaai.co.uk https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://www.clarity.ms https://c.clarity.ms https://eu.i.posthog.com https://eu.posthog.com; frame-src 'self' https://checkout.stripe.com https://billing.stripe.com; upgrade-insecure-requests`,
           },
         ],
       },
