@@ -34,12 +34,14 @@ declare global {
     posthog?: PostHogClient
     __hegevaPosthogReady?: boolean
     __hegevaPosthogLoading?: boolean
+    __hegevaPosthogPendingEvents?: Array<{ name: string; properties: Record<string, unknown> }>
   }
 }
 
 function startPostHog(path: string) {
   if (!IS_STAGING || !PROJECT_KEY || window.__hegevaPosthogReady || window.__hegevaPosthogLoading) return
   window.__hegevaPosthogLoading = true
+  window.__hegevaPosthogPendingEvents = window.__hegevaPosthogPendingEvents || []
   const queue = (window.posthog || []) as unknown as PostHogQueue
   queue._i = queue._i || []
   queue.__SV = 1
@@ -64,10 +66,14 @@ function startPostHog(path: string) {
   script.onload = () => {
     window.__hegevaPosthogReady = true
     if (localStorage.getItem(CONSENT_KEY) !== "granted") {
+      window.__hegevaPosthogPendingEvents = []
       window.posthog?.optOutCapturing()
       return
     }
     if (PAGE_PATHS.has(path)) window.posthog?.capture("$pageview", { page_path: path })
+    const pending = window.__hegevaPosthogPendingEvents || []
+    window.__hegevaPosthogPendingEvents = []
+    for (const item of pending) window.posthog?.capture(item.name, item.properties)
   }
   script.onerror = () => { window.__hegevaPosthogLoading = false }
   document.head.appendChild(script)
@@ -81,18 +87,27 @@ export function PostHogStagingAnalytics() {
     const onConsent = (event: Event) => {
       const consent = (event as CustomEvent<{ consent?: string }>).detail?.consent
       if (consent === "granted") startPostHog(window.location.pathname)
-      if (consent === "denied") window.posthog?.optOutCapturing()
+      if (consent === "denied") {
+        window.__hegevaPosthogPendingEvents = []
+        window.posthog?.optOutCapturing()
+      }
     }
     if (consented()) startPostHog(pathname)
     window.addEventListener("hegeva:analytics-consent", onConsent)
     const onAnalyticsEvent = (event: Event) => {
       const client = window.posthog
-      if (!consented() || !window.__hegevaPosthogReady || !client) return
+      if (!consented() || !client) return
       const detail = (event as CustomEvent<{ event?: string; path?: string }>).detail
       if (!detail?.event || !ALLOWED_EVENTS.has(detail.event)) return
       const path = (detail.path || "").split("?")[0]
       if (!PAGE_PATHS.has(path)) return
-      client.capture(detail.event, { page_path: path })
+      const properties = { page_path: path }
+      if (window.__hegevaPosthogReady && typeof client.capture === "function") {
+        client.capture(detail.event, properties)
+      } else {
+        window.__hegevaPosthogPendingEvents = window.__hegevaPosthogPendingEvents || []
+        window.__hegevaPosthogPendingEvents.push({ name: detail.event, properties })
+      }
     }
     window.addEventListener("hegeva:analytics-event", onAnalyticsEvent)
     return () => {
