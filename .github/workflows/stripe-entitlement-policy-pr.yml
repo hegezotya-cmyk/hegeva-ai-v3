@@ -4,12 +4,19 @@ on:
   pull_request:
     branches:
       - integration/security-growth-validation-20261104
+      - codex/isolated-synthetic-cron-account
     paths:
       - "src/stripe-entitlement-reconciliation-policy.js"
       - "src/stripe-subscription-inventory.js"
       - "src/stripe-terminal-event-review.js"
       - "src/index-ledger.js"
       - "src/index.js"
+      - "src/assistant-topup.js"
+      - "v0-app/app/account/page.tsx"
+      - "scripts/assistant-topup-eligibility-test.mjs"
+      - "src/assistant-topup.js"
+      - "v0-app/app/account/page.tsx"
+      - "scripts/assistant-topup-eligibility-test.mjs"
       - "scripts/monitor-log-severity-test.mjs"
       - "scripts/local-workspace-two-tenants.mjs"
       - "scripts/stripe-account-identity-regression-test.mjs"
@@ -87,6 +94,12 @@ jobs:
           node-version: "22"
       - name: Install locked dependencies
         run: npm ci
+      - name: Top-Up active subscription eligibility regression
+        if: ${{ hashFiles('scripts/assistant-topup-eligibility-test.mjs') != '' }}
+        run: node scripts/assistant-topup-eligibility-test.mjs
+      - name: Top-Up active subscription eligibility regression
+        if: ${{ hashFiles('scripts/assistant-topup-eligibility-test.mjs') != '' }}
+        run: node scripts/assistant-topup-eligibility-test.mjs
       - name: Pricing billing disclosure regression
         run: node --experimental-strip-types scripts/pricing-billing-disclosure-test.mjs
       - name: UI TypeScript check
