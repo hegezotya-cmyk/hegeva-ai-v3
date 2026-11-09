@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { I18nProvider } from '@/lib/i18n/provider'
 import { WorkspaceLocalPrivacyGuard } from '@/components/workspace-local-privacy-guard'
 import { AnalyticsConsent } from '@/components/analytics-consent'
+import { PostHogStagingAnalytics } from '@/components/posthog-staging-analytics'
 import './globals.css'
 
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
@@ -79,6 +80,7 @@ export default function RootLayout({
         <I18nProvider>
           <WorkspaceLocalPrivacyGuard />
           <AnalyticsConsent />
+          <PostHogStagingAnalytics />
           {children}
         </I18nProvider>
       </body>
