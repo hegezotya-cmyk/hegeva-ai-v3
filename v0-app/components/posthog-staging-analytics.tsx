@@ -28,7 +28,7 @@ type PostHogClient = {
   capture: (event: string, properties?: Record<string, unknown>) => void
   optOutCapturing: () => void
 }
-type PostHogQueue = PostHogClient[] & { _i?: unknown[]; __SV?: number }
+type PostHogQueue = PostHogClient[] & { _i?: unknown[]; __SV?: number; init: PostHogClient["init"] }
 declare global {
   interface Window {
     posthog?: PostHogClient
