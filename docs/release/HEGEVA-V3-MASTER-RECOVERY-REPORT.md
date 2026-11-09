@@ -751,3 +751,20 @@ Cloudflare Dashboard read-only inspection of `hegeva-ai-v3-staging` Production s
 - **Remote deployment attempt BLOCKED:** staging workflow [#42420376410](https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42420376410) passed verification and staging metadata preflight, then failed at `Apply isolated synthetic schema`. Cloudflare D1 API returned HTTP authorization error code `7403` for the new D1 ID. The Worker deploy step was skipped. No scheduled Worker was deployed or enabled, no Cron invocation occurred, and no synthetic fixture rows were inserted.
 - **Current acceptance:** isolated runtime implementation is READY FOR REVIEW; actual remote retry/fencing is **BLOCKED / NOT PROVEN** because the existing GitHub staging token lacks permission for the dedicated D1 operation. Local Wrangler is also unauthenticated. Creating or broadening a token is not authorized, so the next safe execution requires owner-managed, narrowly scoped D1/Worker deployment authorization or an approved Dashboard-based deployment path. Do not infer Cron PASS from local tests or schema presence.
 - No application staging Worker, main staging D1, Stripe resource, production resource, secret, permission, or payment path was changed.
+
+
+## Correction: isolated remote Cron acceptance completed — 2026-11-08
+
+This section supersedes the 2026-11-07 statements above that the isolated D1 authorization failure prevented remote schema application and Cron execution. The failure was resolved after the dedicated test account's GitHub staging variables and secret were configured.
+
+- **Workflow #107 PASS:** https://github.com/hegezotya-cmyk/hegeva-ai-v3/actions/runs/42451484664. The separate synthetic account and D1 target passed isolation guards; schema application and isolated Worker deployment succeeded.
+- **Remote Cron retry and fencing PASS:** attempts=2, one completed synthetic effect, exactly one lease winner, duplicate and stale writes rejected, cleanup verified, and zero active fixture leases.
+- **Fixture cleanup PASS:** the workflow confirmed zero rows across four isolated fixture scopes. The Worker flag is `STAGING_SCHEDULED_TEST_ENABLED=false`; the Cloudflare dashboard shows no Cron triggers configured after cleanup.
+- Cloudflare Cron configuration changes can take up to 15 minutes to propagate. The Worker remains disabled during propagation.
+- The run exposed and the Draft PR #98 fixes two harness issues: the acceptance wait was shorter than Cloudflare's propagation window, and the Cron handler treated the Durable Object namespace binding as a stub instead of resolving a deterministic stub.
+- **Staging Stripe TEST account identity PASS (owner-authenticated read-only):** `GET /api/admin/stripe-account-identity` returned `ok=true` and account ID `acct_1U4YkEHECF9iDE3l`, matching the main HEGEVA TEST account recorded above. The endpoint returns success only when `PAYMENT_MODE=test` and the configured secret begins `sk_test_`; it calls Stripe `GET /v1/account` and returns only the account ID. No secret was read or logged, and no Stripe/D1 writes occurred.
+- The full registration-to-subscription journey, logout/re-login persistence, and broad two-user/API tenant-isolation acceptance remain **NOT PROVEN**.
+
+**Updated disposition:** isolated remote Cron retry/fencing **PASS**; isolated fixture cleanup **PASS**; staging Stripe TEST account identity **PASS**; full staging acceptance **NOT READY** because the complete customer journey, logout/re-login persistence, and broad tenant isolation remain unproven; production **NO-GO**; `releaseSafe=false`.
+
+No production Worker or D1, application staging Worker or D1, Stripe resource, payment path, or customer data was modified.
