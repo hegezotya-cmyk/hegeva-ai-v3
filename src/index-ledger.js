@@ -553,7 +553,9 @@ async function reconcileTerminalStripeEvent(env, event, claim) {
     livemode,
     getCompleteInventory: inventory,
   });
-  if (decision.decision === "defer") return { deferred: true };
+  if (decision.decision === "defer") {
+    return { deferred: true, reason: decision.reason };
+  }
 
   const nextPlan = decision.plan;
   if (!["basic", "premium", "pro"].includes(nextPlan)) {
