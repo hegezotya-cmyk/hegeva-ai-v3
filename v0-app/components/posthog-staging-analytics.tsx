@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 
 const IS_STAGING = process.env.NEXT_PUBLIC_APP_ENV === "staging"
@@ -81,6 +81,7 @@ function startPostHog(path: string) {
 
 export function PostHogStagingAnalytics() {
   const pathname = usePathname()
+  const lastLandingView = useRef<{ path: string; at: number } | null>(null)
   useEffect(() => {
     if (!IS_STAGING || !PROJECT_KEY) return
     const consented = () => localStorage.getItem(CONSENT_KEY) === "granted"
@@ -101,6 +102,12 @@ export function PostHogStagingAnalytics() {
       if (!detail?.event || !ALLOWED_EVENTS.has(detail.event)) return
       const path = (detail.path || "").split("?")[0]
       if (!PAGE_PATHS.has(path)) return
+      if (detail.event === "landing_page_view") {
+        const previous = lastLandingView.current
+        const now = Date.now()
+        if (previous?.path === path && now - previous.at < 1000) return
+        lastLandingView.current = { path, at: now }
+      }
       const properties = { page_path: path }
       if (window.__hegevaPosthogReady && typeof client.capture === "function") {
         client.capture(detail.event, properties)
