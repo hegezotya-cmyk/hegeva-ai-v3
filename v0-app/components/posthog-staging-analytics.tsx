@@ -46,26 +46,24 @@ function startPostHog(path: string) {
   queue.init = (key, options) => { queue._i?.push([key, options]) }
   window.posthog = queue as unknown as PostHogClient
 
+  queue.init(PROJECT_KEY, {
+    api_host: "https://eu.i.posthog.com",
+    ui_host: "https://eu.posthog.com",
+    autocapture: false,
+    capture_pageview: false,
+    capture_pageleave: false,
+    disable_session_recording: true,
+    disable_persistence: true,
+    person_profiles: "identified_only",
+  })
   const script = document.createElement("script")
   script.id = "hegeva-posthog-staging-sdk"
   script.async = true
   script.crossOrigin = "anonymous"
   script.src = "https://eu-assets.i.posthog.com/static/array.js"
   script.onload = () => {
-    const client = window.posthog
-    if (!client) return
-    client.init(PROJECT_KEY, {
-      api_host: "https://eu.i.posthog.com",
-      ui_host: "https://eu.posthog.com",
-      autocapture: false,
-      capture_pageview: false,
-      capture_pageleave: false,
-      disable_session_recording: true,
-      disable_persistence: true,
-      person_profiles: "identified_only",
-    })
     window.__hegevaPosthogReady = true
-    if (PAGE_PATHS.has(path)) client.capture("$pageview", { page_path: path })
+    if (PAGE_PATHS.has(path)) window.posthog?.capture("$pageview", { page_path: path })
   }
   script.onerror = () => { window.__hegevaPosthogLoading = false }
   document.head.appendChild(script)
