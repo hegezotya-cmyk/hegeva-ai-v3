@@ -25,11 +25,11 @@ declare global {
 }
 
 const copy = {
-  en: { title: "Your privacy choices", body: "With your permission, HEGEVA uses Google Analytics to understand visits and registration starts. We do not send business records, form content or advertising identifiers.", accept: "Allow analytics", reject: "Essential only", manage: "Privacy choices", privacy: "Privacy notice" },
-  hu: { title: "Adatvédelmi beállítások", body: "Engedélyeddel a HEGEVA Google Analytics segítségével méri a látogatásokat és a regisztrációk elindítását. Üzleti adatokat, űrlaptartalmat és reklámazonosítókat nem küldünk.", accept: "Analytics engedélyezése", reject: "Csak szükséges", manage: "Adatvédelmi beállítások", privacy: "Adatvédelmi tájékoztató" },
-  de: { title: "Ihre Datenschutzauswahl", body: "Mit Ihrer Erlaubnis nutzt HEGEVA Google Analytics, um Besuche und Registrierungsstarts zu verstehen. Geschäftsdaten, Formularinhalte und Werbe-IDs werden nicht gesendet.", accept: "Analytics erlauben", reject: "Nur erforderlich", manage: "Datenschutzauswahl", privacy: "Datenschutzhinweis" },
-  fr: { title: "Vos choix de confidentialité", body: "Avec votre accord, HEGEVA utilise Google Analytics pour comprendre les visites et les débuts d’inscription. Aucune donnée métier, contenu de formulaire ou identifiant publicitaire n’est envoyé.", accept: "Autoriser Analytics", reject: "Nécessaires uniquement", manage: "Choix de confidentialité", privacy: "Avis de confidentialité" },
-  es: { title: "Tus opciones de privacidad", body: "Con tu permiso, HEGEVA usa Google Analytics para conocer las visitas y los inicios de registro. No enviamos datos empresariales, contenido de formularios ni identificadores publicitarios.", accept: "Permitir Analytics", reject: "Solo necesarias", manage: "Opciones de privacidad", privacy: "Aviso de privacidad" },
+  en: { title: "Your privacy choices", body: "With your permission, HEGEVA uses Google Analytics and PostHog to understand visits and selected product events. They load only with your permission. We do not send account identifiers, business records, form content or raw URLs.", accept: "Allow analytics", reject: "Essential only", manage: "Privacy choices", privacy: "Privacy notice" },
+  hu: { title: "Adatvédelmi beállítások", body: "Engedélyeddel a HEGEVA Google Analytics és PostHog segítségével méri az oldalmegtekintéseket és egyes termékeseményeket. Nem küldünk fiókazonosítót, üzleti adatot, űrlaptartalmat vagy teljes URL-t.", accept: "Analytics engedélyezése", reject: "Csak szükséges", manage: "Adatvédelmi beállítások", privacy: "Adatvédelmi tájékoztató" },
+  de: { title: "Ihre Datenschutzauswahl", body: "Mit Ihrer Erlaubnis nutzt HEGEVA Google Analytics und PostHog, um Besuche und ausgewählte Produktinteraktionen zu messen. Es werden keine Konto-IDs, Geschäftsdaten, Formularinhalte oder vollständigen URLs gesendet.", accept: "Analytics erlauben", reject: "Nur erforderlich", manage: "Datenschutzauswahl", privacy: "Datenschutzhinweis" },
+  fr: { title: "Vos choix de confidentialité", body: "Avec votre accord, HEGEVA utilise Google Analytics et PostHog pour mesurer les visites et certaines interactions produit. Aucun identifiant de compte, donnée métier, contenu de formulaire ni URL complète n’est envoyé.", accept: "Autoriser Analytics", reject: "Nécessaires uniquement", manage: "Choix de confidentialité", privacy: "Avis de confidentialité" },
+  es: { title: "Tus opciones de privacidad", body: "Con tu permiso, HEGEVA usa Google Analytics y PostHog para medir visitas e interacciones seleccionadas del producto. No enviamos identificadores de cuenta, datos empresariales, contenido de formularios ni URL completas.", accept: "Permitir Analytics", reject: "Solo necesarias", manage: "Opciones de privacidad", privacy: "Aviso de privacidad" },
 } as const
 
 function queueConsentDefault() {
@@ -189,6 +189,7 @@ export function AnalyticsConsent() {
 
   const choose = (next: Exclude<Consent, null>) => {
     localStorage.setItem(CONSENT_KEY, next)
+    window.dispatchEvent(new CustomEvent("hegeva:analytics-consent", { detail: { consent: next } }))
     setConsent(next)
     setOpen(false)
     if (next === "granted") enableAnalytics()
