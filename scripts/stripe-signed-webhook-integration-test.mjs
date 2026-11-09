@@ -195,7 +195,7 @@ try {
    assert.equal(warnings[0][0],"HEGEVA_REQUEST_FAILURE");
    assert.deepEqual(warnings[0][1],{
     reason:"stripe_terminal_reconciliation_deferred",
-    decisionReason:"inventory-error"
+    decisionReason:"incomplete-inventory"
    });
    const logged=JSON.stringify(warnings);
    for(const privateValue of ["evt_log_privacy","sub_old","cus_old","test_user","private-fixture-network-detail"]){
