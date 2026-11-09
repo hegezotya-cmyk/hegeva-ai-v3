@@ -783,6 +783,12 @@ async function handleStripeWebhook(request, env, ctx) {
       const reviewed = await reconcileTerminalStripeEvent(env, event, claim);
       if (reviewed.deferred) {
         await releaseStripeEvent(env, claim.eventId);
+        // Log only the fixed, non-sensitive policy reason. Do not include event,
+        // customer, subscription, or user identifiers in runtime logs.
+        console.warn("HEGEVA_REQUEST_FAILURE", {
+          reason: "stripe_terminal_reconciliation_deferred",
+          decisionReason: typeof reviewed.reason === "string" ? reviewed.reason : "unspecified",
+        });
         emitMonitor("stripe_webhook", "terminal_reconciliation_deferred");
         return Response.json(
           { error: "Subscription reconciliation temporarily unavailable." },
