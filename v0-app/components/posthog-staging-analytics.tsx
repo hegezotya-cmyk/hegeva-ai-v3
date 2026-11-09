@@ -63,6 +63,10 @@ function startPostHog(path: string) {
   script.src = "https://eu-assets.i.posthog.com/static/array.js"
   script.onload = () => {
     window.__hegevaPosthogReady = true
+    if (localStorage.getItem(CONSENT_KEY) !== "granted") {
+      window.posthog?.optOutCapturing()
+      return
+    }
     if (PAGE_PATHS.has(path)) window.posthog?.capture("$pageview", { page_path: path })
   }
   script.onerror = () => { window.__hegevaPosthogLoading = false }
