@@ -176,6 +176,35 @@ try {
  assert.equal((await duplicateSettled.json()).duplicate,true);
  assert.equal(planWrites(operations).length,0);
 }
+ // Deferred terminal reconciliation emits only the fixed policy reason and
+ // must not log Stripe event, customer, subscription, or user identifiers.
+ {
+  const {DB}=makeDb();
+  const warnings=[];
+  const previousWarn=console.warn;
+  globalThis.fetch=async()=>{throw Error("private-fixture-network-detail");};
+  console.warn=(...args)=>warnings.push(args);
+  try {
+   const event=eventFor("customer.subscription.deleted","canceled","evt_log_privacy");
+   const response=await handler.fetch(requestFor(event),{
+    DB,PAYMENT_MODE:"test",STRIPE_SECRET_KEY:"sk_test_fixture",
+    STRIPE_WEBHOOK_SECRET:secret
+   },{});
+   assert.equal(response.status,503);
+   assert.equal(warnings.length,1);
+   assert.equal(warnings[0][0],"HEGEVA_REQUEST_FAILURE");
+   assert.deepEqual(warnings[0][1],{
+    reason:"stripe_terminal_reconciliation_deferred",
+    decisionReason:"inventory-error"
+   });
+   const logged=JSON.stringify(warnings);
+   for(const privateValue of ["evt_log_privacy","sub_old","cus_old","test_user","private-fixture-network-detail"]){
+    assert.equal(logged.includes(privateValue),false);
+   }
+  } finally {
+   console.warn=previousWarn;
+  }
+ }
  console.log("Signed terminal Stripe Worker + mocked D1 integration PASS (updated/deleted; keep, downgrade, retry, bad signature)");
 } finally {
  globalThis.fetch=previousFetch;
