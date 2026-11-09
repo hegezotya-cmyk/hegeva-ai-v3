@@ -14,6 +14,9 @@ on:
       - "src/assistant-topup.js"
       - "v0-app/app/account/page.tsx"
       - "scripts/assistant-topup-eligibility-test.mjs"
+      - "src/assistant-topup.js"
+      - "v0-app/app/account/page.tsx"
+      - "scripts/assistant-topup-eligibility-test.mjs"
       - "scripts/monitor-log-severity-test.mjs"
       - "scripts/local-workspace-two-tenants.mjs"
       - "scripts/stripe-account-identity-regression-test.mjs"
@@ -91,6 +94,9 @@ jobs:
           node-version: "22"
       - name: Install locked dependencies
         run: npm ci
+      - name: Top-Up active subscription eligibility regression
+        if: ${{ hashFiles('scripts/assistant-topup-eligibility-test.mjs') != '' }}
+        run: node scripts/assistant-topup-eligibility-test.mjs
       - name: Top-Up active subscription eligibility regression
         if: ${{ hashFiles('scripts/assistant-topup-eligibility-test.mjs') != '' }}
         run: node scripts/assistant-topup-eligibility-test.mjs
