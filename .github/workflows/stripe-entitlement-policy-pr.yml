@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - integration/security-growth-validation-20261104
+      - codex/isolated-synthetic-cron-account
     paths:
       - "src/stripe-entitlement-reconciliation-policy.js"
       - "src/stripe-subscription-inventory.js"
