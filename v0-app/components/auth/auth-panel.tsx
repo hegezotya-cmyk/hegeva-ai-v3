@@ -74,8 +74,11 @@ export function AuthPanel() {
     const referral = captureReferralAttribution()
     if (!referral) return false
     const response = await fetch("/api/referrals/attribute", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: referral.code }) }).catch(() => null)
-    if (response?.ok) clearReferralAttribution()
-    return response?.ok === true
+    if (!response?.ok) return false
+    const result = await response.json().catch(() => null)
+    const attributed = result?.attributed === true
+    if (attributed || result?.duplicate === true) clearReferralAttribution()
+    return attributed
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
