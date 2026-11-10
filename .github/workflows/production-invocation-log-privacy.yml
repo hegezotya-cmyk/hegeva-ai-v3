@@ -1,0 +1,31 @@
+name: HEGEVA Production Invocation Log Privacy
+
+on:
+  pull_request:
+    branches:
+      - v0-rebuild
+    paths:
+      - wrangler.jsonc
+      - scripts/production-invocation-log-guard.mjs
+      - package.json
+      - .github/workflows/production-invocation-log-privacy.yml
+  push:
+    branches:
+      - fix/privacy-disable-prod-invocation-logs-20261110
+    paths:
+      - wrangler.jsonc
+      - scripts/production-invocation-log-guard.mjs
+      - package.json
+      - .github/workflows/production-invocation-log-privacy.yml
+
+permissions:
+  contents: read
+
+jobs:
+  assert-invocation-log-privacy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Assert production invocation logging stays disabled
+        run: node scripts/production-invocation-log-guard.mjs
