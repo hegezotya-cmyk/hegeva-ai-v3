@@ -7,6 +7,7 @@ on:
     paths:
       - v0-app/components/auth/auth-panel.tsx
       - v0-app/scripts/customer-referral-growth-loop-audit.mjs
+      - v0-app/scripts/referral-attribution-client-contract-test.mjs
       - src/auth.js
       - .github/workflows/staging-auth-and-referral-regression.yml
   push:
@@ -15,6 +16,7 @@ on:
     paths:
       - v0-app/components/auth/auth-panel.tsx
       - v0-app/scripts/customer-referral-growth-loop-audit.mjs
+      - v0-app/scripts/referral-attribution-client-contract-test.mjs
       - .github/workflows/staging-auth-and-referral-regression.yml
 
 permissions:
@@ -44,6 +46,7 @@ jobs:
       - name: Referral attribution and analytics regression
         run: |
           node v0-app/scripts/customer-referral-growth-loop-audit.mjs
+          node v0-app/scripts/referral-attribution-client-contract-test.mjs
           node v0-app/scripts/referral-v1-audit.mjs
       - name: Checkout and money journey invariants
         run: node v0-app/scripts/money-test-audit.mjs
