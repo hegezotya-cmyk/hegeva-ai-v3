@@ -1,0 +1,27 @@
+name: HEGEVA Staging Auth Read-Only Acceptance
+
+on:
+  push:
+    branches:
+      - codex/staging-stripe-sandbox-webhook-20261108
+    paths:
+      - scripts/staging-auth-readonly-smoke.mjs
+      - .github/workflows/staging-auth-readonly-acceptance.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staging-readonly-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Staging registration and anonymous guard GET probes only
+        run: node scripts/staging-auth-readonly-smoke.mjs
