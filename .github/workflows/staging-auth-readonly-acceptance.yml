@@ -1,6 +1,12 @@
 name: HEGEVA Staging Auth Read-Only Acceptance
 
 on:
+  pull_request:
+    branches:
+      - codex/isolated-synthetic-cron-account
+    paths:
+      - scripts/staging-auth-readonly-smoke.mjs
+      - .github/workflows/staging-auth-readonly-acceptance.yml
   push:
     branches:
       - codex/staging-stripe-sandbox-webhook-20261108
