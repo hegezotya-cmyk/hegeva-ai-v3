@@ -27,7 +27,7 @@ assert(visitEvent && !visitEvent.includes("referral_code"), "referral_visit anal
 assert(signupEvent && !signupEvent.includes("referral_code"), "referral_signup analytics must be code-free")
 assert.match(tracking, /hegeva:analytics-consent:v1[\s\S]*granted/, "referral touch capture must remain consent-gated")
 assert.match(tracking, /\/api\/referrals\/touch/, "granted referral capture must use the touch endpoint")
-assert.match(consent, /else \{[\s\S]*clearReferralAttribution\(\)/, "denied consent must clear referral context")
+assert.match(consent, /if \(next === "denied"\)\s*\{[\s\S]*?clearReferralAttribution\(\)/, "denied consent must clear referral context")
 assert.match(tracking, /captureReferralAttribution\(\)[\s\S]*localStorage\.getItem\("hegeva:analytics-consent:v1"\) !== "granted"/, "referral capture must refuse non-granted consent")
 assert.match(auth, /body:\s*JSON\.stringify\(\{ code: referral\.code \}\)/, "attribution API must retain its one-shot code")
 const referralHelper = auth.slice(auth.indexOf("async function attributeCapturedReferral"), auth.indexOf("async function handleSubmit"))
