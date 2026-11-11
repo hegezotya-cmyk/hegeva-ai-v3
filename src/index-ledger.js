@@ -553,7 +553,9 @@ async function reconcileTerminalStripeEvent(env, event, claim) {
     livemode,
     getCompleteInventory: inventory,
   });
-  if (decision.decision === "defer") return { deferred: true };
+  if (decision.decision === "defer") {
+    return { deferred: true, reason: decision.reason };
+  }
 
   const nextPlan = decision.plan;
   if (!["basic", "premium", "pro"].includes(nextPlan)) {
@@ -783,6 +785,12 @@ async function handleStripeWebhook(request, env, ctx) {
       const reviewed = await reconcileTerminalStripeEvent(env, event, claim);
       if (reviewed.deferred) {
         await releaseStripeEvent(env, claim.eventId);
+        // Log only the fixed, non-sensitive policy reason. Do not include event,
+        // customer, subscription, or user identifiers in runtime logs.
+        console.warn("HEGEVA_REQUEST_FAILURE", {
+          reason: "stripe_terminal_reconciliation_deferred",
+          decisionReason: typeof reviewed.reason === "string" ? reviewed.reason : "unspecified",
+        });
         emitMonitor("stripe_webhook", "terminal_reconciliation_deferred");
         return Response.json(
           { error: "Subscription reconciliation temporarily unavailable." },
@@ -887,6 +895,41 @@ export default {
       request.method === "POST"
     ) {
       return handleStripeWebhook(request, env, ctx);
+    }
+
+    if (
+      url.pathname === "/api/billing/sandbox-webhook" &&
+      request.method === "POST"
+    ) {
+      const sandboxApiKey =
+        typeof env.STRIPE_SANDBOX_SECRET_KEY === "string"
+          ? env.STRIPE_SANDBOX_SECRET_KEY.trim()
+          : "";
+      const sandboxWebhookSecret =
+        typeof env.STRIPE_SANDBOX_WEBHOOK_SECRET === "string"
+          ? env.STRIPE_SANDBOX_WEBHOOK_SECRET.trim()
+          : "";
+
+      if (
+        String(env.PAYMENT_MODE || "").trim().toLowerCase() !== "test" ||
+        !sandboxApiKey.startsWith("sk_test_") ||
+        !isStripeWebhookSecret(sandboxWebhookSecret)
+      ) {
+        return Response.json(
+          { error: "Stripe Sandbox webhook is unavailable." },
+          { status: 503 },
+        );
+      }
+
+      return handleStripeWebhook(
+        request,
+        {
+          ...env,
+          STRIPE_SECRET_KEY: sandboxApiKey,
+          STRIPE_WEBHOOK_SECRET: sandboxWebhookSecret,
+        },
+        ctx,
+      );
     }
 
     if (

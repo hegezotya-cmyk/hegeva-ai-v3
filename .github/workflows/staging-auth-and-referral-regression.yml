@@ -1,0 +1,59 @@
+name: HEGEVA Staging Auth and Referral Regression
+
+on:
+  pull_request:
+    branches:
+      - codex/isolated-synthetic-cron-account
+    paths:
+      - v0-app/components/auth/auth-panel.tsx
+      - v0-app/scripts/customer-referral-growth-loop-audit.mjs
+      - v0-app/scripts/referral-attribution-client-contract-test.mjs
+      - v0-app/scripts/isolated-email-verification-e2e-test.mjs
+      - src/auth.js
+      - .github/workflows/staging-auth-and-referral-regression.yml
+  push:
+    branches:
+      - codex/staging-stripe-sandbox-webhook-20261108
+    paths:
+      - v0-app/components/auth/auth-panel.tsx
+      - v0-app/scripts/customer-referral-growth-loop-audit.mjs
+      - v0-app/scripts/referral-attribution-client-contract-test.mjs
+      - v0-app/scripts/isolated-email-verification-e2e-test.mjs
+      - .github/workflows/staging-auth-and-referral-regression.yml
+
+permissions:
+  contents: read
+
+jobs:
+  auth-referral-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            v0-app/package-lock.json
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm --prefix v0-app ci
+      - name: Mocked verification email and auth protection
+        run: node v0-app/scripts/email-verification-audit.mjs
+      - name: Full Better Auth verification-to-login acceptance (isolated SQLite and mocked Resend)
+        run: node v0-app/scripts/isolated-email-verification-e2e-test.mjs
+      - name: Referral attribution and analytics regression
+        run: |
+          node v0-app/scripts/customer-referral-growth-loop-audit.mjs
+          node v0-app/scripts/referral-attribution-client-contract-test.mjs
+          node v0-app/scripts/referral-v1-audit.mjs
+      - name: Checkout and money journey invariants
+        run: node v0-app/scripts/money-test-audit.mjs
+      - name: TypeScript check
+        working-directory: v0-app
+        run: npx tsc --noEmit

@@ -74,8 +74,11 @@ export function AuthPanel() {
     const referral = captureReferralAttribution()
     if (!referral) return false
     const response = await fetch("/api/referrals/attribute", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: referral.code }) }).catch(() => null)
-    if (response?.ok) clearReferralAttribution()
-    return true
+    if (!response?.ok) return false
+    const result = await response.json().catch(() => null)
+    const attributed = result?.attributed === true
+    if (attributed || result?.duplicate === true) clearReferralAttribution()
+    return attributed
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -118,12 +121,7 @@ export function AuthPanel() {
           return
         }
         trackRegistrationSubmitted()
-        const referralCaptured = await attributeCapturedReferral()
-        if (referralCaptured) {
-          window.dispatchEvent(new CustomEvent("hegeva:analytics-event", {
-            detail: { event: "referral_signup", path: "/login" },
-          }))
-        }
+        // No session exists before email verification; defer attribution until verified login.
         setVerificationPending(true)
         setResendCooldown(30)
         setSuccess(c.verificationRequired)
@@ -153,7 +151,12 @@ export function AuthPanel() {
         return
       }
 
-      await attributeCapturedReferral()
+      const referralAttributed = await attributeCapturedReferral()
+      if (referralAttributed) {
+        window.dispatchEvent(new CustomEvent("hegeva:analytics-event", {
+          detail: { event: "referral_signup", path: "/login" },
+        }))
+      }
       router.push(safeCallbackURL())
       router.refresh()
     } catch {

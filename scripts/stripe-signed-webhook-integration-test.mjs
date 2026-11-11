@@ -68,11 +68,11 @@ const secret="whsec_local_fixture";
 const previousFetch=globalThis.fetch;
 const previousCrypto=globalThis.crypto;
 Object.defineProperty(globalThis,"crypto",{value:webcrypto,configurable:true});
-const requestFor=(event,{sign=true}={})=>{
+const requestFor=(event,{sign=true,path="/api/billing/webhook",signingSecret=secret}={})=>{
  const body=JSON.stringify(event);
  const timestamp=Math.floor(Date.now()/1000);
- const signature=createHmac("sha256",secret).update(`${timestamp}.${body}`).digest("hex");
- return new Request("https://staging.invalid/api/billing/webhook",{
+ const signature=createHmac("sha256",signingSecret).update(`${timestamp}.${body}`).digest("hex");
+ return new Request(`https://staging.invalid${path}`,{
   method:"POST",headers:{"Stripe-Signature":`t=${timestamp},v1=${sign?signature:"0".repeat(64)}`},
   body
  });
@@ -95,7 +95,41 @@ async function send(event,rows,{networkFailure=false,sign=true}={}){
  return {status:response.status,json:await response.json(),operations};
 }
 const planWrites=(ops)=>ops.filter(o=>o.sql.includes("INSERT INTO user_plans"));
+const sandboxSecret="whsec_sandbox_fixture";
+const sandboxApiKey="sk_test_sandbox_fixture";
 try {
+ // Missing sandbox credentials must fail closed instead of delegating to the
+ // primary webhook or invoking Stripe.
+ {
+  const {DB}=makeDb();
+  const response=await handler.fetch(requestFor(eventFor("customer.subscription.deleted","canceled","evt_sandbox_missing"),{path:"/api/billing/sandbox-webhook",signingSecret:sandboxSecret}),{
+   DB,PAYMENT_MODE:"test",STRIPE_SECRET_KEY:"sk_test_primary_fixture",STRIPE_WEBHOOK_SECRET:secret
+  },{});
+  assert.equal(response.status,503);
+ }
+ // The dedicated sandbox endpoint must use its own signature and API secrets,
+ // while the established billing endpoint continues to use the primary pair. Test first.
+ {
+  const {DB,operations}=makeDb();
+  let authorization;
+  globalThis.fetch=async(url,options)=>{
+   assert.equal(new URL(url).pathname,"/v1/subscriptions");
+   authorization=options.headers.Authorization;
+   return {ok:true,json:async()=>({data:[old,active],has_more:false})};
+  };
+  const event=eventFor("customer.subscription.deleted","canceled","evt_sandbox_route");
+  const response=await handler.fetch(requestFor(event,{path:"/api/billing/sandbox-webhook",signingSecret:sandboxSecret}),{
+   DB,PAYMENT_MODE:"test",STRIPE_SECRET_KEY:"sk_test_primary_fixture",
+   STRIPE_WEBHOOK_SECRET:secret,STRIPE_SANDBOX_SECRET_KEY:sandboxApiKey,
+   STRIPE_SANDBOX_WEBHOOK_SECRET:sandboxSecret
+  },{});
+  assert.equal(response.status,200);
+  const result=await response.json();
+  assert.equal(result.verified,true);
+  assert.equal(result.resultingPlan,"premium");
+  assert.equal(authorization,`Bearer ${sandboxApiKey}`);
+  assert.equal(planWrites(operations)[0].args[1],"premium");
+ }
  for(const type of ["customer.subscription.updated","customer.subscription.deleted"]){
   const kept=await send(eventFor(type),[old,active]);
   assert.equal(kept.status,200);
@@ -142,6 +176,35 @@ try {
  assert.equal((await duplicateSettled.json()).duplicate,true);
  assert.equal(planWrites(operations).length,0);
 }
+ // Deferred terminal reconciliation emits only the fixed policy reason and
+ // must not log Stripe event, customer, subscription, or user identifiers.
+ {
+  const {DB}=makeDb();
+  const warnings=[];
+  const previousWarn=console.warn;
+  globalThis.fetch=async()=>{throw Error("private-fixture-network-detail");};
+  console.warn=(...args)=>warnings.push(args);
+  try {
+   const event=eventFor("customer.subscription.deleted","canceled","evt_log_privacy");
+   const response=await handler.fetch(requestFor(event),{
+    DB,PAYMENT_MODE:"test",STRIPE_SECRET_KEY:"sk_test_fixture",
+    STRIPE_WEBHOOK_SECRET:secret
+   },{});
+   assert.equal(response.status,503);
+   assert.equal(warnings.length,1);
+   assert.equal(warnings[0][0],"HEGEVA_REQUEST_FAILURE");
+   assert.deepEqual(warnings[0][1],{
+    reason:"stripe_terminal_reconciliation_deferred",
+    decisionReason:"incomplete-inventory"
+   });
+   const logged=JSON.stringify(warnings);
+   for(const privateValue of ["evt_log_privacy","sub_old","cus_old","test_user","private-fixture-network-detail"]){
+    assert.equal(logged.includes(privateValue),false);
+   }
+  } finally {
+   console.warn=previousWarn;
+  }
+ }
  console.log("Signed terminal Stripe Worker + mocked D1 integration PASS (updated/deleted; keep, downgrade, retry, bad signature)");
 } finally {
  globalThis.fetch=previousFetch;

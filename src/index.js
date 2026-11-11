@@ -9,7 +9,7 @@ import { createAuthRateLimiter, clientIpKey } from "./auth-rate-limiter.js";
 import { handleAiChatAdmission } from "./ai-chat-admission.js";
 import { isX20RequestId, registerX20Attempt, startX20Action, finishX20Attempt } from "./x20-ledger.js";
 import { readAssistantUsage, startAssistantOperation, finishAssistantOperation } from "./assistant-quota.js";
-import { ASSISTANT_TOPUP_PACKS, readAssistantTopUpBalance, reserveAssistantTopUpCredit, finishAssistantTopUpCredit, grantAssistantTopUpPurchase, reconcileAssistantTopUpFinancialEvent, validateAssistantTopUpCheckoutPayment } from "./assistant-topup.js";
+import { ASSISTANT_TOPUP_PACKS, isAssistantTopUpSubscriber, readAssistantTopUpBalance, reserveAssistantTopUpCredit, finishAssistantTopUpCredit, grantAssistantTopUpPurchase, reconcileAssistantTopUpFinancialEvent, validateAssistantTopUpCheckoutPayment } from "./assistant-topup.js";
 import { readAssistantCostGuardConfig, reserveAssistantCostGuard, settleAssistantCostGuard } from "./assistant-cost-guard.js";
 import { readAssistantDailyAdmissionConfig, reserveAssistantDailyAdmission, settleAssistantDailyAdmission, releaseAssistantDailyAdmission } from "./assistant-daily-admission.js";
 import { isX30OperationId, startX30Generation, finishX30Generation, X30_MONTHLY_LIMIT, X30_WORKSPACE_LIMIT } from "./x30-generation-ledger.js";
@@ -2974,6 +2974,19 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         try { body = await request.json(); } catch { return Response.json({ error: "Invalid JSON body." }, { status: 400 }); }
         const pack = getAssistantTopUpPack(env, body?.pack);
         if (!pack) return Response.json({ error: "Invalid or unavailable AI Top-Up pack." }, { status: 400 });
+        const topUpEligibility = await env.DB.prepare(`
+          SELECT p.plan, sc.subscriptionStatus, sc.currentPeriodEnd
+          FROM user_plans p
+          LEFT JOIN stripe_customers sc ON sc.userId = p.userId
+          WHERE p.userId = ?1
+          LIMIT 1
+        `).bind(user.id).first();
+        if (!isAssistantTopUpSubscriber(topUpEligibility)) {
+          return Response.json(
+            { error: "An active Premium or Pro monthly subscription is required to buy AI Top-Up credits." },
+            { status: 403 }
+          );
+        }
         const checkout = await createStripeTopUpCheckoutSession(request, env, user, pack);
         if (!checkout.ok) return Response.json({ ok: false, error: checkout.error }, { status: checkout.status });
         return Response.json({

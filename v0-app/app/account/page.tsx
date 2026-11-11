@@ -35,11 +35,11 @@ const TOPUP_PACKS = {
 } as const
 
 const TOPUP_COPY = {
-  en: { title:"Extra AI credits", description:"Top-Up credits stay on your account until you use them.", balance:"Top-Up balance", success:"Payment received. Your credits appear after Stripe confirms the payment. Refresh shortly if the balance has not updated yet.", cancelled:"Top-Up purchase cancelled. No credits were charged.", usageOrder:"Your monthly Assistant allowance is used first. Top-Up credits are used only after the monthly allowance runs out.", unavailable:"Top-Up checkout is temporarily unavailable. No charge was made." },
-  hu: { title:"Extra AI-kreditek", description:"A feltöltött kreditek felhasználásig a fiókodban maradnak.", balance:"Feltöltött egyenleg", success:"A fizetés megérkezett. A kreditek a Stripe visszaigazolása után jelennek meg. Ha az egyenleg még nem frissült, rövidesen frissítsd az oldalt.", cancelled:"A kreditvásárlást megszakítottad. Nem történt terhelés.", usageOrder:"Először a havi Asszisztens-kereted fogy. A feltöltött krediteket csak a havi keret elfogyása után használjuk.", unavailable:"A kreditvásárlás átmenetileg nem érhető el. Nem történt terhelés." },
-  de: { title:"Zusätzliche KI-Guthaben", description:"Aufgeladenes Guthaben bleibt in deinem Konto, bis du es verwendest.", balance:"Aufgeladenes Guthaben", success:"Zahlung erhalten. Dein Guthaben erscheint, nachdem Stripe die Zahlung bestätigt hat. Aktualisiere die Seite in Kürze, falls der Stand noch nicht aktualisiert wurde.", cancelled:"Der Guthabenkauf wurde abgebrochen. Es wurde nichts berechnet.", usageOrder:"Zuerst wird dein monatliches Assistenten-Kontingent verwendet. Aufgeladenes Guthaben wird erst danach eingesetzt.", unavailable:"Der Guthabenkauf ist vorübergehend nicht verfügbar. Es wurde nichts berechnet." },
-  fr: { title:"Crédits IA supplémentaires", description:"Les crédits rechargés restent sur votre compte jusqu’à leur utilisation.", balance:"Solde rechargé", success:"Paiement reçu. Vos crédits apparaîtront après confirmation par Stripe. Actualisez bientôt la page si le solde n’a pas encore changé.", cancelled:"L’achat de crédits a été annulé. Aucun montant n’a été débité.", usageOrder:"Votre allocation mensuelle de l’Assistant est utilisée en premier. Les crédits rechargés ne sont utilisés qu’après son épuisement.", unavailable:"L’achat de crédits est temporairement indisponible. Aucun montant n’a été débité." },
-  es: { title:"Créditos de IA adicionales", description:"Los créditos recargados permanecen en tu cuenta hasta que los uses.", balance:"Saldo recargado", success:"Pago recibido. Tus créditos aparecerán cuando Stripe confirme el pago. Actualiza la página en unos instantes si el saldo aún no ha cambiado.", cancelled:"La compra de créditos se canceló. No se realizó ningún cargo.", usageOrder:"Primero se utiliza tu asignación mensual del Asistente. Los créditos recargados solo se usan cuando se agota.", unavailable:"La compra de créditos no está disponible temporalmente. No se realizó ningún cargo." },
+  en: { title:"Extra AI credits", description:"Top-Up credits stay on your account until you use them.", balance:"Top-Up balance", success:"Payment received. Your credits appear after Stripe confirms the payment. Refresh shortly if the balance has not updated yet.", cancelled:"Top-Up purchase cancelled. No credits were charged.", usageOrder:"Your monthly Assistant allowance is used first. Top-Up credits are used only after the monthly allowance runs out.", subscriptionRequired:"An active Premium or Pro monthly subscription is required to buy Top-Up credits.", unavailable:"Top-Up checkout is temporarily unavailable. No charge was made." },
+  hu: { title:"Extra AI-kreditek", description:"A feltöltött kreditek felhasználásig a fiókodban maradnak.", balance:"Feltöltött egyenleg", success:"A fizetés megérkezett. A kreditek a Stripe visszaigazolása után jelennek meg. Ha az egyenleg még nem frissült, rövidesen frissítsd az oldalt.", cancelled:"A kreditvásárlást megszakítottad. Nem történt terhelés.", usageOrder:"Először a havi Asszisztens-kereted fogy. A feltöltött krediteket csak a havi keret elfogyása után használjuk.", subscriptionRequired:"Feltöltést aktív Premium vagy Pro havi előfizetéssel vásárolhatsz.", unavailable:"A kreditvásárlás átmenetileg nem érhető el. Nem történt terhelés." },
+  de: { title:"Zusätzliche KI-Guthaben", description:"Aufgeladenes Guthaben bleibt in deinem Konto, bis du es verwendest.", balance:"Aufgeladenes Guthaben", success:"Zahlung erhalten. Dein Guthaben erscheint, nachdem Stripe die Zahlung bestätigt hat. Aktualisiere die Seite in Kürze, falls der Stand noch nicht aktualisiert wurde.", cancelled:"Der Guthabenkauf wurde abgebrochen. Es wurde nichts berechnet.", usageOrder:"Zuerst wird dein monatliches Assistenten-Kontingent verwendet. Aufgeladenes Guthaben wird erst danach eingesetzt.", subscriptionRequired:"Zum Kauf von Guthaben ist ein aktives monatliches Premium- oder Pro-Abonnement erforderlich.", unavailable:"Der Guthabenkauf ist vorübergehend nicht verfügbar. Es wurde nichts berechnet." },
+  fr: { title:"Crédits IA supplémentaires", description:"Les crédits rechargés restent sur votre compte jusqu’à leur utilisation.", balance:"Solde rechargé", success:"Paiement reçu. Vos crédits apparaîtront après confirmation par Stripe. Actualisez bientôt la page si le solde n’a pas encore changé.", cancelled:"L’achat de crédits a été annulé. Aucun montant n’a été débité.", usageOrder:"Votre allocation mensuelle de l’Assistant est utilisée en premier. Les crédits rechargés ne sont utilisés qu’après son épuisement.", subscriptionRequired:"Un abonnement mensuel Premium ou Pro actif est requis pour acheter des crédits.", unavailable:"L’achat de crédits est temporairement indisponible. Aucun montant n’a été débité." },
+  es: { title:"Créditos de IA adicionales", description:"Los créditos recargados permanecen en tu cuenta hasta que los uses.", balance:"Saldo recargado", success:"Pago recibido. Tus créditos aparecerán cuando Stripe confirme el pago. Actualiza la página en unos instantes si el saldo aún no ha cambiado.", cancelled:"La compra de créditos se canceló. No se realizó ningún cargo.", usageOrder:"Primero se utiliza tu asignación mensual del Asistente. Los créditos recargados solo se usan cuando se agota.", subscriptionRequired:"Se requiere una suscripción mensual activa Premium o Pro para comprar créditos.", unavailable:"La compra de créditos no está disponible temporalmente. No se realizó ningún cargo." },
 } as const
 
 export default function AccountPage() {
@@ -242,6 +242,14 @@ export default function AccountPage() {
   const statusLabel = subscriptionStatus ? billingCopy[subscriptionStatus as keyof typeof billingCopy] || subscriptionStatus.replaceAll("_", " ") : billingCopy.unavailable
   const periodEnd = billing?.currentPeriodEnd ? new Date(billing.currentPeriodEnd) : null
   const periodEndLabel = periodEnd && !Number.isNaN(periodEnd.getTime()) ? new Intl.DateTimeFormat(locale, { dateStyle:"long" }).format(periodEnd) : "—"
+  const canBuyTopUp = Boolean(
+    plan &&
+    PAID_PLANS.has(plan.plan) &&
+    subscriptionStatus?.toLowerCase() === "active" &&
+    periodEnd &&
+    !Number.isNaN(periodEnd.getTime()) &&
+    periodEnd.getTime() > Date.now()
+  )
 
   return <AppShell>
     <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
@@ -270,9 +278,9 @@ export default function AccountPage() {
             </div>
             {topUpReturn === "success" && <p role="status" className="mt-4 text-sm text-muted-foreground">{topUpCopy.success}</p>}
             {topUpReturn === "cancelled" && <p role="status" className="mt-4 text-sm text-muted-foreground">{topUpCopy.cancelled}</p>}
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {canBuyTopUp ? <div className="mt-4 grid gap-3 sm:grid-cols-3">
               {(["small","medium","large"] as const).map((pack) => <button key={pack} type="button" disabled={Boolean(buyingTopUp)} onClick={() => void buyTopUp(pack)} className="min-h-11 rounded-xl border border-border px-4 py-3 text-sm font-semibold transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60">{buyingTopUp === pack ? c.checking : topUpPacks[pack]}</button>)}
-            </div>
+            </div> : <p role="note" className="mt-4 text-sm text-muted-foreground">{billingLoading ? billingCopy.loading : billingStatusError ? billingCopy.unavailable : topUpCopy.subscriptionRequired}</p>}
             <p className="mt-3 text-xs leading-5 text-muted-foreground">{topUpCopy.usageOrder}</p>
             {topUpError && <p role="alert" className="mt-3 text-sm text-destructive">{topUpCopy.unavailable}</p>}
           </div>}
