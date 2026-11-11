@@ -1,0 +1,26 @@
+name: Staging orphan plan guard regression (offline)
+
+on:
+  pull_request:
+    paths:
+      - "docs/release/2026-11-11-staging-orphan-plan-guards.sql"
+      - "scripts/staging-orphan-plan-guards-test.mjs"
+      - "src/stripe-entitlement-reconciliation-policy.js"
+      - ".github/workflows/staging-orphan-plan-guard-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check offline regression script syntax
+        run: node --check scripts/staging-orphan-plan-guards-test.mjs
+      - name: Regression only - no deployment or credentials
+        run: node --disable-warning=ExperimentalWarning --test scripts/staging-orphan-plan-guards-test.mjs
