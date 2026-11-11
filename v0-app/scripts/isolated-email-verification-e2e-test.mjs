@@ -15,19 +15,36 @@ db.exec(`
   CREATE TABLE account (id TEXT PRIMARY KEY, accountId TEXT NOT NULL, providerId TEXT NOT NULL, userId TEXT NOT NULL, accessToken TEXT, refreshToken TEXT, idToken TEXT, accessTokenExpiresAt INTEGER, refreshTokenExpiresAt INTEGER, scope TEXT, password TEXT, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL, issuer TEXT NOT NULL);
   CREATE TABLE verification (id TEXT PRIMARY KEY, identifier TEXT NOT NULL, value TEXT NOT NULL, expiresAt INTEGER NOT NULL, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL);
 `)
-const DB = {
-  prepare(sql) {
-    const statement = db.prepare(sql)
-    let values = null
-    return {
-      bind(...args) { values = args; return this },
-      first() { return statement.get(...(values || [])) || null },
-      all(...args) { return values ? { results: statement.all(...values) } : statement.all(...args) },
-      run(...args) { const result = statement.run(...(values || args)); return { meta: { changes: Number(result.changes) } } },
-      get(...args) { return statement.get(...args) },
+// Preserve the DatabaseSync prototype so Better Auth detects SQLite correctly.
+// Wrap D1-style chained calls as in the existing isolated referral HTTP audit.
+const DB = new Proxy(db, {
+  get(target, property, receiver) {
+    if (property === "batch") return async (statements) => {
+      target.exec("BEGIN")
+      try {
+        const results = statements.map(statement => statement.run())
+        target.exec("COMMIT")
+        return results
+      } catch (error) {
+        target.exec("ROLLBACK")
+        throw error
+      }
+    }
+    if (property !== "prepare") return Reflect.get(target, property, receiver)
+    return sql => {
+      const statement = target.prepare(sql)
+      let values = null
+      return {
+        bind(...args) { values = args; return this },
+        first() { return statement.get(...(values || [])) || null },
+        all(...args) { return values ? { results: statement.all(...values) } : statement.all(...args) },
+        run(...args) { const result = statement.run(...(values || args)); return values ? { meta: { changes: Number(result.changes) } } : result },
+        get(...args) { return statement.get(...args) },
+        columns(...args) { return statement.columns(...args) },
+      }
     }
   },
-}
+})
 const env = { DB, BETTER_AUTH_SECRET: "isolated-auth-secret-long-enough-2026", PUBLIC_APP_URL: origin, RESEND_API_KEY: "MOCK_NO_EXTERNAL_DELIVERY" }
 const auth = createAuth(env, new Request(origin + "/api/auth/get-session"), {})
 const originalFetch = globalThis.fetch
