@@ -41,8 +41,7 @@ test('late Stripe webhook cannot recreate a deleted user plan', () => {
     db.exec(`INSERT INTO "user" VALUES ('owner-qa','qa@hegeva.test')`);
     addPlan(db, 'owner-qa');
     db.exec(`DELETE FROM "user" WHERE id='owner-qa'`);
-    const replay = addPlan(db, 'owner-qa');
-    assert.equal(replay.changes, 0);
+    assert.throws(() => addPlan(db, 'owner-qa'), /hegeva-plan-auth-user-missing/);
     assert.equal(get(db, 'owner-qa'), null);
     db.exec(`INSERT INTO "user" VALUES ('owner-qa','qa@hegeva.test')`);
     assert.equal(addPlan(db, 'owner-qa').changes, 1);
@@ -66,7 +65,43 @@ test('existing orphan rows are deliberately not deleted by proposed guards', () 
       INSERT INTO user_plans VALUES ('historical-orphan', 'premium', 'now', 'now');`);
     db.exec(guardSql);
     assert.equal(get(db, 'historical-orphan'), 'premium');
-    assert.equal(addPlan(db, 'another-orphan').changes, 0);
+    assert.throws(() => addPlan(db, 'another-orphan'), /hegeva-plan-auth-user-missing/);
+    assert.throws(
+      () => db.prepare("UPDATE user_plans SET plan='basic' WHERE userId='historical-orphan'").run(),
+      /hegeva-plan-auth-user-missing/
+    );
+    assert.equal(get(db, 'historical-orphan'), 'premium');
+  } finally { db.close(); }
+});
+
+test('a late webhook plan grant is rejected so the event ledger cannot be marked applied', () => {
+  const db = makeDb();
+  try {
+    db.exec("BEGIN");
+    assert.throws(() => {
+      db.exec("INSERT INTO stripe_webhook_events VALUES ('evt_late','gone-user','invoice.paid','ignored')");
+      addPlan(db, 'gone-user');
+      db.exec("UPDATE stripe_webhook_events SET outcome='applied' WHERE eventId='evt_late'");
+    }, /hegeva-plan-auth-user-missing/);
+    db.exec("ROLLBACK");
+    assert.equal(db.prepare("SELECT COUNT(*) AS c FROM stripe_webhook_events WHERE eventId='evt_late'").get().c, 0);
+    assert.equal(get(db, 'gone-user'), null);
+  } finally { db.close(); }
+});
+
+test('an ON CONFLICT plan upsert for a historical orphan fails closed', () => {
+  const db = new DatabaseSync(':memory:');
+  try {
+    db.exec(`CREATE TABLE "user" (id TEXT PRIMARY KEY);
+      CREATE TABLE user_plans (userId TEXT PRIMARY KEY, plan TEXT NOT NULL, createdAt TEXT, updatedAt TEXT);
+      INSERT INTO user_plans VALUES ('historical-orphan', 'premium', 'earlier', 'earlier');`);
+    db.exec(guardSql);
+    assert.throws(() => db.prepare(`
+      INSERT INTO user_plans(userId,plan,createdAt,updatedAt)
+      VALUES ('historical-orphan','basic','later','later')
+      ON CONFLICT(userId) DO UPDATE SET plan=excluded.plan,updatedAt=excluded.updatedAt
+    `).run(), /hegeva-plan-auth-user-missing/);
+    assert.equal(get(db, 'historical-orphan'), 'premium');
   } finally { db.close(); }
 });
 
