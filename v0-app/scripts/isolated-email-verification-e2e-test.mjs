@@ -84,7 +84,34 @@ try {
   const accepted = await auth.api.signInEmail({ body: { email, password: "Example-password-strong-123" }, headers: new Headers(), asResponse: true })
   assert.equal(accepted.status, 200, "verified account must sign in")
   assert.ok(accepted.headers.get("set-cookie"), "verified sign-in must issue a session cookie")
-  console.log("PASS: isolated signup, one mocked verification email, staging-only token, unverified sign-in denial, real token verification, verified sign-in")
+  // Isolated password recovery for the same verified QA identity.
+  const recovery = await auth.api.requestPasswordReset({
+    body: { email, redirectTo: "/reset-password" },
+    headers: new Headers(),
+    asResponse: true,
+  })
+  assert.equal(recovery.status, 200, "verified user must be able to request password recovery")
+  assert.equal(sent.length, 2, "recovery must generate exactly one additional mocked Resend message")
+  assert.deepEqual(sent[1].to, [email], "recovery must target the original account")
+  const resetMatch = sent[1].text.match(/https:\/\/[^\s]+\/reset-password\?[^\s]+/)
+  assert.ok(resetMatch, "reset message must contain first-party UI reset link")
+  const resetUrl = new URL(resetMatch[0])
+  assert.equal(resetUrl.origin, origin, "reset link must stay on staging first-party host")
+  assert.equal(resetUrl.pathname, "/reset-password")
+  const resetToken = resetUrl.searchParams.get("token")
+  assert.ok(resetToken, "reset link must include an opaque token")
+  const freshPassword = "New-isolated-password-456!"
+  const resetResult = await auth.api.resetPassword({
+    body: { token: resetToken, newPassword: freshPassword },
+    headers: new Headers(),
+    asResponse: true,
+  })
+  assert.equal(resetResult.status, 200, "password reset must accept the sent token")
+  const oldPassword = await auth.api.signInEmail({ body: { email, password: "Example-password-strong-123" }, headers: new Headers(), asResponse: true })
+  assert.notEqual(oldPassword.status, 200, "old password must be invalid after reset")
+  const newPassword = await auth.api.signInEmail({ body: { email, password: freshPassword }, headers: new Headers(), asResponse: true })
+  assert.equal(newPassword.status, 200, "new password must allow verified account login")
+  console.log("PASS: isolated signup, one mocked verification email, staging-only token, unverified sign-in denial, real token verification, verified sign-in, password recovery email, reset token, old-password rejection and new-password login")
 } finally {
   globalThis.fetch = originalFetch
   db.close()
