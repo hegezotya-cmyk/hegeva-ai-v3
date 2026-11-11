@@ -8,6 +8,7 @@ on:
       - v0-app/components/auth/auth-panel.tsx
       - v0-app/scripts/customer-referral-growth-loop-audit.mjs
       - v0-app/scripts/referral-attribution-client-contract-test.mjs
+      - v0-app/scripts/isolated-email-verification-e2e-test.mjs
       - src/auth.js
       - .github/workflows/staging-auth-and-referral-regression.yml
   push:
@@ -17,6 +18,7 @@ on:
       - v0-app/components/auth/auth-panel.tsx
       - v0-app/scripts/customer-referral-growth-loop-audit.mjs
       - v0-app/scripts/referral-attribution-client-contract-test.mjs
+      - v0-app/scripts/isolated-email-verification-e2e-test.mjs
       - .github/workflows/staging-auth-and-referral-regression.yml
 
 permissions:
@@ -43,6 +45,8 @@ jobs:
           npm --prefix v0-app ci
       - name: Mocked verification email and auth protection
         run: node v0-app/scripts/email-verification-audit.mjs
+      - name: Full Better Auth verification-to-login acceptance (isolated SQLite and mocked Resend)
+        run: node v0-app/scripts/isolated-email-verification-e2e-test.mjs
       - name: Referral attribution and analytics regression
         run: |
           node v0-app/scripts/customer-referral-growth-loop-audit.mjs
