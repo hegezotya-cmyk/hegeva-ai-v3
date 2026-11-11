@@ -1,0 +1,43 @@
+name: HEGEVA Staging Verification Resend One-Shot
+
+on:
+  push:
+    branches:
+      - test/staging-real-signup-once-20261111
+    paths:
+      - .github/workflows/staging-verification-resend-one-shot.yml
+
+permissions:
+  contents: read
+
+jobs:
+  staging-verification-resend-once:
+    if: github.ref_name == 'test/staging-real-signup-once-20261111'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Resend verification to existing staging-only QA user
+        env:
+          STAGING_TARGET: https://staging.hegevaai.co.uk
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict'
+          const origin = process.env.STAGING_TARGET
+          assert.equal(origin, 'https://staging.hegevaai.co.uk', 'fail closed against production')
+          const email = 'hegevaai85+hegeva-staging-42943782790@gmail.com'
+          const health = await fetch(origin + '/api/system/email-status', { method: 'GET', signal: AbortSignal.timeout(14000), redirect: 'manual' })
+          assert.equal(health.status, 200, 'staging email status endpoint')
+          const h = await health.json()
+          assert.equal(h?.passwordRecovery, true, 'fail closed if email is not ready')
+          const response = await fetch(origin + '/api/auth/send-verification-email', {
+            method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(20000),
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json', Origin: origin, Referer: origin + '/login' },
+            body: JSON.stringify({ email, callbackURL: '/email-verification?status=verified' })
+          })
+          console.log('Staging verification resend: HTTP ' + response.status + ' (no email or token logged)')
+          if (response.status !== 200) {
+            const payload = await response.json().catch(() => null)
+            if (typeof payload?.code === 'string' && /^[A-Z0-9_]{2,80}$/.test(payload.code)) console.error('Safe response code: ' + payload.code)
+            process.exitCode = 1
+          } else console.log('PASS: existing staging QA requested a new verification email')
+          NODE
