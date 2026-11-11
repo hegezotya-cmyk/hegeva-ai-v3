@@ -1,0 +1,57 @@
+name: HEGEVA Staging Real Signup One-Shot
+
+on:
+  push:
+    branches:
+      - test/staging-real-signup-once-20261111
+    paths:
+      - .github/workflows/staging-real-signup-one-shot.yml
+
+permissions:
+  contents: read
+
+jobs:
+  staging-signup-once:
+    if: github.ref_name == 'test/staging-real-signup-once-20261111'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Staging-only email delivery acceptance (one account, no secrets in logs)
+        env:
+          STAGING_TARGET: https://staging.hegevaai.co.uk
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict'
+          import { randomBytes } from 'node:crypto'
+          const target = process.env.STAGING_TARGET
+          const runId = process.env.GITHUB_RUN_ID
+          assert.equal(target, 'https://staging.hegevaai.co.uk')
+          assert.match(runId, /^[0-9]+$/)
+          const health = await fetch(target + '/api/system/email-status', { signal: AbortSignal.timeout(12000), redirect: 'manual' })
+          assert.equal(health.status, 200, 'staging email readiness endpoint must work')
+          const info = await health.json()
+          assert.equal(info?.passwordRecovery, true, 'BLOCKED: staging Resend readiness is false; no test signup attempted')
+          const guest = await fetch(target + '/api/workspace/customers', { signal: AbortSignal.timeout(12000), redirect: 'manual' })
+          assert.equal(guest.status, 401, 'BLOCKED: staging auth isolation unexpected; no test signup attempted')
+          // Unique Gmail plus-alias routes into the connected HEGEVA QA mailbox.
+          const email = `hegevaai85+hegeva-staging-${runId}@gmail.com`
+          const password = randomBytes(30).toString('base64url')
+          const response = await fetch(target + '/api/auth/sign-up/email', {
+            method: 'POST',
+            redirect: 'manual',
+            signal: AbortSignal.timeout(20000),
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json', Origin: target, Referer: target + '/login?mode=register' },
+            body: JSON.stringify({ name: 'HEGEVA Staging QA', email, password, callbackURL: '/email-verification?status=verified' })
+          })
+          // Never print the temporary password, response body, verification token or email address.
+          console.log(`One-shot staging sign-up HTTP ${response.status}; run=${runId}`)
+          if (response.status !== 200) {
+            const body = await response.json().catch(() => null)
+            if (typeof body?.code === 'string' && /^[A-Z0-9_]{2,80}$/.test(body.code)) console.error('Safe error code: ' + body.code)
+            process.exitCode = 1
+          } else {
+            const data = await response.json().catch(() => null)
+            assert.equal(data?.user?.emailVerified, false, 'new staging account must not be verified yet')
+            console.log('PASS: staging accepted an unverified account and attempted provider-backed verification delivery')
+          }
+          NODE
