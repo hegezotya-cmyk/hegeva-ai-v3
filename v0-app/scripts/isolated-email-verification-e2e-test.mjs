@@ -93,13 +93,24 @@ try {
   assert.equal(recovery.status, 200, "verified user must be able to request password recovery")
   assert.equal(sent.length, 2, "recovery must generate exactly one additional mocked Resend message")
   assert.deepEqual(sent[1].to, [email], "recovery must target the original account")
-  const resetMatch = sent[1].text.match(/https:\/\/[^\s]+\/reset-password\?[^\s]+/)
-  assert.ok(resetMatch, "reset message must contain first-party UI reset link")
-  const resetUrl = new URL(resetMatch[0])
-  assert.equal(resetUrl.origin, origin, "reset link must stay on staging first-party host")
-  assert.equal(resetUrl.pathname, "/reset-password")
+  // Better Auth may email an intermediate endpoint that redirects to the UI.
+  // Execute that real in-memory route, rather than assuming a direct UI URL.
+  const resetMatch = sent[1].text.match(/https:\/\/[^\s]+/)
+  assert.ok(resetMatch, "reset message must contain a first-party HTTPS URL")
+  const resetEntryUrl = new URL(resetMatch[0])
+  assert.equal(resetEntryUrl.origin, origin, "password reset must not link to production")
+  let resetUrl = resetEntryUrl
+  if (resetEntryUrl.pathname !== "/reset-password") {
+    const intermediate = await auth.handler(new Request(resetEntryUrl, { method: "GET", redirect: "manual" }))
+    assert.ok([302, 303, 307, 308].includes(intermediate.status), `intermediate reset URL must redirect, got HTTP ${intermediate.status}`)
+    const location = intermediate.headers.get("location")
+    assert.ok(location, "intermediate reset route must return a location")
+    resetUrl = new URL(location, origin)
+  }
+  assert.equal(resetUrl.origin, origin, "reset callback must stay on staging")
+  assert.equal(resetUrl.pathname, "/reset-password", "reset must resolve to the UI token form")
   const resetToken = resetUrl.searchParams.get("token")
-  assert.ok(resetToken, "reset link must include an opaque token")
+  assert.ok(resetToken, "reset UI link must include an opaque token")
   const freshPassword = "New-isolated-password-456!"
   const resetResult = await auth.api.resetPassword({
     body: { token: resetToken, newPassword: freshPassword },
