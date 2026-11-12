@@ -702,7 +702,7 @@ async function handleStripeWebhook(request, env, ctx) {
         db: env.DB,
         event,
         paymentMode,
-        publicAppUrl: String(env.PUBLIC_APP_URL || "").replace(/\\/$/, ""),
+        publicAppUrl: String(env.PUBLIC_APP_URL || ""),
       });
       if (disposition.handled) {
         return Response.json({
