@@ -1,0 +1,30 @@
+name: Stripe deleted-user transaction model (offline)
+
+on:
+  pull_request:
+    paths:
+      - "scripts/stripe-deleted-user-transaction-model-test.mjs"
+      - "scripts/staging-orphan-plan-guards-test.mjs"
+      - "docs/release/2026-11-11-staging-orphan-plan-guards.sql"
+      - "src/stripe-entitlement-reconciliation-policy.js"
+      - ".github/workflows/stripe-deleted-user-transaction-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-model:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check model syntax
+        run: |
+          node --check scripts/stripe-deleted-user-transaction-model-test.mjs
+          node --check scripts/staging-orphan-plan-guards-test.mjs
+      - name: Test deleted-user webhook model and orphan-guard proposal (no credentials or deploy)
+        run: |
+          node --disable-warning=ExperimentalWarning --test scripts/stripe-deleted-user-transaction-model-test.mjs scripts/staging-orphan-plan-guards-test.mjs
