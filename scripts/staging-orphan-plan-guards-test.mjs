@@ -62,6 +62,7 @@ test('existing orphan rows are deliberately not deleted by proposed guards', () 
   try {
     db.exec(`CREATE TABLE "user" (id TEXT PRIMARY KEY);
       CREATE TABLE user_plans (userId TEXT PRIMARY KEY, plan TEXT NOT NULL, createdAt TEXT, updatedAt TEXT);
+      CREATE TABLE stripe_customers (userId TEXT PRIMARY KEY, stripeCustomerId TEXT NOT NULL);
       INSERT INTO user_plans VALUES ('historical-orphan', 'premium', 'now', 'now');`);
     db.exec(guardSql);
     assert.equal(get(db, 'historical-orphan'), 'premium');
@@ -94,6 +95,7 @@ test('an ON CONFLICT plan upsert for a historical orphan fails closed', () => {
   try {
     db.exec(`CREATE TABLE "user" (id TEXT PRIMARY KEY);
       CREATE TABLE user_plans (userId TEXT PRIMARY KEY, plan TEXT NOT NULL, createdAt TEXT, updatedAt TEXT);
+      CREATE TABLE stripe_customers (userId TEXT PRIMARY KEY, stripeCustomerId TEXT NOT NULL);
       INSERT INTO user_plans VALUES ('historical-orphan', 'premium', 'earlier', 'earlier');`);
     db.exec(guardSql);
     assert.throws(() => db.prepare(`
