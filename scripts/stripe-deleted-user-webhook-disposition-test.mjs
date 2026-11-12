@@ -108,7 +108,7 @@ test("missing tombstone table while opted in does not silently bypass",async t=>
 test("unknown user metadata is not mistaken for a verified deletion",async t=>{
   const db=makeDb(t);remove(db);
   assert.deepEqual(await run(db,event("evt_unknown","someone-else")),{handled:false});
-  assert.deepEqual(await run(db,event("evt_noid",undefined)),{handled:false});
+  assert.deepEqual(await run(db,event("evt_noid","")),{handled:false});
 });
 test("late customer identity INSERT and UPDATE are rejected after auth deletion",t=>{
   const db=makeDb(t);
