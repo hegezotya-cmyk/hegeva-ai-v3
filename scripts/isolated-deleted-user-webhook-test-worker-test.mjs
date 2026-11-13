@@ -98,6 +98,41 @@ test("scoped config has no route/cron, production D1 or automatic public URL", (
   assert.equal(cfg.triggers, undefined);
   assert.equal(cfg.services, undefined);
 });
+test("isolated Worker account and D1 cannot target any existing HEGEVA database", () => {
+  const cfg = JSON.parse(readFileSync(
+    new URL("../wrangler.isolated-deleted-user-webhook-test.jsonc", import.meta.url), "utf8"));
+  const configs = [
+    "../wrangler.jsonc",
+    "../wrangler.staging.jsonc",
+    "../wrangler.staging-scheduled-test.jsonc",
+  ].map(file => JSON.parse(readFileSync(new URL(file, import.meta.url), "utf8")));
+  const prohibitedD1 = configs.flatMap(c => c.d1_databases || []).map(d => d.database_id);
+  prohibitedD1.push("f7a4ea56-fdad-423b-91a1-690ea2aa3423");
+  assert.ok(!prohibitedD1.includes(cfg.d1_databases[0].database_id));
+  assert.notEqual(cfg.account_id, "11475a766aa7648d8542e0fc1aea571f");
+  assert.equal(cfg.d1_databases.length, 1);
+  assert.equal(cfg.d1_databases[0].binding, "DB");
+  for (const prohibited of [
+    "routes", "route", "triggers", "services", "assets", "durable_objects",
+    "ai", "kv_namespaces", "r2_buckets", "queues", "send_email",
+  ]) {
+    assert.equal(cfg[prohibited], undefined, "unexpected isolated Worker binding: " + prohibited);
+  }
+  assert.equal(cfg.observability?.enabled, false);
+  assert.equal(cfg.vars.HEGEVA_ISOLATED_STRIPE_TEST_ENABLED, "false");
+  assert.equal(cfg.vars.STRIPE_TEST_WEBHOOK_SIGNING_SECRET, undefined);
+});
+test("Stripe TEST event.account may be absent, but the pinned sandbox env must still match", async t => {
+  const { sqlite, env } = fixture(t);
+  const withoutAccount = syntheticEvent();
+  delete withoutAccount.account;
+  assert.equal((await send({ ...env, STRIPE_TEST_ACCOUNT_ID: "acct_wrong" }, withoutAccount)).status, 503);
+  assert.equal(count(sqlite, "stripe_webhook_events"), 0);
+  const actual = await send(env, withoutAccount);
+  assert.equal(actual.status, 200);
+  assert.equal((await actual.json()).entitlementChanged, false);
+  assert.equal(count(sqlite, "stripe_webhook_events"), 1);
+});
 test("schema identity is unique and delete trigger removes deleted user's plan", t => {
   const { sqlite } = fixture(t);
   assert.equal(count(sqlite, "hegeva_isolated_webhook_test_identity"), 1);
