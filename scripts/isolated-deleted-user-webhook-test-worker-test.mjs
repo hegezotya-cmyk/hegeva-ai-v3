@@ -167,6 +167,8 @@ test("disabled or mis-scoped test flag is fail closed", async t => {
     { PAYMENT_MODE: "live" },
     { ISOLATED_TEST_D1_ID: "a-different-database" },
     { ISOLATED_TEST_ACCOUNT_ID: "a-different-account" },
+    { STRIPE_TEST_ACCOUNT_ID: "acct_unrelated" },
+    { STRIPE_TEST_ACCOUNT_ID: "" },
   ]) {
     assert.equal((await send({ ...env, ...patch })).status, 503);
   }
