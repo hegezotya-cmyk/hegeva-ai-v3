@@ -11,8 +11,13 @@ const TRACKED_TYPES = new Set([
 ]);
 
 export function deletedUserWebhookGuardEnabled(env) {
+  // This optional feature must NEVER intercept live/production webhooks.
+  // Even a mistaken production flag cannot put the live webhook route into
+  // the staging-only handler, where the internal context check would 503.
   return String(env?.HEGEVA_DELETED_USER_WEBHOOK_GUARD_ENABLED || "")
-    .trim().toLowerCase() === "true";
+      .trim().toLowerCase() === "true" &&
+    String(env?.PAYMENT_MODE || "").trim().toLowerCase() === "test" &&
+    env?.PUBLIC_APP_URL === STAGING_ORIGIN;
 }
 
 function userMetadata(event) {
