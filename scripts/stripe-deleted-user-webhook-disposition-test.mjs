@@ -46,10 +46,28 @@ const run = (db,input=event(),opts={}) => dispositionForDeletedTestUser({
 });
 const remove = db=>db.raw.prepare('DELETE FROM "user" WHERE id=?').run("qa-user");
 
-test("guard is default-OFF and only explicitly true opts in",()=>{
+test("guard is OFF by default and requires explicit staging TEST scope",()=>{
   assert.equal(deletedUserWebhookGuardEnabled({}),false);
   assert.equal(deletedUserWebhookGuardEnabled({HEGEVA_DELETED_USER_WEBHOOK_GUARD_ENABLED:"enabled"}),false);
-  assert.equal(deletedUserWebhookGuardEnabled({HEGEVA_DELETED_USER_WEBHOOK_GUARD_ENABLED:"TRUE"}),true);
+  const staging = {
+    HEGEVA_DELETED_USER_WEBHOOK_GUARD_ENABLED:"TRUE",
+    PAYMENT_MODE:"test",
+    PUBLIC_APP_URL:STAGING,
+  };
+  assert.equal(deletedUserWebhookGuardEnabled(staging),true);
+  assert.equal(deletedUserWebhookGuardEnabled({...staging,HEGEVA_DELETED_USER_WEBHOOK_GUARD_ENABLED:"false"}),false);
+  assert.equal(deletedUserWebhookGuardEnabled({...staging,PUBLIC_APP_URL:"https://hegevaai.co.uk"}),false);
+  assert.equal(deletedUserWebhookGuardEnabled({...staging,PAYMENT_MODE:"live"}),false);
+  assert.equal(deletedUserWebhookGuardEnabled({...staging,PAYMENT_MODE:""}),false);
+  assert.equal(deletedUserWebhookGuardEnabled({...staging,PUBLIC_APP_URL:""}),false);
+});
+test("accidentally enabling the guard in LIVE never intercepts billing webhooks",()=>{
+  const enabled = deletedUserWebhookGuardEnabled({
+    HEGEVA_DELETED_USER_WEBHOOK_GUARD_ENABLED:"true",
+    PAYMENT_MODE:"live",
+    PUBLIC_APP_URL:"https://hegevaai.co.uk",
+  });
+  assert.equal(enabled,false);
 });
 test("live mode or production origin fails closed",async t=>{
   const db=makeDb(t);remove(db);
