@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "hegeva-isolated-deleted-user-webhook-test",
+  "account_id": "ab362645fc03b7e63a26fd8e46e631b6",
+  "main": "src/isolated-deleted-user-webhook-test-worker.js",
+  "compatibility_date": "2026-09-02",
+  "workers_dev": false,
+  "vars": {
+    "PAYMENT_MODE": "test",
+    "HEGEVA_ISOLATED_STRIPE_TEST_ENABLED": "false",
+    "ISOLATED_TEST_ACCOUNT_ID": "ab362645fc03b7e63a26fd8e46e631b6",
+    "ISOLATED_TEST_D1_ID": "84f4c3b0-c175-4458-bad1-e3f826d6ea96",
+    "STRIPE_TEST_ACCOUNT_ID": "acct_1U4YkdHH1vUED8ZN"
+  },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "hegeva-deleted-user-webhook-test-db",
+    "database_id": "84f4c3b0-c175-4458-bad1-e3f826d6ea96"
+  }],
+  "observability": { "enabled": false }
+}
