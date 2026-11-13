@@ -1,0 +1,39 @@
+name: Isolated Stripe TEST webhook harness (offline only)
+
+on:
+  pull_request:
+    paths:
+      - "src/isolated-deleted-user-webhook-test-worker.js"
+      - "src/stripe-deleted-user-webhook-disposition.js"
+      - "scripts/isolated-deleted-user-webhook-test-schema.sql"
+      - "scripts/isolated-deleted-user-webhook-test-worker-test.mjs"
+      - "wrangler.isolated-deleted-user-webhook-test.jsonc"
+      - ".github/workflows/isolated-stripe-webhook-test-harness-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax + sandbox-scoped signed webhook regressions
+        run: |
+          node --check src/isolated-deleted-user-webhook-test-worker.js
+          node --check src/stripe-deleted-user-webhook-disposition.js
+          node --check scripts/isolated-deleted-user-webhook-test-worker-test.mjs
+          node --disable-warning=ExperimentalWarning --test scripts/isolated-deleted-user-webhook-test-worker-test.mjs
+      - name: Verify Wrangler compiles only the disabled synthetic test Worker (no deployment)
+        run: |
+          npm ci --ignore-scripts
+          npx wrangler deploy --dry-run --config wrangler.isolated-deleted-user-webhook-test.jsonc
+      - name: Parent staging deleted-user guard regressions (offline)
+        run: |
+          node --disable-warning=ExperimentalWarning --test scripts/staging-orphan-plan-guards-test.mjs scripts/stripe-deleted-user-transaction-model-test.mjs scripts/stripe-deleted-user-webhook-disposition-test.mjs
+
+# No credentials, secrets, remote API, migrations, restores or deployment.
