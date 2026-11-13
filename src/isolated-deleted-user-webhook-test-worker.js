@@ -6,6 +6,7 @@ import { dispositionForDeletedTestUser } from "./stripe-deleted-user-webhook-dis
 
 const ACCOUNT = "ab362645fc03b7e63a26fd8e46e631b6";
 const DATABASE = "84f4c3b0-c175-4458-bad1-e3f826d6ea96";
+const STRIPE_SANDBOX_ACCOUNT = "acct_1U4YkdHH1vUED8ZN";
 const TEST_ORIGIN = "https://staging.hegevaai.co.uk";
 const PATH = "/__hegeva/isolated/stripe-test-webhook";
 const LIMIT = 65536;
@@ -24,6 +25,9 @@ function scopedToDisposableDatabase(env) {
     env?.PAYMENT_MODE === "test" &&
     env?.ISOLATED_TEST_ACCOUNT_ID === ACCOUNT &&
     env?.ISOLATED_TEST_D1_ID === DATABASE &&
+    // An incorrect or absent Stripe account variable cannot silently widen
+    // the accepted signed event scope (top-level event.account is optional).
+    env?.STRIPE_TEST_ACCOUNT_ID === STRIPE_SANDBOX_ACCOUNT &&
     env?.DB && typeof env.DB.prepare === "function";
 }
 
