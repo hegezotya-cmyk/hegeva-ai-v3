@@ -36,6 +36,9 @@ const TOMBSTONE = `
   LEFT JOIN "user" u ON u.id = t.userId
   WHERE t.userId = ?1 LIMIT 1
 `;
+const LIVE_AUTH_USER = `
+  SELECT id FROM "user" WHERE id = ?1 LIMIT 1
+`;
 const RECORD = `
   INSERT INTO stripe_webhook_events
     (eventId,eventType,userId,plan,eventCreatedAt,processedAt,outcome)
@@ -73,7 +76,15 @@ export async function dispositionForDeletedTestUser({
     throw new Error("deleted-user-guard-event-invalid");
   }
   const tombstone = await db.prepare(TOMBSTONE).bind(userId).first();
-  if (!tombstone) return { handled: false };
+  if (!tombstone) {
+    // Unknown Stripe metadata must not authorize a Premium grant. With the
+    // opt-in guard enabled, a verified live auth user may use the ordinary
+    // webhook path; a missing user without a deletion tombstone needs manual
+    // historical identity reconciliation and must fail closed.
+    const existing = await db.prepare(LIVE_AUTH_USER).bind(userId).first();
+    if (existing) return { handled: false };
+    throw new Error("deleted-user-guard-unresolved-identity");
+  }
   if (tombstone.liveUserId) {
     // A recreated identity with an old tombstone requires manual review.
     throw new Error("deleted-user-guard-identity-conflict");
