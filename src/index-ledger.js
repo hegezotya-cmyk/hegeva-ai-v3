@@ -6,6 +6,7 @@ import { reconcileReferralRewardForUser, reverseApprovedReferralRewards } from "
 import { processNextTerminalEffect } from "./stripe-terminal-effects-processor.js";
 import { createStripeTerminalStateChecker } from "./stripe-terminal-effects-state-checker.js";
 import { prepareTerminalBillingIdentityStatus } from "./stripe-terminal-billing-identity.js";
+import { deletedUserWebhookGuardEnabled, dispositionForDeletedTestUser } from "./stripe-deleted-user-webhook-disposition.js";
 export { UserRateLimiter } from "./user-rate-limiter-do.js";
 
 const STRIPE_WEBHOOK_BODY_LIMIT = 512 * 1024;
@@ -689,6 +690,41 @@ async function handleStripeWebhook(request, env, ctx) {
       { error: "Stripe event mode does not match the active payment mode." },
       { status: 400 },
     );
+  }
+
+  // Opt-in staging TEST guard. The signed Stripe payload and livemode were
+  // checked above. A deleted auth user must not reach the billing identity
+  // sync or legacy entitlement writer. This stays OFF until separate staging
+  // migration, rollback and remote acceptance authorization.
+  if (deletedUserWebhookGuardEnabled(env)) {
+    try {
+      const disposition = await dispositionForDeletedTestUser({
+        db: env.DB,
+        event,
+        paymentMode,
+        publicAppUrl: String(env.PUBLIC_APP_URL || ""),
+      });
+      if (disposition.handled) {
+        return Response.json({
+          received: true,
+          verified: true,
+          ignored: disposition.ignored,
+          duplicate: disposition.duplicate,
+          entitlementChanged: false,
+          deletedAccount: true,
+        }, { headers: { "Cache-Control": "no-store" } });
+      }
+    } catch (error) {
+      // No PII, Stripe IDs, webhook payload or secret may enter logs here.
+      console.warn("HEGEVA_REQUEST_FAILURE", {
+        reason: "deleted_user_webhook_guard_blocked",
+        errorName: error instanceof Error ? error.name : "UnknownError",
+      });
+      return Response.json(
+        { error: "Deleted account webhook reconciliation unavailable." },
+        { status: 503, headers: { "Retry-After": "300" } },
+      );
+    }
   }
 
   let claim;

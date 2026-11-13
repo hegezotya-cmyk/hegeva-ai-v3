@@ -1,0 +1,34 @@
+name: Staging deleted-user webhook guard (offline only)
+
+on:
+  pull_request:
+    paths:
+      - "src/index-ledger.js"
+      - "src/stripe-deleted-user-webhook-disposition.js"
+      - "src/stripe-entitlement-reconciliation-policy.js"
+      - "scripts/stripe-deleted-user-webhook-disposition-test.mjs"
+      - "scripts/stripe-deleted-user-transaction-model-test.mjs"
+      - "scripts/staging-orphan-plan-guards-test.mjs"
+      - "docs/release/2026-11-11-staging-orphan-plan-guards.sql"
+      - ".github/workflows/staging-deleted-user-webhook-guard-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify Worker and guard syntax
+        run: |
+          node --check src/index-ledger.js
+          node --check src/stripe-deleted-user-webhook-disposition.js
+          node --check scripts/stripe-deleted-user-webhook-disposition-test.mjs
+      - name: Run all three isolated regression suites - no secrets or deploy
+        run: |
+          node --disable-warning=ExperimentalWarning --test scripts/staging-orphan-plan-guards-test.mjs scripts/stripe-deleted-user-transaction-model-test.mjs scripts/stripe-deleted-user-webhook-disposition-test.mjs
