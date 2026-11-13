@@ -92,6 +92,7 @@ test("scoped config has no route/cron, production D1 or automatic public URL", (
   assert.equal(cfg.d1_databases[0].database_id, DB_ID);
   assert.equal(cfg.vars.HEGEVA_ISOLATED_STRIPE_TEST_ENABLED, "false");
   assert.equal(cfg.workers_dev, false);
+  assert.equal(cfg.preview_urls, false, "preview URLs must not become public after Wrangler deploy");
   assert.equal(cfg.vars.PAYMENT_MODE, "test");
   assert.equal(cfg.vars.STRIPE_TEST_ACCOUNT_ID, SANDBOX);
   assert.equal(cfg.routes, undefined);
