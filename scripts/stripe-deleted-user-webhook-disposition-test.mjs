@@ -123,10 +123,15 @@ test("missing tombstone table while opted in does not silently bypass",async t=>
   await assert.rejects(run(db),/no such table/);
   assert.equal(count(db,"stripe_webhook_events"),0);
 });
-test("unknown user metadata is not mistaken for a verified deletion",async t=>{
+test("absent signed metadata user without a tombstone fails closed",async t=>{
   const db=makeDb(t);remove(db);
-  assert.deepEqual(await run(db,event("evt_unknown","someone-else")),{handled:false});
+  await assert.rejects(run(db,event("evt_unknown","someone-else")),/unresolved-identity/);
+  assert.equal(count(db,"stripe_webhook_events"),0);
+});
+test("missing userId metadata is not considered deletion proof",async t=>{
+  const db=makeDb(t);remove(db);
   assert.deepEqual(await run(db,event("evt_noid","")),{handled:false});
+  assert.equal(count(db,"stripe_webhook_events"),0);
 });
 test("late customer identity INSERT and UPDATE are rejected after auth deletion",t=>{
   const db=makeDb(t);
