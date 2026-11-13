@@ -56,3 +56,15 @@ A recorded bookmark is rollback evidence, **not proof** that the rollback has be
 ## D. Current blocker (2026-11-13)
 
 Browser Cloudflare tab resolves to **Cloudflare sign-in**, not an authenticated D1 console; no direct Cloudflare mutation connector is available here. The owner must reauthenticate to verify the selected TEST account and provide test-only authorized access through the appropriate runtime. **No remote migration/rollback or signed webhook test has occurred.**
+
+
+## E. Verified 2026-11-13 isolated D1 recovery evidence (remote)
+
+- **Cloudflare account verified:** `HEGEVA Synthetic Tests`, account `ab362645fc03b7e63a26fd8e46e631b6`. This is separate from HEGEVA main account `11475a766aa7648d8542e0fc1aea571f`.
+- **New disposable D1 created:** `hegeva-deleted-user-webhook-test-db`, UUID `84f4c3b0-c175-4458-bad1-e3f826d6ea96`. Different from prod D1, shared staging D1, and the preexisting synthetic Cron D1.
+- Verified fresh D1 initially showed **0 tables and 0 queries**. Time Travel available with **7-day restore window**, and a pre-change bookmark ID was obtained. **Do not commit private bookmark values**.
+- Owner ran a single disposable DDL in this exact D1 Console: `CREATE TABLE hegeva_restore_probe_20261113 (id INTEGER PRIMARY KEY, note TEXT);`. Cloudflare responded `This query successfully executed.`
+- Owner initiated Time Travel restore using the **pre-change** bookmark **only on this disposable D1**. Cloudflare showed `Your database has successfully been restored.`
+- **Post-restore schema proof:** `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'hegeva_restore_probe_20261113';` returned `This query returned no data.`. This confirms the prior schema change was removed.
+- **Result: remote isolated D1 Time Travel restore E2E — PASS** for rollback of a disposable DDL. **NOT** proof of successful rollback for full billing migrations. No live/shared-staging D1 or Stripe changes and no code deployment.
+- **Next blocker:** construct a separate disposable schema and isolated signed-TEST webhook Worker harness; review Stripe account, Customer, Subscription, metadata, and real Better Auth lifecycle integration before remote event acceptance. The existing Draft SQL proposal cannot run on a zero-table D1 unchanged because it references `"user"`, `user_plans`, and `stripe_customers`. Keep `releaseSafe=false`.
