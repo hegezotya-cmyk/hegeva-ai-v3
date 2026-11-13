@@ -28,6 +28,10 @@ jobs:
           node --check src/stripe-deleted-user-webhook-disposition.js
           node --check scripts/isolated-deleted-user-webhook-test-worker-test.mjs
           node --disable-warning=ExperimentalWarning --test scripts/isolated-deleted-user-webhook-test-worker-test.mjs
+      - name: Verify Wrangler compiles only the disabled synthetic test Worker (no deployment)
+        run: |
+          npm ci --ignore-scripts
+          npx wrangler deploy --dry-run --config wrangler.isolated-deleted-user-webhook-test.jsonc
       - name: Parent staging deleted-user guard regressions (offline)
         run: |
           node --disable-warning=ExperimentalWarning --test scripts/staging-orphan-plan-guards-test.mjs scripts/stripe-deleted-user-transaction-model-test.mjs scripts/stripe-deleted-user-webhook-disposition-test.mjs
