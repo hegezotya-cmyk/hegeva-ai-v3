@@ -8,7 +8,7 @@ const ACCOUNT = "ab362645fc03b7e63a26fd8e46e631b6";
 const DB_ID = "84f4c3b0-c175-4458-bad1-e3f826d6ea96";
 const SANDBOX = "acct_1U4YkdHH1vUED8ZN";
 const SECRET = "whsec_only_offline_synthetic_secret_never_real";
-const URL = "https://isolated.example/__hegeva/isolated/stripe-test-webhook";
+const WEBHOOK_URL = "https://isolated.example/__hegeva/isolated/stripe-test-webhook";
 const TEST_SCHEMA = readFileSync(new URL("./isolated-deleted-user-webhook-test-schema.sql", import.meta.url), "utf8");
 
 function fixture(t) {
@@ -75,7 +75,7 @@ async function sign(body, secret = SECRET, stamp = Math.floor(Date.now() / 1000)
   return "t=" + stamp + ",v1=" + [...new Uint8Array(bytes)].map(
     byte => byte.toString(16).padStart(2, "0")).join("");
 }
-async function request(body, { secret = SECRET, stamp, signature, url = URL, method = "POST" } = {}) {
+async function request(body, { secret = SECRET, stamp, signature, url = WEBHOOK_URL, method = "POST" } = {}) {
   const raw = typeof body === "string" ? body : JSON.stringify(body);
   const headers = { "Content-Type": "application/json" };
   headers["Stripe-Signature"] = signature ??
