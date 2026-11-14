@@ -41,7 +41,7 @@ for marker in (
 ):
     assert marker in gating, f"Missing manual-dispatch gate {marker}"
 
-assert raw.count("CLOUDFLARE_ISOLATED_WORKER_API_TOKEN") == 2
+assert raw.count("CLOUDFLARE_ISOLATED_WORKER_API_TOKEN") == 3, "Secret should appear only in protected deploy job: precheck, deploy, postcheck"
 assert raw.count("wrangler deploy --config wrangler.isolated-deleted-user-webhook-test.jsonc") == 1
 assert "wrangler deploy --dry-run --config wrangler.isolated-deleted-user-webhook-test.jsonc" in raw
 assert "version_id" in raw and "/deployments" in raw
