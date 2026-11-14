@@ -4051,14 +4051,24 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           }
         }
 
-        // Load goals if available
-        try {
-          const goalRow = await env.DB.prepare(`
-            SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = 'goals' LIMIT 1
-          `).bind(userId).first();
-          workspaceData.goals = goalRow?.data ? JSON.parse(goalRow.data) : [];
-        } catch {
-          workspaceData.goals = [];
+        // Goal Mode persists to 'goal_mode' via useWorkspaceData. Use the
+        // legacy 'goals' collection only when no canonical row exists.
+        // An intentionally empty canonical collection must not resurrect an
+        // older goal. Reads stay strictly scoped to the authenticated user.
+        workspaceData.goals = [];
+        for (const goalDataType of ["goal_mode", "goals"]) {
+          try {
+            const goalRow = await env.DB.prepare(`
+              SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1
+            `).bind(userId, goalDataType).first();
+            if (!goalRow) continue;
+            const parsedGoals = goalRow.data ? JSON.parse(goalRow.data) : [];
+            workspaceData.goals = Array.isArray(parsedGoals) ? parsedGoals : [];
+            break;
+          } catch {
+            // Goal data must not block Core decisions.
+            workspaceData.goals = [];
+          }
         }
 
         // Read workspace-scoped Business Knowledge as context only.
