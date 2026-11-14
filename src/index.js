@@ -4057,18 +4057,25 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         // older goal. Reads stay strictly scoped to the authenticated user.
         workspaceData.goals = [];
         for (const goalDataType of ["goal_mode", "goals"]) {
+          let goalRow;
           try {
-            const goalRow = await env.DB.prepare(`
+            goalRow = await env.DB.prepare(`
               SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1
             `).bind(userId, goalDataType).first();
-            if (!goalRow) continue;
+          } catch {
+            // Fail closed: a read failure does not prove the canonical row
+            // absent. Never resurrect a potentially superseded legacy goal.
+            break;
+          }
+          if (!goalRow) continue;
+          try {
             const parsedGoals = goalRow.data ? JSON.parse(goalRow.data) : [];
             workspaceData.goals = Array.isArray(parsedGoals) ? parsedGoals : [];
-            break;
           } catch {
-            // Goal data must not block Core decisions.
+            // Invalid canonical JSON must not make the legacy row authoritative.
             workspaceData.goals = [];
           }
+          break;
         }
 
         // Read workspace-scoped Business Knowledge as context only.
