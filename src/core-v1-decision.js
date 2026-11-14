@@ -1003,6 +1003,8 @@ function normalizeCoreWorkspaceData(value) {
     messages: normalizeCoreRecords(source.messages),
     documents: normalizeCoreRecords(source.documents),
     expenses: normalizeCoreRecords(source.expenses),
+    // Preserve active business goals for Goal Mode and opportunity analysis.
+    goals: normalizeCoreRecords(source.goals),
   };
 
   const knowledge = isCoreRecord(source.businessKnowledge) ? source.businessKnowledge : null;
