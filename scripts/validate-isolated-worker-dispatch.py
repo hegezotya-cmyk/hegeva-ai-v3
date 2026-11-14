@@ -90,6 +90,29 @@ ix_check = deploysteps.index(pr_checker_steps[0])
 assert deploysteps[ix_check + 1]["name"].startswith("Deploy EXACTLY"), (
     "PR lifecycle recheck must be immediately before deploy"
 )
+guard_steps = [
+    step for step in deploysteps
+    if step.get("name", "").startswith("Read-only Cloudflare guard")
+]
+assert len(guard_steps) == 1
+ix_guard = deploysteps.index(guard_steps[0])
+assert ix_guard + 1 == ix_check, (
+    "Worker URL/Cron/version preflight must immediately precede PR lifecycle recheck"
+)
+before = guard_steps[0]["run"]
+for required in (
+    "/subdomain", "/schedules", "/deployments",
+    "enabled", "previews_enabled",
+    "HEGEVA_PREVIOUS_WORKER_VERSION_ID", "GITHUB_ENV",
+):
+    assert required in before, f"Missing Cloudflare preflight: {required}"
+assert "CLOUDFLARE_ISOLATED_WORKER_API_TOKEN" in str(guard_steps[0]["env"])
+post = [step for step in deploysteps
+        if step.get("name", "").startswith("Read-only post-deploy check")]
+assert len(post)==1
+assert "active_version!=previous" in post[0]["run"], (
+    "post-deploy must prove active version changed"
+)
 assert "secrets." not in pre["if"]
 assert all("CLOUDFLARE_ISOLATED_WORKER_API_TOKEN" not in
            str(step) for step in pre["steps"])
