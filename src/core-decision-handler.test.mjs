@@ -8,6 +8,7 @@ test("Core API normalizes malformed per-user D1 JSON without cross-user reads", 
   const db = {
     prepare(sql) {
       return {
+        async run() { return { success: true, meta: { changes: 0 } }; },
         bind(...params) {
           if (sql.includes("FROM workspace_data")) {
             bindingsSeen.push(params[0]);
