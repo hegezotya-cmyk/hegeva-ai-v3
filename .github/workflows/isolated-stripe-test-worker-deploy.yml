@@ -9,6 +9,10 @@ on:
         description: "Type DEPLOY-PR106-ISOLATED-ONLY to request a reviewed, isolated deployment"
         required: true
         type: string
+      route_domain_preflight:
+        description: "Only after read-only Cloudflare UI shows ZERO routes/domains, type ZERO-ROUTES-DOMAINS-VERIFIED"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -26,7 +30,8 @@ jobs:
       ${{ github.event_name == 'workflow_dispatch' &&
          github.repository == 'hegezotya-cmyk/hegeva-ai-v3' &&
          github.ref == 'refs/heads/v0-rebuild' &&
-         inputs.confirmation == 'DEPLOY-PR106-ISOLATED-ONLY' }}
+         inputs.confirmation == 'DEPLOY-PR106-ISOLATED-ONLY' &&
+         inputs.route_domain_preflight == 'ZERO-ROUTES-DOMAINS-VERIFIED' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -38,8 +43,11 @@ jobs:
           pr="repos/$GITHUB_REPOSITORY/pulls/106"
           test "$(gh api "$pr" --jq '.head.sha')" = 'd2c8fc2366767c54f27e271e84873d22b9edc4a4'
           test "$(gh api "$pr" --jq '.head.ref')" = 'codex/isolated-stripe-test-webhook-harness-20261113'
+          test "$(gh api "$pr" --jq '.head.repo.full_name')" = 'hegezotya-cmyk/hegeva-ai-v3'
+          test "$(gh api "$pr" --jq '.base.ref')" = 'codex/staging-deleted-user-webhook-guard-20261112'
           test "$(gh api "$pr" --jq '.state')" = 'open'
           test "$(gh api "$pr" --jq '.draft')" = 'true'
+          test "$(gh api "$pr" --jq '.merged')" = 'false'
 
       - uses: actions/checkout@v4
         with:
@@ -96,12 +104,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Recheck immutable PR head AFTER owner environment approval
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          test "$(gh api "repos/$GITHUB_REPOSITORY/pulls/106" --jq '.head.sha')" = 'd2c8fc2366767c54f27e271e84873d22b9edc4a4'
 
       - uses: actions/checkout@v4
         with:
@@ -114,6 +116,21 @@ jobs:
       - name: Install pinned dependencies without scripts (NO Cloudflare token)
         run: npm ci --ignore-scripts
 
+      - name: RECHECK full PR 106 release state IMMEDIATELY before deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          pr="repos/$GITHUB_REPOSITORY/pulls/106"
+          test "$(gh api "$pr" --jq '.head.sha')" = 'd2c8fc2366767c54f27e271e84873d22b9edc4a4'
+          test "$(gh api "$pr" --jq '.head.ref')" = 'codex/isolated-stripe-test-webhook-harness-20261113'
+          test "$(gh api "$pr" --jq '.head.repo.full_name')" = 'hegezotya-cmyk/hegeva-ai-v3'
+          test "$(gh api "$pr" --jq '.base.ref')" = 'codex/staging-deleted-user-webhook-guard-20261112'
+          test "$(gh api "$pr" --jq '.state')" = 'open'
+          test "$(gh api "$pr" --jq '.draft')" = 'true'
+          test "$(gh api "$pr" --jq '.merged')" = 'false'
+          echo "PASS: PR #106 unchanged, Draft/open/unmerged, correct head and base"
+      
       - name: Deploy EXACTLY the disabled isolated Worker - no SQL, no Stripe
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_ISOLATED_WORKER_API_TOKEN }}
@@ -132,6 +149,7 @@ jobs:
           curl --fail --silent --show-error -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/settings" -o /tmp/hegeva-worker-settings.json
           curl --fail --silent --show-error -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/subdomain" -o /tmp/hegeva-worker-subdomain.json
           curl --fail --silent --show-error -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/schedules" -o /tmp/hegeva-worker-schedules.json
+          curl --fail --silent --show-error -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/deployments" -o /tmp/hegeva-worker-deployments.json
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -159,10 +177,23 @@ jobs:
           assert url.get("enabled") is False and url.get("previews_enabled") is False, "Public worker URL enabled!"
           schedules=result("schedules")
           assert not schedules.get("schedules"), "Unexpected Cron schedule"
+          deployments=result("deployments").get("deployments",[])
+          assert deployments, "No active Worker deployments returned"
+          active=deployments[0]  # Cloudflare lists the latest active deployment first.
+          versions=active.get("versions",[])
+          assert len(versions)==1 and versions[0].get("percentage")==100, "Worker not serving 100% from one version"
+          active_version=versions[0].get("version_id")
+          import uuid
+          uuid.UUID(active_version)
+          uuid.UUID(active.get("id"))
           print("PASS: only pinned TEST D1 + vars, webhook disabled, workers.dev and previews OFF, no Cron")
+          print("ACTIVE_WORKER_DEPLOYMENT_ID:",active["id"])
+          print("ACTIVE_WORKER_VERSION_ID:",active_version)
           with open(__import__('os').environ["GITHUB_STEP_SUMMARY"],"a") as summary:
             summary.write("Remote post-check PASS: exact disposable D1 binding, disabled webhook flag, workers.dev OFF, preview OFF, no Cron.\\n")
-            summary.write("STOP: manually verify zero custom routes/domains and active Worker version in Cloudflare; no Stripe webhooks; releaseSafe=false.\\n")
+            summary.write("Active Worker deployment ID: `"+active["id"]+"`\\n")
+            summary.write("Active Worker version ID (100%): `"+active_version+"`\\n")
+            summary.write("STOP: independently confirm zero custom routes/domains in Cloudflare; no Stripe webhooks; releaseSafe=false.\\n")
           PY
 
 # This workflow creates NO database tables, has NO production account token,
