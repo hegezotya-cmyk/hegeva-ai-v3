@@ -116,6 +116,40 @@ jobs:
       - name: Install pinned dependencies without scripts (NO Cloudflare token)
         run: npm ci --ignore-scripts
 
+      - name: Read-only Cloudflare guard immediately before deployment
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_ISOLATED_WORKER_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          base="https://api.cloudflare.com/client/v4/accounts/ab362645fc03b7e63a26fd8e46e631b6/workers/scripts/hegeva-isolated-deleted-user-webhook-test"
+          curl --fail --silent --show-error -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/subdomain" -o /tmp/hegeva-before-subdomain.json
+          curl --fail --silent --show-error -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/schedules" -o /tmp/hegeva-before-schedules.json
+          curl --fail --silent --show-error -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/deployments" -o /tmp/hegeva-before-deployments.json
+          python3 - <<'PY'
+          import json
+          import os
+          import uuid
+          from pathlib import Path
+          def result(name):
+            body=json.loads(Path("/tmp/hegeva-before-"+name+".json").read_text())
+            assert body.get("success") is True, name+" API did not succeed"
+            return body["result"]
+          url=result("subdomain")
+          assert url.get("enabled") is False and url.get("previews_enabled") is False, "Public worker/preview URL unexpectedly enabled"
+          assert not result("schedules").get("schedules"), "Unexpected existing Cron"
+          deployments=result("deployments").get("deployments",[])
+          assert deployments, "Existing placeholder deployment missing"
+          active=deployments[0]
+          versions=active.get("versions",[])
+          assert len(versions)==1 and versions[0].get("percentage")==100, "Existing Worker is not at 100% one version"
+          previous=versions[0].get("version_id")
+          uuid.UUID(previous)
+          with open(os.environ["GITHUB_ENV"],"a",encoding="utf-8") as dest:
+            dest.write("HEGEVA_PREVIOUS_WORKER_VERSION_ID="+previous+"\n")
+          print("PASS: exact isolated Worker has no public workers.dev/preview URL, no Cron, existing active version recorded")
+          PY
+
       - name: RECHECK full PR 106 release state IMMEDIATELY before deployment
         env:
           GH_TOKEN: ${{ github.token }}
@@ -186,6 +220,9 @@ jobs:
           import uuid
           uuid.UUID(active_version)
           uuid.UUID(active.get("id"))
+          import os
+          previous=os.environ.get("HEGEVA_PREVIOUS_WORKER_VERSION_ID")
+          assert previous and active_version!=previous, "Active version unchanged after attempted deploy"
           print("PASS: only pinned TEST D1 + vars, webhook disabled, workers.dev and previews OFF, no Cron")
           print("ACTIVE_WORKER_DEPLOYMENT_ID:",active["id"])
           print("ACTIVE_WORKER_VERSION_ID:",active_version)
@@ -193,6 +230,8 @@ jobs:
             summary.write("Remote post-check PASS: exact disposable D1 binding, disabled webhook flag, workers.dev OFF, preview OFF, no Cron.\\n")
             summary.write("Active Worker deployment ID: `"+active["id"]+"`\\n")
             summary.write("Active Worker version ID (100%): `"+active_version+"`\\n")
+            summary.write("Previous Worker version ID: `"+previous+"`\\n")
+            summary.write("PASS: active Worker version ID changed from pre-deploy value.\\n")
             summary.write("STOP: independently confirm zero custom routes/domains in Cloudflare; no Stripe webhooks; releaseSafe=false.\\n")
           PY
 
