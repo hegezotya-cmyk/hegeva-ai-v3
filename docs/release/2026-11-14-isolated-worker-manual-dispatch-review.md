@@ -46,4 +46,14 @@ This is an operational review proposal only; it does not assert that the deploym
 - Confirm no routes/domains in Cloudflare UI again. If permissions to post-check are insufficient, report `BLOCKED` and do not claim verified deployment; do **not** expand token scope automatically.
 - Until separately approved, **no branch allowlist change, PR merge, workflow dispatch, Worker upload, Stripe webhooks or feature enable.** `releaseSafe=false`.
 
+
+## Additional remote preflight and version-change gate — 2026-11-14
+
+- **After** owner approval of the protected environment, but **before** uploading anything, the scoped Individual Worker Editor token performs **read-only GETs** to the exact isolated Worker's Cloudflare `/subdomain`, `/schedules` and `/deployments` endpoints. It requires public `workers.dev` and preview URLs both disabled, no Cron schedules, and exactly one active pre-existing Worker version at 100%. Missing or ambiguous responses stop the job. The token is not used to alter these settings.
+- The old active Worker version UUID is written to the GitHub job's environment variables; the full PR #106 safety-state recheck remains **immediately before the deploy command**.
+- After deployment, the workflow re-queries read-only Cloudflare metadata, requires exactly one version at 100% and **a different active version UUID** from the pre-deploy version; records both IDs and the active deployment ID. This is deployment-change evidence, not proof of webhook correctness, Stripe signing, or route containment outside `workers.dev`.
+- The manually recorded zero custom routes/domains is still required **before dispatch**, and must be independently reconfirmed after a future deployment. The scoped token does not grant zone-wide route enumeration; the workflow must not gain one.
+- Validation script `scripts/validate-isolated-worker-dispatch.py` asserts the protected preflight URL/Cron/version checks and the active version comparison. Only a successful CI run on the **current** PR #107 head can close static-validation evidence.
+- **No default-branch merge, environment allowlist change, dispatch, deployment or token adjustment was performed by preparing these updates.** `releaseSafe=false`.
+
 Official deployment endpoint docs: https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/deployments/methods/list/ .
