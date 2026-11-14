@@ -970,7 +970,56 @@ export function prepareEmployeeDelegations(preparedActions, locale = "en") {
 // MAIN EXPORT
 // =========================================
 
-export function runCoreV1Decision(workspaceData, cloudEnabled, locale = "en") {
+function isCoreRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeCoreRecords(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value.filter(isCoreRecord).map((record) => {
+    const normalized = { ...record };
+
+    if ("items" in normalized) {
+      normalized.items = Array.isArray(normalized.items)
+        ? normalized.items.filter(isCoreRecord)
+        : [];
+    }
+
+    if ("content" in normalized && typeof normalized.content !== "string") {
+      normalized.content = "";
+    }
+
+    return normalized;
+  });
+}
+
+function normalizeCoreWorkspaceData(value) {
+  const source = isCoreRecord(value) ? value : {};
+  const normalized = {
+    customers: normalizeCoreRecords(source.customers),
+    invoices: normalizeCoreRecords(source.invoices),
+    tasks: normalizeCoreRecords(source.tasks),
+    messages: normalizeCoreRecords(source.messages),
+    documents: normalizeCoreRecords(source.documents),
+    expenses: normalizeCoreRecords(source.expenses),
+  };
+
+  const knowledge = isCoreRecord(source.businessKnowledge) ? source.businessKnowledge : null;
+  normalized.businessKnowledge = knowledge
+    ? {
+        ...knowledge,
+        items: Array.isArray(knowledge.items)
+          ? knowledge.items.filter(isCoreRecord)
+          : [],
+      }
+    : null;
+
+  return normalized;
+}
+
+export function runCoreV1Decision(inputWorkspaceData, cloudEnabled, locale = "en") {
+  const workspaceData = normalizeCoreWorkspaceData(inputWorkspaceData);
   const businessKnowledge = workspaceData?.businessKnowledge?.items?.length
     ? {
         version: workspaceData.businessKnowledge.version || 1,
