@@ -21,7 +21,7 @@ test("Core API normalizes malformed per-user D1 JSON without cross-user reads", 
               async all() { return { results: [] }; },
             };
           }
-          return { async first() { return null; }, async all() { return { results: [] }; } };
+          return { async first() { return null; }, async all() { return { results: [] }; }, async run() { return { success: true, meta: { changes: 0 } }; } };
         },
       };
     },
