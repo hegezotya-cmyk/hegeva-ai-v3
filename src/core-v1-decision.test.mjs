@@ -40,3 +40,31 @@ test("null, primitive and malformed nested records cannot crash Core", () => {
   assert.equal(result.coreSignals._context.customers, 1);
   assert.ok(result.coreDecision);
 });
+
+
+test("Goal Mode retains valid goals after workspace normalization", () => {
+  const result = runCoreV1Decision({
+    ...emptyWorkspace,
+    goals: [{
+      id: "synthetic-goal",
+      createdAt: "2026-11-01T12:00:00.000Z",
+      plan: {
+        kind: "local-customers",
+        baseline: 0,
+        target: 10,
+        deadline: "2026-12-31",
+      },
+    }],
+  }, true, "en");
+  assert.equal(result.goalMode?.plan?.kind, "local-customers");
+  assert.equal(result.goalMode?.plan?.target, 10);
+  assert.ok(result.goalMode?.outcome, "Goal outcome is preserved");
+});
+
+test("Malformed non-array goals cannot crash Core or create a false goal", () => {
+  const result = runCoreV1Decision({
+    ...emptyWorkspace,
+    goals: { plan: { kind: "local-customers", target: 10 } },
+  }, true, "en");
+  assert.equal(result.goalMode, null);
+});
