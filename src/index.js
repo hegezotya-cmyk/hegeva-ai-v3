@@ -4012,7 +4012,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
 
       let corePhase = "authentication";
       try {
-        const user = await getLoggedInUser(request, env, ctx);
+        const user = await getLoggedInUserFn(request, env, ctx);
 
         if (!user) {
           return Response.json(
