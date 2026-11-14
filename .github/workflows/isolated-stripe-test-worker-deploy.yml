@@ -1,0 +1,240 @@
+name: HEGEVA isolated Stripe TEST Worker - owner-approved deploy
+
+# Not an automatic release. The workflow must be reviewed separately before
+# merging to the default branch; merging does not itself start a deployment.
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type DEPLOY-PR106-ISOLATED-ONLY to request a reviewed, isolated deployment"
+        required: true
+        type: string
+      route_domain_preflight:
+        description: "Only after read-only Cloudflare UI shows ZERO routes/domains, type ZERO-ROUTES-DOMAINS-VERIFIED"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: hegeva-pr106-isolated-worker-manual-deploy
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    # Running the workflow from the trusted default branch prevents unreviewed
+    # feature-branch workflow code from receiving the protected environment secret.
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' &&
+         github.repository == 'hegezotya-cmyk/hegeva-ai-v3' &&
+         github.ref == 'refs/heads/v0-rebuild' &&
+         inputs.confirmation == 'DEPLOY-PR106-ISOLATED-ONLY' &&
+         inputs.route_domain_preflight == 'ZERO-ROUTES-DOMAINS-VERIFIED' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Confirm PR 106 still points to reviewed immutable commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          pr="repos/$GITHUB_REPOSITORY/pulls/106"
+          test "$(gh api "$pr" --jq '.head.sha')" = 'd2c8fc2366767c54f27e271e84873d22b9edc4a4'
+          test "$(gh api "$pr" --jq '.head.ref')" = 'codex/isolated-stripe-test-webhook-harness-20261113'
+          test "$(gh api "$pr" --jq '.head.repo.full_name')" = 'hegezotya-cmyk/hegeva-ai-v3'
+          test "$(gh api "$pr" --jq '.base.ref')" = 'codex/staging-deleted-user-webhook-guard-20261112'
+          test "$(gh api "$pr" --jq '.state')" = 'open'
+          test "$(gh api "$pr" --jq '.draft')" = 'true'
+          test "$(gh api "$pr" --jq '.merged')" = 'false'
+
+      - uses: actions/checkout@v4
+        with:
+          ref: d2c8fc2366767c54f27e271e84873d22b9edc4a4
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Hard fail on account, D1, routes, secret or feature-config drift
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path=Path("wrangler.isolated-deleted-user-webhook-test.jsonc")
+          cfg=json.loads(path.read_text())
+          allowed={"$schema","name","account_id","main","compatibility_date","workers_dev",
+                   "preview_urls","vars","d1_databases","observability"}
+          assert set(cfg)==allowed, "Unexpected Wrangler configuration keys"
+          assert cfg["name"]=="hegeva-isolated-deleted-user-webhook-test"
+          assert cfg["account_id"]=="ab362645fc03b7e63a26fd8e46e631b6"
+          assert cfg["main"]=="src/isolated-deleted-user-webhook-test-worker.js"
+          assert cfg["workers_dev"] is False and cfg["preview_urls"] is False
+          assert cfg["observability"]=={"enabled":False}
+          assert cfg["d1_databases"]==[{
+            "binding":"DB",
+            "database_name":"hegeva-deleted-user-webhook-test-db",
+            "database_id":"84f4c3b0-c175-4458-bad1-e3f826d6ea96"}]
+          assert cfg["vars"]=={
+            "PAYMENT_MODE":"test",
+            "HEGEVA_ISOLATED_STRIPE_TEST_ENABLED":"false",
+            "ISOLATED_TEST_ACCOUNT_ID":"ab362645fc03b7e63a26fd8e46e631b6",
+            "ISOLATED_TEST_D1_ID":"84f4c3b0-c175-4458-bad1-e3f826d6ea96",
+            "STRIPE_TEST_ACCOUNT_ID":"acct_1U4YkdHH1vUED8ZN"}
+          print("PASS: immutable reviewed config, disabled public URLs and flag, pinned isolated DB")
+          PY
+      - name: Repeat 49 offline tests and Wrangler dry-run (NO credentials)
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          node --disable-warning=ExperimentalWarning --test scripts/isolated-deleted-user-webhook-test-worker-test.mjs
+          node --disable-warning=ExperimentalWarning --test scripts/staging-orphan-plan-guards-test.mjs scripts/stripe-deleted-user-transaction-model-test.mjs scripts/stripe-deleted-user-webhook-disposition-test.mjs
+          ./node_modules/.bin/wrangler deploy --dry-run --config wrangler.isolated-deleted-user-webhook-test.jsonc
+
+  deploy:
+    needs: preflight
+    if: ${{ needs.preflight.result == 'success' }}
+    # IMPORTANT: this environment currently only allows the PR branch. Owner
+    # must separately review/approve adding v0-rebuild to its deployment branch
+    # policy before this job can run. Do NOT remove the required reviewer.
+    environment:
+      name: isolated-stripe-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+
+      - uses: actions/checkout@v4
+        with:
+          ref: d2c8fc2366767c54f27e271e84873d22b9edc4a4
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pinned dependencies without scripts (NO Cloudflare token)
+        run: npm ci --ignore-scripts
+
+      - name: Read-only Cloudflare guard immediately before deployment
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_ISOLATED_WORKER_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          base="https://api.cloudflare.com/client/v4/accounts/ab362645fc03b7e63a26fd8e46e631b6/workers/scripts/hegeva-isolated-deleted-user-webhook-test"
+          curl --fail --silent --show-error -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/subdomain" -o /tmp/hegeva-before-subdomain.json
+          curl --fail --silent --show-error -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/schedules" -o /tmp/hegeva-before-schedules.json
+          curl --fail --silent --show-error -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/deployments" -o /tmp/hegeva-before-deployments.json
+          python3 - <<'PY'
+          import json
+          import os
+          import uuid
+          from pathlib import Path
+          def result(name):
+            body=json.loads(Path("/tmp/hegeva-before-"+name+".json").read_text())
+            assert body.get("success") is True, name+" API did not succeed"
+            return body["result"]
+          url=result("subdomain")
+          assert url.get("enabled") is False and url.get("previews_enabled") is False, "Public worker/preview URL unexpectedly enabled"
+          assert not result("schedules").get("schedules"), "Unexpected existing Cron"
+          deployments=result("deployments").get("deployments",[])
+          assert deployments, "Existing placeholder deployment missing"
+          active=deployments[0]
+          versions=active.get("versions",[])
+          assert len(versions)==1 and versions[0].get("percentage")==100, "Existing Worker is not at 100% one version"
+          previous=versions[0].get("version_id")
+          uuid.UUID(previous)
+          with open(os.environ["GITHUB_ENV"],"a",encoding="utf-8") as dest:
+            dest.write("HEGEVA_PREVIOUS_WORKER_VERSION_ID="+previous+"\n")
+          print("PASS: exact isolated Worker has no public workers.dev/preview URL, no Cron, existing active version recorded")
+          PY
+
+      - name: RECHECK full PR 106 release state IMMEDIATELY before deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          pr="repos/$GITHUB_REPOSITORY/pulls/106"
+          test "$(gh api "$pr" --jq '.head.sha')" = 'd2c8fc2366767c54f27e271e84873d22b9edc4a4'
+          test "$(gh api "$pr" --jq '.head.ref')" = 'codex/isolated-stripe-test-webhook-harness-20261113'
+          test "$(gh api "$pr" --jq '.head.repo.full_name')" = 'hegezotya-cmyk/hegeva-ai-v3'
+          test "$(gh api "$pr" --jq '.base.ref')" = 'codex/staging-deleted-user-webhook-guard-20261112'
+          test "$(gh api "$pr" --jq '.state')" = 'open'
+          test "$(gh api "$pr" --jq '.draft')" = 'true'
+          test "$(gh api "$pr" --jq '.merged')" = 'false'
+          echo "PASS: PR #106 unchanged, Draft/open/unmerged, correct head and base"
+      
+      - name: Deploy EXACTLY the disabled isolated Worker - no SQL, no Stripe
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_ISOLATED_WORKER_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ab362645fc03b7e63a26fd8e46e631b6
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          ./node_modules/.bin/wrangler deploy --config wrangler.isolated-deleted-user-webhook-test.jsonc
+
+      - name: Read-only post-deploy check of exact D1 binding and URL switches
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_ISOLATED_WORKER_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          base="https://api.cloudflare.com/client/v4/accounts/ab362645fc03b7e63a26fd8e46e631b6/workers/scripts/hegeva-isolated-deleted-user-webhook-test"
+          curl --fail --silent --show-error -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/settings" -o /tmp/hegeva-worker-settings.json
+          curl --fail --silent --show-error -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/subdomain" -o /tmp/hegeva-worker-subdomain.json
+          curl --fail --silent --show-error -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/schedules" -o /tmp/hegeva-worker-schedules.json
+          curl --fail --silent --show-error -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$base/deployments" -o /tmp/hegeva-worker-deployments.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          def result(name):
+            body=json.loads(Path("/tmp/hegeva-worker-"+name+".json").read_text())
+            assert body.get("success") is True, name+" API did not succeed"
+            return body["result"]
+          settings=result("settings")
+          bindings=settings.get("bindings",[])
+          assert len(bindings)==6, "Unexpected binding count"
+          actual={b["name"]:b for b in bindings}
+          assert set(actual)=={"DB","PAYMENT_MODE","HEGEVA_ISOLATED_STRIPE_TEST_ENABLED",
+             "ISOLATED_TEST_ACCOUNT_ID","ISOLATED_TEST_D1_ID","STRIPE_TEST_ACCOUNT_ID"}
+          assert actual["DB"]["type"]=="d1"
+          assert actual["DB"]["database_id"]=="84f4c3b0-c175-4458-bad1-e3f826d6ea96"
+          expected={
+            "PAYMENT_MODE":"test",
+            "HEGEVA_ISOLATED_STRIPE_TEST_ENABLED":"false",
+            "ISOLATED_TEST_ACCOUNT_ID":"ab362645fc03b7e63a26fd8e46e631b6",
+            "ISOLATED_TEST_D1_ID":"84f4c3b0-c175-4458-bad1-e3f826d6ea96",
+            "STRIPE_TEST_ACCOUNT_ID":"acct_1U4YkdHH1vUED8ZN"}
+          for key,value in expected.items():
+            assert actual[key].get("type")=="plain_text" and actual[key].get("text")==value, key+" binding differs"
+          url=result("subdomain")
+          assert url.get("enabled") is False and url.get("previews_enabled") is False, "Public worker URL enabled!"
+          schedules=result("schedules")
+          assert not schedules.get("schedules"), "Unexpected Cron schedule"
+          deployments=result("deployments").get("deployments",[])
+          assert deployments, "No active Worker deployments returned"
+          active=deployments[0]  # Cloudflare lists the latest active deployment first.
+          versions=active.get("versions",[])
+          assert len(versions)==1 and versions[0].get("percentage")==100, "Worker not serving 100% from one version"
+          active_version=versions[0].get("version_id")
+          import uuid
+          uuid.UUID(active_version)
+          uuid.UUID(active.get("id"))
+          import os
+          previous=os.environ.get("HEGEVA_PREVIOUS_WORKER_VERSION_ID")
+          assert previous and active_version!=previous, "Active version unchanged after attempted deploy"
+          print("PASS: only pinned TEST D1 + vars, webhook disabled, workers.dev and previews OFF, no Cron")
+          print("ACTIVE_WORKER_DEPLOYMENT_ID:",active["id"])
+          print("ACTIVE_WORKER_VERSION_ID:",active_version)
+          with open(__import__('os').environ["GITHUB_STEP_SUMMARY"],"a") as summary:
+            summary.write("Remote post-check PASS: exact disposable D1 binding, disabled webhook flag, workers.dev OFF, preview OFF, no Cron.\\n")
+            summary.write("Active Worker deployment ID: `"+active["id"]+"`\\n")
+            summary.write("Active Worker version ID (100%): `"+active_version+"`\\n")
+            summary.write("Previous Worker version ID: `"+previous+"`\\n")
+            summary.write("PASS: active Worker version ID changed from pre-deploy value.\\n")
+            summary.write("STOP: independently confirm zero custom routes/domains in Cloudflare; no Stripe webhooks; releaseSafe=false.\\n")
+          PY
+
+# This workflow creates NO database tables, has NO production account token,
+# does NOT merge #106, and never sends Stripe traffic. A successful isolated
+# deployment is not proof of production billing readiness.
