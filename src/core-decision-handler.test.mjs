@@ -160,6 +160,9 @@ test("Core reads canonical goal_mode and never resurrects old goals after cleari
     ["owner-a:goals", goalRow(99)],
     ["owner-b:goal_mode", { data: "[]" }],
     ["owner-b:goals", goalRow(99)],
+    ["owner-c:goal_mode", { data: "{malformed" }],
+    ["owner-c:goals", goalRow(99)],
+    ["owner-d:goals", goalRow(99)],
   ]);
   const db = {
     prepare(sql) {
@@ -167,7 +170,7 @@ test("Core reads canonical goal_mode and never resurrects old goals after cleari
         bind(...params) {
           if (sql.includes("FROM workspace_data")) {
             reads.push({ userId: params[0], dataType: params[1] });
-            return { async first() { return records.get(`${params[0]}:${params[1]}`) ?? (["goal_mode", "goals"].includes(params[1]) ? null : { data: "[]" }); } };
+            return { async first() { if (params[0] === "owner-d" && params[1] === "goal_mode") throw new Error("synthetic canonical read unavailable"); return records.get(`${params[0]}:${params[1]}`) ?? (["goal_mode", "goals"].includes(params[1]) ? null : { data: "[]" }); } };
           }
           return { async first() { return null; }, async all() { return { results: [] }; } };
         },
@@ -191,5 +194,13 @@ test("Core reads canonical goal_mode and never resurrects old goals after cleari
   const b = await getDecision("owner-b");
   assert.equal(b.goalMode, null, "explicitly empty canonical collection must not resurrect legacy data");
   assert.ok(reads.every((r) => r.userId === "owner-b"));
+  assert.ok(!reads.some((r) => r.dataType === "goals"));
+  reads.length = 0;
+  const c = await getDecision("owner-c");
+  assert.equal(c.goalMode, null, "malformed canonical JSON must not reveal an old legacy goal");
+  assert.ok(!reads.some((r) => r.dataType === "goals"));
+  reads.length = 0;
+  const d = await getDecision("owner-d");
+  assert.equal(d.goalMode, null, "canonical read failure must not resurrect legacy goal");
   assert.ok(!reads.some((r) => r.dataType === "goals"));
 });
