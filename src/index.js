@@ -4010,6 +4010,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         );
       }
 
+      let corePhase = "authentication";
       try {
         const user = await getLoggedInUser(request, env, ctx);
 
@@ -4021,6 +4022,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         }
 
         const userId = user.id;
+        corePhase = "workspace_data";
 
         // Core V1 is deterministic and does not invoke an AI provider.
         // Do not consume or require the user's monthly Assistant quota for
@@ -4060,6 +4062,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         }
 
         // Read workspace-scoped Business Knowledge as context only.
+        corePhase = "business_knowledge";
         // Missing/unavailable memory must never block Core decisions.
         try {
           const memoryAdapter = createDurableMemoryD1Adapter({ DB: env.DB });
@@ -4073,6 +4076,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           logFailure("core_business_knowledge_read_failed", error);
         }
 
+        corePhase = "decision";
         const cloudEnabled = true; // authenticated user
         const locale = "en"; // TODO: extract from user preferences
 
@@ -4092,7 +4096,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           }
         });
       } catch (error) {
-        logFailure("core_v1_decide_failed", error);
+        logFailure("core_v1_decide_failed", error, { phase: corePhase });
         emitMonitor("core_v1", "handler_failed");
 
         return Response.json(
