@@ -102,6 +102,7 @@ test("Core API keeps D1 goals isolated by authenticated identity", async () => {
             boundUserIds.push(params[0]);
             return {
               async first() {
+                if (params[1] === "goal_mode") return null; // No canonical record: exercise legacy fallback.
                 if (params[1] === "goals" || sql.includes("dataType = 'goals'")) {
                   return rows.get(params[0]) ?? null;
                 }
@@ -134,4 +135,61 @@ test("Core API keeps D1 goals isolated by authenticated identity", async () => {
   assert.equal(ownerB.goalMode?.plan?.target, 25);
   assert.ok(boundUserIds.every((id) => id === "user-b"));
   assert.notDeepEqual(ownerA.goalMode?.plan, ownerB.goalMode?.plan);
+});
+
+
+test("Core reads canonical goal_mode and never resurrects old goals after clearing them", async () => {
+  const reads = [];
+  const goalRow = (target) => ({
+    data: JSON.stringify([{
+      id: `goal-${target}`,
+      goal: "Gain local customers",
+      steps: ["Prepare campaign"],
+      state: "approved",
+      createdAt: "2026-11-01T12:00:00.000Z",
+      plan: {
+        kind: "local-customers", metric: "active-customer-count",
+        baseline: 0, target, deadline: "2026-12-31",
+        evidence: { customers: 0, leads: 0, unpaidInvoices: 0, unpaidValue: 0, overdueTasks: 0, currency: "GBP" },
+        stepKeys: ["defineLocalAudience"],
+      },
+    }]),
+  });
+  const records = new Map([
+    ["owner-a:goal_mode", goalRow(9)],
+    ["owner-a:goals", goalRow(99)],
+    ["owner-b:goal_mode", { data: "[]" }],
+    ["owner-b:goals", goalRow(99)],
+  ]);
+  const db = {
+    prepare(sql) {
+      return {
+        bind(...params) {
+          if (sql.includes("FROM workspace_data")) {
+            reads.push({ userId: params[0], dataType: params[1] });
+            return { async first() { return records.get(`${params[0]}:${params[1]}`) ?? (["goal_mode", "goals"].includes(params[1]) ? null : { data: "[]" }); } };
+          }
+          return { async first() { return null; }, async all() { return { results: [] }; } };
+        },
+      };
+    },
+  };
+  const getDecision = async (userId) => {
+    const handler = createRequestHandler({ getLoggedInUserFn: async () => ({ id: userId }) });
+    const response = await handler.fetch(
+      new Request("https://hegevaai.co.uk/api/core/decide", { method: "POST", body: "{}" }),
+      { DB: db }, {},
+    );
+    assert.equal(response.status, 200);
+    return response.json();
+  };
+  const a = await getDecision("owner-a");
+  assert.equal(a.goalMode?.plan?.target, 9);
+  assert.ok(reads.every((r) => r.userId === "owner-a"));
+  assert.ok(!reads.some((r) => r.dataType === "goals"), "legacy goals should be skipped if canonical exists");
+  reads.length = 0;
+  const b = await getDecision("owner-b");
+  assert.equal(b.goalMode, null, "explicitly empty canonical collection must not resurrect legacy data");
+  assert.ok(reads.every((r) => r.userId === "owner-b"));
+  assert.ok(!reads.some((r) => r.dataType === "goals"));
 });
