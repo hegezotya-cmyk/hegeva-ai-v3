@@ -16,6 +16,10 @@ const summary = summarizeAssistantWorkspaceData({
     { sourceId: "invoice-2", workflowStatus: "approved" },
     { workflowStatus: "draft" },
   ]),
+  goal_mode: JSON.stringify([
+    { goal: "private goal text", state: "approved", plan: { target: 999 } },
+    { goal: "another private goal", state: "draft" },
+  ]),
 }, "2026-11-15")
 
 assert.match(summary, /customers=1/)
@@ -30,7 +34,11 @@ assert.match(summary, /overdue_invoices=1/)
 assert.match(summary, /outstanding_GBP=24\.00/)
 assert.match(summary, /followups_awaiting_approval=1/)
 assert.match(summary, /approved_followups_ready_to_complete=1/)
+assert.match(summary, /active_goals=2/)
+assert.match(summary, /approved_goals=1/)
 assert.equal(summary.includes("private@example.com"), false, "context must not include customer PII")
+assert.equal(summary.includes("private goal text"), false, "context must not include goal text")
+assert.equal(summary.includes("999"), false, "context must not include goal plan details")
 
 const queryLog = []
 const db = {
@@ -45,8 +53,45 @@ const db = {
 }
 const loaded = await readAssistantWorkspaceContext(db, "user-123", "2026-11-15")
 assert.match(loaded, /customers=0/)
-assert.equal(queryLog.length, 6)
+assert.match(loaded, /active_goals=0/)
+assert.equal(queryLog.length, 8)
 assert(queryLog.every(({ sql, values }) => sql.includes("WHERE userId = ?1 AND dataType = ?2") && values[0] === "user-123"), "every read must be scoped to the authenticated user")
 assert.equal(await readAssistantWorkspaceContext(db, "", "2026-11-15"), null)
 assert.equal(await readAssistantWorkspaceContext({ prepare() { throw new Error("offline") } }, "user-123", "2026-11-15"), null)
+
+async function contextFor(goalRows) {
+  const queried = []
+  const scopedDb = {
+    prepare(sql) {
+      return {
+        bind(userId, type) {
+          queried.push(type)
+          const row = goalRows[type]
+          return { first: async () => row ?? null }
+        },
+      }
+    },
+  }
+  return { context: await readAssistantWorkspaceContext(scopedDb, "user-123", "2026-11-15"), queried }
+}
+
+const canonical = await contextFor({
+  goal_mode: { data: JSON.stringify([{ state: "approved" }]) },
+  goals: { data: JSON.stringify([{ state: "approved" }, { state: "approved" }]) },
+})
+assert.match(canonical.context, /active_goals=1/)
+assert.match(canonical.context, /approved_goals=1/)
+
+const emptyCanonical = await contextFor({
+  goal_mode: { data: "[]" },
+  goals: { data: JSON.stringify([{ state: "approved" }]) },
+})
+assert.match(emptyCanonical.context, /active_goals=0/)
+assert.match(emptyCanonical.context, /approved_goals=0/)
+
+const legacyFallback = await contextFor({
+  goals: { data: JSON.stringify([{ state: "approved" }]) },
+})
+assert.match(legacyFallback.context, /active_goals=1/)
+assert.match(legacyFallback.context, /approved_goals=1/)
 console.log("Assistant workspace context tests passed")
