@@ -1,0 +1,92 @@
+name: Dependency Remediation Preflight
+
+on:
+  push:
+    branches:
+      - codex/dependency-remediation-pr108-20261115
+
+permissions:
+  contents: write
+
+jobs:
+  dependency-remediation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            v0-app/package-lock.json
+      - name: Install root dependencies
+        run: npm ci
+      - name: Apply compatible root audit fixes only
+        run: npm audit fix --ignore-scripts
+      - name: Keep dependency manifests unchanged
+        run: git diff --exit-code -- package.json v0-app/package.json
+      - name: Install V0 dependencies
+        working-directory: v0-app
+        run: npm ci
+      - name: Apply compatible V0 audit fixes only
+        working-directory: v0-app
+        run: npm audit fix --ignore-scripts
+      - name: Keep V0 dependency manifest unchanged
+        run: git diff --exit-code -- v0-app/package.json
+      - name: Reinstall root dependencies from updated lockfile
+        run: npm ci
+      - name: Reinstall V0 dependencies from updated lockfile
+        working-directory: v0-app
+        run: npm ci
+      - name: Run Worker and Core regression checks
+        run: npm run worker:check
+      - name: Run Wrangler local dry-run
+        run: npx wrangler deploy --dry-run
+      - name: Run V0 TypeScript check
+        working-directory: v0-app
+        run: npx tsc --noEmit
+      - name: Run V0 application build
+        working-directory: v0-app
+        run: npm run build
+      - name: Run Cloudflare adapter build
+        working-directory: v0-app
+        run: npm run cf:build
+      - name: Summarize remaining advisories
+        run: |
+          npm audit --json > "$RUNNER_TEMP/root-audit-after.json" || true
+          node - "$RUNNER_TEMP/root-audit-after.json" <<'NODE'
+          const fs = require('node:fs');
+          const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          console.log('ROOT AFTER SUMMARY', JSON.stringify(report.metadata?.vulnerabilities || {}));
+          for (const [name, item] of Object.entries(report.vulnerabilities || {})) {
+            console.log('ROOT REMAINING', JSON.stringify({
+              name, severity: item.severity, direct: item.isDirect,
+              fixAvailable: item.fixAvailable
+            }));
+          }
+          NODE
+          npm --prefix v0-app audit --json > "$RUNNER_TEMP/v0-audit-after.json" || true
+          node - "$RUNNER_TEMP/v0-audit-after.json" <<'NODE'
+          const fs = require('node:fs');
+          const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          console.log('V0 AFTER SUMMARY', JSON.stringify(report.metadata?.vulnerabilities || {}));
+          for (const [name, item] of Object.entries(report.vulnerabilities || {})) {
+            console.log('V0 REMAINING', JSON.stringify({
+              name, severity: item.severity, direct: item.isDirect,
+              fixAvailable: item.fixAvailable
+            }));
+          }
+          NODE
+      - name: Commit validated lockfile-only remediation
+        run: |
+          git diff --exit-code -- package.json v0-app/package.json
+          if ! git diff --quiet -- package-lock.json v0-app/package-lock.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json v0-app/package-lock.json
+            git commit -m "security: update vulnerable npm dependency locks"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          else
+            echo "No compatible lockfile-only fixes were available."
+          fi
