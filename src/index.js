@@ -4147,6 +4147,11 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         );
       }
 
+      let isX20Action = false;
+      let x20Action = null;
+      let x20Attempt = null;
+      let assistantOperationId = null;
+
       try {
         const user =
           await getLoggedInUserFn(
@@ -4170,7 +4175,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         const body =
           await request.json();
 
-        const isX20Action = body.actionKind === "x20";
+        isX20Action = body.actionKind === "x20";
         const isX10StudioProfile = !isX20Action && body.appStudioProfile === "x10";
         if (!isX20Action) {
           const flags = parseProviderFlags(env);
@@ -4414,9 +4419,9 @@ QUALITY RULES:
               lastRequest: new Map()
             });
 
-          let x20Action = null;
-          let x20Attempt = null;
-          let assistantOperationId = null;
+          x20Action = null;
+          x20Attempt = null;
+          assistantOperationId = null;
           let assistantOperationReserved = false;
           let assistantOperationSettlementAttempted = false;
           let assistantCreditSource = null;
