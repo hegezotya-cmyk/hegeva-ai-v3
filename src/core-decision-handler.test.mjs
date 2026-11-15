@@ -2,6 +2,36 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createRequestHandler } from "./index.js";
 
+test("Assistant malformed JSON returns its controlled error instead of masking it with an out-of-scope ReferenceError", async () => {
+  const handler = createRequestHandler({
+    getLoggedInUserFn: async () => ({ id: "synthetic-user" }),
+  });
+  const logs = [];
+  const originalError = console.error;
+  console.error = (...args) => logs.push(args);
+  try {
+    const response = await handler.fetch(
+      new Request("https://hegevaai.co.uk/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{",
+      }),
+      {},
+      {},
+    );
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), {
+      error: "HEGEVA AI is temporarily unavailable.",
+    });
+  } finally {
+    console.error = originalError;
+  }
+  const logged = JSON.stringify(logs);
+  assert.match(logged, /ai_chat_handler_failed/);
+  assert.match(logged, /SyntaxError/);
+  assert.doesNotMatch(logged, /isX20Action is not defined/);
+});
+
 test("Core API normalizes malformed per-user D1 JSON without cross-user reads", async () => {
   const userId = "synthetic-user";
   const bindingsSeen = [];
