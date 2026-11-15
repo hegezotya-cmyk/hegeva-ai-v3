@@ -6,7 +6,7 @@ on:
       - codex/dependency-overrides-pr108-20261115
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   dependency-overrides:
