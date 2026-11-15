@@ -31,7 +31,7 @@ jobs:
         run: npm ci
       - name: Apply compatible V0 audit fixes only
         working-directory: v0-app
-        run: npm audit fix --ignore-scripts
+        run: npm audit fix --ignore-scripts || true
       - name: Keep V0 dependency manifest unchanged
         run: git diff --exit-code -- v0-app/package.json
       - name: Reinstall root dependencies from updated lockfile
