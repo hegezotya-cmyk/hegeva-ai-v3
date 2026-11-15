@@ -1,0 +1,64 @@
+name: Dependency Audit Read Only
+
+on:
+  push:
+    branches:
+      - codex/dependency-audit-pr108-20261115
+
+permissions:
+  contents: read
+
+jobs:
+  npm-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install root dependencies without package lifecycle scripts
+        run: npm ci --ignore-scripts
+      - name: Report root dependency advisories
+        run: |
+          npm audit --json > "$RUNNER_TEMP/root-audit.json" || true
+          node - "$RUNNER_TEMP/root-audit.json" <<'NODE'
+          const fs = require('node:fs');
+          const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          console.log('ROOT SUMMARY', JSON.stringify(report.metadata?.vulnerabilities || {}));
+          for (const [name, item] of Object.entries(report.vulnerabilities || {})) {
+            console.log('ROOT PACKAGE', JSON.stringify({
+              name,
+              severity: item.severity,
+              direct: item.isDirect,
+              range: item.range,
+              fixAvailable: item.fixAvailable,
+              advisories: (item.via || []).filter(v => typeof v === 'object').map(v => ({
+                title: v.title, url: v.url, range: v.range, severity: v.severity
+              }))
+            }));
+          }
+          NODE
+      - name: Install V0 dependencies without package lifecycle scripts
+        working-directory: v0-app
+        run: npm ci --ignore-scripts
+      - name: Report V0 dependency advisories
+        working-directory: v0-app
+        run: |
+          npm audit --json > "$RUNNER_TEMP/v0-audit.json" || true
+          node - "$RUNNER_TEMP/v0-audit.json" <<'NODE'
+          const fs = require('node:fs');
+          const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          console.log('V0 SUMMARY', JSON.stringify(report.metadata?.vulnerabilities || {}));
+          for (const [name, item] of Object.entries(report.vulnerabilities || {})) {
+            console.log('V0 PACKAGE', JSON.stringify({
+              name,
+              severity: item.severity,
+              direct: item.isDirect,
+              range: item.range,
+              fixAvailable: item.fixAvailable,
+              advisories: (item.via || []).filter(v => typeof v === 'object').map(v => ({
+                title: v.title, url: v.url, range: v.range, severity: v.severity
+              }))
+            }));
+          }
+          NODE
