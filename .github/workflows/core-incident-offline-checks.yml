@@ -1,6 +1,7 @@
 name: Core Incident Offline Checks
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - codex/core-production-incident-recovery-20261114
