@@ -117,5 +117,9 @@
     "tailwindcss": "^4.3.3",
     "typescript": "5.7.3",
     "wrangler": "^4.125.0"
+  },
+  "overrides": {
+    "glob": "14.0.2",
+    "minimatch": "11.0.1"
   }
 }
