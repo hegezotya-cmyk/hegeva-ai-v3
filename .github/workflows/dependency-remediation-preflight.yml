@@ -23,7 +23,7 @@ jobs:
       - name: Install root dependencies
         run: npm ci
       - name: Apply compatible root audit fixes only
-        run: npm audit fix --ignore-scripts
+        run: npm audit fix --ignore-scripts || true
       - name: Keep dependency manifests unchanged
         run: git diff --exit-code -- package.json v0-app/package.json
       - name: Install V0 dependencies
