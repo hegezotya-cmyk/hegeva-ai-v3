@@ -1,0 +1,28 @@
+name: Core Incident Offline Checks
+
+on:
+  push:
+    branches:
+      - codex/core-production-incident-recovery-20261114
+
+permissions:
+  contents: read
+
+jobs:
+  core-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install V0 dependencies
+        working-directory: v0-app
+        run: npm ci
+      - name: Run full release preflight (local-only; no secrets or deploy)
+        run: npm run release:check

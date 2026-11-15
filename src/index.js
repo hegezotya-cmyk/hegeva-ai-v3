@@ -32,6 +32,7 @@ import { BUSINESS_SCORE_METHODOLOGY, deriveBusinessScoreShare, hashBusinessScore
 import { createReferralCode, revokeReferralCode, recordReferralTouch, attributeReferral, listReferralAttributions } from "./referral-attribution.js";
 import { reconcileReferralRewardForUser, listReferralRewardReviews, listReferralRewardSummary, reviewReferralReward } from "./referral-reward-review.js";
 import { PLAN_LIMITS, resolveAssistantPlan } from "./assistant-plan.js";
+import { readAssistantWorkspaceContext } from "./assistant-workspace-context.js";
 
 // =========================================
 // HEGEVA AI V35.0
@@ -4010,8 +4011,9 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         );
       }
 
+      let corePhase = "authentication";
       try {
-        const user = await getLoggedInUser(request, env, ctx);
+        const user = await getLoggedInUserFn(request, env, ctx);
 
         if (!user) {
           return Response.json(
@@ -4021,6 +4023,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         }
 
         const userId = user.id;
+        corePhase = "workspace_data";
 
         // Core V1 is deterministic and does not invoke an AI provider.
         // Do not consume or require the user's monthly Assistant quota for
@@ -4049,17 +4052,35 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           }
         }
 
-        // Load goals if available
-        try {
-          const goalRow = await env.DB.prepare(`
-            SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = 'goals' LIMIT 1
-          `).bind(userId).first();
-          workspaceData.goals = goalRow?.data ? JSON.parse(goalRow.data) : [];
-        } catch {
-          workspaceData.goals = [];
+        // Goal Mode persists to 'goal_mode' via useWorkspaceData. Use the
+        // legacy 'goals' collection only when no canonical row exists.
+        // An intentionally empty canonical collection must not resurrect an
+        // older goal. Reads stay strictly scoped to the authenticated user.
+        workspaceData.goals = [];
+        for (const goalDataType of ["goal_mode", "goals"]) {
+          let goalRow;
+          try {
+            goalRow = await env.DB.prepare(`
+              SELECT data FROM workspace_data WHERE userId = ?1 AND dataType = ?2 LIMIT 1
+            `).bind(userId, goalDataType).first();
+          } catch {
+            // Fail closed: a read failure does not prove the canonical row
+            // absent. Never resurrect a potentially superseded legacy goal.
+            break;
+          }
+          if (!goalRow) continue;
+          try {
+            const parsedGoals = goalRow.data ? JSON.parse(goalRow.data) : [];
+            workspaceData.goals = Array.isArray(parsedGoals) ? parsedGoals : [];
+          } catch {
+            // Invalid canonical JSON must not make the legacy row authoritative.
+            workspaceData.goals = [];
+          }
+          break;
         }
 
         // Read workspace-scoped Business Knowledge as context only.
+        corePhase = "business_knowledge";
         // Missing/unavailable memory must never block Core decisions.
         try {
           const memoryAdapter = createDurableMemoryD1Adapter({ DB: env.DB });
@@ -4073,6 +4094,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           logFailure("core_business_knowledge_read_failed", error);
         }
 
+        corePhase = "decision";
         const cloudEnabled = true; // authenticated user
         const locale = "en"; // TODO: extract from user preferences
 
@@ -4092,7 +4114,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           }
         });
       } catch (error) {
-        logFailure("core_v1_decide_failed", error);
+        logFailure("core_v1_decide_failed", error, { phase: corePhase });
         emitMonitor("core_v1", "handler_failed");
 
         return Response.json(
@@ -4279,16 +4301,9 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
             ? body.language
             : "en";
 
-        const businessContext =
-          typeof body.businessContext ===
-            "string"
-            ? body.businessContext
-                .slice(
-                  0,
-                  500
-                )
-                .trim()
-            : "";
+        // Derive a bounded, PII-free summary from rows scoped to this
+        // authenticated user. Never trust browser-supplied businessContext.
+        const businessContext = await readAssistantWorkspaceContext(env.DB, user.id);
 
         const rawHistory =
           Array.isArray(
@@ -4420,7 +4435,7 @@ QUALITY RULES:
               runtime: aiRuntime,
               resolveTier: ({ tier, plan }) => resolveAssistantModelTier({ tier, plan, env }),
               validateProviderInput: ({ message, tier }) => {
-                const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: message });
+                const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: message, workspaceContext: businessContext });
                 return boundAssistantProviderPayload(tier, projection);
               },
               distributed: env.RATE_LIMITER?.getByName(`chat-rate-limit:${user.id}`),
@@ -4527,7 +4542,7 @@ QUALITY RULES:
                   const startedAt = Date.now();
                   let adapted = null;
                   try {
-                    const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage });
+                    const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage, workspaceContext: businessContext });
                     adapted = await invokeAssistantWorkersAiText(env, projection, { tier });
                     if (dailyReservation && !assistantDailySettlementAttempted) {
                       assistantDailySettlementAttempted = true;
