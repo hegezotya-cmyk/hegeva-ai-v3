@@ -26,12 +26,13 @@ jobs:
         run: npm run worker:check
       - name: Run Wrangler local dry-run
         run: npx wrangler deploy --dry-run
-      - name: Resolve V0 lockfile with tested security overrides
-        working-directory: v0-app
-        run: npm install --package-lock-only --ignore-scripts
       - name: Install V0 dependencies
         working-directory: v0-app
         run: npm ci
+      - name: Require clean dependency audits
+        run: |
+          npm audit --audit-level=low
+          npm --prefix v0-app audit --audit-level=low
       - name: Run V0 TypeScript check
         working-directory: v0-app
         run: npx tsc --noEmit
@@ -41,32 +42,3 @@ jobs:
       - name: Run Cloudflare adapter build
         working-directory: v0-app
         run: npm run cf:build
-      - name: Report root and V0 audit summaries
-        run: |
-          npm audit --json > "$RUNNER_TEMP/root-audit.json" || true
-          npm --prefix v0-app audit --json > "$RUNNER_TEMP/v0-audit.json" || true
-          node - "$RUNNER_TEMP/root-audit.json" "$RUNNER_TEMP/v0-audit.json" <<'NODE'
-          const fs = require('node:fs');
-          for (const [label, file] of [['ROOT', process.argv[2]], ['V0', process.argv[3]]]) {
-            const report = JSON.parse(fs.readFileSync(file, 'utf8'));
-            console.log(label + ' SUMMARY', JSON.stringify(report.metadata?.vulnerabilities || {}));
-            for (const [name, item] of Object.entries(report.vulnerabilities || {})) {
-              console.log(label + ' REMAINING', JSON.stringify({
-                name, severity: item.severity, direct: item.isDirect,
-                fixAvailable: item.fixAvailable
-              }));
-            }
-          }
-          NODE
-      - name: Commit validated V0 lockfile update
-        run: |
-          git diff --exit-code -- package.json v0-app/package.json
-          if ! git diff --quiet -- v0-app/package-lock.json; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add v0-app/package-lock.json
-            git commit -m "security: pin patched glob dependencies"
-            git push origin "HEAD:$GITHUB_REF_NAME"
-          else
-            echo "No lockfile change was required."
-          fi
