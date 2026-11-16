@@ -23,6 +23,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Run Core and Assistant handler regressions
+        run: node --test src/core-decision-handler.test.mjs
       - name: Install V0 dependencies
         working-directory: v0-app
         run: npm ci
