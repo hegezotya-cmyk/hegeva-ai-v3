@@ -1,6 +1,47 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createRequestHandler } from "./index.js";
+import { reserveAssistantCostGuard } from "./assistant-cost-guard.js";
+
+
+test("Assistant cost guard synchronizes an existing monthly bucket with the configured cap", async () => {
+  let batchStatements = [];
+  const db = {
+    prepare(sql) {
+      return {
+        bind(...params) {
+          return { sql, params };
+        },
+      };
+    },
+    async batch(statements) {
+      batchStatements = statements;
+      return [];
+    },
+  };
+  const env = {
+    DB: db,
+    AI_GLOBAL_INCLUDED_BUDGET_UNITS: "260",
+    AI_GLOBAL_PREPAID_BUDGET_UNITS: "260",
+    AI_GLOBAL_EMERGENCY_CAP_UNITS: "260",
+    AI_GLOBAL_REQUEST_RESERVATION_UNITS: "26",
+  };
+  const result = await reserveAssistantCostGuard(env, {
+    operationId: "11111111-1111-4111-8111-111111111111",
+    period: "2026-11",
+    fundingClass: "included",
+    now: new Date("2026-11-16T03:00:00.000Z"),
+  });
+
+  assert.equal(result.reserved, true);
+  const buckets = batchStatements.slice(0, 2);
+  assert.equal(buckets.length, 2);
+  for (const statement of buckets) {
+    assert.match(statement.sql, /ON CONFLICT\(period,budgetClass\) DO UPDATE SET/i);
+    assert.match(statement.sql, /limitUnits\s*=\s*excluded\.limitUnits/i);
+  }
+  assert.deepEqual(buckets.map((statement) => statement.params[2]), [260, 260]);
+});
 
 test("Assistant malformed JSON returns its controlled error instead of masking it with an out-of-scope ReferenceError", async () => {
   const handler = createRequestHandler({
