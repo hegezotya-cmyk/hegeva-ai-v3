@@ -105,8 +105,28 @@ function safeErrorName(error) {
     : "UnknownError";
 }
 
+const MONITOR_ERROR_OUTCOMES = new Set([
+  "failure",
+  "handler_failed",
+  "approval_failed",
+  "approval_renewal_failed",
+  "preflight_failed",
+]);
+const MONITOR_WARNING_OUTCOMES = new Set([
+  "rate_limited",
+  "signature_invalid",
+  "payload_invalid",
+  "event_invalid",
+  "mode_mismatch",
+]);
+
 export function emitMonitor(scope, outcome, metadata = {}) {
-  console.error("HEGEVA_MONITOR", {
+  const log = MONITOR_ERROR_OUTCOMES.has(outcome)
+    ? console.error
+    : MONITOR_WARNING_OUTCOMES.has(outcome)
+      ? console.warn
+      : console.info;
+  log("HEGEVA_MONITOR", {
     scope,
     outcome,
     ...metadata,
