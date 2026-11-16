@@ -25,6 +25,8 @@ jobs:
         run: npm ci
       - name: Run Core and Assistant handler regressions
         run: node --test src/core-decision-handler.test.mjs
+      - name: Verify staging Cron trigger cleanup
+        run: node scripts/staging-no-migrate-gate-test.mjs
       - name: Install V0 dependencies
         working-directory: v0-app
         run: npm ci
