@@ -4147,6 +4147,12 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         );
       }
 
+      let isX20ActionForError = false;
+      let x20Action = null;
+      let x20Attempt = null;
+      let assistantOperationId = null;
+      let assistantPhase = "session_lookup";
+
       try {
         const user =
           await getLoggedInUserFn(
@@ -4167,10 +4173,12 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           );
         }
 
+        assistantPhase = "request_json";
         const body =
           await request.json();
 
         const isX20Action = body.actionKind === "x20";
+        isX20ActionForError = isX20Action;
         const isX10StudioProfile = !isX20Action && body.appStudioProfile === "x10";
         if (!isX20Action) {
           const flags = parseProviderFlags(env);
@@ -4188,6 +4196,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
           }
         }
 
+        assistantPhase = "plan_lookup";
         const planInfo =
           await getUserPlan(
             env,
@@ -4303,6 +4312,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
 
         // Derive a bounded, PII-free summary from rows scoped to this
         // authenticated user. Never trust browser-supplied businessContext.
+        assistantPhase = "workspace_context";
         const businessContext = await readAssistantWorkspaceContext(env.DB, user.id);
 
         const rawHistory =
@@ -4414,9 +4424,9 @@ QUALITY RULES:
               lastRequest: new Map()
             });
 
-          let x20Action = null;
-          let x20Attempt = null;
-          let assistantOperationId = null;
+          x20Action = null;
+          x20Attempt = null;
+          assistantOperationId = null;
           let assistantOperationReserved = false;
           let assistantOperationSettlementAttempted = false;
           let assistantCreditSource = null;
@@ -4425,6 +4435,7 @@ QUALITY RULES:
           let assistantDailyReservation = null;
           let assistantDailySettlementAttempted = false;
 
+          assistantPhase = "assistant_admission";
           const result =
             await handleAiChatAdmission({
               request,
@@ -4440,6 +4451,7 @@ QUALITY RULES:
               },
               distributed: env.RATE_LIMITER?.getByName(`chat-rate-limit:${user.id}`),
               reserve: async (userId, usagePeriod, limit, tier) => {
+                assistantPhase = "assistant_quota_reservation";
                 if (!isX20Action) {
                   assistantOperationId = body.assistantOperationId || null;
                   const selectedTier = resolveAssistantModelTier({ tier: body.tier, plan: planInfo.plan, env });
@@ -4499,6 +4511,7 @@ QUALITY RULES:
                 return operation;
               },
               reserveDaily: isX20Action ? null : async ({ operationId, tier }) => {
+                assistantPhase = "daily_budget_reservation";
                 const admission = await reserveAssistantDailyAdmission(env, {
                   operationId,
                   day: new Date().toISOString().slice(0, 10),
@@ -4515,6 +4528,7 @@ QUALITY RULES:
                 return releaseAssistantDailyAdmission(env, { operationId });
               },
               reserveGlobal: isX20Action ? null : async ({ creditSource, operationId, period: usagePeriod, tier }) => {
+                assistantPhase = "global_budget_reservation";
                 const guard = await reserveAssistantCostGuard(env, {
                   operationId,
                   period: usagePeriod,
@@ -4536,6 +4550,7 @@ QUALITY RULES:
               readUsage: (userId, usagePeriod) =>
                 isX20Action ? readAIUsage(env, userId, usagePeriod) : readAssistantUsage(env, userId, usagePeriod),
               execute: async ({ message: admittedMessage, safeHistory: admittedHistory, creditSource, tier, dailyReservation, globalReservation }) => {
+                assistantPhase = "provider_invocation";
                 if (!isX20Action) assistantCreditSource = creditSource || "monthly";
                 if (isX20Action) logX20Lifecycle("x20_provider_started", { actionId: x20Action?.actionId, attemptId: x20Attempt?.attemptId, attemptNumber: x20Attempt?.attemptNumber });
                 if (!isX20Action) {
@@ -4544,6 +4559,7 @@ QUALITY RULES:
                   try {
                     const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage, workspaceContext: businessContext });
                     adapted = await invokeAssistantWorkersAiText(env, projection, { tier });
+                    assistantPhase = "assistant_settlement";
                     if (dailyReservation && !assistantDailySettlementAttempted) {
                       assistantDailySettlementAttempted = true;
                       const dailySettlement = await settleAssistantDailyAdmission(env, { operationId: dailyReservation.operationId, actualNeurons: adapted.metrics?.neuronUsage });
@@ -4570,6 +4586,7 @@ QUALITY RULES:
                         });
                     if (!settlement.settled) throw new Error("HEGEVA_ASSISTANT_SETTLEMENT_UNAVAILABLE");
                     if (!adapted.ok) {
+                      assistantPhase = "provider_result_rejected";
                       const unavailable = new Error("Workers AI unavailable");
                       unavailable.name = timedOut ? "HEGEVA_AI_TIMEOUT" : "HEGEVA_PROVIDER_UNAVAILABLE";
                       throw unavailable;
@@ -4722,13 +4739,13 @@ QUALITY RULES:
           ...(isX20Action && x20Action?.actionId ? { actionId: x20Action.actionId, attemptId: x20Attempt?.attemptId || null, actionKind: "x20" } : {})
         });
       } catch (error) {
-        logFailure("ai_chat_handler_failed", error);
+        logFailure("ai_chat_handler_failed", error, { phase: assistantPhase });
 
         return Response.json(
           {
             error: "HEGEVA AI is temporarily unavailable.",
-            ...(!isX20Action && assistantOperationId ? { assistantOperationId } : {}),
-            ...(isX20Action && x20Action?.actionId ? { actionId: x20Action.actionId, attemptId: x20Attempt?.attemptId || null, actionKind: "x20" } : {})
+            ...(!isX20ActionForError && assistantOperationId ? { assistantOperationId } : {}),
+            ...(isX20ActionForError && x20Action?.actionId ? { actionId: x20Action.actionId, attemptId: x20Attempt?.attemptId || null, actionKind: "x20" } : {})
           },
           {
             status: 500

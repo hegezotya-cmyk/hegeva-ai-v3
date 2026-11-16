@@ -1,9 +1,11 @@
 name: Core Incident Offline Checks
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - codex/core-production-incident-recovery-20261114
+      - codex/fix-assistant-chat-error-scope-20261115
 
 permissions:
   contents: read
