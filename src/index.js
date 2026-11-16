@@ -4147,7 +4147,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         );
       }
 
-      let isX20Action = false;
+      let isX20ActionForError = false;
       let x20Action = null;
       let x20Attempt = null;
       let assistantOperationId = null;
@@ -4175,7 +4175,8 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         const body =
           await request.json();
 
-        isX20Action = body.actionKind === "x20";
+        const isX20Action = body.actionKind === "x20";
+        isX20ActionForError = isX20Action;
         const isX10StudioProfile = !isX20Action && body.appStudioProfile === "x10";
         if (!isX20Action) {
           const flags = parseProviderFlags(env);
@@ -4732,8 +4733,8 @@ QUALITY RULES:
         return Response.json(
           {
             error: "HEGEVA AI is temporarily unavailable.",
-            ...(!isX20Action && assistantOperationId ? { assistantOperationId } : {}),
-            ...(isX20Action && x20Action?.actionId ? { actionId: x20Action.actionId, attemptId: x20Attempt?.attemptId || null, actionKind: "x20" } : {})
+            ...(!isX20ActionForError && assistantOperationId ? { assistantOperationId } : {}),
+            ...(isX20ActionForError && x20Action?.actionId ? { actionId: x20Action.actionId, attemptId: x20Attempt?.attemptId || null, actionKind: "x20" } : {})
           },
           {
             status: 500
