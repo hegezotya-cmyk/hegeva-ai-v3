@@ -6,6 +6,7 @@ on:
     branches:
       - codex/core-production-incident-recovery-20261114
       - codex/fix-assistant-chat-error-scope-20261115
+      - codex/staging-assistant-combined-fix-20261116
 
 permissions:
   contents: read
