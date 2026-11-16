@@ -29,6 +29,7 @@ test("Assistant malformed JSON returns its controlled error instead of masking i
   const logged = JSON.stringify(logs);
   assert.match(logged, /ai_chat_handler_failed/);
   assert.match(logged, /SyntaxError/);
+  assert.match(logged, /"phase":"request_json"/);
   assert.doesNotMatch(logged, /isX20Action is not defined/);
 });
 
