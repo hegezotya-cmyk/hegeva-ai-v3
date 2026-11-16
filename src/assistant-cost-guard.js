@@ -24,7 +24,10 @@ function bucketInsert(env, period, budgetClass, limitUnits, now) {
   return env.DB.prepare(`
     INSERT INTO assistant_cost_guard_buckets (period,budgetClass,limitUnits,reservedUnits,settledUnits,createdAt,updatedAt)
     VALUES (?1,?2,?3,0,0,?4,?4)
-    ON CONFLICT(period,budgetClass) DO NOTHING
+    ON CONFLICT(period,budgetClass) DO UPDATE SET
+      limitUnits = excluded.limitUnits,
+      updatedAt = excluded.updatedAt
+    WHERE assistant_cost_guard_buckets.limitUnits <> excluded.limitUnits
   `).bind(period, budgetClass, limitUnits, now)
 }
 
