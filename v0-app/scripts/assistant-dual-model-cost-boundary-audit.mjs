@@ -70,6 +70,17 @@ try {
   assert.equal(one.reserved, true)
   const blocked = await reserveAssistantDailyAdmission(env, { operationId: "22222222-2222-4222-8222-222222222222", day: "2026-09-24", tier: "standard", reservationNeurons: 26, config })
   assert.equal(blocked.reason, "daily_capacity_exhausted")
+
+  // A bounded runtime config increase must refresh the persisted cap without
+  // clearing today's already reserved usage or weakening the neuron ceiling.
+  const raisedConfig = readAssistantDailyAdmissionConfig({ AI_DAILY_REQUEST_CEILING: "2", AI_DAILY_NEURON_CEILING: "52" })
+  const reopened = await reserveAssistantDailyAdmission(env, { operationId: "22222222-2222-4222-8222-222222222222", day: "2026-09-24", tier: "standard", reservationNeurons: 26, config: raisedConfig })
+  assert.equal(reopened.reserved, true)
+  const refreshedBucket = db.prepare("SELECT requestLimit, neuronLimit, reservedRequests, settledRequests, reservedNeurons, settledNeurons FROM assistant_daily_model_buckets WHERE day = ?").get("2026-09-24")
+  assert.deepEqual(refreshedBucket, { requestLimit: 2, neuronLimit: 52, reservedRequests: 2, settledRequests: 0, reservedNeurons: 52, settledNeurons: 0 })
+  const stillBlocked = await reserveAssistantDailyAdmission(env, { operationId: "33333333-3333-4333-8333-333333333333", day: "2026-09-24", tier: "standard", reservationNeurons: 26, config: raisedConfig })
+  assert.equal(stillBlocked.reason, "daily_capacity_exhausted")
+
   assert.equal((await settleAssistantDailyAdmission(env, { operationId: one.operationId, actualNeurons: null })).settled, true)
   assert.equal((await settleAssistantDailyAdmission(env, { operationId: one.operationId, actualNeurons: null })).duplicate, true)
   const next = await reserveAssistantDailyAdmission(env, { operationId: "33333333-3333-4333-8333-333333333333", day: "2026-09-25", tier: "standard", reservationNeurons: 26, config })
