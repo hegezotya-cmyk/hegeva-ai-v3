@@ -1,0 +1,39 @@
+name: V0 UI Dependency Preflight
+
+on:
+  push:
+    branches:
+      - codex/v0-ui-dependency-remediation-20261115
+  pull_request:
+    branches:
+      - v0-rebuild
+    paths:
+      - "v0-app/**"
+      - ".github/workflows/v0-ui-dependency-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify-v0-ui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v0-app
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: v0-app/package-lock.json
+      - name: Install V0 dependencies
+        run: npm ci
+      - name: Require a clean dependency audit
+        run: npm audit --audit-level=low
+      - name: TypeScript check
+        run: npx tsc --noEmit
+      - name: Next.js production build
+        run: npm run build
+      - name: Cloudflare adapter build (no deployment)
+        run: npm run cf:build
