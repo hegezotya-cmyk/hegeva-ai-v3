@@ -6,7 +6,22 @@ on:
     branches:
       - v0-rebuild
     paths:
-      - "v0-app/**"
+      - "v0-app/.env.production"
+      - "v0-app/app/**"
+      - "v0-app/components/**"
+      - "v0-app/lib/**"
+      - "v0-app/public/**"
+      - "v0-app/scripts/stage-static-html.mjs"
+      - "v0-app/cloudflare-env.d.ts"
+      - "v0-app/components.json"
+      - "v0-app/middleware.ts"
+      - "v0-app/next.config.mjs"
+      - "v0-app/open-next.config.ts"
+      - "v0-app/package.json"
+      - "v0-app/package-lock.json"
+      - "v0-app/postcss.config.mjs"
+      - "v0-app/tsconfig.json"
+      - "v0-app/wrangler.jsonc"
       - ".github/workflows/v0-ui-auto-deploy.yml"
 
 permissions:
@@ -23,6 +38,7 @@ env:
 jobs:
   verify-and-deploy:
     runs-on: ubuntu-latest
+    environment: production
     defaults:
       run:
         working-directory: v0-app
