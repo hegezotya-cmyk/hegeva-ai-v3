@@ -2008,6 +2008,33 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
     // OWNER CONTACT LEAD INBOX
     // =========================================
 
+    if (url.pathname === "/api/admin/sentry-test") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method not allowed." }, { status: 405 });
+      }
+
+      if (env.SENTRY_ENVIRONMENT !== "staging" || env.SENTRY_TEST_ENABLED !== "true") {
+        return Response.json({ error: "Not found." }, { status: 404 });
+      }
+
+      const user = await getLoggedInUserFn(request, env, ctx);
+      const adminEmail = typeof env.ADMIN_EMAIL === "string"
+        ? env.ADMIN_EMAIL.trim().toLowerCase()
+        : "";
+      if (!user?.email || !adminEmail || user.email.trim().toLowerCase() !== adminEmail) {
+        return Response.json({ error: "Not found." }, { status: 404 });
+      }
+
+      captureLoggedException(
+        new Error("HEGEVA_STAGING_SENTRY_TEST"),
+        (failure) => Sentry.captureException(failure),
+      );
+      return Response.json(
+        { ok: true },
+        { headers: { "Cache-Control": "no-store, max-age=0", "X-Content-Type-Options": "nosniff" } },
+      );
+    }
+
     if (url.pathname === "/api/admin/registrations") {
       const user = await getLoggedInUserFn(request, env, ctx);
       return listOwnerRegistrations(request, env, user);
