@@ -20,7 +20,7 @@ test("Sentry event scrubber drops business, request, identity, and message conte
     exception: { values: [{
       type: "TypeError",
       value: "contains customer data",
-      stacktrace: { frames: [{ filename: "src/index.js", lineno: 10, vars: { prompt: "private" } }] },
+      stacktrace: { frames: [{ filename: "src/index.js?private=1", lineno: 10, function: "dynamic-user-name", vars: { prompt: "private" } }] },
     }] },
   });
   assert.deepEqual(safe, {
@@ -33,4 +33,9 @@ test("Sentry event scrubber drops business, request, identity, and message conte
       stacktrace: { frames: [{ filename: "src/index.js", lineno: 10 }] },
     }] },
   });
+});
+
+test("unrecognized exception names cannot carry arbitrary text to Sentry", () => {
+  const safe = scrubSentryEvent({ exception: { values: [{ type: "private customer name: Alice", value: "secret" }] } });
+  assert.equal(safe.exception.values[0].type, "Error");
 });
