@@ -2009,7 +2009,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
     // =========================================
 
     if (url.pathname === "/api/admin/sentry-test") {
-      if (request.method !== "POST") {
+      if (!["GET", "POST"].includes(request.method)) {
         return Response.json({ error: "Method not allowed." }, { status: 405 });
       }
 
@@ -2025,6 +2025,17 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
         return Response.json({ error: "Not found." }, { status: 404 });
       }
 
+      if (request.method === "GET") {
+        return new Response(
+          "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>HEGEVA staging Sentry check</title><body><h1>Staging Sentry check</h1><p>This sends one test exception to the staging Sentry project and does not write to the database.</p><form method=\"post\"><button type=\"submit\">Send one test event</button></form></body></html>",
+          { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store, max-age=0", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; form-action 'self'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'" } },
+        );
+      }
+
+      const expectedOrigin = new URL(env.PUBLIC_APP_URL).origin;
+      if (request.headers.get("origin") !== expectedOrigin) {
+        return Response.json({ error: "Forbidden." }, { status: 403 });
+      }
       captureLoggedException(
         new Error("HEGEVA_STAGING_SENTRY_TEST"),
         (failure) => Sentry.captureException(failure),
