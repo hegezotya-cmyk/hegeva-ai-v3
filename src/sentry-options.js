@@ -74,3 +74,12 @@ export const sentryOptions = (env = {}) => {
     beforeSend: scrubSentryEvent,
   };
 };
+
+export function captureLoggedException(error, capture) {
+  if (typeof capture !== "function") return;
+  try {
+    capture(error);
+  } catch {
+    // Monitoring must never interfere with request handling.
+  }
+}
