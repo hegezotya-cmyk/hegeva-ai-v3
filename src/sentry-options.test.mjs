@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { sentryOptions, scrubSentryEvent } from "./sentry-options.js";
+import { captureLoggedException, sentryOptions, scrubSentryEvent } from "./sentry-options.js";
 
 test("Sentry is disabled unless staging and a DSN are both configured", () => {
   assert.equal(sentryOptions({ SENTRY_DSN: "https://example.invalid/1" }).enabled, false);
@@ -38,4 +38,12 @@ test("Sentry event scrubber drops business, request, identity, and message conte
 test("unrecognized exception names cannot carry arbitrary text to Sentry", () => {
   const safe = scrubSentryEvent({ exception: { values: [{ type: "private customer name: Alice", value: "secret" }] } });
   assert.equal(safe.exception.values[0].type, "Error");
+});
+
+test("logged exceptions are forwarded safely without affecting the handler", () => {
+  const failure = new TypeError("sensitive value");
+  let captured;
+  captureLoggedException(failure, (error) => { captured = error; });
+  assert.equal(captured, failure);
+  assert.doesNotThrow(() => captureLoggedException(failure, () => { throw new Error("monitoring failure"); }));
 });
