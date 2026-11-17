@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/cloudflare";
+import { captureLoggedException, sentryOptions } from "./sentry-options.js";
 import { listOwnerRegistrations, readOwnerAccess } from "./admin-registrations.js";
 import {
   createAuth,
@@ -134,6 +136,7 @@ export function emitMonitor(scope, outcome, metadata = {}) {
 }
 
 function logFailure(reason, error, metadata = {}) {
+  captureLoggedException(error, (failure) => Sentry.captureException(failure));
   console.error("HEGEVA_REQUEST_FAILURE", {
     reason,
     errorName: safeErrorName(error),
@@ -5170,4 +5173,4 @@ QUALITY RULES:
   };
 }
 
-export default createRequestHandler();
+export default Sentry.withSentry(sentryOptions, createRequestHandler());
