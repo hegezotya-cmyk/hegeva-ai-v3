@@ -1,11 +1,23 @@
-const SAFE_STACK_FRAME_KEYS = ["filename", "abs_path", "function", "lineno", "colno", "in_app", "module", "package"];
+const SAFE_ERROR_TYPES = new Set([
+  "Error",
+  "TypeError",
+  "ReferenceError",
+  "SyntaxError",
+  "RangeError",
+  "URIError",
+  "EvalError",
+  "AggregateError",
+]);
 
 function safeStacktrace(stacktrace) {
   if (!stacktrace || !Array.isArray(stacktrace.frames)) return undefined;
   return {
     frames: stacktrace.frames.map((frame) => {
       const safe = {};
-      for (const key of SAFE_STACK_FRAME_KEYS) {
+      if (typeof frame?.filename === "string") {
+        safe.filename = frame.filename.split(/[?#]/, 1)[0].slice(0, 240);
+      }
+      for (const key of ["lineno", "colno", "in_app"]) {
         if (frame?.[key] !== undefined) safe[key] = frame[key];
       }
       return safe;
@@ -18,12 +30,9 @@ export function scrubSentryEvent(event) {
   const values = event.exception.values
     .filter((value) => typeof value?.type === "string")
     .map((value) => ({
-      type: value.type.slice(0, 120),
+      type: SAFE_ERROR_TYPES.has(value.type) ? value.type : "Error",
       ...(safeStacktrace(value.stacktrace)
         ? { stacktrace: safeStacktrace(value.stacktrace) }
-        : {}),
-      ...(value.mechanism?.type
-        ? { mechanism: { type: String(value.mechanism.type).slice(0, 80) } }
         : {}),
     }));
   if (values.length === 0) return null;
