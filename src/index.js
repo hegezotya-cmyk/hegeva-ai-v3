@@ -116,6 +116,7 @@ export function emitMonitor(scope, outcome, metadata = {}) {
 }
 
 function logFailure(reason, error, metadata = {}) {
+  captureLoggedException(error, (failure) => Sentry.captureException(failure));
   console.error("HEGEVA_REQUEST_FAILURE", {
     reason,
     errorName: safeErrorName(error),
