@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/cloudflare";
-import { sentryOptions } from "./sentry-options.js";
+import { captureLoggedException, sentryOptions } from "./sentry-options.js";
 import { listOwnerRegistrations, readOwnerAccess } from "./admin-registrations.js";
 import {
   createAuth,
