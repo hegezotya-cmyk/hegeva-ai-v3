@@ -98,7 +98,9 @@ export function OperatingCenter(){
   const overdueRevenue=overdueInvoiceRecords.filter(item=>(item.currency||"GBP")==="GBP").reduce((sum,item)=>{const subtotal=(item.items||[]).reduce((value,line)=>value+(Number(line.quantity)||0)*(Number(line.unitPrice)||0),0);return sum+subtotal*(1+(Number(item.vatRate)||0)/100)},0)
   const followUpsAwaitingApproval=messages.filter(item=>item.sourceId&&(!item.workflowStatus||item.workflowStatus==="draft")).length
   const approvedFollowUps=messages.filter(item=>item.sourceId&&item.workflowStatus==="approved").length
-  const hasRecords=customers.length+documents.length+expenses.length+invoices.length>0
+  // Keep the local mission/pulse summary consistent with the Core API: tasks
+  // and messages are real workspace records even when business tables are empty.
+  const hasRecords=customers.length+documents.length+expenses.length+invoices.length+tasks.length+messages.length>0
   const missionProjection=createWorkspaceMissionProjection({scope:cloudEnabled?"authenticated-cloud":"local-browser",hasRecords,openTasks:open.length,overdueItems:overdueTasks+overdueInvoices})
   const pulse=createWorkspacePulseProjection({scope:cloudEnabled?"authenticated-cloud":"local-browser",hasRecords,openTasks:open.length,missionState:"awaiting-approval"})
   const missionStage=missionProjection.stage
