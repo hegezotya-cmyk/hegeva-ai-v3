@@ -27,6 +27,7 @@ test("Sentry event scrubber drops business, request, identity, and message conte
     event_id: "abc",
     timestamp: 1,
     platform: "javascript",
+    environment: "staging",
     level: "error",
     exception: { values: [{
       type: "TypeError",
