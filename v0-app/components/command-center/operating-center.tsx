@@ -109,7 +109,9 @@ export function OperatingCenter(){
   const completedStages=stages.filter(stage=>stage.done).length
   const currentStage=missionProjection.stage==="permission"?c.plan:stages.find(stage=>stage.active)?.label||stages.find(stage=>!stage.done)?.label||c.result
   const missionSummary=missionProjection.safeSummary.includes("No workspace")?projection.empty:missionProjection.safeSummary.includes("Workspace records")?projection.records:missionProjection.safeSummary.includes("Local preview")?projection.localApproval:missionProjection.safeSummary.includes("Awaiting")?projection.approval:missionProjection.safeSummary
-  const continuitySummary=coreStatus === "ready" ? (coreResponse.pulse.understood || projection.empty) : getCoreStatusSummary(locale, coreStatus)
+  const coreUnderstanding=coreResponse.pulse.understood
+  const localizedCoreUnderstanding=coreUnderstanding==="Workspace continuity is ready for review."?projection.continuity:coreUnderstanding==="No workspace data available."?projection.empty:coreUnderstanding
+  const continuitySummary=coreStatus === "ready" ? (localizedCoreUnderstanding || projection.empty) : getCoreStatusSummary(locale, coreStatus)
   const inventory=[[Users,c.customers,customers.length,"/business/customers"],[FileText,c.documents,documents.length,"/business/documents"],[Receipt,c.expenses,expenses.length,"/business/expenses"],[ListChecks,c.invoices,invoices.length,"/business/invoices"],[MessageSquareText,c.messages,messages.length,"/business/messages"]] as const
   const pulseMetrics:Array<[typeof CalendarDays,string,string|number]>=[[CalendarDays,pc.tasksToday,tasksToday],[ListChecks,pc.openInvoices,openInvoices.length],[PoundSterling,pc.expectedRevenue,expectedRevenue.toLocaleString(locale,{style:"currency",currency:"GBP"})],[MessageSquareText,pc.draftMessages,messages.length]]
   const onboardingSteps:Array<[typeof UserPlus,string,string,boolean]>=[[UserPlus,oc.customer,"/business/customers",customers.length>0],[CalendarDays,oc.task,"/business/planner",tasks.length>0],[Receipt,oc.invoice,"/business/invoices",invoices.length>0],[Bot,oc.assistant,"/assistant",assistantHistory.length>0]]
