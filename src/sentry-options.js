@@ -41,6 +41,7 @@ export function scrubSentryEvent(event) {
     event_id: event.event_id,
     timestamp: event.timestamp,
     platform: "javascript",
+    environment: typeof event.environment === "string" ? event.environment.slice(0, 32) : "staging",
     level: "error",
     exception: { values },
   };
