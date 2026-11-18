@@ -24,10 +24,6 @@ concurrency:
   group: hegeva-cloudflare-release
   cancel-in-progress: false
 
-env:
-  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
 jobs:
   preflight:
     runs-on: ubuntu-latest
@@ -58,6 +54,7 @@ jobs:
     needs: preflight
     if: ${{ inputs.stage != 'check' }}
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -80,6 +77,9 @@ jobs:
 
       - name: Require Cloudflare credentials
         if: ${{ inputs.stage != 'smoke' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         shell: bash
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN repository secret"; exit 1; }
@@ -87,18 +87,30 @@ jobs:
 
       - name: Show remote D1 migration state
         if: ${{ inputs.stage == 'remote-state' || inputs.stage == 'migrate' || inputs.stage == 'full' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npm run release:remote-state
 
       - name: Apply remote D1 migrations
         if: ${{ inputs.stage == 'migrate' || inputs.stage == 'full' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npm run db:migrate:remote
 
       - name: Deploy API Worker
         if: ${{ inputs.stage == 'deploy-api' || inputs.stage == 'full' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npm run deploy:api
 
       - name: Deploy V0 UI Worker
         if: ${{ inputs.stage == 'deploy-ui' || inputs.stage == 'full' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npm run deploy:ui
 
       - name: Run live smoke test
