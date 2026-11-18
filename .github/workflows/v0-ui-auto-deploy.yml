@@ -22,7 +22,6 @@ on:
       - "v0-app/postcss.config.mjs"
       - "v0-app/tsconfig.json"
       - "v0-app/wrangler.jsonc"
-      - ".github/workflows/v0-ui-auto-deploy.yml"
 
 permissions:
   contents: read
