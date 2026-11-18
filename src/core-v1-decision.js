@@ -379,7 +379,9 @@ function extractCoreSignals(workspaceData, today) {
   const openTasks = tasks.filter(item => !item.done);
   const overdueTasks = openTasks.filter(item => item.due && item.due < today).length;
   const tasksToday = openTasks.filter(item => item.due === today).length;
-  const hasRecords = customers.length + documents.length + expenses.length + invoices.length > 0;
+  // Tasks and messages are workspace records too. Omitting them made Core
+  // report an empty workspace while its task and follow-up signals were live.
+  const hasRecords = customers.length + documents.length + expenses.length + invoices.length + tasks.length + messages.length > 0;
 
   return {
     approvedFollowUps,
