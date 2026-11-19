@@ -14,11 +14,12 @@ All pages use unique titles, descriptions, H1s, differentiated copy, internal li
 
 The CTA path is real: landing page → HEGEVA registration/login → Command Center. Pricing links use the verified Premium £14.99/month and Pro £29.99/month values. Local, capped, first-party attribution records only landing-page view, registration-start and pricing-view event names, route and timestamp; it records no email, customer, invoice, document or message content and sends nothing to an advertising platform.
 
-Owner follow-up after deployment:
+Search Console check (2026-11-19):
 
-1. Verify `https://hegevaai.co.uk` in Google Search Console using the owner's Google account or DNS method.
-2. Submit `https://hegevaai.co.uk/sitemap.xml`.
-3. Review indexing and search-query data before creating any Google Ads campaign.
-4. Select a consent-aware analytics service and account if cross-device aggregate funnel measurement is required. Do not add an invented analytics ID.
+1. The owner-verified Domain property `sc-domain:hegevaai.co.uk` is accessible.
+2. `https://hegevaai.co.uk/sitemap.xml` is already submitted and successful; Google reports 19 discovered URLs. Its last read was 2026-11-13.
+3. The latest indexing report shows 8 indexed and 55 excluded URLs. Fourteen public URLs are discovered but not yet indexed; excluded staging/private URLs are not automatically errors.
+4. After the SEO cleanup deploys, recheck the sitemap and page-indexing report. Request indexing only for the five acquisition pages if they remain undiscovered after recrawl.
+5. Review search-query data before creating any Google Ads campaign. Select a consent-aware analytics service if cross-device aggregate funnel measurement is required. Do not add an invented analytics ID.
 
 No Google Ads campaign was created, no budget was accepted and no advertising spend was initiated in this package.
