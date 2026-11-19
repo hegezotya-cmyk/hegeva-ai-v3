@@ -11,6 +11,7 @@ const IS_STAGING = process.env.NEXT_PUBLIC_APP_ENV === "staging"
 const MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || (IS_STAGING ? "" : "G-TK99HP2BG7")
 const ANALYTICS_DEBUG_MODE = process.env.NEXT_PUBLIC_GA_DEBUG_MODE === "enabled"
 const CLARITY_PROJECT_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID || ""
+const CLARITY_PUBLIC_PATHS = ["/", "/pricing", "/ai-for-small-business", "/ai-business-assistant", "/quote-and-invoice-software", "/ai-for-trades", "/ai-for-electricians", "/for-electricians", "/for-builders", "/for-plumbers", "/for-cleaners", "/for-property-maintenance", "/for-consultants"]
 const CONSENT_KEY = "hegeva:analytics-consent:v1"
 const PENDING_CTA_KEY = "hegeva:pending-acquisition:v1"
 type Consent = "granted" | "denied" | null
@@ -25,11 +26,11 @@ declare global {
 }
 
 const copy = {
-  en: { title: "Your privacy choices", body: "With your permission, HEGEVA uses Google Analytics to understand visits and registration starts. We do not send business records, form content or advertising identifiers.", accept: "Allow analytics", reject: "Essential only", manage: "Privacy choices", privacy: "Privacy notice" },
-  hu: { title: "Adatvédelmi beállítások", body: "Engedélyeddel a HEGEVA Google Analytics segítségével méri a látogatásokat és a regisztrációk elindítását. Üzleti adatokat, űrlaptartalmat és reklámazonosítókat nem küldünk.", accept: "Analytics engedélyezése", reject: "Csak szükséges", manage: "Adatvédelmi beállítások", privacy: "Adatvédelmi tájékoztató" },
-  de: { title: "Ihre Datenschutzauswahl", body: "Mit Ihrer Erlaubnis nutzt HEGEVA Google Analytics, um Besuche und Registrierungsstarts zu verstehen. Geschäftsdaten, Formularinhalte und Werbe-IDs werden nicht gesendet.", accept: "Analytics erlauben", reject: "Nur erforderlich", manage: "Datenschutzauswahl", privacy: "Datenschutzhinweis" },
-  fr: { title: "Vos choix de confidentialité", body: "Avec votre accord, HEGEVA utilise Google Analytics pour comprendre les visites et les débuts d’inscription. Aucune donnée métier, contenu de formulaire ou identifiant publicitaire n’est envoyé.", accept: "Autoriser Analytics", reject: "Nécessaires uniquement", manage: "Choix de confidentialité", privacy: "Avis de confidentialité" },
-  es: { title: "Tus opciones de privacidad", body: "Con tu permiso, HEGEVA usa Google Analytics para conocer las visitas y los inicios de registro. No enviamos datos empresariales, contenido de formularios ni identificadores publicitarios.", accept: "Permitir Analytics", reject: "Solo necesarias", manage: "Opciones de privacidad", privacy: "Aviso de privacidad" },
+  en: { title: "Your privacy choices", body: `With your permission, HEGEVA uses Google Analytics to understand visits and registration starts.${CLARITY_PROJECT_ID ? " Microsoft Clarity may record interactions on public marketing pages; it is disabled on sign-in and workspace pages." : ""} We do not send business records, form content or advertising identifiers.`, accept: "Allow analytics", reject: "Essential only", manage: "Privacy choices", privacy: "Privacy notice" },
+  hu: { title: "Adatvédelmi beállítások", body: `Engedélyeddel a HEGEVA Google Analytics segítségével méri a látogatásokat és a regisztrációk elindítását.${CLARITY_PROJECT_ID ? " A Microsoft Clarity a nyilvános marketingoldalak használatát rögzítheti; a bejelentkezési és munkaterületi oldalakon nem fut." : ""} Üzleti adatokat, űrlaptartalmat és reklámazonosítókat nem küldünk.`, accept: "Analytics engedélyezése", reject: "Csak szükséges", manage: "Adatvédelmi beállítások", privacy: "Adatvédelmi tájékoztató" },
+  de: { title: "Ihre Datenschutzauswahl", body: `Mit Ihrer Erlaubnis nutzt HEGEVA Google Analytics, um Besuche und Registrierungsstarts zu verstehen.${CLARITY_PROJECT_ID ? " Microsoft Clarity kann Interaktionen auf öffentlichen Marketingseiten aufzeichnen; auf Anmelde- und Arbeitsbereichsseiten ist es deaktiviert." : ""} Geschäftsdaten, Formularinhalte und Werbe-IDs werden nicht gesendet.`, accept: "Analytics erlauben", reject: "Nur erforderlich", manage: "Datenschutzauswahl", privacy: "Datenschutzhinweis" },
+  fr: { title: "Vos choix de confidentialité", body: `Avec votre accord, HEGEVA utilise Google Analytics pour comprendre les visites et les débuts d’inscription.${CLARITY_PROJECT_ID ? " Microsoft Clarity peut enregistrer les interactions sur les pages marketing publiques ; il est désactivé sur les pages de connexion et de l’espace de travail." : ""} Aucune donnée métier, contenu de formulaire ou identifiant publicitaire n’est envoyé.`, accept: "Autoriser Analytics", reject: "Nécessaires uniquement", manage: "Choix de confidentialité", privacy: "Avis de confidentialité" },
+  es: { title: "Tus opciones de privacidad", body: `Con tu permiso, HEGEVA usa Google Analytics para conocer las visitas y los inicios de registro.${CLARITY_PROJECT_ID ? " Microsoft Clarity puede registrar interacciones en páginas públicas de marketing; está desactivado en las páginas de inicio de sesión y del espacio de trabajo." : ""} No enviamos datos empresariales, contenido de formularios ni identificadores publicitarios.`, accept: "Permitir Analytics", reject: "Solo necesarias", manage: "Opciones de privacidad", privacy: "Aviso de privacidad" },
 } as const
 
 function queueConsentDefault() {
@@ -70,11 +71,15 @@ function enableAnalytics(pageReferrer = analyticsReferrerOrigin(document.referre
     document.head.appendChild(script)
   }
   if (CLARITY_PROJECT_ID) {
+    if (!CLARITY_PUBLIC_PATHS.includes(window.location.pathname)) {
+      window.clarity?.("consentv2", { ad_Storage: "denied", analytics_Storage: "denied" })
+      return
+    }
     window.clarity = window.clarity || function clarity(...args: unknown[]) {
       (window.clarity as unknown as { q?: unknown[] }).q = (window.clarity as unknown as { q?: unknown[] }).q || []
       ;(window.clarity as unknown as { q: unknown[] }).q.push(args)
     }
-    window.clarity("consentv2", { ad_Storage: "granted", analytics_Storage: "granted" })
+    window.clarity("consentv2", { ad_Storage: "denied", analytics_Storage: "granted" })
     if (!document.getElementById("hegeva-microsoft-clarity")) {
       const script = document.createElement("script")
       script.id = "hegeva-microsoft-clarity"
