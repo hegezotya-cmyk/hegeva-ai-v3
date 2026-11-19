@@ -1,6 +1,33 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createRequestHandler } from "./index.js";
+import { createRequestHandler, emitMonitor } from "./index.js";
+
+test("monitor routes successful, warning, and failure outcomes to appropriate log levels", () => {
+  const calls = { info: [], warn: [], error: [] };
+  const original = { info: console.info, warn: console.warn, error: console.error };
+  console.info = (...args) => calls.info.push(args);
+  console.warn = (...args) => calls.warn.push(args);
+  console.error = (...args) => calls.error.push(args);
+  try {
+    emitMonitor("core_v1", "decision_completed", { actionCount: 3 });
+    emitMonitor("auth", "rate_limited");
+    emitMonitor("core_v1", "handler_failed");
+  } finally {
+    console.info = original.info;
+    console.warn = original.warn;
+    console.error = original.error;
+  }
+
+  assert.equal(calls.info.length, 1);
+  assert.equal(calls.info[0][0], "HEGEVA_MONITOR");
+  assert.equal(calls.info[0][1].outcome, "decision_completed");
+  assert.equal(calls.info[0][1].actionCount, 3);
+  assert.equal(calls.warn.length, 1);
+  assert.equal(calls.warn[0][1].outcome, "rate_limited");
+  assert.equal(calls.error.length, 1);
+  assert.equal(calls.error[0][1].outcome, "handler_failed");
+});
+
 import { reserveAssistantCostGuard } from "./assistant-cost-guard.js";
 
 
