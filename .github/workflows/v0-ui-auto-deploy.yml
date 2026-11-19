@@ -37,9 +37,19 @@ jobs:
     defaults:
       run:
         working-directory: v0-app
+    env:
+      NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
+      NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.POSTHOG_API_HOST }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+
+      - name: Require PostHog EU configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN" || { echo "Missing production POSTHOG_PROJECT_TOKEN secret"; exit 1; }
+          test "$NEXT_PUBLIC_POSTHOG_HOST" = "https://eu.i.posthog.com" || { echo "POSTHOG_API_HOST must be exactly https://eu.i.posthog.com"; exit 1; }
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
