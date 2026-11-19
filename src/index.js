@@ -1546,14 +1546,15 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
     request = limitedRequest;
 
     if (url.pathname === "/api/admin/sentry-smoke-test") {
-      if (request.method !== "POST") {
-        return Response.json({ error: "Method not allowed." }, { status: 405, headers: { Allow: "POST", "Cache-Control": "no-store" } });
-      }
+      if (request.method !== "GET" && request.method !== "POST") return Response.json({ error: "Method not allowed." }, { status: 405, headers: { Allow: "GET, POST", "Cache-Control": "no-store" } });
       const user = await getLoggedInUserFn(request, env, ctx);
       if (!user) return Response.json({ error: "Authentication required." }, { status: 401, headers: { "Cache-Control": "no-store" } });
       const ownerEmail = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
       if (!ownerEmail || typeof user.email !== "string" || user.email.trim().toLowerCase() !== ownerEmail) {
         return Response.json({ error: "Owner access required." }, { status: 403, headers: { "Cache-Control": "no-store" } });
+      }
+      if (request.method === "GET") {
+        return new Response(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HEGEVA Sentry smoke test</title><style>body{font:16px system-ui;max-width:600px;margin:12vh auto;padding:24px;color:#17212b}main{border:1px solid #ccd3da;border-radius:12px;padding:28px}button{padding:12px 18px;border:0;border-radius:8px;background:#087f5b;color:white;font-weight:700;cursor:pointer}</style><main><h1>HEGEVA Sentry smoke test</h1><p>This sends one clearly labeled test event to Sentry. It does not change customer or business data.</p><form method="post"><button type="submit">Send one test event</button></form></main></html>`, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'" } });
       }
       try {
         const eventId = Sentry.captureMessage("HEGEVA SENTRY SMOKE TEST", {
