@@ -4,6 +4,8 @@
   "main": "src/index-ledger.js",
   "compatibility_date": "2026-09-02",
   "compatibility_flags": ["nodejs_compat"],
+  "version_metadata": { "binding": "CF_VERSION_METADATA" },
+  "upload_source_maps": true,
   "workers_dev": true,
   "keep_vars": true,
   "observability": {
@@ -14,6 +16,7 @@
   "vars": {
     "PAYMENT_PROVIDER": "stripe",
     "PAYMENT_MODE": "test",
+    "SENTRY_ENVIRONMENT": "staging",
     "PUBLIC_APP_URL": "https://staging.hegevaai.co.uk",
     "STRIPE_PREMIUM_PRICE_ID": "price_1U4YwrHH1vUED8ZNhhfKfzNK",
     "STRIPE_PRO_PRICE_ID": "price_1U4YzOHH1vUED8ZNWbKbl3FH",
