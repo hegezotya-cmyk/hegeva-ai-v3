@@ -19,7 +19,13 @@ export async function reserveAssistantDailyAdmission(env, { operationId, day, ti
   const createdAt = iso(now)
   try {
     await env.DB.batch([
-      env.DB.prepare(`INSERT INTO assistant_daily_model_buckets (day,requestLimit,neuronLimit,createdAt,updatedAt) VALUES (?1,?2,?3,?4,?4) ON CONFLICT(day) DO NOTHING`).bind(day, config.requestLimit, config.neuronLimit, createdAt),
+      env.DB.prepare(`INSERT INTO assistant_daily_model_buckets (day,requestLimit,neuronLimit,createdAt,updatedAt) VALUES (?1,?2,?3,?4,?4)
+      ON CONFLICT(day) DO UPDATE SET
+        requestLimit = excluded.requestLimit,
+        neuronLimit = excluded.neuronLimit,
+        updatedAt = excluded.updatedAt
+      WHERE assistant_daily_model_buckets.requestLimit <> excluded.requestLimit
+         OR assistant_daily_model_buckets.neuronLimit <> excluded.neuronLimit`).bind(day, config.requestLimit, config.neuronLimit, createdAt),
       env.DB.prepare(`INSERT INTO assistant_daily_model_reservations (operationId,day,tier,reservedNeurons,settledNeurons,status,createdAt,updatedAt) VALUES (?1,?2,?3,?4,?4,'reserved',?5,?5)`).bind(operationId, day, tier, reservationNeurons, createdAt),
     ])
     return { reserved: true, operationId, day, tier, reservationNeurons }
