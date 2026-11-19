@@ -84,7 +84,7 @@ async function getPostHogClient(): Promise<PostHogBrowser | null> {
         disable_product_tours: true,
         capture_exceptions: false,
         capture_performance: false,
-        captureConsoleLogs: false,
+        enable_recording_console_log: false,
         disableDeviceModel: true,
         person_profiles: "never",
         get_current_url: () => {
@@ -208,7 +208,8 @@ export function AnalyticsConsent() {
     const receive = (event: Event) => {
       if (consent !== "granted") return
       const detail = (event as CustomEvent<{ event?: string; path?: string; params?: Record<string, string | number | boolean> }>).detail
-      if (!detail || !["landing_page_view", "registration_start", "registration_submitted", "registration_completed", "email_verified", "get_started_entry", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click", "challenge_view", "challenge_start", "business_type_selected", "demo_loaded", "demo_analysis_complete", "priority_viewed", "prepare_action_click", "prepared_action_complete", "challenge_complete", "business_score_view", "try_my_business_click", "own_business_start", "own_business_result", "share_click", "free_tool_use", "free_tool_cta_click", "referral_visit", "referral_signup", "referral_link_copy", "referral_paid_qualified", "referral_reward_reviewed"].includes(detail.event || "")) return
+      const eventName = detail?.event
+      if (!detail || !eventName || !["landing_page_view", "registration_start", "registration_submitted", "registration_completed", "email_verified", "get_started_entry", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click", "challenge_view", "challenge_start", "business_type_selected", "demo_loaded", "demo_analysis_complete", "priority_viewed", "prepare_action_click", "prepared_action_complete", "challenge_complete", "business_score_view", "try_my_business_click", "own_business_start", "own_business_result", "share_click", "free_tool_use", "free_tool_cta_click", "referral_visit", "referral_signup", "referral_link_copy", "referral_paid_qualified", "referral_reward_reviewed"].includes(eventName)) return
       const activationPaths = ["/get-started", "/business/launch", "/business/customers", "/business/invoices", "/command-center", "/pricing", "/account", "/demo", "/challenge"]
       if (!detail.path || (!PUBLIC_ANALYTICS_PATHS.includes(detail.path) && !activationPaths.includes(detail.path))) return
       const key = `${detail.event}:${detail.path}`
@@ -220,7 +221,7 @@ export function AnalyticsConsent() {
         : ["referral_link_copy", "referral_paid_qualified"].includes(detail.event || "") ? {} : detail.params || {}
       const analyticsParams = detail.event === "referral_reward_reviewed" ? rewardParams : { page_path: detail.path, page_location: analyticsPageLocation(detail.path), page_title: "HEGEVA AI", page_referrer: currentPageReferrer.current, ...campaignAttribution(), ...rewardParams, ...(ANALYTICS_DEBUG_MODE ? { debug_mode: true } : {}) }
       window.gtag?.("event", detail.event, analyticsParams)
-      capturePostHogEvent(detail.event, detail.path)
+      capturePostHogEvent(eventName, detail.path)
     }
     window.addEventListener("hegeva:analytics-event", receive)
     return () => window.removeEventListener("hegeva:analytics-event", receive)
