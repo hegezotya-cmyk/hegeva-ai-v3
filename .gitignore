@@ -1,5 +1,6 @@
 node_modules/
 .wrangler/
+.sentry-worker-build/
 auth-schema-temp.mjs
 .DS_Store
 *.log
