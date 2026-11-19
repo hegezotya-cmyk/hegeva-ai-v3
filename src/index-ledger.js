@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/cloudflare";
 import hegevaWorker, { emitMonitor } from "./index.js";
 import { reconcileReferralRewardForUser, reverseApprovedReferralRewards } from "./referral-reward-review.js";
 export { UserRateLimiter } from "./user-rate-limiter-do.js";
@@ -746,7 +747,7 @@ async function handleStripeWebhook(request, env, ctx) {
   return response;
 }
 
-export default {
+const hegevaLedgerWorker = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
@@ -773,3 +774,19 @@ export default {
     return hegevaWorker.fetch(request, env, ctx);
   },
 };
+
+export default Sentry.withSentry(
+  (env) => ({
+    dsn: env.SENTRY_DSN,
+    environment: env.SENTRY_ENVIRONMENT || "production",
+    tracesSampleRate: 0,
+    sendDefaultPii: false,
+    beforeSend(event) {
+      delete event.user;
+      delete event.request;
+      delete event.extra;
+      return event;
+    },
+  }),
+  hegevaLedgerWorker,
+);
