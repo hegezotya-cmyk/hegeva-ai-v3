@@ -107,7 +107,18 @@ function safeErrorName(error) {
 }
 
 export function emitMonitor(scope, outcome, metadata = {}) {
-  console.error("HEGEVA_MONITOR", {
+  const severity = outcome === "failure" || outcome.endsWith("_failed")
+    ? "error"
+    : /(?:invalid|mismatch|rate_limited)$/.test(outcome)
+      ? "warn"
+      : "info";
+  const log = severity === "error"
+    ? console.error
+    : severity === "warn"
+      ? console.warn
+      : console.info;
+
+  log("HEGEVA_MONITOR", {
     scope,
     outcome,
     ...metadata,
