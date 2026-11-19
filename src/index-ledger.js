@@ -779,6 +779,7 @@ export default Sentry.withSentry(
   (env) => ({
     dsn: env.SENTRY_DSN,
     environment: env.SENTRY_ENVIRONMENT || "production",
+    release: env.SENTRY_RELEASE || env.CF_VERSION_METADATA?.id,
     tracesSampleRate: 0,
     sendDefaultPii: false,
     beforeSend(event) {
