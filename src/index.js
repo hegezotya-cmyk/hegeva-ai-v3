@@ -1545,6 +1545,29 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
     if (limitedRequest instanceof Response) return limitedRequest;
     request = limitedRequest;
 
+    if (url.pathname === "/api/admin/sentry-smoke-test") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method not allowed." }, { status: 405, headers: { Allow: "POST", "Cache-Control": "no-store" } });
+      }
+      const user = await getLoggedInUserFn(request, env, ctx);
+      if (!user) return Response.json({ error: "Authentication required." }, { status: 401, headers: { "Cache-Control": "no-store" } });
+      const ownerEmail = typeof env.AI_BOT_CANARY_EMAIL === "string" ? env.AI_BOT_CANARY_EMAIL.trim().toLowerCase() : "";
+      if (!ownerEmail || typeof user.email !== "string" || user.email.trim().toLowerCase() !== ownerEmail) {
+        return Response.json({ error: "Owner access required." }, { status: 403, headers: { "Cache-Control": "no-store" } });
+      }
+      try {
+        const eventId = Sentry.captureMessage("HEGEVA SENTRY SMOKE TEST", {
+          level: "warning",
+          tags: { "hegeva.smoke_test": "true" },
+        });
+        const flushed = await Sentry.flush(2000);
+        if (!flushed) return Response.json({ sent: false, error: "Sentry delivery timed out." }, { status: 502, headers: { "Cache-Control": "no-store" } });
+        return Response.json({ sent: true, eventId }, { headers: { "Cache-Control": "no-store" } });
+      } catch {
+        return Response.json({ sent: false, error: "Sentry test event could not be sent." }, { status: 502, headers: { "Cache-Control": "no-store" } });
+      }
+    }
+
     if (url.pathname === "/api/client-portal/share" && request.method === "POST") {
       const user=await getLoggedInUser(request,env,ctx);if(!user)return Response.json({error:"Authentication required."},{status:401});
       let body;try{body=await request.json()}catch{return Response.json({error:"Invalid JSON body."},{status:400})}
