@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/cloudflare";
 import { listOwnerRegistrations, readOwnerAccess } from "./admin-registrations.js";
 import {
   createAuth,
@@ -114,6 +115,21 @@ export function emitMonitor(scope, outcome, metadata = {}) {
 }
 
 function logFailure(reason, error, metadata = {}) {
+  // These are caught operational failures: the request handler intentionally
+  // converts them into a controlled response, so the outer Worker wrapper
+  // cannot observe them as uncaught exceptions. Keep Sentry context limited
+  // to non-identifying labels; metadata may contain account or provider IDs.
+  try {
+    Sentry.captureException(error, {
+      tags: {
+        "hegeva.failure_reason": reason,
+        "hegeva.error_name": safeErrorName(error),
+      },
+    });
+  } catch {
+    // Monitoring must never change the application's response behavior.
+  }
+
   console.error("HEGEVA_REQUEST_FAILURE", {
     reason,
     errorName: safeErrorName(error),
