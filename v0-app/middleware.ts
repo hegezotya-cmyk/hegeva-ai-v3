@@ -14,13 +14,20 @@ export function middleware(request: NextRequest) {
   }
 
   // These malformed legacy homepage paths were found as 404s in Search Console.
-  // Consolidate them at the canonical homepage instead of keeping dead URLs indexed.
-  if (request.nextUrl.pathname === "/&" || request.nextUrl.pathname === "/$") {
+  // Browsers and Google may percent-encode the reserved characters in a path.
+  const pathname = request.nextUrl.pathname
+  const isMalformedHomepagePath =
+    pathname === "/&" ||
+    pathname === "/$" ||
+    /^\/%(?:26|24)$/i.test(pathname)
+
+  if (isMalformedHomepagePath) {
     const canonical = request.nextUrl.clone()
     canonical.protocol = "https:"
     canonical.hostname = "hegevaai.co.uk"
     canonical.port = ""
     canonical.pathname = "/"
+    canonical.search = ""
     return NextResponse.redirect(canonical, 308)
   }
 
