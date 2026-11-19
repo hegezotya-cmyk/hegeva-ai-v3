@@ -2,6 +2,20 @@ name: HEGEVA V0 Build Check
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - v0-rebuild
+    paths:
+      - "v0-app/**"
+      - "src/**"
+      - "migrations/**"
+      - "scripts/**"
+      - "package.json"
+      - "package-lock.json"
+      - "wrangler.jsonc"
+      - "wrangler.staging.jsonc"
+      - ".github/workflows/main.yml"
+      - ".github/workflows/release.yml"
   push:
     branches:
       - v0-rebuild
@@ -40,8 +54,9 @@ jobs:
       - name: Install Worker dependencies
         run: npm ci
 
-      - name: Worker syntax check
+      - name: Worker monitoring and syntax checks
         run: |
+          npm run worker:check
           node --check src/index-ledger.js
           node --check src/index.js
           node --check src/auth.js
