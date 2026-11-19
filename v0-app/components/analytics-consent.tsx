@@ -11,10 +11,31 @@ const IS_STAGING = process.env.NEXT_PUBLIC_APP_ENV === "staging"
 const MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || (IS_STAGING ? "" : "G-TK99HP2BG7")
 const ANALYTICS_DEBUG_MODE = process.env.NEXT_PUBLIC_GA_DEBUG_MODE === "enabled"
 const CLARITY_PROJECT_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID || ""
+const POSTHOG_PROJECT_TOKEN = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || ""
+const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || ""
 const CLARITY_PUBLIC_PATHS = ["/", "/pricing", "/ai-for-small-business", "/ai-business-assistant", "/quote-and-invoice-software", "/ai-for-trades", "/ai-for-electricians", "/for-electricians", "/for-builders", "/for-plumbers", "/for-cleaners", "/for-property-maintenance", "/for-consultants"]
+const POSTHOG_EVENTS = new Set([
+  "$pageview",
+  "landing_page_view", "registration_start", "registration_submitted", "registration_completed", "email_verified",
+  "get_started_entry", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created",
+  "first_core_priority_seen", "pricing_view", "activation_completed", "primary_cta_click", "demo_entry_click",
+  "demo_workspace_view", "demo_business_switch", "demo_signup_click", "challenge_view", "challenge_start",
+  "business_type_selected", "demo_loaded", "demo_analysis_complete", "priority_viewed", "prepare_action_click",
+  "prepared_action_complete", "challenge_complete", "business_score_view", "try_my_business_click", "own_business_start",
+  "own_business_result", "share_click", "free_tool_use", "free_tool_cta_click", "referral_visit", "referral_signup",
+  "referral_link_copy", "referral_paid_qualified", "referral_reward_reviewed",
+])
+const POSTHOG_ALLOWED_PATHS = [
+  ...PUBLIC_ANALYTICS_PATHS,
+  "/get-started", "/business/launch", "/business/customers", "/business/invoices", "/command-center",
+]
 const CONSENT_KEY = "hegeva:analytics-consent:v1"
 const PENDING_CTA_KEY = "hegeva:pending-acquisition:v1"
 type Consent = "granted" | "denied" | null
+type PostHogBrowser = typeof import("posthog-js").default
+
+let posthogClient: PostHogBrowser | null = null
+let posthogInit: Promise<PostHogBrowser | null> | null = null
 
 declare global {
   interface Window {
@@ -26,12 +47,86 @@ declare global {
 }
 
 const copy = {
-  en: { title: "Your privacy choices", body: `With your permission, HEGEVA uses Google Analytics to understand visits and registration starts.${CLARITY_PROJECT_ID ? " Microsoft Clarity may record interactions on public marketing pages; it is disabled on sign-in and workspace pages." : ""} We do not send business records, form content or advertising identifiers.`, accept: "Allow analytics", reject: "Essential only", manage: "Privacy choices", privacy: "Privacy notice" },
-  hu: { title: "Adatvédelmi beállítások", body: `Engedélyeddel a HEGEVA Google Analytics segítségével méri a látogatásokat és a regisztrációk elindítását.${CLARITY_PROJECT_ID ? " A Microsoft Clarity a nyilvános marketingoldalak használatát rögzítheti; a bejelentkezési és munkaterületi oldalakon nem fut." : ""} Üzleti adatokat, űrlaptartalmat és reklámazonosítókat nem küldünk.`, accept: "Analytics engedélyezése", reject: "Csak szükséges", manage: "Adatvédelmi beállítások", privacy: "Adatvédelmi tájékoztató" },
-  de: { title: "Ihre Datenschutzauswahl", body: `Mit Ihrer Erlaubnis nutzt HEGEVA Google Analytics, um Besuche und Registrierungsstarts zu verstehen.${CLARITY_PROJECT_ID ? " Microsoft Clarity kann Interaktionen auf öffentlichen Marketingseiten aufzeichnen; auf Anmelde- und Arbeitsbereichsseiten ist es deaktiviert." : ""} Geschäftsdaten, Formularinhalte und Werbe-IDs werden nicht gesendet.`, accept: "Analytics erlauben", reject: "Nur erforderlich", manage: "Datenschutzauswahl", privacy: "Datenschutzhinweis" },
-  fr: { title: "Vos choix de confidentialité", body: `Avec votre accord, HEGEVA utilise Google Analytics pour comprendre les visites et les débuts d’inscription.${CLARITY_PROJECT_ID ? " Microsoft Clarity peut enregistrer les interactions sur les pages marketing publiques ; il est désactivé sur les pages de connexion et de l’espace de travail." : ""} Aucune donnée métier, contenu de formulaire ou identifiant publicitaire n’est envoyé.`, accept: "Autoriser Analytics", reject: "Nécessaires uniquement", manage: "Choix de confidentialité", privacy: "Avis de confidentialité" },
-  es: { title: "Tus opciones de privacidad", body: `Con tu permiso, HEGEVA usa Google Analytics para conocer las visitas y los inicios de registro.${CLARITY_PROJECT_ID ? " Microsoft Clarity puede registrar interacciones en páginas públicas de marketing; está desactivado en las páginas de inicio de sesión y del espacio de trabajo." : ""} No enviamos datos empresariales, contenido de formularios ni identificadores publicitarios.`, accept: "Permitir Analytics", reject: "Solo necesarias", manage: "Opciones de privacidad", privacy: "Aviso de privacidad" },
+  en: { title: "Your privacy choices", body: `With your permission, HEGEVA uses Google Analytics and PostHog EU to measure page visits and selected usage events.${CLARITY_PROJECT_ID ? " Microsoft Clarity may record interactions on public marketing pages; it is disabled on sign-in and workspace pages." : ""} We do not send business records, form content or advertising identifiers.`, accept: "Allow analytics", reject: "Essential only", manage: "Privacy choices", privacy: "Privacy notice" },
+  hu: { title: "Adatvédelmi beállítások", body: `Engedélyeddel a HEGEVA a Google Analytics és az EU-s PostHog segítségével méri az oldalmegtekintéseket és egyes használati eseményeket.${CLARITY_PROJECT_ID ? " A Microsoft Clarity a nyilvános marketingoldalak használatát rögzítheti; a bejelentkezési és munkaterületi oldalakon nem fut." : ""} Üzleti adatokat, űrlaptartalmat vagy reklámazonosítókat nem küldünk.`, accept: "Analytics engedélyezése", reject: "Csak szükséges", manage: "Adatvédelmi beállítások", privacy: "Adatvédelmi tájékoztató" },
+  de: { title: "Ihre Datenschutzauswahl", body: `Mit Ihrer Erlaubnis nutzt HEGEVA Google Analytics und PostHog EU, um Seitenaufrufe und ausgewählte Nutzungsereignisse zu messen.${CLARITY_PROJECT_ID ? " Microsoft Clarity kann Interaktionen auf öffentlichen Marketingseiten aufzeichnen; auf Anmelde- und Arbeitsbereichsseiten ist es deaktiviert." : ""} Geschäftsdaten, Formularinhalte und Werbe-IDs werden nicht gesendet.`, accept: "Analytics erlauben", reject: "Nur erforderlich", manage: "Datenschutzauswahl", privacy: "Datenschutzhinweis" },
+  fr: { title: "Vos choix de confidentialité", body: `Avec votre accord, HEGEVA utilise Google Analytics et PostHog EU pour mesurer les pages vues et certains événements d’utilisation.${CLARITY_PROJECT_ID ? " Microsoft Clarity peut enregistrer les interactions sur les pages marketing publiques ; il est désactivé sur les pages de connexion et de l’espace de travail." : ""} Aucune donnée métier, contenu de formulaire ou identifiant publicitaire n’est envoyé.`, accept: "Autoriser Analytics", reject: "Nécessaires uniquement", manage: "Choix de confidentialité", privacy: "Avis de confidentialité" },
+  es: { title: "Tus opciones de privacidad", body: `Con tu permiso, HEGEVA usa Google Analytics y PostHog EU para medir páginas vistas y algunos eventos de uso.${CLARITY_PROJECT_ID ? " Microsoft Clarity puede registrar interacciones en páginas públicas de marketing; está desactivado en las páginas de inicio de sesión y del espacio de trabajo." : ""} No enviamos datos empresariales, contenido de formularios ni identificadores publicitarios.`, accept: "Permitir Analytics", reject: "Solo necesarias", manage: "Opciones de privacidad", privacy: "Aviso de privacidad" },
 } as const
+
+function hasAnalyticsConsent() {
+  try { return localStorage.getItem(CONSENT_KEY) === "granted" } catch { return false }
+}
+
+function safePostHogPath(path: string) {
+  return POSTHOG_ALLOWED_PATHS.includes(path) ? path : ""
+}
+
+async function getPostHogClient(): Promise<PostHogBrowser | null> {
+  if (!POSTHOG_PROJECT_TOKEN || POSTHOG_HOST !== "https://eu.i.posthog.com" || !hasAnalyticsConsent()) return null
+  if (posthogClient) {
+    posthogClient.opt_in_capturing()
+    return posthogClient
+  }
+  if (!posthogInit) {
+    posthogInit = import("posthog-js").then(({ default: posthog }) => {
+      if (!hasAnalyticsConsent()) {
+        posthogInit = null
+        return null
+      }
+      posthog.init(POSTHOG_PROJECT_TOKEN, {
+        api_host: POSTHOG_HOST,
+        autocapture: false,
+        capture_pageview: false,
+        capture_pageleave: false,
+        disable_session_recording: true,
+        disable_surveys: true,
+        disable_product_tours: true,
+        capture_exceptions: false,
+        capture_performance: false,
+        enable_recording_console_log: false,
+        disableDeviceModel: true,
+        person_profiles: "never",
+        get_current_url: () => {
+          const path = safePostHogPath(window.location.pathname)
+          return `${window.location.origin}${path || "/"}`
+        },
+        before_send: event => {
+          if (!POSTHOG_EVENTS.has(event.event)) return null
+          const path = safePostHogPath(String(event.properties.page_path || event.properties.$pathname || window.location.pathname))
+          if (!path) return null
+          const source = event.properties
+          const properties: Record<string, string | number | boolean | null | undefined> = {}
+          for (const key of ["token", "distinct_id", "$session_id", "$window_id", "$lib", "$lib_version"]) {
+            const value = source[key]
+            if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") properties[key] = value
+          }
+          properties.$current_url = `${window.location.origin}${path}`
+          properties.$pathname = path
+          properties.$host = window.location.host
+          properties.$title = "HEGEVA AI"
+          properties.page_path = path
+          return { ...event, properties, $set: undefined, $set_once: undefined, $unset: undefined }
+        },
+      })
+      posthogClient = posthog
+      return posthog
+    }).catch(() => {
+      posthogInit = null
+      return null
+    })
+  }
+  return posthogInit
+}
+
+function capturePostHogEvent(event: string, path: string) {
+  const safePath = safePostHogPath(path)
+  if (!safePath || !POSTHOG_EVENTS.has(event)) return
+  void getPostHogClient().then(posthog => {
+    if (!posthog || !hasAnalyticsConsent()) return
+    posthog.capture(event, { page_path: safePath })
+  })
+}
 
 function queueConsentDefault() {
   window.dataLayer = window.dataLayer || []
@@ -111,9 +206,10 @@ export function AnalyticsConsent() {
 
   useEffect(() => {
     const receive = (event: Event) => {
-      if (consent !== "granted" || !window.gtag) return
+      if (consent !== "granted") return
       const detail = (event as CustomEvent<{ event?: string; path?: string; params?: Record<string, string | number | boolean> }>).detail
-      if (!detail || !["landing_page_view", "registration_start", "registration_submitted", "registration_completed", "email_verified", "get_started_entry", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click", "challenge_view", "challenge_start", "business_type_selected", "demo_loaded", "demo_analysis_complete", "priority_viewed", "prepare_action_click", "prepared_action_complete", "challenge_complete", "business_score_view", "try_my_business_click", "own_business_start", "own_business_result", "share_click", "free_tool_use", "free_tool_cta_click", "referral_visit", "referral_signup", "referral_link_copy", "referral_paid_qualified", "referral_reward_reviewed"].includes(detail.event || "")) return
+      const eventName = detail?.event
+      if (!detail || !eventName || !["landing_page_view", "registration_start", "registration_submitted", "registration_completed", "email_verified", "get_started_entry", "get_started_viewed", "first_customer_created", "first_quote_created", "first_invoice_created", "first_core_priority_seen", "pricing_view", "checkout_started", "activation_completed", "primary_cta_click", "subscription_success", "demo_entry_click", "demo_workspace_view", "demo_business_switch", "demo_signup_click", "challenge_view", "challenge_start", "business_type_selected", "demo_loaded", "demo_analysis_complete", "priority_viewed", "prepare_action_click", "prepared_action_complete", "challenge_complete", "business_score_view", "try_my_business_click", "own_business_start", "own_business_result", "share_click", "free_tool_use", "free_tool_cta_click", "referral_visit", "referral_signup", "referral_link_copy", "referral_paid_qualified", "referral_reward_reviewed"].includes(eventName)) return
       const activationPaths = ["/get-started", "/business/launch", "/business/customers", "/business/invoices", "/command-center", "/pricing", "/account", "/demo", "/challenge"]
       if (!detail.path || (!PUBLIC_ANALYTICS_PATHS.includes(detail.path) && !activationPaths.includes(detail.path))) return
       const key = `${detail.event}:${detail.path}`
@@ -124,7 +220,8 @@ export function AnalyticsConsent() {
         ? { outcome: detail.params.outcome, status: detail.params.status, methodologyVersion: "referral-reward-review-v1" }
         : ["referral_link_copy", "referral_paid_qualified"].includes(detail.event || "") ? {} : detail.params || {}
       const analyticsParams = detail.event === "referral_reward_reviewed" ? rewardParams : { page_path: detail.path, page_location: analyticsPageLocation(detail.path), page_title: "HEGEVA AI", page_referrer: currentPageReferrer.current, ...campaignAttribution(), ...rewardParams, ...(ANALYTICS_DEBUG_MODE ? { debug_mode: true } : {}) }
-      window.gtag("event", detail.event, analyticsParams)
+      window.gtag?.("event", detail.event, analyticsParams)
+      capturePostHogEvent(eventName, detail.path)
     }
     window.addEventListener("hegeva:analytics-event", receive)
     return () => window.removeEventListener("hegeva:analytics-event", receive)
@@ -150,6 +247,7 @@ export function AnalyticsConsent() {
         ...campaignAttribution(),
         ...(ANALYTICS_DEBUG_MODE ? { debug_mode: true } : {}),
       })
+      capturePostHogEvent("$pageview", pathname)
     }
     // Native static-page navigation replaces dataLayer. Consume the consented CTA
     // on its destination, once, rather than dispatching from an unloading document.
@@ -203,6 +301,7 @@ export function AnalyticsConsent() {
       clearReferralAttribution()
       window.gtag?.("consent", "update", { analytics_storage: "denied" })
       window.clarity?.("consentv2", { ad_Storage: "denied", analytics_Storage: "denied" })
+      posthogClient?.opt_out_capturing()
     }
   }
 
