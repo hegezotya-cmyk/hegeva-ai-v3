@@ -24,6 +24,8 @@
     "PAYMENT_PROVIDER": "stripe",
     "PAYMENT_MODE": "live",
     "PUBLIC_APP_URL": "https://hegevaai.co.uk",
+    "SENTRY_DSN": "https://4551d8fa56d09a7dde29de60225f2666@o4512447293816832.ingest.de.sentry.io/4512448803438672",
+    "SENTRY_ENVIRONMENT": "production",
     "STRIPE_PREMIUM_PRICE_ID": "price_1UBZJhHECF9iDE3lyMGzfYkL",
     "STRIPE_PRO_PRICE_ID": "price_1UBZJiHECF9iDE3lnpsGymgU",
     "AI_PROVIDER_MODEL": "@cf/meta/llama-3.1-8b-instruct-fast",

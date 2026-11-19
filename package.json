@@ -26,6 +26,7 @@
     "v0:build": "npm --prefix v0-app run cf:build"
   },
   "dependencies": {
+    "@sentry/cloudflare": "11.14.0",
     "better-auth": "^1.7.1"
   },
   "devDependencies": {
