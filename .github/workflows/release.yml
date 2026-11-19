@@ -143,8 +143,8 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           NEXT_PUBLIC_CLARITY_PROJECT_ID: yhwsx7syqf
-          NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN: ${{ vars.POSTHOG_PROJECT_TOKEN }}
-          NEXT_PUBLIC_POSTHOG_HOST: ${{ vars.POSTHOG_API_HOST }}
+          NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.POSTHOG_API_HOST }}
         shell: bash
         run: |
           set -euo pipefail
