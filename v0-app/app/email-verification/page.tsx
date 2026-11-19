@@ -1,5 +1,10 @@
 import { AppShell } from "@/components/app-shell"
 import { EmailVerificationPanel } from "@/components/auth/email-verification-panel"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 type EmailVerificationPageProps = {
   searchParams: Promise<{
