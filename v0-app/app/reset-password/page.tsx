@@ -1,6 +1,11 @@
 import { AppShell } from "@/components/app-shell"
 import { ResetPasswordPanel } from "@/components/auth/reset-password-panel"
 import { ResetPasswordHeader } from "@/components/auth/reset-password-header"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 type ResetPasswordPageProps = {
   searchParams: Promise<{

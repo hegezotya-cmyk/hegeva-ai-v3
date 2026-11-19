@@ -8,17 +8,12 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: [
         '/api/',
+        // Keep reset links out of crawler requests because their tokens are
+        // supplied in the query string. Other private pages expose noindex
+        // metadata and must remain crawlable so Google can remove old URLs.
         '/reset-password',
-        '/login',
-        '/get-started',
-        '/account',
-        '/assistant',
-        '/command-center',
-        '/business',
-        '/app-studio',
         '/admin',
         '/bots',
-        '/enterprise',
       ],
     }],
     sitemap: `${base}/sitemap.xml`,
