@@ -32,7 +32,6 @@ const copy = {
   fr: { title: "Vos choix de confidentialité", body: `Avec votre accord, HEGEVA utilise Google Analytics pour comprendre les visites et les débuts d’inscription.${CLARITY_PROJECT_ID ? " Microsoft Clarity peut enregistrer les interactions sur les pages marketing publiques ; il est désactivé sur les pages de connexion et de l’espace de travail." : ""} Aucune donnée métier, contenu de formulaire ou identifiant publicitaire n’est envoyé.`, accept: "Autoriser Analytics", reject: "Nécessaires uniquement", manage: "Choix de confidentialité", privacy: "Avis de confidentialité" },
   es: { title: "Tus opciones de privacidad", body: `Con tu permiso, HEGEVA usa Google Analytics para conocer las visitas y los inicios de registro.${CLARITY_PROJECT_ID ? " Microsoft Clarity puede registrar interacciones en páginas públicas de marketing; está desactivado en las páginas de inicio de sesión y del espacio de trabajo." : ""} No enviamos datos empresariales, contenido de formularios ni identificadores publicitarios.`, accept: "Permitir Analytics", reject: "Solo necesarias", manage: "Opciones de privacidad", privacy: "Aviso de privacidad" },
 } as const
-} as const
 
 function queueConsentDefault() {
   window.dataLayer = window.dataLayer || []
