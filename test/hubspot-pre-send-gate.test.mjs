@@ -31,3 +31,15 @@ test("missing claim lease proof blocks", async () => {
   const result = await checkHubspotPreSend({ ...opts, claim: { ...claim, leaseToken: undefined }, db: db(good) });
   assert.equal(result.action, "block");
 });
+
+test("non-boolean pre-send flags cannot reach D1", async () => {
+  for (const field of ["enabled", "legalBasisApproved", "noticeProvided"]) {
+    for (const value of ["true", 1, {}, []]) {
+      let read = false;
+      const guardedDb = { prepare() { read = true; throw Error("unexpected read"); } };
+      const result = await checkHubspotPreSend({ ...opts, [field]: value, db: guardedDb });
+      assert.equal(result.action, "block");
+      assert.equal(read, false);
+    }
+  }
+});
