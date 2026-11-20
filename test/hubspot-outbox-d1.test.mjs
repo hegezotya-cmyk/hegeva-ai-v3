@@ -23,7 +23,7 @@ test("duplicate or suppressed enqueue is not reported as success", async () => {
 });
 test("invalid event id never touches DB", async () => {
   const { db, calls } = fakeDb();
-  assert.equal((await enqueueHubspotLead(db, { eventId: "../bad", userId: "u", now })).reason, "invalid_input");
+  assert.equal((await enqueueHubspotLead(db, { eventId: "../bad", userId: "u", now, ...consent("u") })).reason, "invalid_input");
   assert.equal(calls.length, 0);
 });
 test("claim is conditional and increments attempts", async () => {
