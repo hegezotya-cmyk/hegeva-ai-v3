@@ -75,7 +75,8 @@ export async function finishAssistantOperation(env, { operationId, status, metri
         AND EXISTS (SELECT 1 FROM assistant_operations WHERE operationId = ?10 AND status = ?11)`)
       .bind(usage.inputTokens, usage.outputTokens, usage.totalTokens, usage.neuronUsage, elapsed, responseStatus, settlement.outcome, settlement.quotaState, updatedAt, operationId, settlement.operationStatus),
   ])
-  const settled = Number(results?.[1]?.meta?.changes || 0) === 1
+  // D1 reports sqlite3_total_changes(), which includes rows changed by refund triggers.
+  const settled = Number(results?.[1]?.meta?.changes || 0) > 0
   return { settled, duplicate: !settled, quotaSettlementState: settled ? settlement.quotaState : undefined }
 }
 
