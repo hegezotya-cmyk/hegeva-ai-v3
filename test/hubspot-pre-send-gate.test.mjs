@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { checkHubspotPreSend } from "../src/hubspot-pre-send-gate.js";
 
-const claim = { claimed: true, eventId: "evt_synthetic", eventType: "lead_upsert", claimAttempts: 1 };
+const claim = { claimed: true, eventId: "evt_synthetic", eventType: "lead_upsert", claimAttempts: 1, leaseToken: "synthetic_token_123456" };
 const userId = "synthetic_user";
 const good = { user_id: userId, state: "leased", attempts: 1, lease_token: "synthetic_token_123456", lease_until: "2099-01-01T00:00:00Z", suppressed: 0 };
 const db = row => ({ prepare(sql) {
