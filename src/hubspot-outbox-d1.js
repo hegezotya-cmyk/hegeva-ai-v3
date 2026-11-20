@@ -64,3 +64,26 @@ export async function finalizeHubspotLead(db, { eventId, leaseToken, now, outcom
     .bind(eventId, leaseToken, state, outcome === "retry" ? nextAttemptAt : null, now).run();
   return { finalized: changed(result), reason: changed(result) ? "finalized" : "stale_or_suppressed" };
 }
+
+// Experimental proof-bearing claim. UPDATE ... RETURNING reads the post-claim
+// counter from the same atomic SQL statement, never a separate SELECT.
+// Not wired to a Worker route, cron or HubSpot transport.
+export async function claimHubspotLeadWithProof(db, { eventId, now, leaseUntil, leaseToken } = {}) {
+  if (!validId(eventId) || !validLease(leaseToken) ||
+      !Number.isFinite(Date.parse(now || "")) || !Number.isFinite(Date.parse(leaseUntil || "")) ||
+      Date.parse(leaseUntil) <= Date.parse(now)) return { claimed: false, reason: "invalid_input" };
+  const row = await db.prepare(`UPDATE hubspot_lead_outbox
+    SET state='leased',lease_until=?3,lease_token=?4,updated_at=?2,attempts=attempts+1
+    WHERE event_id=?1 AND attempts<5 AND
+      ((state='pending' AND (next_attempt_at IS NULL OR next_attempt_at<=?2))
+        OR (state='leased' AND lease_until<=?2))
+      AND NOT EXISTS (SELECT 1 FROM hubspot_lead_suppressions s WHERE s.user_id=hubspot_lead_outbox.user_id)
+    RETURNING event_id,event_type,attempts,lease_token`)
+    .bind(eventId, now, leaseUntil, leaseToken).first();
+  if (!row) return { claimed: false, reason: "not_claimable" };
+  if (row.event_id !== eventId || row.event_type !== "lead_upsert" ||
+      row.lease_token !== leaseToken || !Number.isSafeInteger(row.attempts) || row.attempts < 1) {
+    return { claimed: false, reason: "invalid_claim_proof" };
+  }
+  return { claimed: true, reason: "claimed", eventId, eventType: row.event_type, claimAttempts: row.attempts };
+}
