@@ -127,16 +127,16 @@ export function boundAssistantProviderPayload(tier, projection) {
   // still over the existing model boundary, trim only its tail before quota
   // reservation; ordinary Assistant input keeps its established behavior.
   if (x10Studio && inputTokens > tier.maxInputTokens) {
-    const originalPrompt = messages[1].content
+    const originalPrompt = Array.from(messages[1].content)
     let low = 0
     let high = originalPrompt.length
     while (low < high) {
       const middle = Math.ceil((low + high) / 2)
-      messages[1].content = originalPrompt.slice(0, middle)
+      messages[1].content = originalPrompt.slice(0, middle).join("")
       if (encoder.encode(serializedInput()).byteLength <= tier.maxInputTokens) low = middle
       else high = middle - 1
     }
-    messages[1].content = originalPrompt.slice(0, low).trimEnd()
+    messages[1].content = originalPrompt.slice(0, low).join("").trimEnd()
     inputTokens = encoder.encode(serializedInput()).byteLength
   }
   if (inputTokens > tier.maxInputTokens || !messages[1].content) return { ok: false, reason: "provider-input-too-large" }
