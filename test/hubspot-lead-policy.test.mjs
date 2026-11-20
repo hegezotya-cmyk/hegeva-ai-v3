@@ -11,3 +11,6 @@ test("rejects unsupported purpose", () => assert.equal(hubspotLeadEligibility({ 
 test("rejects unverified email", () => assert.equal(hubspotLeadEligibility({ ...valid, user: { ...valid.user, emailVerified: false } }).reason, "unverified"));
 test("rejects suppressed lead", () => assert.equal(hubspotLeadEligibility({ ...valid, suppressed: true }).reason, "suppressed"));
 test("rejects invalid identity", () => assert.equal(hubspotLeadEligibility({ ...valid, user: { ...valid.user, id: "" } }).reason, "invalid_identity"));
+test("rejects malformed email", () => assert.equal(hubspotLeadEligibility({ ...valid, user: { ...valid.user, email: "invalid" } }).reason, "invalid_email"));
+test("rejects absent user", () => assert.equal(hubspotLeadEligibility({ ...valid, user: null }).reason, "invalid_identity"));
+test("rejects missing explicit enabled flag", () => assert.equal(hubspotLeadEligibility({ ...valid, enabled: undefined }).reason, "disabled"));
