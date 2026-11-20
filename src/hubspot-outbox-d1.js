@@ -1,6 +1,7 @@
 // Isolated D1 outbox operations. No endpoint or scheduled handler imports this module.
 // Schema: docs/integrations/hubspot-outbox-schema-DRAFT.sql
 const validId = value => typeof value === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(value);
+const validLease = value => validId(value) && value.length >= 16;
 const validUser = value => typeof value === "string" && value.length > 0 && value.length <= 256;
 const changed = result => Number(result?.meta?.changes ?? 0) === 1;
 
@@ -18,15 +19,15 @@ export async function enqueueHubspotLead(db, { eventId, userId, now } = {}) {
 
 // Atomic claim prevents two processors from claiming the same pending event.
 // The processor MUST recheck suppression and account eligibility before any send.
-export async function claimHubspotLead(db, { eventId, now, leaseUntil } = {}) {
-  if (!validId(eventId) || !Number.isFinite(Date.parse(now || "")) || !Number.isFinite(Date.parse(leaseUntil || "")) || Date.parse(leaseUntil) <= Date.parse(now)) return { claimed: false, reason: "invalid_input" };
+export async function claimHubspotLead(db, { eventId, now, leaseUntil, leaseToken } = {}) {
+  if (!validId(eventId) || !validLease(leaseToken) || !Number.isFinite(Date.parse(now || "")) || !Number.isFinite(Date.parse(leaseUntil || "")) || Date.parse(leaseUntil) <= Date.parse(now)) return { claimed: false, reason: "invalid_input" };
   const result = await db.prepare(`UPDATE hubspot_lead_outbox
-    SET state='leased',lease_until=?3,updated_at=?2,attempts=attempts+1
+    SET state='leased',lease_until=?3,lease_token=?4,updated_at=?2,attempts=attempts+1
     WHERE event_id=?1 AND attempts<5 AND
       ((state='pending' AND (next_attempt_at IS NULL OR next_attempt_at<=?2))
         OR (state='leased' AND lease_until<=?2))
       AND NOT EXISTS (SELECT 1 FROM hubspot_lead_suppressions s WHERE s.user_id=hubspot_lead_outbox.user_id)`)
-    .bind(eventId, now, leaseUntil).run();
+    .bind(eventId, now, leaseUntil, leaseToken).run();
   return { claimed: changed(result), reason: changed(result) ? "claimed" : "not_claimable" };
 }
 
@@ -36,7 +37,26 @@ export async function suppressHubspotLead(db, { userId, reason, now } = {}) {
   if (!validUser(userId) || !["opt_out","erasure","legal_hold"].includes(reason) || !Number.isFinite(Date.parse(now || ""))) return { suppressed: false, reason: "invalid_input" };
   await db.batch([
     db.prepare("INSERT INTO hubspot_lead_suppressions(user_id,reason,created_at) VALUES(?1,?2,?3) ON CONFLICT(user_id) DO NOTHING").bind(userId, reason, now),
-    db.prepare("UPDATE hubspot_lead_outbox SET state='suppressed',lease_until=NULL,updated_at=?2 WHERE user_id=?1 AND state IN ('pending','leased','failed')").bind(userId, now),
+    db.prepare("UPDATE hubspot_lead_outbox SET state='suppressed',lease_until=NULL,lease_token=NULL,updated_at=?2 WHERE user_id=?1 AND state IN ('pending','leased','failed')").bind(userId, now),
   ]);
   return { suppressed: true, reason: "recorded" };
+}
+
+ // Finalization is fenced by the unique claim token, not just an event ID.
+ // The owner of an expired lease cannot overwrite a later processor's result.
+export async function finalizeHubspotLead(db, { eventId, leaseToken, now, outcome, nextAttemptAt = null } = {}) {
+  if (!validId(eventId) || !validLease(leaseToken) || !Number.isFinite(Date.parse(now || "")) ||
+      !["delivered", "retry", "failed"].includes(outcome) ||
+      (outcome === "retry" && (!Number.isFinite(Date.parse(nextAttemptAt || "")) || Date.parse(nextAttemptAt) <= Date.parse(now)))) {
+    return { finalized: false, reason: "invalid_input" };
+  }
+  const state = outcome === "retry" ? "pending" : outcome;
+  const result = await db.prepare(`UPDATE hubspot_lead_outbox
+    SET state=?3,lease_until=NULL,lease_token=NULL,
+        next_attempt_at=?4,delivered_at=CASE WHEN ?3='delivered' THEN ?5 ELSE delivered_at END,
+        updated_at=?5
+    WHERE event_id=?1 AND lease_token=?2 AND state='leased' AND lease_until>?5
+      AND NOT EXISTS (SELECT 1 FROM hubspot_lead_suppressions s WHERE s.user_id=hubspot_lead_outbox.user_id)`)
+    .bind(eventId, leaseToken, state, outcome === "retry" ? nextAttemptAt : null, now).run();
+  return { finalized: changed(result), reason: changed(result) ? "finalized" : "stale_or_suppressed" };
 }
