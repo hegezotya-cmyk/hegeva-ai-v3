@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-const base = { main: "src/hubspot-isolated-worker.js", name: "hegeva-isolated-hubspot-test", workers_dev: false, preview_urls: false, d1_databases: [{ binding: "DB", database_name: "hegeva-hubspot-isolated-test-db", database_id: "53fd518c-9b5c-45b5-aaaa-aaaaaaaaaaaa" }], vars: { HUBSPOT_ENABLED: "false", HUBSPOT_TRANSPORT_ENABLED: "false" } };
+const base = { main: "src/hubspot-isolated-worker.js", name: "hegeva-isolated-hubspot-test", workers_dev: false, preview_urls: false, d1_databases: [{ binding: "DB", database_name: "hegeva-hubspot-isolated-test-db", database_id: "53fd518c-9b5c-45b5-9a74-4565f7acdd22" }], vars: { HUBSPOT_ENABLED: "false", HUBSPOT_TRANSPORT_ENABLED: "false" } };
 function check(config) {
   const dir = mkdtempSync(join(tmpdir(), "hegeva-preflight-"));
   try {
@@ -28,6 +28,7 @@ for (const [name, patch] of [
   ["missing D1", { d1_databases: undefined }],
   ["null D1", { d1_databases: null }],
   ["malformed D1", { d1_databases: [null] }],
+  ["different valid UUID", { d1_databases: [{ ...base.d1_databases[0], database_id: "11111111-2222-4333-8444-555555555555" }] }],
   ["invalid UUID", { d1_databases: [{ ...base.d1_databases[0], database_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" }] }],
   ["extra D1", { d1_databases: [...base.d1_databases, ...base.d1_databases] }],
   ["wrong database", { d1_databases: [{ ...base.d1_databases[0], database_name: "hegeva-ai-db" }] }],
