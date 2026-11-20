@@ -28,3 +28,8 @@
 - Operational monitoring, rate limits, rollback, feature flag and explicit production authorization.
 
 **Release decision: NOT READY.** A successful GitHub CI or isolated D1 test does not authorize deployment.
+
+## Existing isolated D1 discovered — do not treat as disposable
+The authenticated Cloudflare browser tab identifies `hegeva-hubspot-isolated-test-db` (UUID `53fd518c-9b5c-45b5-9a74-4565f7acdd22`) in HEGEVA Synthetic Tests account `ab362645fc03b7e63a26fd8e46e631b6`. The owner screenshots show existing tables and writes. Therefore this database is **not empty** and must not be treated as a new disposable database. The original empty-database instructions above apply only to a separately created, verified disposable database.
+
+For this existing database, perform **read-only schema/table/row-classification inspection first**. Do not drop tables, recreate schema, run migrations, clear rows, or execute concurrent write tests until the owner approves a specific non-destructive plan after inspecting existing synthetic records. Exact identity pinning is not proof of permissions or remote runtime binding.
