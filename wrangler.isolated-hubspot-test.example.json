@@ -1,0 +1,19 @@
+{
+  "name": "hegeva-isolated-hubspot-test",
+  "main": "src/hubspot-isolated-worker.js",
+  "compatibility_date": "2026-09-02",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "hegeva-hubspot-isolated-test-db",
+      "database_id": "REPLACE_WITH_VERIFIED_ISOLATED_D1_UUID"
+    }
+  ],
+  "vars": {
+    "HUBSPOT_ENABLED": "false",
+    "HUBSPOT_TRANSPORT_ENABLED": "false"
+  }
+}
