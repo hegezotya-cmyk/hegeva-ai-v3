@@ -25,3 +25,7 @@
 6. Define retention and erasure behavior for the suppression marker and any provider mapping. Require explicit owner approval before any CRM write.
 
 Until these gates are met, keep the integration **default-off**, the PR **Draft**, and production unchanged.
+
+## Additional integration mismatch discovered
+
+The D1 claim operation increments `attempts` **before** the first HTTP send. The delivery planner currently treats `attempts > 0` as requiring reconciliation. Therefore a future processor must not pass the post-claim attempt count into that planner as if it were the number of *previously completed* attempts: that would block even the first send. Also, the D1 claim SQL still permits claiming expired leases, while the planner refuses blind repeat sends. This mismatch is a **release blocker**, not evidence of working retries. Resolve with an explicit pre-claim/post-claim state contract and a tested recovery state machine before wiring any scheduler or route. Do not infer remote success from D1 lease state.
