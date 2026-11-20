@@ -22,10 +22,21 @@ export async function sendHubspotContact({ enabled = false, purpose, legalBasisA
   // No live endpoint invocation unless the caller explicitly supplies a fetch implementation.
   // Production integration must add durable deduplication, deletion/suppression checks and retry policy first.
   if (fetchImpl === fetch) return { sent: false, reason: "transport_not_enabled" };
-  const response = await fetchImpl("https://api.hubapi.com/crm/v3/objects/contacts", {
+  let response;
+  try {
+    response = await fetchImpl("https://api.hubapi.com/crm/v3/objects/contacts", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ properties: payload.properties }),
-  });
+    });
+  } catch {
+    // The provider may have committed the write before the connection failed.
+    // Never classify an ambiguous result as safe for blind retry.
+    return { sent: false, reason: "provider_outcome_unknown" };
+  }
+  if (!response || typeof response.ok !== "boolean" || !Number.isInteger(response.status)) {
+    return { sent: false, reason: "provider_outcome_unknown" };
+  }
+  if (response.status === 409) return { sent: false, reason: "provider_reconciliation_required", status: 409 };
   return { sent: response.ok, reason: response.ok ? "accepted" : "provider_rejected", status: response.status };
 }
