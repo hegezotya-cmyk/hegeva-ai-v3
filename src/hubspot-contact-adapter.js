@@ -38,5 +38,9 @@ export async function sendHubspotContact({ enabled = false, purpose, legalBasisA
     return { sent: false, reason: "provider_outcome_unknown" };
   }
   if (response.status === 409) return { sent: false, reason: "provider_reconciliation_required", status: 409 };
-  return { sent: response.ok, reason: response.ok ? "accepted" : "provider_rejected", status: response.status };
+  if (response.status === 429 || response.status >= 500) return { sent: false, reason: "provider_outcome_unknown", status: response.status };
+  // HTTP success does not correlate a provider record with this outbox event.
+  // The caller must not mark delivered until an approved reconciliation protocol exists.
+  if (response.ok) return { sent: false, reason: "provider_acceptance_unverified", status: response.status };
+  return { sent: false, reason: "provider_rejected", status: response.status };
 }
