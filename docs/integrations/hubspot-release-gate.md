@@ -30,3 +30,9 @@ Any unverified provider outcome, consent/notice failure, suppression, missing ke
 2. Prepare a **default-off Worker-level synthetic integration harness** that executes the existing D1 claim/finalize SQL, tests two competing claims and suppression between claim and send, and makes no HubSpot API request.
 3. Separately approve the HubSpot identity, legal basis and provider read scope before any real CRM interaction.
 4. Keep PR Draft; do not merge or deploy without a new explicit approval.
+
+## Latest GitHub verification (2026-11-20)
+- PR #144 HEAD `2bceb75aa205ab042315d6c61918a1e3698ecacb`: GitHub reports `mergeable=true`, Draft.
+- GitHub Actions run `44689684553`, `build-check`: completed **SUCCESS**, including Cloudflare OpenNext build. This proves the repository CI checks, **not** remote D1 isolation, HubSpot delivery, staging E2E or production safety.
+- The isolated Worker preflight now rejects a missing or non-inert `main` entrypoint. Its config still has an unverified D1 UUID placeholder; **no deploy authorized**.
+- Decision: **NOT READY** for HubSpot production; keep Draft until owner-reviewed release gates are evidenced.
