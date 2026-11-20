@@ -108,3 +108,14 @@ test("mismatched lease proof fails closed", async () => {
   const db = { prepare() { return { bind() { return { first: async () => ({ event_id: "evt_1", event_type: "lead_upsert", attempts: 1, lease_token: "wrong_token_123456789" }) }; } }; } };
   assert.equal((await claimHubspotLeadWithProof(db, { eventId: "evt_1", now, leaseUntil: "2026-11-20T10:01:00.000Z", leaseToken: "lease_1234567890123456" })).reason, "invalid_claim_proof");
 });
+
+test("suppression never reports success when D1 batch is rejected or incomplete", async () => {
+  for (const results of [undefined, [], [{ success: true }], [{ success: true }, { success: false }], [{ success: true }, {}]]) {
+    const db = { prepare() { return { bind() { return {}; } }; }, batch: async () => results };
+    assert.deepEqual(await suppressHubspotLead(db, { userId: "u", reason: "opt_out", now }), { suppressed: false, reason: "unverified_batch" });
+  }
+});
+test("suppression D1 failure is reported without false success", async () => {
+  const db = { prepare() { return { bind() { return {}; } }; }, batch: async () => { throw Error("db unavailable"); } };
+  assert.deepEqual(await suppressHubspotLead(db, { userId: "u", reason: "erasure", now }), { suppressed: false, reason: "db_error" });
+});
