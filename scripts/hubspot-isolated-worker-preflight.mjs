@@ -23,7 +23,7 @@ else {
     const d1 = config.d1_databases;
     if (!Array.isArray(d1)) errors.push("D1 binding list must be an array");
     if (!Array.isArray(d1) || d1.length !== 1 || !d1[0] || d1[0].binding !== "DB" || d1[0].database_name !== "hegeva-hubspot-isolated-test-db" ||
-        !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(d1[0].database_id || "")) errors.push("exactly one isolated D1 DB binding with UUID required");
+        d1[0].database_id !== "53fd518c-9b5c-45b5-9a74-4565f7acdd22") errors.push("exactly one verified isolated D1 DB binding and exact UUID required");
     if (config.ai || config.durable_objects || config.r2_buckets?.length || config.kv_namespaces?.length || config.services?.length || config.queues || config.hyperdrive?.length || config.vectorize?.length) errors.push("unapproved bindings must not be present");
     if (config.env && Object.keys(config.env).length) errors.push("environment overrides are not allowed");
     if (config.vars && Object.keys(config.vars).some(key => !["HUBSPOT_ENABLED", "HUBSPOT_TRANSPORT_ENABLED"].includes(key))) errors.push("unexpected environment variables");
