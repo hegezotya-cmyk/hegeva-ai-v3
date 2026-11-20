@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { planHubspotDelivery as plan, planClaimedHubspotDelivery as planClaimed } from "../src/hubspot-delivery-policy.js";
+import { planHubspotDelivery as plan, planClaimedHubspotDelivery as planClaimed, planHubspotDeliveryFromClaim as fromClaim } from "../src/hubspot-delivery-policy.js";
 const base = { eventId: "event_1", eventType: "lead_upsert" };
 test("new lead event is eligible for delivery planning", () => assert.equal(plan(base).action, "attempt"));
 test("duplicate event is skipped", () => assert.deepEqual(plan({ ...base, alreadyDelivered: true }), { action: "skip", reason: "duplicate" }));
@@ -20,3 +20,8 @@ test("second D1 claim requires reconciliation", () => assert.equal(planClaimed({
 test("unconfirmed claim cannot send", () => assert.equal(planClaimed({ ...base, claimSucceeded: false, claimAttempts: 1 }).reason, "claim_not_confirmed"));
 test("suppression blocks claimed send", () => assert.equal(planClaimed({ ...base, claimSucceeded: true, claimAttempts: 1, suppressed: true }).reason, "suppressed"));
 test("missing claim attempt count blocks", () => assert.equal(planClaimed({ ...base, claimSucceeded: true }).reason, "invalid_claim_attempts"));
+
+test("atomic first-claim proof is eligible for first delivery", () => assert.deepEqual(fromClaim({ claimed: true, eventId: "event_1", eventType: "lead_upsert", claimAttempts: 1 }), { action: "attempt", reason: "first_claim" }));
+test("second claim proof cannot authorize duplicate send", () => assert.deepEqual(fromClaim({ claimed: true, eventId: "event_1", eventType: "lead_upsert", claimAttempts: 2 }), { action: "block", reason: "reconciliation_required" }));
+test("missing claim proof blocks delivery", () => assert.equal(fromClaim(null).reason, "claim_not_confirmed"));
+test("suppression after claim blocks delivery", () => assert.equal(fromClaim({ claimed: true, eventId: "event_1", eventType: "lead_upsert", claimAttempts: 1 }, { suppressed: true }).reason, "suppressed"));
