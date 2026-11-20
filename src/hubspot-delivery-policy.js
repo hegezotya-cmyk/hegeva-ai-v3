@@ -28,3 +28,16 @@ export function planClaimedHubspotDelivery({ eventId, eventType, suppressed = fa
   if (claimAttempts !== 1) return { action: "block", reason: "reconciliation_required" };
   return { action: "attempt", reason: "first_claim" };
 }
+
+// Pure orchestration of an atomic D1 claim proof. This function does not
+// query D1, send HTTP, or authorize a production integration.
+export function planHubspotDeliveryFromClaim(claim, { suppressed = false } = {}) {
+  if (!claim || claim.claimed !== true) return { action: "block", reason: "claim_not_confirmed" };
+  return planClaimedHubspotDelivery({
+    eventId: claim.eventId,
+    eventType: claim.eventType,
+    claimSucceeded: true,
+    claimAttempts: claim.claimAttempts,
+    suppressed,
+  });
+}
