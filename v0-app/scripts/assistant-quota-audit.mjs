@@ -41,7 +41,8 @@ function envFor() {
       try {
         const results = statements.map(({ sql, values }) => {
           const result = db.prepare(sql).run(...values)
-          return { meta: { changes: Number(result.changes) } }
+          const refundTriggerChanges = sql.includes("UPDATE assistant_usage_settlements") && values[7] === "refunded" && Number(result.changes) > 0 ? 1 : 0
+          return { meta: { changes: Number(result.changes) + refundTriggerChanges } }
         })
         db.exec("COMMIT")
         return results
@@ -115,7 +116,10 @@ async function main() {
   assert.equal(new Set(results.map((r) => r.operationId)).size, 1)
   assert.equal(parallel.DB._db.prepare("SELECT aiMessages FROM assistant_ai_usage WHERE userId='parallel' AND period='2026-08'").get().aiMessages, 1)
 
-  await finishAssistantOperation(env, { operationId: firstId, status: "failed" })
+  const refund = await finishAssistantOperation(env, { operationId: firstId, status: "failed" })
+  assert.equal(refund.settled, true, "refund settlement accepts trigger-inclusive D1 change counts")
+  const duplicateRefund = await finishAssistantOperation(env, { operationId: firstId, status: "failed" })
+  assert.equal(duplicateRefund.settled, false, "duplicate settlement is still rejected")
   const status = env.DB._db.prepare("SELECT status FROM assistant_operations WHERE operationId=?").get(firstId).status
   assert.equal(status, "failed")
   const finalCountAfterRefund = env.DB._db.prepare("SELECT aiMessages FROM assistant_ai_usage WHERE userId='u1' AND period='2026-08'").get().aiMessages
