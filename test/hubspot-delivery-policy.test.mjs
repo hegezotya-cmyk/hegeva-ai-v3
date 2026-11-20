@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { planHubspotDelivery as plan } from "../src/hubspot-delivery-policy.js";
+import { planHubspotDelivery as plan, planClaimedHubspotDelivery as planClaimed } from "../src/hubspot-delivery-policy.js";
 const base = { eventId: "event_1", eventType: "lead_upsert" };
 test("new lead event is eligible for delivery planning", () => assert.equal(plan(base).action, "attempt"));
 test("duplicate event is skipped", () => assert.deepEqual(plan({ ...base, alreadyDelivered: true }), { action: "skip", reason: "duplicate" }));
@@ -14,3 +14,9 @@ test("attempt cap blocks", () => assert.equal(plan({ ...base, status: 503, attem
 test("invalid attempts are blocked", () => assert.equal(plan({ ...base, attempts: -1 }).reason, "invalid_attempts"));
 
 test("previously claimed event without status cannot be blindly retried", () => assert.deepEqual(plan({ ...base, attempts: 1 }), { action: "block", reason: "reconciliation_required" }));
+
+test("first confirmed D1 claim permits first send", () => assert.deepEqual(planClaimed({ ...base, claimSucceeded: true, claimAttempts: 1 }), { action: "attempt", reason: "first_claim" }));
+test("second D1 claim requires reconciliation", () => assert.equal(planClaimed({ ...base, claimSucceeded: true, claimAttempts: 2 }).reason, "reconciliation_required"));
+test("unconfirmed claim cannot send", () => assert.equal(planClaimed({ ...base, claimSucceeded: false, claimAttempts: 1 }).reason, "claim_not_confirmed"));
+test("suppression blocks claimed send", () => assert.equal(planClaimed({ ...base, claimSucceeded: true, claimAttempts: 1, suppressed: true }).reason, "suppressed"));
+test("missing claim attempt count blocks", () => assert.equal(planClaimed({ ...base, claimSucceeded: true }).reason, "invalid_claim_attempts"));
