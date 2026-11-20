@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Read-only, fail-closed preflight. Never deploys, migrates, sends or logs secrets.
-// Usage: node scripts/hubspot-isolated-worker-preflight.mjs path/to/isolated-wrangler.jsonc
+// Usage: node scripts/hubspot-isolated-worker-preflight.mjs path/to/isolated-wrangler.json
 import fs from "node:fs";
 import path from "node:path";
 
@@ -14,6 +14,7 @@ else {
     const config = JSON.parse(raw);
     const errors = [];
     if (!config || typeof config !== "object" || Array.isArray(config)) throw new Error("invalid config");
+    if (config.main !== "src/hubspot-isolated-worker.js") errors.push("main must be the inert isolated HubSpot Worker entrypoint");
     if (config.workers_dev !== false) errors.push("workers_dev must be false");
     if (config.preview_urls !== false) errors.push("preview_urls must be false");
     if (config.routes !== undefined && (!Array.isArray(config.routes) || config.routes.length)) errors.push("routes must be absent or empty");
