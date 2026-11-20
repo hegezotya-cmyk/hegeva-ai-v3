@@ -33,3 +33,9 @@ The D1 claim operation increments `attempts` **before** the first HTTP send. The
 ## First-claim planner contract (draft)
 
 `planClaimedHubspotDelivery` interprets the **post-claim** D1 attempts count: `1` means first claim; `2+` means a previous claim existed and reconciliation is mandatory. The pre-claim `planHubspotDelivery` remains separate. This fixes the count interpretation in pure policy, but **does not yet connect** the D1 claim result to the planner, validate an atomic read of the post-claim count, or establish provider exactly-once semantics. No Worker route, cron or HubSpot API transport is enabled. Future orchestration must prove those contracts in isolated integration tests before release.
+
+## Official HubSpot API research (2026-11-20)
+
+HubSpot documents `POST /crm/v3/objects/{objectType}/batch/upsert` with per-input `id`, `idProperty`, and `properties`. For contacts, a stable unique key may provide a safer reconciliation/upsert design than the current blind `POST /crm/v3/objects/contacts` create operation. Source: https://developers.hubspot.com/docs/api-reference/legacy/crm/objects/objects/batch/upsert-objects . This is a **candidate design, not validated behavior for this portal**.
+
+Before any implementation is enabled: verify the portal supports the selected unique contact property (email vs explicitly provisioned custom unique ID), confirm authorization/scopes, define how existing contacts and erasure/suppression are handled, validate 200/207/409/429/5xx and partial batch responses using synthetic mocks, and ensure a timeout is not mistaken for non-delivery. Do not change production contact properties or send live API writes to test this. A stable key cannot replace the independent legal-basis, notice and suppression checks.
