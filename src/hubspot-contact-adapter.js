@@ -10,7 +10,12 @@ export function buildHubspotContact({ enabled = false, purpose, legalBasisApprov
   return { ok: true, properties: { email: user.email.trim().toLowerCase() } };
 }
 
-export async function sendHubspotContact({ enabled = false, purpose, legalBasisApproved = false, noticeProvided = false, suppressed = false, user, token, fetchImpl = fetch } = {}) {
+// A retry after an ambiguous remote acceptance MUST NOT create another contact.
+// Until an approved provider reconciliation contract exists, reject retries
+// rather than issuing a potentially duplicate create request.
+export async function sendHubspotContact({ enabled = false, purpose, legalBasisApproved = false, noticeProvided = false, suppressed = false, user, token, fetchImpl = fetch, attempt = 1 } = {}) {
+  if (!Number.isSafeInteger(attempt) || attempt < 1) return { sent: false, reason: "invalid_attempt" };
+  if (attempt !== 1) return { sent: false, reason: "retry_requires_reconciliation" };
   const payload = buildHubspotContact({ enabled, purpose, legalBasisApproved, noticeProvided, suppressed, user });
   if (!payload.ok) return { sent: false, reason: payload.reason };
   if (typeof token !== "string" || !token.trim()) return { sent: false, reason: "credentials_unavailable" };
