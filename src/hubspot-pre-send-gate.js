@@ -21,6 +21,7 @@ export async function checkHubspotPreSend({ enabled = false, claim, userId, db, 
   }
   if (!row || row.user_id !== userId || row.state !== "leased" ||
       row.attempts !== 1 || row.suppressed !== 0 ||
+      typeof claim.leaseToken !== "string" || row.lease_token !== claim.leaseToken ||
       typeof row.lease_token !== "string" || row.lease_token.length < 16 ||
       !Number.isFinite(Date.parse(row.lease_until || "")) ||
       Date.parse(row.lease_until) <= Date.now()) {
