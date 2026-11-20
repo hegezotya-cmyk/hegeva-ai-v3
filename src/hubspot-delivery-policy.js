@@ -7,9 +7,11 @@ export function planHubspotDelivery({ eventId, eventType, suppressed = false, al
   if (alreadyDelivered) return { action: "skip", reason: "duplicate" };
   if (!Number.isSafeInteger(attempts) || attempts < 0) return { action: "block", reason: "invalid_attempts" };
   if (attempts >= 5) return { action: "block", reason: "attempts_exhausted" };
+  // D1 attempt counters survive crashes. Never blindly resend after a prior claim.
+  if (attempts > 0) return { action: "block", reason: "reconciliation_required" };
   if (status === null) return { action: "attempt", reason: "new" };
   if (status === 429 || (Number.isInteger(status) && status >= 500 && status <= 599)) {
-    return { action: "retry", reason: "transient_failure", delaySeconds: Math.min(3600, 30 * 2 ** attempts) };
+    return { action: "block", reason: "reconciliation_required" };
   }
   return { action: "block", reason: "permanent_failure" };
 }
