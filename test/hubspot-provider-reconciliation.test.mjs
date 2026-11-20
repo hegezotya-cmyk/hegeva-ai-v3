@@ -22,3 +22,20 @@ test("multiple matches need manual review", async () => assert.equal((await reco
 test("mismatched email needs manual review", async () => assert.equal((await reconcile({ ...opts, lookup: async () => ({ complete: true, results: [{ id: "123", properties: { email: "other@example.com" } }] }) })).reason, "identity_mismatch"));
 test("incomplete results need manual review", async () => assert.equal((await reconcile({ ...opts, lookup: async () => ({ complete: false, results: [] }) })).reason, "incomplete_lookup"));
 test("provider errors need manual review", async () => assert.equal((await reconcile({ ...opts, lookup: async () => { throw Error("timeout"); } })).reason, "provider_lookup_failed"));
+
+test("non-boolean reconciliation approvals and unknown suppression block lookup", async () => {
+  for (const field of ["enabled", "approvedIdentity"]) {
+    for (const value of ["true", 1, {}, []]) {
+      let called = false;
+      const result = await reconcile({ ...opts, [field]: value, lookup: async () => { called = true; return { complete: true, results: [] }; } });
+      assert.equal(result.action, "block");
+      assert.equal(called, false);
+    }
+  }
+  for (const value of ["false", 0, null]) {
+    let called = false;
+    const result = await reconcile({ ...opts, suppressed: value, lookup: async () => { called = true; return { complete: true, results: [] }; } });
+    assert.equal(result.reason, "suppressed");
+    assert.equal(called, false);
+  }
+});
