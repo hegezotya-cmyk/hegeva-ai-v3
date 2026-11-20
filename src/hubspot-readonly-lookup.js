@@ -1,7 +1,7 @@
 // Draft-only read-only HubSpot lookup transport; never used by production routes.
 // No embedded credentials. Caller injects fetch and authorizes read-only use.
 export async function lookupHubspotContactByEmail({ enabled = false, token, email, fetchImpl } = {}) {
-  if (!enabled) return { complete: false, results: [], reason: "disabled" };
+  if (enabled !== true) return { complete: false, results: [], reason: "disabled" };
   if (typeof token !== "string" || !token.trim() || typeof fetchImpl !== "function") {
     return { complete: false, results: [], reason: "transport_unavailable" };
   }
