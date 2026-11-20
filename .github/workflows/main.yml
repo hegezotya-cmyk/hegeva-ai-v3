@@ -65,6 +65,9 @@ jobs:
       - name: HubSpot isolated safety regressions (offline, no credentials)
         run: node --test test/hubspot-*.test.mjs
 
+      - name: HubSpot SQLite concurrent claim (offline synthetic)
+        run: python3 scripts/hubspot-sqlite-concurrent-claim-test.py
+
       - name: Apply D1 migrations locally
         run: npm run db:migrations:local
 
