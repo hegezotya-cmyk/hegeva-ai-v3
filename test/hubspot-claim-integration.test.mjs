@@ -58,3 +58,34 @@ test("suppression discovered after claim prevents delivery", async () => {
   const claim = await claimHubspotLeadWithProof(db, args);
   assert.equal(planHubspotDeliveryFromClaim(claim, { suppressed: true }).reason, "suppressed");
 });
+
+test("malformed claim inputs fail closed without querying D1", async () => {
+  for (const overrides of [
+    { eventId: "../other" },
+    { eventId: "" },
+    { leaseToken: "short" },
+    { leaseUntil: args.now },
+    { leaseUntil: "invalid" },
+    { now: "invalid" },
+  ]) {
+    const { db, state } = fakeD1();
+    const claim = await claimHubspotLeadWithProof(db, { ...args, ...overrides });
+    assert.deepEqual(claim, { claimed: false, reason: "invalid_input" });
+    assert.equal(state.calls, 0);
+  }
+});
+test("unexpected D1 proof cannot authorize delivery", async () => {
+  const badRows = [
+    { event_id: "wrong", event_type: "lead_upsert", attempts: 1, lease_token: args.leaseToken },
+    { event_id: args.eventId, event_type: "other", attempts: 1, lease_token: args.leaseToken },
+    { event_id: args.eventId, event_type: "lead_upsert", attempts: 0, lease_token: args.leaseToken },
+    { event_id: args.eventId, event_type: "lead_upsert", attempts: 1.5, lease_token: args.leaseToken },
+    { event_id: args.eventId, event_type: "lead_upsert", attempts: 1, lease_token: "wrong" },
+  ];
+  for (const row of badRows) {
+    const db = { prepare: () => ({ bind: () => ({ first: async () => row }) }) };
+    const claim = await claimHubspotLeadWithProof(db, args);
+    assert.equal(claim.reason, "invalid_claim_proof");
+    assert.equal(planHubspotDeliveryFromClaim(claim).action, "block");
+  }
+});
