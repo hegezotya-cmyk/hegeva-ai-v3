@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-const base = { main: "src/hubspot-isolated-worker.js", name: "hegeva-isolated-hubspot-test", workers_dev: false, preview_urls: false, d1_databases: [{ binding: "DB", database_name: "hegeva-hubspot-isolated-test-db", database_id: "53fd518c-9b5c-45b5-9a74-4565f7acdd22" }], vars: { HUBSPOT_ENABLED: "false", HUBSPOT_TRANSPORT_ENABLED: "false" } };
+const base = { compatibility_date: "2026-09-02", main: "src/hubspot-isolated-worker.js", name: "hegeva-isolated-hubspot-test", workers_dev: false, preview_urls: false, d1_databases: [{ binding: "DB", database_name: "hegeva-hubspot-isolated-test-db", database_id: "53fd518c-9b5c-45b5-9a74-4565f7acdd22" }], vars: { HUBSPOT_ENABLED: "false", HUBSPOT_TRANSPORT_ENABLED: "false" } };
 function check(config) {
   const dir = mkdtempSync(join(tmpdir(), "hegeva-preflight-"));
   try {
@@ -19,6 +19,10 @@ test("strict isolated static configuration passes only local preflight", () => {
   assert.match(result.stdout, /runtime tests NOT verified/);
 });
 for (const [name, patch] of [
+  ["wrong Worker name", { name: "hegeva-ai-v3" }],
+  ["unknown config field", { observability: { enabled: true } }],
+  ["unexpected D1 override", { d1_databases: [{ ...base.d1_databases[0], jurisdiction: "eu" }] }],
+  ["wrong compatibility date", { compatibility_date: "2026-01-01" }],
   ["wrong entrypoint", { main: "src/index.js" }],
   ["missing entrypoint", { main: undefined }],
   ["public route", { routes: ["example.com/*"] }],
