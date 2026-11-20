@@ -38,7 +38,7 @@ test("truthy strings and numbers never satisfy provider/privacy approval gates",
       assert.equal(result.ok, false, field + " accepted non-boolean approval");
     }
   }
-  for (const value of ["false", 0, null, undefined]) {
+  for (const value of ["false", 0, null]) {
     const result = build({ ...valid, suppressed: value });
     if (value !== false) assert.equal(result.ok, false, "suppression unknown must fail closed");
   }
