@@ -6,7 +6,7 @@ import { dispositionForDeletedTestUser } from "./stripe-deleted-user-webhook-dis
 
 const ACCOUNT = "ab362645fc03b7e63a26fd8e46e631b6";
 const DATABASE = "84f4c3b0-c175-4458-bad1-e3f826d6ea96";
-const STRIPE_SANDBOX_ACCOUNT = "acct_1U4YkdHH1vUED8ZN";
+const STRIPE_SANDBOX_ACCOUNT = "acct_1UdpZKHVbpADuqhW";
 const TEST_ORIGIN = "https://staging.hegevaai.co.uk";
 const PATH = "/__hegeva/isolated/stripe-test-webhook";
 const LIMIT = 65536;
