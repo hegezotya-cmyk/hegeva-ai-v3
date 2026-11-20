@@ -14,6 +14,7 @@ const ASSISTANT_LANGUAGE_POLICIES = Object.freeze({
   fr: "Respond in French.",
   es: "Respond in Spanish.",
 })
+const X10_STUDIO_SYSTEM_PROMPT = "You are HEGEVA X10 App Studio. Build a complete, safe, self-contained HTML app that follows the user's requested domain and requirements. Return only the requested artifact. Use the requested language. Never claim integrations or remote persistence that are not implemented."
 const ASSISTANT_INTERRUPTION_MESSAGES = Object.freeze({
   en: "The answer was interrupted. Please ask again more briefly.",
   hu: "A válasz generálása félbeszakadt. Kérlek, kérdezd újra rövidebben.",
@@ -105,24 +106,41 @@ export function boundAssistantProviderPayload(tier, projection) {
   if (!tier || !projection || projection.operation !== "assistant" || typeof projection.prompt !== "string") return { ok: false, reason: "invalid-projection" }
   const languagePolicy = ASSISTANT_LANGUAGE_POLICIES[projection.locale]
   if (!languagePolicy) return { ok: false, reason: "invalid-projection" }
-  const workspaceContext = typeof projection.workspaceContext === "string"
+  const x10Studio = projection.appStudioProfile === "x10"
+  const workspaceContext = !x10Studio && typeof projection.workspaceContext === "string"
     ? projection.workspaceContext.trim().slice(0, 1_200)
     : ""
   const workspacePolicy = workspaceContext
     ? `Authenticated workspace facts for the signed-in user (aggregate only):\n${workspaceContext}\nUse these facts for current-workspace questions. Do not claim access to individual records or details absent from this summary.`
     : ""
   const messages = [
-    { role: "system", content: `${ASSISTANT_SYSTEM_PROMPT} ${languagePolicy}${workspacePolicy ? `\n\n${workspacePolicy}` : ""}` },
+    { role: "system", content: `${x10Studio ? X10_STUDIO_SYSTEM_PROMPT : ASSISTANT_SYSTEM_PROMPT} ${languagePolicy}${workspacePolicy ? `\n\n${workspacePolicy}` : ""}` },
     { role: "user", content: projection.prompt.trim() },
   ]
   if (!messages[1].content) return { ok: false, reason: "invalid-projection" }
-  // Responses counts the complete serialized input. Keep the established
-  // Standard admission boundary unchanged in this model-specific repair.
-  const payload = tier.id === "advanced"
+  const makePayload = () => tier.id === "advanced"
     ? { input: messages, max_output_tokens: tier.maxOutputTokens, reasoning: { effort: "low" }, temperature: 0.2, stream: false }
     : { messages, max_tokens: tier.maxOutputTokens, temperature: 0.2, stream: false }
-  const inputTokens = encoder.encode(JSON.stringify(tier.id === "advanced" ? payload : { messages, max_tokens: tier.maxOutputTokens })).byteLength
-  if (inputTokens > tier.maxInputTokens) return { ok: false, reason: "provider-input-too-large" }
+  const serializedInput = () => JSON.stringify(tier.id === "advanced" ? makePayload() : { messages, max_tokens: tier.maxOutputTokens })
+  let inputTokens = encoder.encode(serializedInput()).byteLength
+  // X10 has its own compact system prompt. If a long or non-ASCII request is
+  // still over the existing model boundary, trim only its tail before quota
+  // reservation; ordinary Assistant input keeps its established behavior.
+  if (x10Studio && inputTokens > tier.maxInputTokens) {
+    const originalPrompt = Array.from(messages[1].content)
+    let low = 0
+    let high = originalPrompt.length
+    while (low < high) {
+      const middle = Math.ceil((low + high) / 2)
+      messages[1].content = originalPrompt.slice(0, middle).join("")
+      if (encoder.encode(serializedInput()).byteLength <= tier.maxInputTokens) low = middle
+      else high = middle - 1
+    }
+    messages[1].content = originalPrompt.slice(0, low).join("").trimEnd()
+    inputTokens = encoder.encode(serializedInput()).byteLength
+  }
+  if (inputTokens > tier.maxInputTokens || !messages[1].content) return { ok: false, reason: "provider-input-too-large" }
+  const payload = makePayload()
   return {
     ok: true,
     request: Object.freeze({ model: tier.model, ...payload }),
@@ -201,16 +219,18 @@ export function getWorkersAiConfig(env = {}) {
   })
 }
 
-export function buildWorkersAiProjection({ operation, locale, prompt, workspaceContext }) {
+export function buildWorkersAiProjection({ operation, locale, prompt, workspaceContext, appStudioProfile }) {
   if (!(operation === "assistant" || operation === "ai-bot") || !["en", "hu", "de", "fr", "es"].includes(locale) || typeof prompt !== "string") return null
   const boundedPrompt = prompt.trim().slice(0, 8_000)
   if (!boundedPrompt || /(?:https?:\/\/|javascript:|<\/?[a-z]|\b(?:tool|deploy|execute)\b)/i.test(boundedPrompt)) return null
+  const safeStudioProfile = operation === "assistant" && appStudioProfile === "x10" ? "x10" : undefined
   return {
     schemaVersion: "0.1",
     operation,
     locale,
     prompt: boundedPrompt,
-    ...(operation === "assistant" && typeof workspaceContext === "string" && workspaceContext.trim()
+    ...(safeStudioProfile ? { appStudioProfile: safeStudioProfile } : {}),
+    ...(!safeStudioProfile && operation === "assistant" && typeof workspaceContext === "string" && workspaceContext.trim()
       ? { workspaceContext: workspaceContext.trim().slice(0, 1_200) }
       : {}),
   }

@@ -4497,7 +4497,7 @@ QUALITY RULES:
               runtime: aiRuntime,
               resolveTier: ({ tier, plan }) => resolveAssistantModelTier({ tier, plan, env }),
               validateProviderInput: ({ message, tier }) => {
-                const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: message, workspaceContext: businessContext });
+                const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: message, workspaceContext: businessContext, appStudioProfile: isX10StudioProfile ? body.appStudioProfile : undefined });
                 return boundAssistantProviderPayload(tier, projection);
               },
               distributed: env.RATE_LIMITER?.getByName(`chat-rate-limit:${user.id}`),
@@ -4608,7 +4608,7 @@ QUALITY RULES:
                   const startedAt = Date.now();
                   let adapted = null;
                   try {
-                    const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage, workspaceContext: businessContext });
+                    const projection = buildWorkersAiProjection({ operation: "assistant", locale: body.language || "en", prompt: admittedMessage, workspaceContext: businessContext, appStudioProfile: isX10StudioProfile ? body.appStudioProfile : undefined });
                     adapted = await invokeAssistantWorkersAiText(env, projection, { tier });
                     assistantPhase = "assistant_settlement";
                     if (dailyReservation && !assistantDailySettlementAttempted) {
