@@ -3,8 +3,8 @@ import { planHubspotDeliveryFromClaim } from "./hubspot-delivery-policy.js";
 // Default-off, read-only, isolated pre-send gate. No HTTP transport or Worker route.
 // This is a checkpoint, NOT an atomic guarantee against opt-out during an in-flight send.
 export async function checkHubspotPreSend({ enabled = false, claim, userId, db, legalBasisApproved = false, noticeProvided = false } = {}) {
-  if (!enabled) return { action: "block", reason: "disabled" };
-  if (!legalBasisApproved || !noticeProvided) return { action: "block", reason: "privacy_not_approved" };
+  if (enabled !== true) return { action: "block", reason: "disabled" };
+  if (legalBasisApproved !== true || noticeProvided !== true) return { action: "block", reason: "privacy_not_approved" };
   if (typeof userId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(userId)) return { action: "block", reason: "invalid_user" };
   const planned = planHubspotDeliveryFromClaim(claim);
   if (planned.action !== "attempt") return { action: "block", reason: planned.reason };
