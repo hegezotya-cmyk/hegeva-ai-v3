@@ -26,3 +26,12 @@ Only HEGEVA's own first-party leads and lifecycle events may be considered for o
 - [ ] Idempotency, deletion and suppression tests pass
 - [ ] Staging evidence and rollback documented
 - [ ] Production remains disabled until separate approval
+
+## Verified code touchpoints (read-only, 2026-11-20)
+- `v0-app/components/auth/auth-panel.tsx`: client-side sign-up form, sign-up event, email-verification pending state and referral attribution. This is **not** an approved place to call HubSpot directly.
+- `v0-app/lib/conversion-tracking.ts`: consent-gated browser analytics, `registration_submitted` and activation events. Browser analytics consent is not an automatic permission to share identifiable data with HubSpot.
+- `v0-app/components/business/local-workspace.tsx`: tenant workspace customers, documents and expenses with authenticated cloud sync and guest-local fallback. These customer records must be excluded from the central HubSpot sync.
+- `v0-app/lib/i18n/registrations-copy.ts`: owner-facing registered-user and activation metrics; describes registration time, verified email, first value and subscription status as separate concepts.
+
+## Next implementation gate
+Locate server-side account lifecycle hooks and existing durable outbox schema before selecting a sync trigger. Confirm purpose-specific legal basis, notice, suppression and retention rules. Do not implement client-side HubSpot calls, broad data exports or auto-marketing opt-ins. No integration tests or runtime deployment have been performed in this documentation-only PR.
