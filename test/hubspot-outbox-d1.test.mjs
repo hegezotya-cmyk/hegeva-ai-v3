@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { enqueueHubspotLead, claimHubspotLead, suppressHubspotLead, finalizeHubspotLead } from "../src/hubspot-outbox-d1.js";
 const now = "2026-11-20T10:00:00.000Z";
+const consent = userId => ({ enabled: true, purpose: "hegeva_sales_followup", legalBasisApproved: true, noticeProvided: true, user: { id: userId, email: "lead@example.com", emailVerified: true } });
 function fakeDb(changes = 1) {
   const calls = [];
   const db = {
@@ -12,13 +13,13 @@ function fakeDb(changes = 1) {
 }
 test("enqueue uses atomic insert and suppression exclusion", async () => {
   const { db, calls } = fakeDb();
-  assert.deepEqual(await enqueueHubspotLead(db, { eventId: "evt_1", userId: "user1", now }), { enqueued: true, reason: "queued" });
+  assert.deepEqual(await enqueueHubspotLead(db, { eventId: "evt_1", userId: "user1", now, ...consent("user1") }), { enqueued: true, reason: "queued" });
   assert.match(calls[0].sql, /INSERT OR IGNORE/);
   assert.match(calls[0].sql, /NOT EXISTS.*hubspot_lead_suppressions/s);
   assert.deepEqual(calls[0].params, ["evt_1", "user1", now]);
 });
 test("duplicate or suppressed enqueue is not reported as success", async () => {
-  assert.equal((await enqueueHubspotLead(fakeDb(0).db, { eventId: "evt_1", userId: "u", now })).enqueued, false);
+  assert.equal((await enqueueHubspotLead(fakeDb(0).db, { eventId: "evt_1", userId: "u", now, ...consent("u") })).enqueued, false);
 });
 test("invalid event id never touches DB", async () => {
   const { db, calls } = fakeDb();
@@ -68,4 +69,26 @@ test("stale finalization cannot claim success", async () => {
 test("retry requires a future timestamp", async () => {
   const result = await finalizeHubspotLead(fakeDb().db, { eventId: "evt_1", leaseToken: "lease_1234567890123456", now, outcome: "retry", nextAttemptAt: now });
   assert.equal(result.reason, "invalid_input");
+});
+
+test("enqueue without explicit legal basis fails closed", async () => {
+  const { db, calls } = fakeDb();
+  const result = await enqueueHubspotLead(db, { eventId: "evt_2", userId: "u", now });
+  assert.equal(result.enqueued, false);
+  assert.equal(result.reason, "disabled");
+  assert.equal(calls.length, 0);
+});
+test("enqueue refuses mismatched user identity", async () => {
+  const { db, calls } = fakeDb();
+  const result = await enqueueHubspotLead(db, { eventId: "evt_2", userId: "other", now, ...consent("u") });
+  assert.equal(result.reason, "identity_mismatch");
+  assert.equal(calls.length, 0);
+});
+test("enqueue refuses unverified email", async () => {
+  const { db, calls } = fakeDb();
+  const gate = consent("u");
+  gate.user.emailVerified = false;
+  const result = await enqueueHubspotLead(db, { eventId: "evt_2", userId: "u", now, ...gate });
+  assert.equal(result.reason, "unverified");
+  assert.equal(calls.length, 0);
 });
