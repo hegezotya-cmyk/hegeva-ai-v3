@@ -3,10 +3,10 @@
 // Email is a candidate identity, not an approved portal-level unique key.
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function buildHubspotUpsertDraft({ enabled = false, approvedIdentity = false, legalBasisApproved = false, noticeProvided = false, suppressed = false, user } = {}) {
-  if (!enabled) return { ok: false, reason: "disabled" };
-  if (!approvedIdentity) return { ok: false, reason: "identity_not_approved" };
-  if (!legalBasisApproved || !noticeProvided) return { ok: false, reason: "privacy_gate" };
-  if (suppressed) return { ok: false, reason: "suppressed" };
+  if (enabled !== true) return { ok: false, reason: "disabled" };
+  if (approvedIdentity !== true) return { ok: false, reason: "identity_not_approved" };
+  if (legalBasisApproved !== true || noticeProvided !== true) return { ok: false, reason: "privacy_gate" };
+  if (suppressed !== false) return { ok: false, reason: "suppressed" };
   if (!user || user.emailVerified !== true || typeof user.email !== "string" || !emailPattern.test(user.email.trim())) return { ok: false, reason: "invalid_identity" };
   const email = user.email.trim().toLowerCase();
   return { ok: true, path: "/crm/v3/objects/contacts/batch/upsert", body: { inputs: [{ id: email, idProperty: "email", properties: { email } }] } };
