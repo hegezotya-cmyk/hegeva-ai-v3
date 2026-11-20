@@ -28,3 +28,12 @@ test("adapter integrates with reconciliation without marking delivery", async ()
   const result = await reconcile({ enabled: true, approvedIdentity: true, email: "lead@example.com", lookup: ({ email }) => lookup({ ...opts, email, fetchImpl: async () => response({ total: 1, results: [{ id: "123", properties: { email } }] }) }) });
   assert.deepEqual(result, { action: "manual_review", reason: "matching_contact_event_unverified" });
 });
+
+test("read-only lookup never accepts truthy non-boolean enable flags", async () => {
+  for (const enabled of ["true", 1, {}, []]) {
+    let called = false;
+    const result = await lookup({ ...opts, enabled, fetchImpl: async () => { called = true; return response({ total: 0, results: [] }); } });
+    assert.equal(result.reason, "disabled");
+    assert.equal(called, false);
+  }
+});
