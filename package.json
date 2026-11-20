@@ -24,7 +24,7 @@
     "release:check": "npm run worker:check && npm run db:migrations:local && npm run deploy:dry-run && cd v0-app && npm run audit:roadmap && npx tsc --noEmit && npm run build && npm run cf:build",
     "release:smoke": "node scripts/release-smoke.mjs",
     "v0:build": "npm --prefix v0-app run cf:build",
-    "hubspot:test": "node --test test/hubspot-lead-policy.test.mjs test/hubspot-contact-adapter.test.mjs test/hubspot-delivery-policy.test.mjs test/hubspot-outbox-d1.test.mjs test/hubspot-claim-integration.test.mjs test/hubspot-upsert-policy.test.mjs test/hubspot-provider-reconciliation.test.mjs test/hubspot-readonly-lookup.test.mjs test/hubspot-claim-reconcile-policy.test.mjs test/hubspot-synthetic-flow.test.mjs",
+    "hubspot:test": "node --test test/hubspot-lead-policy.test.mjs test/hubspot-contact-adapter.test.mjs test/hubspot-delivery-policy.test.mjs test/hubspot-outbox-d1.test.mjs test/hubspot-claim-integration.test.mjs test/hubspot-upsert-policy.test.mjs test/hubspot-provider-reconciliation.test.mjs test/hubspot-readonly-lookup.test.mjs test/hubspot-claim-reconcile-policy.test.mjs test/hubspot-synthetic-flow.test.mjs test/hubspot-pre-send-gate.test.mjs",
     "hubspot:sqlite:test": "python3 scripts/hubspot-sqlite-contract-test.py && python3 scripts/hubspot-d1-sql-source-contract-test.py"
   },
   "dependencies": {
