@@ -42,13 +42,19 @@ export async function suppressHubspotLead(db, { userId, reason, now } = {}) {
   let results;
   try {
     results = await db.batch([
-    db.prepare("INSERT INTO hubspot_lead_suppressions(user_id,reason,created_at) VALUES(?1,?2,?3) ON CONFLICT(user_id) DO NOTHING").bind(userId, reason, now),
-    db.prepare("UPDATE hubspot_lead_outbox SET state='suppressed',lease_until=NULL,lease_token=NULL,updated_at=?2 WHERE user_id=?1 AND state IN ('pending','leased','failed')").bind(userId, now),
-  ]);
+      db.prepare("INSERT INTO hubspot_lead_suppressions(user_id,reason,created_at) VALUES(?1,?2,?3) ON CONFLICT(user_id) DO NOTHING").bind(userId, reason, now),
+      db.prepare("UPDATE hubspot_lead_outbox SET state='suppressed',lease_until=NULL,lease_token=NULL,updated_at=?2 WHERE user_id=?1 AND state IN ('pending','leased','failed')").bind(userId, now),
+    ]);
+  } catch {
+    return { suppressed: false, reason: "db_error" };
+  }
+  if (!Array.isArray(results) || results.length !== 2 || results.some(result => result?.success !== true)) {
+    return { suppressed: false, reason: "unverified_batch" };
+  }
   return { suppressed: true, reason: "recorded" };
 }
 
- // Finalization is fenced by the unique claim token, not just an event ID.
+// Finalization is fenced by the unique claim token, not just an event ID.
  // The owner of an expired lease cannot overwrite a later processor's result.
 export async function finalizeHubspotLead(db, { eventId, leaseToken, now, outcome, nextAttemptAt = null } = {}) {
   if (!validId(eventId) || !validLease(leaseToken) || !Number.isFinite(Date.parse(now || "")) ||
