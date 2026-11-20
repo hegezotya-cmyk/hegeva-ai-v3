@@ -39,7 +39,9 @@ export async function claimHubspotLead(db, { eventId, now, leaseUntil, leaseToke
 // Must run in a D1 transaction/batch with relevant outbox suppression.
 export async function suppressHubspotLead(db, { userId, reason, now } = {}) {
   if (!validUser(userId) || !["opt_out","erasure","legal_hold"].includes(reason) || !Number.isFinite(Date.parse(now || ""))) return { suppressed: false, reason: "invalid_input" };
-  await db.batch([
+  let results;
+  try {
+    results = await db.batch([
     db.prepare("INSERT INTO hubspot_lead_suppressions(user_id,reason,created_at) VALUES(?1,?2,?3) ON CONFLICT(user_id) DO NOTHING").bind(userId, reason, now),
     db.prepare("UPDATE hubspot_lead_outbox SET state='suppressed',lease_until=NULL,lease_token=NULL,updated_at=?2 WHERE user_id=?1 AND state IN ('pending','leased','failed')").bind(userId, now),
   ]);
