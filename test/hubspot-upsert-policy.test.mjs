@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildHubspotUpsertDraft as build, classifyHubspotUpsertDraftResponse as classify } from "../src/hubspot-upsert-policy.js";
+import { buildHubspotUpsertDraft as build, classifyHubspotUpsertDraftResponse as classify, inspectHubspotUpsertDraftResult as inspect } from "../src/hubspot-upsert-policy.js";
 const valid = { enabled: true, approvedIdentity: true, legalBasisApproved: true, noticeProvided: true, user: { id: "synthetic", email: "LEAD@EXAMPLE.COM", emailVerified: true, workspace: { customers: ["never_export"] } } };
 test("upsert draft is allowlisted to one verified email", () => {
   assert.deepEqual(build(valid), { ok: true, path: "/crm/v3/objects/contacts/batch/upsert", body: { inputs: [{ id: "lead@example.com", idProperty: "email", properties: { email: "lead@example.com" } }] } });
@@ -17,3 +17,16 @@ test("200 without verified results requires reconciliation", () => assert.equal(
 test("200 with result still requires identity verification", () => assert.equal(classify({ status: 200, body: { results: [{ id: "123" }] } }).reason, "provider_identity_not_verified"));
 test("400 blocks instead of retrying", () => assert.deepEqual(classify({ status: 400 }), { action: "block", reason: "provider_rejected" }));
 test("missing status requires reconciliation", () => assert.equal(classify({}).reason, "unknown_outcome"));
+
+test("correlated synthetic response still requires provider reconciliation", () => {
+  assert.deepEqual(inspect({ expectedEmail: "lead@example.com", status: 200, body: { results: [{ id: "123", properties: { email: "LEAD@EXAMPLE.COM" } }] } }), { action: "reconcile", reason: "identity_correlated_not_verified" });
+});
+test("mismatched synthetic response cannot authorize success", () => {
+  assert.deepEqual(inspect({ expectedEmail: "lead@example.com", status: 200, body: { results: [{ id: "123", properties: { email: "other@example.com" } }] } }), { action: "reconcile", reason: "identity_mismatch" });
+});
+test("missing email in provider result fails closed", () => {
+  assert.equal(inspect({ expectedEmail: "lead@example.com", status: 200, body: { results: [{ id: "123" }] } }).reason, "identity_mismatch");
+});
+test("invalid expected identity fails closed", () => {
+  assert.equal(inspect({ expectedEmail: "not-email", status: 200, body: { results: [{ id: "123", properties: { email: "lead@example.com" } }] } }).reason, "invalid_expected_identity");
+});
