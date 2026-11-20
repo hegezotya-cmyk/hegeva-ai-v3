@@ -37,3 +37,17 @@ test("read-only lookup never accepts truthy non-boolean enable flags", async () 
     assert.equal(called, false);
   }
 });
+
+test("malformed or mismatched HubSpot search records are never complete", async () => {
+  const rows = [
+    { id: "", properties: { email: "lead@example.com" } },
+    { id: 123, properties: { email: "lead@example.com" } },
+    { id: "123", properties: {} },
+    { id: "123", properties: { email: "other@example.com" } },
+    { id: "123", properties: { email: null } },
+  ];
+  for (const row of rows) {
+    const result = await lookup({ ...opts, fetchImpl: async () => response({ total: 1, results: [row] }) });
+    assert.deepEqual(result, { complete: false, results: [], reason: "provider_identity_mismatch" });
+  }
+});
