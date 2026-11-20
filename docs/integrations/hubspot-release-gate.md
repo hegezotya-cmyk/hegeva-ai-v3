@@ -64,3 +64,10 @@ Any unverified provider outcome, consent/notice failure, suppression, missing ke
 - Release owner: review rollback/kill switch, monitoring and staging proof; separately authorize PR merge and provider transport activation after all prior gates PASS.
 
 **No automatic release:** PR #144 remains Draft, default-off and not production-ready. Never substitute CI success or a previous unrelated deployment for these acceptance gates.
+
+## Automated offline safety gate — 2026-11-20
+
+- PR #144 commit `9d58984540e49979c7ba16f3a9202616d943f975`: GitHub Actions `44701400634` executed the dedicated `HubSpot isolated safety regressions (offline, no credentials)` step successfully. This does **not** establish remote D1/Worker concurrency.
+- PR #144 commit `ac32fc2aeef2b6b02cd0a40b9ad9bd130ff3c611`: GitHub Actions `44701542433` reported both `HubSpot isolated safety regressions (offline, no credentials)` and `HubSpot SQLite concurrent claim (offline synthetic)` steps **SUCCESS** while the remaining build was still running at inspection time. Do not mark the full workflow PASS until it completes.
+- The new offline concurrency step uses two SQLite connections and exact source claim SQL. It does not touch Cloudflare or HubSpot, and cannot replace remote isolated Worker/D1 runtime proof.
+- **Decision remains NOT READY:** no remote synthetic Worker-level acceptance, provider identity proof, privacy approval, staging authenticated E2E or separate production authorization.
