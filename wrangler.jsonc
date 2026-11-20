@@ -40,7 +40,7 @@
     "AI_PER_WORKSPACE_CEILING": "1",
     "AI_CONCURRENCY_CEILING": "1",
     "AI_BOT_CANARY_ENABLED": "disabled",
-    "AI_X10_ENABLED": "disabled",
+    "AI_X10_ENABLED": "enabled",
     "AI_OWNER_PROFILE_SETUP_ENABLED": "disabled",
     "AI_OWNER_CANARY_ENABLED": "disabled",
     "AI_ADVANCED_ASSISTANT_CREDIT_COST": "8",
