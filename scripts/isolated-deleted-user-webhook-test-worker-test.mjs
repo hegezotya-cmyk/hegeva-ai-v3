@@ -6,7 +6,7 @@ import { handleIsolatedStripeWebhook } from "../src/isolated-deleted-user-webhoo
 
 const ACCOUNT = "ab362645fc03b7e63a26fd8e46e631b6";
 const DB_ID = "84f4c3b0-c175-4458-bad1-e3f826d6ea96";
-const SANDBOX = "acct_1U4YkdHH1vUED8ZN";
+const SANDBOX = "acct_1UdpZKHVbpADuqhW";
 const SECRET = "whsec_only_offline_synthetic_secret_never_real";
 const WEBHOOK_URL = "https://isolated.example/__hegeva/isolated/stripe-test-webhook";
 const TEST_SCHEMA = readFileSync(new URL("./isolated-deleted-user-webhook-test-schema.sql", import.meta.url), "utf8");
