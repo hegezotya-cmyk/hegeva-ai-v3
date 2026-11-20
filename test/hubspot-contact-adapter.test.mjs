@@ -23,3 +23,18 @@ test("invalid attempt fails closed", async () => {
   assert.equal(result.reason, "invalid_attempt");
   assert.equal(calls, 0);
 });
+
+test("transport timeout is ambiguous and must not be blindly retried", async () => {
+  let calls = 0;
+  const result = await sendHubspotContact({ ...valid, token: "fake", fetchImpl: async () => { calls++; throw new Error("network timeout"); } });
+  assert.deepEqual(result, { sent: false, reason: "provider_outcome_unknown" });
+  assert.equal(calls, 1);
+});
+test("malformed provider response is ambiguous", async () => {
+  const result = await sendHubspotContact({ ...valid, token: "fake", fetchImpl: async () => ({}) });
+  assert.deepEqual(result, { sent: false, reason: "provider_outcome_unknown" });
+});
+test("conflict requires provider reconciliation", async () => {
+  const result = await sendHubspotContact({ ...valid, token: "fake", fetchImpl: async () => ({ ok: false, status: 409 }) });
+  assert.deepEqual(result, { sent: false, reason: "provider_reconciliation_required", status: 409 });
+});
