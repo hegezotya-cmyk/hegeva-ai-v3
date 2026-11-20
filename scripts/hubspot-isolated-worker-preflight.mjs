@@ -13,14 +13,16 @@ else {
     // This intentionally accepts only strict JSON; no unsafe eval/JSONC stripping.
     const config = JSON.parse(raw);
     const errors = [];
+    if (!config || typeof config !== "object" || Array.isArray(config)) throw new Error("invalid config");
     if (config.workers_dev !== false) errors.push("workers_dev must be false");
     if (config.preview_urls !== false) errors.push("preview_urls must be false");
     if (config.routes !== undefined && (!Array.isArray(config.routes) || config.routes.length)) errors.push("routes must be absent or empty");
     if (config.route) errors.push("route must be absent");
     if (!/isolated.*hubspot|hubspot.*isolated/i.test(config.name || "")) errors.push("Worker name must clearly identify isolated HubSpot test");
-    const d1 = config.d1_databases || [];
-    if (d1.length !== 1 || d1[0].binding !== "DB" || d1[0].database_name !== "hegeva-hubspot-isolated-test-db" ||
-        !/^[a-f0-9-]{36}$/i.test(d1[0].database_id || "")) errors.push("exactly one isolated D1 DB binding with UUID required");
+    const d1 = config.d1_databases;
+    if (!Array.isArray(d1)) errors.push("D1 binding list must be an array");
+    if (!Array.isArray(d1) || d1.length !== 1 || !d1[0] || d1[0].binding !== "DB" || d1[0].database_name !== "hegeva-hubspot-isolated-test-db" ||
+        !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(d1[0].database_id || "")) errors.push("exactly one isolated D1 DB binding with UUID required");
     if (config.ai || config.durable_objects || config.r2_buckets?.length || config.kv_namespaces?.length || config.services?.length || config.queues || config.hyperdrive?.length || config.vectorize?.length) errors.push("unapproved bindings must not be present");
     if (config.env && Object.keys(config.env).length) errors.push("environment overrides are not allowed");
     if (config.vars && Object.keys(config.vars).some(key => !["HUBSPOT_ENABLED", "HUBSPOT_TRANSPORT_ENABLED"].includes(key))) errors.push("unexpected environment variables");
