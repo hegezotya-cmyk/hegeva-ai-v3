@@ -19,7 +19,7 @@
 | Stale lease update | Owner reported Success, but no explicit zero-change proof was captured | UNVERIFIED |
 | Opt-out | Screenshot INSERT RETURNING: synthetic user, `opt_out` | PASS |
 | Suppressed delivery guard | Screenshot guarded UPDATE RETURNING: 'This query returned no data' | PASS for tested guard, not full lifecycle |
-| Transition event to suppressed | SQL instruction provided, no execution result supplied | PENDING |
+| Transition event to suppressed | Owner-shared Cloudflare Console screenshot: UPDATE RETURNING showed `suppressed`, attempts=2, `lease_token` NULL | PASS for this manual state transition |
 
 ## Limitations
 - The manually issued SQL statements are simplified and **not** all exact production-source statements; in particular the reclaim UPDATE used simulated 2099 timestamps. No concurrent workers were tested.
@@ -29,7 +29,7 @@
 - **No production/staging deploy, migration or CRM contact write is authorized.**
 
 ## Next safe actions
-1. Obtain the result of the previously provided guarded UPDATE to `suppressed`, then verify final state with read-only SELECT.
+1. Manual UPDATE RETURNING confirmed `suppressed`, attempts=2 and NULL lease token; optional independent read-only SELECT can confirm persistence.
 2. Independently verify exact isolated Cloudflare account/database IDs and binding isolation before any automated remote test.
 3. Run source-equivalent atomic claim/finalize and concurrency tests only after explicit scope approval.
 4. Complete provider identity, reconciliation, opt-out/erasure, privacy and release gates.
