@@ -1,3 +1,4 @@
+import { hubspotLeadEligibility } from "./hubspot-lead-policy.js";
 // Isolated D1 outbox operations. No endpoint or scheduled handler imports this module.
 // Schema: docs/integrations/hubspot-outbox-schema-DRAFT.sql
 const validId = value => typeof value === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(value);
@@ -6,8 +7,11 @@ const validUser = value => typeof value === "string" && value.length > 0 && valu
 const changed = result => Number(result?.meta?.changes ?? 0) === 1;
 
 // INSERT OR IGNORE is atomic under D1 unique event_id, and suppression is
-// checked in the same statement. Legal-basis/notice gating is the caller's job.
-export async function enqueueHubspotLead(db, { eventId, userId, now } = {}) {
+// checked in the same statement. Legal-basis/notice gating is enforced here.
+export async function enqueueHubspotLead(db, { eventId, userId, now, enabled = false, purpose, legalBasisApproved = false, noticeProvided = false, suppressed = false, user } = {}) {
+  const eligibility = hubspotLeadEligibility({ enabled, purpose, legalBasisApproved, noticeProvided, suppressed, user });
+  if (!eligibility.eligible) return { enqueued: false, reason: eligibility.reason };
+  if (userId !== user.id) return { enqueued: false, reason: "identity_mismatch" };
   if (!validId(eventId) || !validUser(userId) || !Number.isFinite(Date.parse(now || ""))) return { enqueued: false, reason: "invalid_input" };
   const result = await db.prepare(`INSERT OR IGNORE INTO hubspot_lead_outbox
     (event_id,user_id,event_type,state,attempts,next_attempt_at,created_at,updated_at)
