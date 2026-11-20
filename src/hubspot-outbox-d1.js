@@ -85,5 +85,5 @@ export async function claimHubspotLeadWithProof(db, { eventId, now, leaseUntil, 
       row.lease_token !== leaseToken || !Number.isSafeInteger(row.attempts) || row.attempts < 1) {
     return { claimed: false, reason: "invalid_claim_proof" };
   }
-  return { claimed: true, reason: "claimed", eventId, eventType: row.event_type, claimAttempts: row.attempts };
+  return { claimed: true, reason: "claimed", eventId, eventType: row.event_type, claimAttempts: row.attempts, leaseToken };
 }
