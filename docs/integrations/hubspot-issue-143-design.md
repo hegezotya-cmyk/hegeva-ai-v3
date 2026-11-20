@@ -35,3 +35,12 @@ Only HEGEVA's own first-party leads and lifecycle events may be considered for o
 
 ## Next implementation gate
 Locate server-side account lifecycle hooks and existing durable outbox schema before selecting a sync trigger. Confirm purpose-specific legal basis, notice, suppression and retention rules. Do not implement client-side HubSpot calls, broad data exports or auto-marketing opt-ins. No integration tests or runtime deployment have been performed in this documentation-only PR.
+
+## Server-side discovery (read-only, 2026-11-20)
+- `src/auth.js` uses Better Auth and Resend for email verification. The exact post-verification server hook and persisted user schema still need examination before any event integration.
+- `src/index.js` is the central Cloudflare Worker API entrypoint. It enforces bounded request bodies, including separate auth/contact/workspace limits, and imports owner registration reporting and integrations modules.
+- `src/index-ledger.js` contains Stripe-specific signed webhook handling. Its Stripe payment ledger must **not** be reused for HubSpot lead synchronization without a separate schema and isolation review.
+- No existing general-purpose HubSpot outbox was established by this limited search. Do not assume one exists or that Stripe-specific infrastructure is suitable.
+
+### Required next code-review files
+`src/admin-registrations.js`, remaining `src/auth.js` Better Auth setup, `src/integrations.js`, migration definitions, and existing scheduled worker handlers. Choose server-side triggers only after identifying transaction boundaries and durable idempotency strategy.
