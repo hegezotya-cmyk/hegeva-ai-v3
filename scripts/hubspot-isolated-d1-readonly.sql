@@ -10,7 +10,7 @@ ORDER BY type, name;
 SELECT name FROM sqlite_master
 WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
 ORDER BY name;
-SELECT name, sql FROM sqlite_master
+SELECT name FROM sqlite_master
 WHERE type = 'trigger' AND name NOT LIKE 'sqlite_%'
 ORDER BY name;
 -- Do not run INSERT/UPDATE/DELETE/CREATE/DROP/ALTER/PRAGMA writable_schema.
