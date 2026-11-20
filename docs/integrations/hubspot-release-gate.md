@@ -41,7 +41,7 @@ Any unverified provider outcome, consent/notice failure, suppression, missing ke
 | Gate | Current evidence | Decision |
 | --- | --- | --- |
 | Git branch conflict | PR #144 `mergeable=true` at latest check | PASS (recheck at merge time) |
-| GitHub CI latest HEAD | `c386d4e476f07619c5eea10e44d6dbafbdd8d2ff`, run `44691523608` in progress | PENDING |
+| GitHub CI latest HEAD | `48750b56f8a566e43a976e63bfb92b3f6e5afa84`, run `44691577496` completed SUCCESS | PASS (CI only) |
 | Isolated D1 identity | Browser-confirmed Synthetic Tests account `ab362645fc03b7e63a26fd8e46e631b6`, D1 `53fd518c-9b5c-45b5-9a74-4565f7acdd22` | PARTIAL (remote binding unverified) |
 | Isolated D1 runtime concurrency, crash/opt-out | Historical manual synthetic SQL; no verified Worker-level remote concurrency | BLOCKED |
 | HubSpot portal identity/idempotency | Unique provider key and ambiguous-response reconciliation not proven | BLOCKED |
@@ -50,3 +50,17 @@ Any unverified provider outcome, consent/notice failure, suppression, missing ke
 | Production deployment | Separate protected approval and post-deploy smoke evidence needed | BLOCKED |
 
 **Release rule:** never treat a green CI as permission to enable HubSpot outbound delivery. A safe non-HubSpot application release and a HubSpot transport launch are distinct decisions. Do not merge this Draft or enable transport until the applicable gate has been explicitly accepted. Do not migrate/write production D1 as part of HubSpot preparation.
+
+## Acceptance handover — evidence and ownership (2026-11-20)
+
+**Core release already independently evidenced:** `v0-rebuild` commit `4c220f21b6c7d7ebaac152f552746026cb711920` has successful production API release run `44685119808` (API deploy + live smoke); earlier production UI run `44622416780` has UI deploy + smoke PASS; staging run `44481056154` has isolation audit, preflight, API deploy and staging smoke PASS. These are different commits and do **not** constitute an authenticated end-to-end test of the latest full application.
+
+**Core customer-journey acceptance still required:** use a dedicated non-production account to prove email verification, login/session renewal, onboarding, customers, quotes, invoices, planner, follow-up, account/billing, Core decision, App Studio and tenant isolation. Use Stripe TEST only for a complete payment lifecycle; do not create real charges. Record test date, environment, commit/Worker version, sanitized PASS/FAIL and rollback owner. An anonymous route smoke test is not sufficient.
+
+**HubSpot handover checklist:**
+- Engineering: verify isolated Worker binding to exact Synthetic Tests D1, run synthetic remote concurrency, stale-lease, crash/recovery and suppression/send race tests; capture sanitized proof.
+- CRM administrator: confirm the correct HubSpot portal, required read scopes and unique property behavior; do not enable live writes.
+- Privacy owner: approve lead purpose, lawful basis, notice, opt-out propagation, retention and erasure, including in-flight provider requests.
+- Release owner: review rollback/kill switch, monitoring and staging proof; separately authorize PR merge and provider transport activation after all prior gates PASS.
+
+**No automatic release:** PR #144 remains Draft, default-off and not production-ready. Never substitute CI success or a previous unrelated deployment for these acceptance gates.
