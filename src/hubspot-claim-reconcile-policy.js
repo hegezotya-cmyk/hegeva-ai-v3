@@ -7,7 +7,7 @@ export async function planHubspotClaimReconciliation({ claim, suppressed = false
     return { action: "hold", reason: "first_claim_requires_separate_send_authorization" };
   }
   if (plan.reason !== "reconciliation_required") return { action: "block", reason: plan.reason };
-  if (typeof email !== "string" || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email.trim())) {
+  if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
     return { action: "manual_review", reason: "invalid_lookup_identity" };
   }
   if (typeof lookup !== "function") return { action: "manual_review", reason: "lookup_unavailable" };
