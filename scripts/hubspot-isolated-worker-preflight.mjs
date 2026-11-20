@@ -14,6 +14,12 @@ else {
     const config = JSON.parse(raw);
     const errors = [];
     if (!config || typeof config !== "object" || Array.isArray(config)) throw new Error("invalid config");
+    const allowedTopLevel = new Set(["name", "main", "compatibility_date", "workers_dev", "preview_urls", "routes", "d1_databases", "vars"]);
+    for (const key of Object.keys(config)) if (!allowedTopLevel.has(key)) errors.push("unapproved top-level setting: " + key);
+    if (config.name !== "hegeva-isolated-hubspot-test") errors.push("exact isolated Worker name required");
+    if (config.compatibility_date !== "2026-09-02") errors.push("pinned compatibility date required");
+    if (Array.isArray(config.d1_databases) && config.d1_databases.length === 1 && config.d1_databases[0] &&
+        Object.keys(config.d1_databases[0]).some(key => !["binding", "database_name", "database_id"].includes(key))) errors.push("unapproved D1 binding field");
     if (config.main !== "src/hubspot-isolated-worker.js") errors.push("main must be the inert isolated HubSpot Worker entrypoint");
     if (config.workers_dev !== false) errors.push("workers_dev must be false");
     if (config.preview_urls !== false) errors.push("preview_urls must be false");
