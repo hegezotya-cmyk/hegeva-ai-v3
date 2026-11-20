@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS hubspot_lead_outbox (
   attempts INTEGER NOT NULL DEFAULT 0 CHECK(attempts BETWEEN 0 AND 5),
   next_attempt_at TEXT,
   lease_until TEXT,
+  lease_token TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   delivered_at TEXT,
