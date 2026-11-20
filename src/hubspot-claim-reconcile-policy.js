@@ -7,9 +7,12 @@ export async function planHubspotClaimReconciliation({ claim, suppressed = false
     return { action: "hold", reason: "first_claim_requires_separate_send_authorization" };
   }
   if (plan.reason !== "reconciliation_required") return { action: "block", reason: plan.reason };
+  if (typeof email !== "string" || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email.trim())) {
+    return { action: "manual_review", reason: "invalid_lookup_identity" };
+  }
   if (typeof lookup !== "function") return { action: "manual_review", reason: "lookup_unavailable" };
   let result;
-  try { result = await lookup({ email }); }
+  try { result = await lookup({ email: email.trim().toLowerCase() }); }
   catch { return { action: "manual_review", reason: "provider_lookup_failed" }; }
   if (!result || result.complete !== true) return { action: "manual_review", reason: "provider_lookup_incomplete" };
   if (!Array.isArray(result.results)) return { action: "manual_review", reason: "provider_lookup_invalid" };
