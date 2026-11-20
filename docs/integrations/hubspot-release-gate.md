@@ -36,3 +36,17 @@ Any unverified provider outcome, consent/notice failure, suppression, missing ke
 - GitHub Actions run `44689684553`, `build-check`: completed **SUCCESS**, including Cloudflare OpenNext build. This proves the repository CI checks, **not** remote D1 isolation, HubSpot delivery, staging E2E or production safety.
 - The isolated Worker preflight now rejects a missing or non-inert `main` entrypoint. Its config still has an unverified D1 UUID placeholder; **no deploy authorized**.
 - Decision: **NOT READY** for HubSpot production; keep Draft until owner-reviewed release gates are evidenced.
+
+## Final release decision matrix (2026-11-20)
+| Gate | Current evidence | Decision |
+| --- | --- | --- |
+| Git branch conflict | PR #144 `mergeable=true` at latest check | PASS (recheck at merge time) |
+| GitHub CI latest HEAD | `c386d4e476f07619c5eea10e44d6dbafbdd8d2ff`, run `44691523608` in progress | PENDING |
+| Isolated D1 identity | Browser-confirmed Synthetic Tests account `ab362645fc03b7e63a26fd8e46e631b6`, D1 `53fd518c-9b5c-45b5-9a74-4565f7acdd22` | PARTIAL (remote binding unverified) |
+| Isolated D1 runtime concurrency, crash/opt-out | Historical manual synthetic SQL; no verified Worker-level remote concurrency | BLOCKED |
+| HubSpot portal identity/idempotency | Unique provider key and ambiguous-response reconciliation not proven | BLOCKED |
+| Lawful basis, privacy notice, retention, opt-out and erasure | No owner-approved final evidence | BLOCKED |
+| Staging end-to-end and rollback | Not proven for this integration | BLOCKED |
+| Production deployment | Separate protected approval and post-deploy smoke evidence needed | BLOCKED |
+
+**Release rule:** never treat a green CI as permission to enable HubSpot outbound delivery. A safe non-HubSpot application release and a HubSpot transport launch are distinct decisions. Do not merge this Draft or enable transport until the applicable gate has been explicitly accepted. Do not migrate/write production D1 as part of HubSpot preparation.
