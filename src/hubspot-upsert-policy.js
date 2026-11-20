@@ -23,3 +23,21 @@ export function classifyHubspotUpsertDraftResponse({ status, body } = {}) {
       typeof body.results[0]?.id !== "string" || !body.results[0].id) return { action: "reconcile", reason: "unverified_success" };
   return { action: "reconcile", reason: "provider_identity_not_verified" };
 }
+
+// Strict synthetic response correlation. Even a matching response is NOT
+// permission to enable live writes or to skip post-timeout reconciliation.
+export function inspectHubspotUpsertDraftResult({ expectedEmail, status, body } = {}) {
+  const outcome = classifyHubspotUpsertDraftResponse({ status, body });
+  if (outcome.reason !== "provider_identity_not_verified") return outcome;
+  if (typeof expectedEmail !== "string" || !emailPattern.test(expectedEmail.trim())) {
+    return { action: "reconcile", reason: "invalid_expected_identity" };
+  }
+  const record = body.results[0];
+  const actualEmail = record?.properties?.email;
+  if (typeof actualEmail !== "string" || actualEmail.trim().toLowerCase() !== expectedEmail.trim().toLowerCase()) {
+    return { action: "reconcile", reason: "identity_mismatch" };
+  }
+  // Provider response correlation is only a prerequisite; exact-once
+  // acceptance and suppression/erasure semantics are still unverified.
+  return { action: "reconcile", reason: "identity_correlated_not_verified" };
+}
