@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { enqueueHubspotLead, claimHubspotLead, suppressHubspotLead, finalizeHubspotLead } from "../src/hubspot-outbox-d1.js";
+import { enqueueHubspotLead, claimHubspotLead, claimHubspotLeadWithProof, suppressHubspotLead, finalizeHubspotLead } from "../src/hubspot-outbox-d1.js";
 const now = "2026-11-20T10:00:00.000Z";
 const consent = userId => ({ enabled: true, purpose: "hegeva_sales_followup", legalBasisApproved: true, noticeProvided: true, user: { id: userId, email: "lead@example.com", emailVerified: true } });
 function fakeDb(changes = 1) {
@@ -91,4 +91,20 @@ test("enqueue refuses unverified email", async () => {
   const result = await enqueueHubspotLead(db, { eventId: "evt_2", userId: "u", now, ...gate });
   assert.equal(result.reason, "unverified");
   assert.equal(calls.length, 0);
+});
+
+test("atomic claim proof exposes first post-claim attempt", async () => {
+  const calls = [];
+  const db = { prepare(sql) { calls.push(sql); return { bind() { return { first: async () => ({ event_id: "evt_1", event_type: "lead_upsert", attempts: 1, lease_token: "lease_1234567890123456" }) }; } }; } };
+  const result = await claimHubspotLeadWithProof(db, { eventId: "evt_1", now, leaseUntil: "2026-11-20T10:01:00.000Z", leaseToken: "lease_1234567890123456" });
+  assert.deepEqual(result, { claimed: true, reason: "claimed", eventId: "evt_1", eventType: "lead_upsert", claimAttempts: 1 });
+  assert.match(calls[0], /RETURNING event_id,event_type,attempts,lease_token/);
+});
+test("unclaimed proof never authorizes send", async () => {
+  const db = { prepare() { return { bind() { return { first: async () => null }; } }; } };
+  assert.deepEqual(await claimHubspotLeadWithProof(db, { eventId: "evt_1", now, leaseUntil: "2026-11-20T10:01:00.000Z", leaseToken: "lease_1234567890123456" }), { claimed: false, reason: "not_claimable" });
+});
+test("mismatched lease proof fails closed", async () => {
+  const db = { prepare() { return { bind() { return { first: async () => ({ event_id: "evt_1", event_type: "lead_upsert", attempts: 1, lease_token: "wrong_token_123456789" }) }; } }; } };
+  assert.equal((await claimHubspotLeadWithProof(db, { eventId: "evt_1", now, leaseUntil: "2026-11-20T10:01:00.000Z", leaseToken: "lease_1234567890123456" })).reason, "invalid_claim_proof");
 });
