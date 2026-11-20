@@ -1,0 +1,37 @@
+name: Validate isolated Stripe Worker dispatcher (no secrets)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/isolated-stripe-test-worker-deploy.yml"
+      - ".github/workflows/isolated-stripe-dispatch-validation.yml"
+      - "scripts/validate-isolated-worker-dispatch.py"
+      - "docs/release/2026-11-14-isolated-worker-manual-dispatch-review.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Parse YAML and every embedded Bash/Python block without secrets
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check 'PyYAML==6.0.2'
+          python scripts/validate-isolated-worker-dispatch.py
+      - name: Run actionlint for GitHub Actions grammar and expressions
+        run: |
+          set -euo pipefail
+          go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/isolated-stripe-test-worker-deploy.yml
+          go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/isolated-stripe-dispatch-validation.yml
+
+# No tokens/secrets, Wrangler deploy, D1 writes, remote Cloudflare or Stripe API.
