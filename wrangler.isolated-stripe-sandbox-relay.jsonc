@@ -1,0 +1,20 @@
+{
+  "name": "hegeva-isolated-stripe-sandbox-relay",
+  "account_id": "ab362645fc03b7e63a26fd8e46e631b6",
+  "main": "src/isolated-stripe-sandbox-relay.js",
+  "compatibility_date": "2026-09-02",
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    "RELAY_ENABLED": "false"
+  },
+  "services": [
+    {
+      "binding": "ISOLATED_WEBHOOK",
+      "service": "hegeva-isolated-deleted-user-webhook-test"
+    }
+  ],
+  "observability": {
+    "enabled": false
+  }
+}
