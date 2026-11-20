@@ -22,3 +22,12 @@ test("stale attempts block", async () => assert.equal((await checkHubspotPreSend
 test("missing row blocks", async () => assert.equal((await checkHubspotPreSend({ ...opts, db: db(null) })).reason, "lease_or_privacy_unverified"));
 test("D1 errors fail closed", async () => assert.equal((await checkHubspotPreSend({ ...opts, db: { prepare() { throw Error("secret"); } } })).reason, "read_failed"));
 test("matching read-only snapshot still cannot authorize send", async () => assert.deepEqual(await checkHubspotPreSend({ ...opts, db: db(good) }), { action: "manual_review", reason: "pre_send_snapshot_only" }));
+
+test("different worker lease token blocks even if lease is otherwise valid", async () => {
+  const result = await checkHubspotPreSend({ ...opts, claim: { ...claim, leaseToken: "other_worker_lease_1234" }, db: db(good) });
+  assert.deepEqual(result, { action: "block", reason: "lease_or_privacy_unverified" });
+});
+test("missing claim lease proof blocks", async () => {
+  const result = await checkHubspotPreSend({ ...opts, claim: { ...claim, leaseToken: undefined }, db: db(good) });
+  assert.equal(result.action, "block");
+});
