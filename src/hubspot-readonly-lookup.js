@@ -28,6 +28,12 @@ export async function lookupHubspotContactByEmail({ enabled = false, token, emai
       body.total !== body.results.length || body.total > 1 || body.paging) {
     return { complete: false, results: [], reason: "ambiguous_or_incomplete_results" };
   }
+  const expectedEmail = email.trim().toLowerCase();
+  if (body.results.some(r => typeof r?.id !== "string" || !r.id.trim() ||
+      typeof r?.properties?.email !== "string" ||
+      r.properties.email.trim().toLowerCase() !== expectedEmail)) {
+    return { complete: false, results: [], reason: "provider_identity_mismatch" };
+  }
   return { complete: true, results: body.results.map(r => ({
     id: r?.id,
     properties: { email: r?.properties?.email }
