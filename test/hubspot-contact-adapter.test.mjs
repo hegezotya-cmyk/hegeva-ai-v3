@@ -9,3 +9,17 @@ test("missing credentials blocks request", async () => assert.equal((await sendH
 test("no implicit live network request", async () => assert.equal((await sendHubspotContact({ ...valid, token: "fake" })).reason, "transport_not_enabled"));
 test("mock transport sends only allowlisted email", async () => { let body; const result = await sendHubspotContact({ ...valid, token: "fake", fetchImpl: async (_url, init) => { body = JSON.parse(init.body); return { ok: true, status: 201 }; } }); assert.equal(result.sent, true); assert.deepEqual(body, { properties: { email: "lead@example.com" } }); });
 test("provider rejection reports generic error", async () => assert.deepEqual(await sendHubspotContact({ ...valid, token: "fake", fetchImpl: async () => ({ ok: false, status: 429 }) }), { sent: false, reason: "provider_rejected", status: 429 }));
+
+test("retry after ambiguous acceptance is blocked without transport", async () => {
+  let calls = 0;
+  const result = await sendHubspotContact({ ...valid, token: "fake", attempt: 2, fetchImpl: async () => { calls++; return { ok: true, status: 201 }; } });
+  assert.equal(result.sent, false);
+  assert.equal(result.reason, "retry_requires_reconciliation");
+  assert.equal(calls, 0);
+});
+test("invalid attempt fails closed", async () => {
+  let calls = 0;
+  const result = await sendHubspotContact({ ...valid, token: "fake", attempt: 0, fetchImpl: async () => { calls++; return { ok: true, status: 201 }; } });
+  assert.equal(result.reason, "invalid_attempt");
+  assert.equal(calls, 0);
+});
