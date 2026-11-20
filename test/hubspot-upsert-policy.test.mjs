@@ -30,3 +30,16 @@ test("missing email in provider result fails closed", () => {
 test("invalid expected identity fails closed", () => {
   assert.equal(inspect({ expectedEmail: "not-email", status: 200, body: { results: [{ id: "123", properties: { email: "lead@example.com" } }] } }).reason, "invalid_expected_identity");
 });
+
+test("truthy strings and numbers never satisfy provider/privacy approval gates", () => {
+  for (const field of ["enabled", "approvedIdentity", "legalBasisApproved", "noticeProvided"]) {
+    for (const value of ["true", 1, {}, []]) {
+      const result = build({ ...valid, [field]: value });
+      assert.equal(result.ok, false, field + " accepted non-boolean approval");
+    }
+  }
+  for (const value of ["false", 0, null, undefined]) {
+    const result = build({ ...valid, suppressed: value });
+    if (value !== false) assert.equal(result.ok, false, "suppression unknown must fail closed");
+  }
+});
