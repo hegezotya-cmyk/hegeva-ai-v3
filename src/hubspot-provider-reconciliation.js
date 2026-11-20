@@ -2,9 +2,9 @@
 // No network, tokens, real CRM access or production route. Inject a fake lookup in tests.
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export async function reconcileHubspotContact({ enabled = false, approvedIdentity = false, suppressed = false, email, lookup } = {}) {
-  if (!enabled) return { action: "block", reason: "disabled" };
-  if (!approvedIdentity) return { action: "block", reason: "identity_not_approved" };
-  if (suppressed) return { action: "block", reason: "suppressed" };
+  if (enabled !== true) return { action: "block", reason: "disabled" };
+  if (approvedIdentity !== true) return { action: "block", reason: "identity_not_approved" };
+  if (suppressed !== false) return { action: "block", reason: "suppressed" };
   if (typeof email !== "string" || !emailPattern.test(email.trim())) return { action: "block", reason: "invalid_identity" };
   if (typeof lookup !== "function") return { action: "block", reason: "lookup_unavailable" };
   const expected = email.trim().toLowerCase();
