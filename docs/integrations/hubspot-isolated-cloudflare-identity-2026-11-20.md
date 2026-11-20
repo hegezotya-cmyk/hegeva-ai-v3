@@ -16,3 +16,8 @@ This identifies the selected D1 resource and account in the user's browser. It *
 2. Run synthetic-only remote claim/reclaim/fencing and opt-out race tests, capture logs without secrets or customer data.
 3. Verify HubSpot provider identity, legal basis, retention, erasure and in-flight send safety separately.
 4. Maintain Draft / **NOT READY** until evidence and review are complete. No production deployment or HubSpot CRM write is authorized by this document.
+
+## Read-only browser console history inspected (2026-11-20)
+The authenticated Cloudflare D1 console tab shows a prior successful `sqlite_master` SELECT identifying three tables: `user`, `hubspot_lead_outbox`, `hubspot_lead_suppressions`, and one index `hubspot_lead_outbox_due`. Prior console history also shows successful synthetic schema creation and an isolated synthetic `user` INSERT. No new SQL was executed during this inspection. Historical query text includes attempted synthetic outbox and opt-out sequences; the history alone is **not** sufficient to assert all statements succeeded, concurrent claims were exercised, or runtime Worker bindings are correct.
+
+Remaining remote evidence: independent sanitized read-only current-state inventory, verified Worker-to-D1 binding, and approved non-destructive concurrency/crash tests. No production release authorization.
