@@ -11,7 +11,7 @@
     "HEGEVA_ISOLATED_STRIPE_TEST_ENABLED": "false",
     "ISOLATED_TEST_ACCOUNT_ID": "ab362645fc03b7e63a26fd8e46e631b6",
     "ISOLATED_TEST_D1_ID": "84f4c3b0-c175-4458-bad1-e3f826d6ea96",
-    "STRIPE_TEST_ACCOUNT_ID": "acct_1U4YkdHH1vUED8ZN"
+    "STRIPE_TEST_ACCOUNT_ID": "acct_1UdpZKHVbpADuqhW"
   },
   "d1_databases": [{
     "binding": "DB",
