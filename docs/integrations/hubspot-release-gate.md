@@ -1,0 +1,73 @@
+# HubSpot CRM integration — production release gate (DRAFT)
+
+Status: **NOT READY**. Scope: central HEGEVA sales leads only. This document does not authorize production deploy, schema migration, HubSpot writes or tenant-workspace data export.
+
+## Evidence available
+- Draft default-off privacy/eligibility policy, contact allowlist, D1 outbox/lease fencing, mock transport tests, SQLite draft-schema contract tests and draft batch-upsert response correlation.
+- HubSpot portal read-only inspection: portal 149482745 reports onboarding incomplete; built-in `email` property exists. A HEGEVA-specific unique identity has **not** been verified.
+- The batch-upsert prototype is a pure function; it is **not** wired to a production route or scheduler. Even HTTP 200 and matching email are classified as reconciliation-required.
+
+## Isolated D1 manual evidence (2026-11-20)
+- Owner-provided Cloudflare Console screenshots confirm draft tables/index, synthetic event, initial lease (attempts=1), simulated lease reclaim (attempts=2), opt-out marker, guarded delivery update returning no rows, and final `suppressed` state with NULL lease token.
+- Evidence is documented in `docs/integrations/hubspot-isolated-d1-manual-evidence-2026-11-20.md`. This is a **manual partial PASS**, not an automated Worker concurrency test. Full account/database IDs and exact runtime bindings have not been independently authenticated.
+- Do not treat the manual SQL sequence as evidence of provider event idempotency, complete privacy erasure, or production readiness.
+
+## Release blockers — require explicit evidence, not assumptions
+- [ ] **Purpose and privacy approval**: document lawful basis, privacy notice, marketing vs service follow-up scope, retention, withdrawal and erasure workflow, and owner sign-off. Do not export tenant customers.
+- [ ] **Provider identity**: verify portal property metadata for the chosen stable unique key, behavior of changed emails and pre-existing/merged contacts, and required scopes. Do not create properties without owner approval.
+- [ ] **Provider reconciliation**: implement read-only lookup of the chosen key after ambiguous timeout/409/429/5xx and partial responses; distinguish missing, one matching record, multiple/conflicting records and API failure. Never blindly retry ambiguous writes.
+- [ ] **Exact write/finalize contract**: only mark an event delivered after correlated provider evidence, with the correct active lease token and suppression recheck. Confirm handling of lease expiry during HTTP and worker crashes.
+- [ ] **Privacy race and erasure**: ensure opt-out between claim and send prevents writes; define treatment of in-flight HTTP calls and remote records after erasure.
+- [ ] **End-to-end isolated verification**: test real SQL claim/send/finalize behavior, crash recovery, concurrent workers, duplicate events, partial responses, 429/5xx and data isolation with synthetic identities. No real customer records.
+- [ ] **Operational readiness**: feature flag defaults off, limited scopes/secrets, observable audit metadata without sensitive payloads, rollback/kill switch, owner-approved staging proof and separate production authorization.
+- [ ] **CI and review**: verify latest branch HEAD checks all completed successfully; review PR #144, then obtain explicit merge/deploy approval.
+
+## Stop conditions
+Any unverified provider outcome, consent/notice failure, suppression, missing key, stale lease, identity mismatch or unresolved privacy request means **block and reconcile**, never assume delivery or re-send automatically.
+
+## Immediate next engineering task
+1. Confirm exact isolated account/database IDs and Worker binding isolation before any automated remote writes.
+2. Prepare a **default-off Worker-level synthetic integration harness** that executes the existing D1 claim/finalize SQL, tests two competing claims and suppression between claim and send, and makes no HubSpot API request.
+3. Separately approve the HubSpot identity, legal basis and provider read scope before any real CRM interaction.
+4. Keep PR Draft; do not merge or deploy without a new explicit approval.
+
+## Latest GitHub verification (2026-11-20)
+- PR #144 HEAD `2bceb75aa205ab042315d6c61918a1e3698ecacb`: GitHub reports `mergeable=true`, Draft.
+- GitHub Actions run `44689684553`, `build-check`: completed **SUCCESS**, including Cloudflare OpenNext build. This proves the repository CI checks, **not** remote D1 isolation, HubSpot delivery, staging E2E or production safety.
+- The isolated Worker preflight now rejects a missing or non-inert `main` entrypoint. Its config still has an unverified D1 UUID placeholder; **no deploy authorized**.
+- Decision: **NOT READY** for HubSpot production; keep Draft until owner-reviewed release gates are evidenced.
+
+## Final release decision matrix (2026-11-20)
+| Gate | Current evidence | Decision |
+| --- | --- | --- |
+| Git branch conflict | PR #144 `mergeable=true` at latest check | PASS (recheck at merge time) |
+| GitHub CI latest HEAD | `48750b56f8a566e43a976e63bfb92b3f6e5afa84`, run `44691577496` completed SUCCESS | PASS (CI only) |
+| Isolated D1 identity | Browser-confirmed Synthetic Tests account `ab362645fc03b7e63a26fd8e46e631b6`, D1 `53fd518c-9b5c-45b5-9a74-4565f7acdd22` | PARTIAL (remote binding unverified) |
+| Isolated D1 runtime concurrency, crash/opt-out | Historical manual synthetic SQL; no verified Worker-level remote concurrency | BLOCKED |
+| HubSpot portal identity/idempotency | Unique provider key and ambiguous-response reconciliation not proven | BLOCKED |
+| Lawful basis, privacy notice, retention, opt-out and erasure | No owner-approved final evidence | BLOCKED |
+| Staging end-to-end and rollback | Not proven for this integration | BLOCKED |
+| Production deployment | Separate protected approval and post-deploy smoke evidence needed | BLOCKED |
+
+**Release rule:** never treat a green CI as permission to enable HubSpot outbound delivery. A safe non-HubSpot application release and a HubSpot transport launch are distinct decisions. Do not merge this Draft or enable transport until the applicable gate has been explicitly accepted. Do not migrate/write production D1 as part of HubSpot preparation.
+
+## Acceptance handover — evidence and ownership (2026-11-20)
+
+**Core release already independently evidenced:** `v0-rebuild` commit `4c220f21b6c7d7ebaac152f552746026cb711920` has successful production API release run `44685119808` (API deploy + live smoke); earlier production UI run `44622416780` has UI deploy + smoke PASS; staging run `44481056154` has isolation audit, preflight, API deploy and staging smoke PASS. These are different commits and do **not** constitute an authenticated end-to-end test of the latest full application.
+
+**Core customer-journey acceptance still required:** use a dedicated non-production account to prove email verification, login/session renewal, onboarding, customers, quotes, invoices, planner, follow-up, account/billing, Core decision, App Studio and tenant isolation. Use Stripe TEST only for a complete payment lifecycle; do not create real charges. Record test date, environment, commit/Worker version, sanitized PASS/FAIL and rollback owner. An anonymous route smoke test is not sufficient.
+
+**HubSpot handover checklist:**
+- Engineering: verify isolated Worker binding to exact Synthetic Tests D1, run synthetic remote concurrency, stale-lease, crash/recovery and suppression/send race tests; capture sanitized proof.
+- CRM administrator: confirm the correct HubSpot portal, required read scopes and unique property behavior; do not enable live writes.
+- Privacy owner: approve lead purpose, lawful basis, notice, opt-out propagation, retention and erasure, including in-flight provider requests.
+- Release owner: review rollback/kill switch, monitoring and staging proof; separately authorize PR merge and provider transport activation after all prior gates PASS.
+
+**No automatic release:** PR #144 remains Draft, default-off and not production-ready. Never substitute CI success or a previous unrelated deployment for these acceptance gates.
+
+## Automated offline safety gate — 2026-11-20
+
+- PR #144 commit `9d58984540e49979c7ba16f3a9202616d943f975`: GitHub Actions `44701400634` executed the dedicated `HubSpot isolated safety regressions (offline, no credentials)` step successfully. This does **not** establish remote D1/Worker concurrency.
+- PR #144 commit `ac32fc2aeef2b6b02cd0a40b9ad9bd130ff3c611`: GitHub Actions `44701542433` reported both `HubSpot isolated safety regressions (offline, no credentials)` and `HubSpot SQLite concurrent claim (offline synthetic)` steps **SUCCESS** while the remaining build was still running at inspection time. Do not mark the full workflow PASS until it completes.
+- The new offline concurrency step uses two SQLite connections and exact source claim SQL. It does not touch Cloudflare or HubSpot, and cannot replace remote isolated Worker/D1 runtime proof.
+- **Decision remains NOT READY:** no remote synthetic Worker-level acceptance, provider identity proof, privacy approval, staging authenticated E2E or separate production authorization.
