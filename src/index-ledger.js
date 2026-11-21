@@ -1,3 +1,4 @@
+import { deletedUserWebhookGuardEnabled, dispositionForDeletedTestUser } from "./stripe-deleted-user-webhook-disposition.js";
 import * as Sentry from "@sentry/cloudflare";
 import hegevaWorker, { emitMonitor } from "./index.js";
 import { reconcileReferralRewardForUser, reverseApprovedReferralRewards } from "./referral-reward-review.js";
@@ -617,6 +618,33 @@ async function handleStripeWebhook(request, env, ctx) {
       { error: "Stripe event mode does not match the active payment mode." },
       { status: 400 },
     );
+  }
+
+  if (deletedUserWebhookGuardEnabled(env)) {
+    try {
+      const disposition = await dispositionForDeletedTestUser({
+        db: env.DB,
+        event,
+        paymentMode,
+        publicAppUrl: String(env.PUBLIC_APP_URL || ""),
+      });
+      if (disposition.handled) {
+        return Response.json({
+          received: true,
+          verified: true,
+          ignored: disposition.ignored,
+          duplicate: disposition.duplicate,
+          entitlementChanged: false,
+          deletedAccount: true,
+        }, { headers: { "Cache-Control": "no-store" } });
+      }
+    } catch {
+      emitMonitor("stripe_webhook", "deleted_user_reconciliation_blocked");
+      return Response.json(
+        { error: "Deleted account webhook reconciliation unavailable." },
+        { status: 503, headers: { "Retry-After": "300" } },
+      );
+    }
   }
 
   let claim;
