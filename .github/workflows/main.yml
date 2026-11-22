@@ -8,6 +8,7 @@ on:
     paths:
       - "v0-app/**"
       - "src/**"
+      - "test/hubspot-*.test.mjs"
       - "migrations/**"
       - "scripts/**"
       - "package.json"
@@ -60,6 +61,12 @@ jobs:
           node --check src/index-ledger.js
           node --check src/index.js
           node --check src/auth.js
+
+      - name: HubSpot isolated safety regressions (offline, no credentials)
+        run: node --test test/hubspot-*.test.mjs
+
+      - name: HubSpot SQLite concurrent claim (offline synthetic)
+        run: python3 scripts/hubspot-sqlite-concurrent-claim-test.py
 
       - name: Apply D1 migrations locally
         run: npm run db:migrations:local
