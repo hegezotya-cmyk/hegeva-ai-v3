@@ -1349,6 +1349,17 @@ async function createStripeCheckoutSession(
       reason: "provider_rejected",
       status: response.status,
       responseType: typeof data,
+      stripeRequestId: /^req_[A-Za-z0-9]{1,64}$/.test(response.headers.get("request-id") || "")
+        ? response.headers.get("request-id")
+        : null,
+      stripeErrorCode: typeof data?.error?.code === "string" &&
+        /^[a-z][a-z0-9_]{0,79}$/.test(data.error.code)
+        ? data.error.code
+        : null,
+      stripeErrorType: typeof data?.error?.type === "string" &&
+        /^[a-z][a-z0-9_]{0,79}$/.test(data.error.type)
+        ? data.error.type
+        : null,
     });
 
     return {
