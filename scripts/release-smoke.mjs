@@ -37,6 +37,8 @@ const checks = [
 let failed = false
 
 for (const check of checks) {
+  const startedAt = new Date().toISOString()
+  const started = performance.now()
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 15000)
 
@@ -71,9 +73,15 @@ for (const check of checks) {
     const ok = statusOk && bodyOk
     console.log(`${ok ? "PASS" : "FAIL"} ${check.name}: ${response.status}${detail ? ` (${detail})` : ""}`)
 
-    if (!ok) failed = true
+    if (!ok) {
+      const ray = response.headers.get("cf-ray") || ""
+      const rayDetail = /^[0-9a-f]{16,32}-[A-Z]{3}$/.test(ray) ? ` cf-ray=${ray}` : ""
+      console.error(`  ${startedAt} ${check.method} ${check.path} elapsed=${Math.round(performance.now() - started)}ms${rayDetail}`)
+      failed = true
+    }
   } catch (error) {
     failed = true
+    console.error(`  ${startedAt} ${check.method} ${check.path} elapsed=${Math.round(performance.now() - started)}ms`)
     console.error(`FAIL ${check.name}: ${error instanceof Error ? error.message : String(error)}`)
   } finally {
     clearTimeout(timeout)
