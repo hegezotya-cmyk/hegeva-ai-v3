@@ -5,8 +5,8 @@
   "compatibility_date": "2026-09-02",
   "compatibility_flags": ["nodejs_compat"],
   "observability": {
-    "enabled": true,
-    "logs": { "enabled": true, "head_sampling_rate": 1, "invocation_logs": true },
+    "enabled": false,
+    "logs": { "enabled": false, "head_sampling_rate": 1, "invocation_logs": false },
     "traces": { "enabled": false }
   },
   "assets": {
