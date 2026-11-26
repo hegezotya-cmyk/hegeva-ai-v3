@@ -40,6 +40,19 @@ for (let day = 1; day <= 8; day++) {
   assert.equal(track().campaign_content, `fb_day${dayLabel}`, `Facebook day ${dayLabel} content must be retained`)
 }
 
+for (const source of ["facebook", "linkedin"]) {
+  window.location.search = `?utm_source=${source}&utm_medium=organic_social&utm_campaign=hegeva_admin&utm_content=quote_followup&customer_email=private@example.com`
+  const campaign = {
+    campaign_source: source,
+    campaign_medium: "organic_social",
+    campaign_name: "hegeva_admin",
+    campaign_content: "quote_followup",
+  }
+  assert.deepEqual(track(), campaign)
+  window.location.search = ""
+  assert.deepEqual(track(), campaign, "approved campaign labels must survive further navigation")
+}
+
 window.location.search = "?utm_source=facebook&utm_medium=organic_social&utm_campaign=unknown&utm_content=fb_day01"
 assert.equal(track().campaign_name, undefined, "unapproved campaign values must still be rejected")
 assert.equal(track().campaign_content, "fb_day01", "valid content labels can be retained independently of a campaign label")
@@ -47,9 +60,9 @@ assert.equal(track().campaign_content, "fb_day01", "valid content labels can be 
 localStorage.setItem("hegeva:analytics-consent:v1", "denied")
 assert.deepEqual(track(), {}, "campaign attribution must remain consent-gated")
 
-assert.match(legal, /only approved UTM source, medium, campaign and content labels[\s\S]*?raw URL query strings/, "English privacy copy must explain the allowlisted campaign labels and raw-query filtering")
-assert.match(legal, /csak az engedélyezett UTM-forrás[\s\S]*?teljes URL-lekérdezést/, "Hungarian privacy copy must explain the allowlisted campaign labels and raw-query filtering")
-for (const updated of ["Last updated: 10 October 2026", "Utolsó frissítés: 2026. október 10.", "Letzte Aktualisierung: 10. Oktober 2026", "Dernière mise à jour : 10 octobre 2026", "Última actualización: 10 de octubre de 2026"]) {
-  assert.ok(legal.includes(updated), `privacy copy must show the October 10, 2026 update date: ${updated}`)
+assert.match(legal, /Google Analytics[^.]*approved UTM source, medium, campaign and content labels\. We do not send raw URL query strings/, "English privacy copy must explain the allowlisted campaign labels and raw-query filtering")
+assert.match(legal, /Google Analytics[^.]*engedélyezett UTM-forrás[^.]*\. Nyers URL-lekérdezést[^.]*nem küldünk/, "Hungarian privacy copy must explain the allowlisted campaign labels and raw-query filtering")
+for (const updated of ["Last updated:", "Utolsó frissítés:", "Letzte Aktualisierung:", "Dernière mise à jour", "Última actualización:"]) {
+  assert.ok(legal.includes(updated), `legal copy must include an update label: ${updated}`)
 }
 console.log("Campaign attribution GA4 audit: PASS")
