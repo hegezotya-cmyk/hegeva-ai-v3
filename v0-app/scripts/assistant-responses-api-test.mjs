@@ -66,7 +66,7 @@ test("Advanced provider exception remains a failure", async () => {
 })
 test("Standard preserves its chat payload, response and token accounting", async () => {
   const result = await invokeAssistantWorkersAiText(envFor({ response: answer, usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 } }, (model, input) => {
-    assert.equal(model, "@cf/qwen/qwen3-30b-a3b-fp8")
+    assert.equal(model, "@cf/ibm-granite/granite-4.0-h-micro")
     assert.equal(input.max_tokens, 512)
     assert.equal(input.messages[1].content, projection.prompt)
     assert.equal(input.temperature, 0.2)
