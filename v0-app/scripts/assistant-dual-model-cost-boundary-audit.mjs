@@ -13,7 +13,7 @@ import { readAssistantDailyAdmissionConfig, reserveAssistantDailyAdmission, sett
 const indexSource = fs.readFileSync(new URL("../../src/index.js", import.meta.url), "utf8")
 const uiSource = fs.readFileSync(new URL("../components/assistant/assistant-chat.tsx", import.meta.url), "utf8")
 
-assert.equal(ASSISTANT_MODEL_TIERS.standard.model, "@cf/qwen/qwen3-30b-a3b-fp8")
+assert.equal(ASSISTANT_MODEL_TIERS.standard.model, "@cf/ibm-granite/granite-4.0-h-micro")
 assert.equal(ASSISTANT_MODEL_TIERS.advanced.model, "@cf/openai/gpt-oss-120b")
 
 assert.equal(resolveAssistantModelTier({ tier: undefined, plan: "basic", env: {} }).ok, true)
@@ -34,7 +34,7 @@ assert.equal(payload.ok, true)
 assert.equal(payload.request.model, ASSISTANT_MODEL_TIERS.standard.model)
 assert.equal(payload.request.max_tokens, ASSISTANT_MODEL_TIERS.standard.maxOutputTokens)
 assert.equal(payload.reservation.neurons, ASSISTANT_MODEL_TIERS.standard.maxRequestNeurons)
-assert.equal(payload.reservation.usd.toFixed(8), "0.00027648")
+assert.equal(payload.reservation.usd.toFixed(8), "0.00009216")
 const advanced = resolveAssistantModelTier({ tier: "advanced", plan: "premium", env: { AI_ADVANCED_ASSISTANT_CREDIT_COST: "8" } })
 assert.equal(advanced.tier.reservation.neurons, ASSISTANT_MODEL_TIERS.advanced.maxRequestNeurons)
 assert.equal(advanced.tier.reservation.usd.toFixed(8), "0.00220160")
