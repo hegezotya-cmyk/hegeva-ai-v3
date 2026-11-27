@@ -11,7 +11,7 @@ assert(pricing.includes('price: "£14.99"')&&pricing.includes('price: "£29.99"'
 assert(robots.includes("allow: '/'")&&robots.includes("/api/")&&robots.includes("sitemap.xml"),"Robots/indexability contract missing")
 assert(worker.includes('`${canonicalOrigin}${url.pathname}${url.search}`')&&worker.includes("308"),"Canonical host redirect must preserve path and query")
 assert(middleware.includes('host === "www.hegevaai.co.uk"')&&middleware.includes('canonical.hostname = "hegevaai.co.uk"')&&middleware.includes("NextResponse.redirect(canonical, 308)"),"OpenNext canonical redirect must preserve path and query")
-assert(wrangler.includes('"run_worker_first": true'),"Cloudflare assets must run through canonical middleware before static delivery")
+assert.deepEqual(JSON.parse(wrangler).assets.run_worker_first, ["/*", "!/_next/static/*"], "Only Next.js build assets bypass the Worker")
 for(const event of ["landing_page_view","registration_start","pricing_view"])assert(measure.includes(event),`Privacy-safe measurement event missing: ${event}`)
 assert(!/["'](?:email|customer|invoice|document|message|query|searchParams)["']\s*:|\.searchParams|location\.search/i.test(measure),"Measurement foundation must not collect business content, query strings or PII")
 for(const token of ['analytics_storage: "denied"','ad_storage: "denied"','ad_user_data: "denied"','ad_personalization: "denied"','allow_google_signals: false','allow_ad_personalization_signals: false','G-TK99HP2BG7'])assert(consent.includes(token),`Consent-safe Analytics contract missing: ${token}`)
