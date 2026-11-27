@@ -202,6 +202,9 @@ export async function handleAiChatAdmission({
           const released = await releaseReservation({ creditSource, reason: dailyReservation?.reason || "daily_admission_unavailable" })
           if (!released?.settled) throw new Error("HEGEVA_ASSISTANT_QUOTA_RELEASE_UNAVAILABLE")
         }
+        if (dailyReservation?.reason === "daily_capacity_exhausted") {
+          return Response.json({ error: "The Assistant's daily capacity has been reached.", code: "ASSISTANT_DAILY_CAPACITY_EXHAUSTED" }, { status: 429 })
+        }
         return Response.json({ error: "AI service is temporarily unavailable.", code: "ASSISTANT_DAILY_LIMIT_UNAVAILABLE" }, { status: 429 })
       }
     }

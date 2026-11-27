@@ -89,6 +89,14 @@ const failureCopy: Record<SupportedLanguage, FailureCopy> = {
   },
 }
 
+const dailyCapacityCopy = {
+  en: "The Assistant's daily capacity has been reached. Try again after midnight UTC.",
+  hu: "Az Assistant napi kapacitása betelt. Próbáld újra éjfél után (UTC).",
+  de: "Die Tageskapazität des Assistenten ist erreicht. Versuchen Sie es nach Mitternacht (UTC) erneut.",
+  fr: "La capacité quotidienne de l’assistant est atteinte. Réessayez après minuit (UTC).",
+  es: "Se ha alcanzado la capacidad diaria del asistente. Inténtalo después de medianoche (UTC).",
+} as const
+
 function safeRetryAfterSeconds(response: Response) {
   const value = response.headers.get("Retry-After")?.trim() || ""
   if (!/^\d+$/.test(value)) return undefined
@@ -289,6 +297,9 @@ export function AssistantChat() {
           throw new Error(typeof data?.error === "string" ? data.error : copy.unavailable)
         }
         if (response.status === 429) {
+          if (data?.code === "ASSISTANT_DAILY_CAPACITY_EXHAUSTED") {
+            throw new Error(dailyCapacityCopy[locale])
+          }
           if (data?.code === "ASSISTANT_CREDITS_EXHAUSTED") {
             clearPendingOnError = true
             throw new Error("Your monthly AI allowance and Top-Up balance are empty. Buy extra AI credits or upgrade your plan to continue.")
