@@ -21,8 +21,8 @@ for (const consent of [null, "denied", "granted"]) {
   const posthogCalls = []
   const values = new Map(consent ? [["hegeva:analytics-consent:v1", consent]] : [])
   const storage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) }
-  const window = { gtag: (...args) => calls.push(args) }
-  const receive = new Function("window", "consent", "sent", "PUBLIC_ANALYTICS_PATHS", "analyticsPageLocation", "currentPageReferrer", "campaignAttribution", "ANALYTICS_DEBUG_MODE", "capturePostHogEvent", `${compile(receiver)}; return receive`)(window, consent, { current: new Set() }, ["/login"], (path) => `https://hegevaai.co.uk${path}`, { current: "" }, () => ({}), false, (event, path) => posthogCalls.push([event, path]))
+  const window = { location: { origin: "https://hegevaai.co.uk" }, gtag: (...args) => calls.push(args) }
+  const receive = new Function("window", "consent", "sent", "PUBLIC_ANALYTICS_PATHS", "analyticsPageLocation", "currentPageReferrer", "hasAnalyticsConsent", "campaignAttribution", "ANALYTICS_DEBUG_MODE", "capturePostHogEvent", `${compile(receiver)}; return receive`)(window, consent, { current: new Set() }, ["/login"], (path) => `https://hegevaai.co.uk${path}`, { current: "" }, () => consent === "granted", () => ({}), false, (event, path) => posthogCalls.push([event, path]))
   window.dispatchEvent = (event) => receive(event)
   class CustomEvent { constructor(type, options) { this.type = type; this.detail = options.detail } }
   const track = new Function("window", "localStorage", "sessionStorage", "CustomEvent", `${compile(tracker.replace("export function", "function"))}; return trackRegistrationSubmitted`)(window, storage, storage, CustomEvent)
@@ -37,6 +37,14 @@ for (const consent of [null, "denied", "granted"]) {
     assert.equal(calls.length, 1, "receiver also deduplicates")
   } else {
     assert.equal(values.has("hegeva:registration-submitted:v1"), false, "no consent must not consume marker")
+  }
+  const verification = { detail: { event: "email_verified", path: "/email-verification" } }
+  receive(verification)
+  receive(verification)
+  assert.equal(posthogCalls.filter(([event]) => event === "email_verified").length, consent === "granted" ? 1 : 0)
+  if (consent === "granted") {
+    assert.deepEqual(posthogCalls.at(-1), ["email_verified", "/email-verification"])
+    assert.equal(calls.at(-1)[2].page_location, "https://hegevaai.co.uk/email-verification")
   }
 }
 console.log("Registration GA4 regression: PASS (real tracker + receiver, consent, deduplication, safe payload)")
