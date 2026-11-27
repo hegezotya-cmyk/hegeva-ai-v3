@@ -50,17 +50,17 @@ const positiveConfigInt = (value, max = 10_000) => {
 export const ASSISTANT_MODEL_TIERS = Object.freeze({
   standard: Object.freeze({
     id: "standard",
-    model: "@cf/qwen/qwen3-30b-a3b-fp8",
+    model: "@cf/ibm-granite/granite-4.0-h-micro",
     maxInputTokens: 2_048,
     maxOutputTokens: 512,
-    inputNeuronsPerMillion: 4_625,
-    outputNeuronsPerMillion: 30_475,
+    inputNeuronsPerMillion: 1_542,
+    outputNeuronsPerMillion: 10_158,
     // Conservative operational bound used for request admission (not a live
     // billing estimate). It deliberately rounds above the documented rate.
-    inputUsdPerMillion: 0.05125,
-    outputUsdPerMillion: 0.335,
+    inputUsdPerMillion: 0.017,
+    outputUsdPerMillion: 0.112,
     customerCreditCost: 1,
-    maxRequestNeurons: 26,
+    maxRequestNeurons: 10,
   }),
   advanced: Object.freeze({
     id: "advanced",
