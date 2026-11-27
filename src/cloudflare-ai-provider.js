@@ -372,8 +372,13 @@ export async function invokeAssistantWorkersAiText(env, projection, { tier, sign
       if (!text) return { ok: false, reason: "missing-response", metrics }
       return { ok: true, response: text, metrics }
     }
-    if (!response || typeof response.response !== "string") return { ok: false, reason: "missing-response", metrics }
-    return { ok: true, response: response.response.slice(0, 12_000), metrics }
+    const choice = Array.isArray(response?.choices) ? response.choices[0] : null
+    const message = choice?.message
+    const text = Array.isArray(response?.choices)
+      ? (choice?.finish_reason === "stop" && message?.role === "assistant" && !message.refusal && !message.tool_calls?.length ? message.content : null)
+      : response?.response
+    if (response?.error || typeof text !== "string" || !text.trim()) return { ok: false, reason: "missing-response", metrics }
+    return { ok: true, response: text.slice(0, 12_000), metrics }
   } catch (error) {
     return {
       ok: false,
