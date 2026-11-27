@@ -4214,6 +4214,7 @@ export function createRequestHandler({ getLoggedInUserFn = getLoggedInUser } = {
       let x20Attempt = null;
       let assistantOperationId = null;
       let assistantPhase = "session_lookup";
+      let assistantProviderReason = null;
 
       try {
         const user =
@@ -4649,6 +4650,10 @@ QUALITY RULES:
                     if (!settlement.settled) throw new Error("HEGEVA_ASSISTANT_SETTLEMENT_UNAVAILABLE");
                     if (!adapted.ok) {
                       assistantPhase = "provider_result_rejected";
+                      assistantProviderReason = [
+                        "provider-disabled", "invalid-projection", "provider-input-too-large",
+                        "missing-response", "timeout", "provider-failure",
+                      ].includes(adapted.reason) ? adapted.reason : "unknown";
                       const unavailable = new Error("Workers AI unavailable");
                       unavailable.name = timedOut ? "HEGEVA_AI_TIMEOUT" : "HEGEVA_PROVIDER_UNAVAILABLE";
                       throw unavailable;
@@ -4801,7 +4806,10 @@ QUALITY RULES:
           ...(isX20Action && x20Action?.actionId ? { actionId: x20Action.actionId, attemptId: x20Attempt?.attemptId || null, actionKind: "x20" } : {})
         });
       } catch (error) {
-        logFailure("ai_chat_handler_failed", error, { phase: assistantPhase });
+        logFailure("ai_chat_handler_failed", error, {
+          phase: assistantPhase,
+          ...(assistantProviderReason ? { providerReason: assistantProviderReason } : {}),
+        });
 
         return Response.json(
           {
