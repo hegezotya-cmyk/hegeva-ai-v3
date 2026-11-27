@@ -80,6 +80,26 @@ test("Standard preserves its chat payload, response and token accounting", async
 test("Standard retains the previously admitted input boundary", () => {
   assert.equal(boundAssistantProviderPayload(standard, { ...projection, prompt: "a".repeat(365) }).ok, true)
 })
+test("Standard accepts completed assistant text from a Chat Completions response", async () => {
+  const response = {
+    choices: [{ finish_reason: "stop", message: { role: "assistant", content: answer } }],
+    usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
+  }
+  const result = await invokeAssistantWorkersAiText(envFor(response), projection, { tier: standard })
+  assert.equal(result.response, answer)
+  assert.equal(result.metrics.totalTokens, 30)
+})
+test("Standard rejects empty, truncated and tool-only output", async () => {
+  for (const response of [
+    { response: "   " },
+    { choices: [{ finish_reason: "length", message: { role: "assistant", content: answer } }] },
+    { choices: [{ finish_reason: "tool_calls", message: { role: "assistant", tool_calls: [{}] } }] },
+  ]) {
+    const result = await invokeAssistantWorkersAiText(envFor(response), projection, { tier: standard })
+    assert.equal(result.ok, false)
+    assert.equal(result.reason, "missing-response")
+  }
+})
 test("Staging Advanced resolves the configured eight-credit mode", () => {
   const staging = JSON.parse(readFileSync(new URL("../../wrangler.staging.jsonc", import.meta.url), "utf8"))
   const resolved = resolveAssistantModelTier({ tier: "advanced", plan: "premium", env: staging.vars })
