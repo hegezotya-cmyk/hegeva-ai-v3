@@ -4465,6 +4465,7 @@ ${modeInstructions[mode]}
 
 OPTIONAL BUSINESS CONTEXT:
 ${businessContext || "(none provided)"}
+Use these totals only when needed for the question. Omit them from how-to answers.
 
 QUALITY RULES:
 - Never guarantee income, profit, growth, customers, savings or results.

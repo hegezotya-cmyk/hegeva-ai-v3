@@ -6,8 +6,9 @@ const ASSISTANT_SYSTEM_PROMPT = [
   "You are Ashna, the HEGEVA copilot for UK small businesses. Help with customers, quotes, invoices, documents, tasks, follow-ups and planning. HEGEVA Core highlights priorities for owner review.",
   "Use supplied facts. Never invent records, figures, capabilities, prices, terms or results. Give concrete steps in full sentences and follow the requested count. Name the HEGEVA tool when known. Ask one focused question when a missing fact changes the advice. Keep examples hypothetical.",
   "For external effects, state purpose and scope and mark approval required. Never claim a proposed action was performed. When describing HEGEVA, use stated capabilities only; never invent an etymology. For current opportunities, disclose when live data is unavailable. Do not call tools or execute actions.",
-  "HEGEVA: on an accepted CRM-linked quote in Invoices & quotes, choose Create invoice to make a draft without sending it. For an unknown invoice due date, ask for the issue date and agreed payment terms.",
 ].join(" ")
+const INVOICE_GUIDANCE = "On an accepted CRM-linked quote in Invoices & quotes, choose Create invoice to make a draft without sending it. For an unknown invoice due date, ask for the issue date and agreed payment terms."
+const HUNGARIAN_INVOICE_GUIDANCE = 'Az „Invoices & quotes” felületen nyisd meg az elfogadott, CRM-ügyfélhez kapcsolt ajánlatot, és kattints a „Create invoice” gombra. Ez számlapiszkozatot készít automatikus kiküldés nélkül. Hiányzó határidőnél kérd a kiállítás dátumát és a megállapodott fizetési feltételt.'
 const ASSISTANT_LANGUAGE_POLICIES = Object.freeze({
   en: "Respond in English.",
   hu: "Respond in Hungarian.",
@@ -112,10 +113,13 @@ export function boundAssistantProviderPayload(tier, projection) {
     ? projection.workspaceContext.trim().slice(0, 1_200)
     : ""
   const workspacePolicy = workspaceContext
-    ? `Authenticated workspace facts for the signed-in user (aggregate only):\n${workspaceContext}\nUse these facts for current-workspace questions. Do not claim access to individual records or details absent from this summary.`
+    ? `Authenticated workspace facts for the signed-in user (aggregate only):\n${workspaceContext}\nUse totals only when needed for the question. Omit them from how-to answers. Never infer individual records.`
     : ""
+  const systemPrompt = x10Studio
+    ? X10_STUDIO_SYSTEM_PROMPT
+    : `${ASSISTANT_SYSTEM_PROMPT} ${projection.locale === "hu" ? HUNGARIAN_INVOICE_GUIDANCE : INVOICE_GUIDANCE}`
   const messages = [
-    { role: "system", content: `${x10Studio ? X10_STUDIO_SYSTEM_PROMPT : ASSISTANT_SYSTEM_PROMPT} ${languagePolicy}${workspacePolicy ? `\n\n${workspacePolicy}` : ""}` },
+    { role: "system", content: `${systemPrompt} ${languagePolicy}${workspacePolicy ? `\n\n${workspacePolicy}` : ""}` },
     { role: "user", content: projection.prompt.trim() },
   ]
   if (!messages[1].content) return { ok: false, reason: "invalid-projection" }

@@ -24,6 +24,18 @@ assert.match(payload.request.messages[0].content, /Authenticated workspace facts
 assert.match(payload.request.messages[0].content, /customers=2; open_tasks=1/)
 assert.equal(payload.request.messages[1].content, projection.prompt, "the actual user prompt remains separate from trusted context")
 
+const invoiceQuestion = "Elfogadott, CRM-ügyfélhez kapcsolt ajánlatból hogyan készül számlapiszkozat?"
+const invoicePayload = boundAssistantProviderPayload(tierResult.tier, buildWorkersAiProjection({
+  operation: "assistant",
+  locale: "hu",
+  prompt: invoiceQuestion,
+  workspaceContext,
+}))
+assert.equal(invoicePayload.ok, true)
+assert.match(invoicePayload.request.messages[0].content, /elfogadott, CRM-ügyfélhez kapcsolt ajánlatot.*Create invoice.*számlapiszkozatot készít automatikus kiküldés nélkül/)
+assert.match(invoicePayload.request.messages[0].content, /Omit them from how-to answers/)
+assert.equal(invoicePayload.request.messages[1].content, invoiceQuestion)
+
 const noContext = boundAssistantProviderPayload(tierResult.tier, buildWorkersAiProjection({
   operation: "assistant",
   locale: "en",
