@@ -61,6 +61,11 @@ jobs:
           node --check src/index.js
           node --check src/auth.js
 
+      - name: Staging isolation and Client Portal log privacy
+        run: |
+          node scripts/staging-isolation-audit.mjs
+          node v0-app/scripts/client-portal-log-protection-test.mjs
+
       - name: Apply D1 migrations locally
         run: npm run db:migrations:local
 
